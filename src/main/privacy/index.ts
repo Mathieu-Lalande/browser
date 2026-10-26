@@ -38,11 +38,9 @@ async function fetchList(url: string): Promise<string> {
   return response.text();
 }
 
-/**
- * Installs the shields on a session: content blocking, HTTPS-Only, Global Privacy Control and
- * per-site permission prompts. `alwaysAllowed` permissions are granted without asking.
- */
-export function installPrivacy(ses: Session, alwaysAllowed: ReadonlySet<string>): void {
+/** The shared privacy state (lists, exceptions, prompts), created with the first hardened session. */
+function privacyState(): PrivacyState {
+  if (privacy) return privacy;
   const dir = app.getPath("userData");
   const state: PrivacyState = {
     shields: new ShieldsAllowList(join(dir, "shields.json")),
@@ -55,6 +53,22 @@ export function installPrivacy(ses: Session, alwaysAllowed: ReadonlySet<string>)
   privacy = state;
   state.blocker.start();
   app.once("will-quit", () => state.blocker.stop());
+  return state;
+}
+
+/** Sessions already filtered: `webRequest` accepts one listener per event, so install only once. */
+const installed = new WeakSet<Session>();
+
+/**
+ * Installs the shields on a session: content blocking, HTTPS-Only, Global Privacy Control and
+ * per-site permission prompts. `alwaysAllowed` permissions are granted without asking.
+ * Every session tabs use (the default one, isolated spaces' partitions) goes through here; the
+ * filter engine, exceptions and permission decisions are shared by all of them. Idempotent.
+ */
+export function installPrivacy(ses: Session, alwaysAllowed: ReadonlySet<string>): void {
+  if (installed.has(ses)) return;
+  installed.add(ses);
+  const state = privacyState();
 
   ses.webRequest.onBeforeRequest((details, callback) => {
     const tab = details.webContentsId === undefined ? undefined : tabs.get(details.webContentsId);
@@ -92,9 +106,14 @@ export function installPrivacy(ses: Session, alwaysAllowed: ReadonlySet<string>)
   });
 }
 
-/** Registers a tab page with the privacy layer, for as long as its webContents lives. */
+/**
+ * Registers a tab page with the privacy layer, for as long as its webContents lives. Calling it
+ * again (a live tab moved to another space) only replaces `hooks`.
+ */
 export function attachTabPrivacy(contents: WebContents, hooks: TabPrivacyHooks): void {
   const id = contents.id;
+  const known = tabs.get(id);
+  if (known) return void (known.hooks = hooks);
   tabs.set(id, { contents, hooks });
   // WebRTC must not reveal local network addresses to pages.
   contents.setWebRTCIPHandlingPolicy("default_public_interface_only");

@@ -1,12 +1,19 @@
-import type { BrowserState, TabState } from "@shared/types";
+import type { BrowserState, SpaceInfo, TabState } from "@shared/types";
 
 /** Reactive mirror of the main-process browser state for this window. */
 class BrowserStore {
-  state = $state<BrowserState>({ tabs: [], activeTabId: null });
+  state = $state<BrowserState>({ tabs: [], activeTabId: null, split: null, spaces: [], activeSpaceId: "" });
 
   activeTab: TabState | undefined = $derived(this.state.tabs.find((tab) => tab.id === this.state.activeTabId));
   pinnedTabs: TabState[] = $derived(this.state.tabs.filter((tab) => tab.isPinned));
   regularTabs: TabState[] = $derived(this.state.tabs.filter((tab) => !tab.isPinned));
+  activeSpace: SpaceInfo | undefined = $derived(this.state.spaces.find((space) => space.id === this.state.activeSpaceId));
+  /** Tabs of the split in pane order, while it is on screen (the active tab is one of them). */
+  splitTabs: TabState[] = $derived.by(() => {
+    const { split, activeTabId, tabs } = this.state;
+    if (!split || !activeTabId || !split.tabIds.includes(activeTabId)) return [];
+    return split.tabIds.map((id) => tabs.find((tab) => tab.id === id)).filter((tab) => tab !== undefined);
+  });
 
   constructor() {
     window.browser.onState((next) => (this.state = next));

@@ -4,6 +4,8 @@ Un navigateur desktop **rapide, privé et entièrement personnalisable**, dans l
 
 - Moteur Chromium via Electron, un onglet = une `WebContentsView` sandboxée.
 - Interface Svelte 5 : barre latérale verticale, onglets épinglés, barre d'adresse intégrée, page d'accueil.
+- Espaces (onglets, emoji et couleur propres ; sessions isolées façon conteneurs en option) et vue scindée
+  (2 à 4 pages côte à côte).
 - Session restaurée au démarrage (onglets chargés à la demande), historique, favoris, suggestions
   dans la barre d'adresse et sites les plus visités sur la page d'accueil.
 - Palette de commandes (`Ctrl/Cmd+K`) : onglets ouverts, favoris, historique et actions, recherche floue.
@@ -52,6 +54,9 @@ Sous Linux sans affichage (CI) : `xvfb-run -a npm run test:e2e`.
 | `Ctrl/Cmd+1…9` | Aller à l'onglet n |
 | `Ctrl/Cmd+S` | Afficher/masquer la barre latérale |
 | `Ctrl/Cmd+Maj+B` | Mode zen (barre latérale masquée, page bord à bord) |
+| `Ctrl/Cmd+Alt+1…9`, `Ctrl/Cmd+Alt+←/→` | Aller à l'espace n / espace précédent, suivant |
+| `Ctrl/Cmd+Maj+\` | Vue scindée (l'onglet actif et le suivant côte à côte) / la quitter |
+| Clic droit sur un onglet | Épingler, dupliquer, vue scindée, déplacer vers un espace, fermer… |
 | `Ctrl/Cmd+,` | Paramètres |
 | `Ctrl/Cmd+D` | Ajouter/retirer la page des favoris |
 | `Ctrl/Cmd+R`, `F5` | Actualiser |

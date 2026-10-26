@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { WebContentsView, type BaseWindow, type WebContents } from "electron";
+import { WebContentsView, session as electronSession, type BaseWindow, type Session, type WebContents } from "electron";
 import { INTERNAL_PAGES, internalPageOf, internalUrl, isInternalUrl, type InternalPage } from "@shared/internal";
 import type { CloseTabActivates, NewTabPosition } from "@shared/settings";
-import type { Bounds, BrowserState, TabId, TabState } from "@shared/types";
+import { clampRatio, splitLayout, splitWith, splitWithout } from "@shared/split";
+import type { Bounds, SplitState, TabId, TabState, TabsState } from "@shared/types";
 import { DEFAULT_SEARCH_ENGINE, displayUrl, isNavigableUrl, normalizeInput, type SearchEngine } from "@shared/url";
 import {
   allowHttp,
@@ -14,7 +15,7 @@ import {
   shieldsEnabledFor,
 } from "./privacy";
 import { hardenWebContents } from "./security";
-import type { SessionTab, SessionWindow } from "./storage/session";
+import type { SessionTab, SessionTabList } from "./storage/session";
 
 const START_TITLE = "Nouvel onglet";
 /** Chrome's zoom steps. */
@@ -32,6 +33,21 @@ interface Tab {
   lastVisit?: string;
   /** Set while a discarded tab loads its saved URL: reopening a tab is not a new visit. */
   waking?: string;
+  /** Removes the listeners `wire` added (the tab moves to another TabManager). */
+  unwire?: () => void;
+}
+
+/** A tab taken out of a TabManager (`release`) to be adopted by another one, live page included. */
+export interface ReleasedTab {
+  readonly state: TabState;
+  readonly view: WebContentsView | null;
+}
+
+export interface TabManagerOptions {
+  /** Session of the tabs' pages (default: the default session). Must be hardened (`hardenSession`). */
+  session?: Session;
+  /** A hidden manager (space not shown) attaches no view and loads nothing until shown. */
+  visible?: boolean;
 }
 
 /** Optional integrations (history, bookmarks); TabManager itself does no persistence. */
@@ -65,14 +81,17 @@ const isDiscarded = (tab: Tab) => !tab.view && showsWebPage(tab.state.url);
 const withoutHash = (url: string) => url.split("#", 1)[0];
 
 /**
- * Owns the web pages of one window: each tab is a sandboxed WebContentsView that is
- * attached to the window only while it is the active tab.
+ * Owns the web pages of one space of one window: each tab is a sandboxed WebContentsView that is
+ * attached to the window only while it is the active tab (or one of the tabs of a visible split).
  */
 export class TabManager {
   private tabs: Tab[] = [];
   private activeId: TabId | null = null;
   private bounds: Bounds = { x: 0, y: 0, width: 0, height: 0 };
-  private attached: WebContentsView | null = null;
+  private attached = new Set<WebContentsView>();
+  private split: SplitState | null = null;
+  private visible: boolean;
+  private session: Session | undefined;
   private emitScheduled = false;
   private readonly unsubscribeShields: () => void;
   private options: TabOptions = { ...DEFAULT_TAB_OPTIONS };
@@ -81,9 +100,12 @@ export class TabManager {
 
   constructor(
     private readonly window: BaseWindow,
-    private readonly onChange: (state: BrowserState) => void,
+    private readonly onChange: (state: TabsState) => void,
     private readonly hooks: TabManagerHooks = {},
+    options: TabManagerOptions = {},
   ) {
+    this.session = options.session;
+    this.visible = options.visible ?? true;
     // Shields toggled for a site (from any window) apply to every tab showing it.
     this.unsubscribeShields = onShieldsChange(() => {
       for (const tab of this.tabs) tab.state.shieldsEnabled = shieldsEnabledFor(tab.state.url);
@@ -91,10 +113,11 @@ export class TabManager {
     });
   }
 
-  getState(): BrowserState {
+  getState(): TabsState {
     return {
       tabs: this.tabs.map((tab) => ({ ...tab.state, isBookmarked: this.isBookmarked(tab.state.url) })),
       activeTabId: this.activeId,
+      split: this.split && { ...this.split, tabIds: [...this.split.tabIds] },
     };
   }
 
@@ -117,8 +140,12 @@ export class TabManager {
    * Brings back a saved window. Tabs are restored discarded (url, title and favicon only):
    * just the active one loads now, the others on first activation.
    */
-  restore(saved: SessionWindow): void {
-    for (const entry of saved.tabs) this.insert(entry, this.tabs.length);
+  restore(saved: SessionTabList): void {
+    const restored = saved.tabs.map((entry) => this.insert(entry, this.tabs.length));
+    if (saved.split) {
+      const tabIds = saved.split.tabIndexes.map((index) => restored[index]?.id).filter((id) => id !== undefined);
+      if (tabIds.length >= 2) this.split = { tabIds, ratioX: clampRatio(saved.split.ratioX), ratioY: clampRatio(saved.split.ratioY) };
+    }
     // Pinned tabs always sit before unpinned ones.
     this.tabs.sort((a, b) => Number(b.state.isPinned) - Number(a.state.isPinned));
     const active = this.tabs[saved.activeIndex] ?? this.tabs[0];
@@ -127,10 +154,12 @@ export class TabManager {
   }
 
   /** What to save to restore this window later. */
-  snapshot(): SessionWindow {
+  snapshot(): SessionTabList {
+    const indexOf = (id: TabId) => this.tabs.findIndex((tab) => tab.id === id);
     return {
       tabs: this.tabs.map(({ state }) => ({ url: state.url, title: state.title, favicon: state.favicon, pinned: state.isPinned })),
-      activeIndex: Math.max(0, this.tabs.findIndex((tab) => tab.id === this.activeId)),
+      activeIndex: Math.max(0, indexOf(this.activeId ?? "")),
+      split: this.split && { tabIndexes: this.split.tabIds.map(indexOf), ratioX: this.split.ratioX, ratioY: this.split.ratioY },
     };
   }
 
@@ -140,19 +169,46 @@ export class TabManager {
   }
 
   close(id: TabId): void {
-    const index = this.tabs.findIndex((tab) => tab.id === id);
-    if (index === -1) return;
-    const [tab] = this.tabs.splice(index, 1);
-    this.recent = this.recent.filter((recentId) => recentId !== id);
-    if (this.activeId === id) {
-      const next = this.nextAfterClose(index);
-      this.activeId = null;
-      if (next) this.activate(next.id);
-      else this.detach();
+    const tab = this.remove(id);
+    tab?.view?.webContents.close();
+  }
+
+  /**
+   * Takes a tab out of this manager without closing its page, for `adopt` by another manager
+   * (moving a tab to another space).
+   */
+  release(id: TabId): ReleasedTab | null {
+    const tab = this.remove(id);
+    if (!tab) return null;
+    tab.unwire?.();
+    tab.unwire = undefined;
+    return { state: tab.state, view: tab.view };
+  }
+
+  /**
+   * Adds a tab released by another manager. Its live page is kept when it already uses this
+   * manager's session; otherwise it is closed and the tab comes back discarded (reloads here).
+   */
+  adopt(released: ReleasedTab, options: { activate?: boolean; index?: number } = {}): TabId {
+    const { state } = released;
+    let view = released.view;
+    if (view && view.webContents.session !== this.sessionOf()) {
+      view.webContents.close();
+      view = null;
     }
-    tab.view?.webContents.close();
-    if (this.tabs.length === 0) this.create();
+    const tab: Tab = { id: state.id, view, state: { ...state } };
+    if (!view) {
+      Object.assign(tab.state, { isLoading: false, canGoBack: false, canGoForward: false, blockedCount: 0, permissionRequest: null, interstitial: null });
+    } else {
+      view.setBorderRadius(this.options.pageRadius);
+    }
+    this.tabs.splice(Math.max(0, Math.min(options.index ?? this.tabs.length, this.tabs.length)), 0, tab);
+    this.tabs.sort((a, b) => Number(b.state.isPinned) - Number(a.state.isPinned));
+    if (view) this.wire(tab, view.webContents);
+    // A manager always has an active tab once it has tabs.
+    if (options.activate || !this.activeId) this.activate(tab.id);
     this.emit();
+    return tab.id;
   }
 
   activate(id: TabId): void {
@@ -161,9 +217,67 @@ export class TabManager {
     this.activeId = id;
     tab.state.lastActiveAt = Date.now();
     this.recent = [...this.recent.filter((recentId) => recentId !== id), id];
-    this.wake(tab);
+    if (this.visible) for (const shown of this.shownTabs()) this.wake(shown);
     this.syncAttachment();
     this.emit();
+  }
+
+  /** Shows (space switched to) or hides this manager's pages. Showing loads the active tab if needed. */
+  setVisible(visible: boolean): void {
+    if (this.visible === visible) return;
+    this.visible = visible;
+    if (visible && this.activeId) this.activate(this.activeId);
+    else this.syncAttachment();
+  }
+
+  /**
+   * Moves every tab to another session (a space became isolated or shared again): pages are closed
+   * and reload in the new session, the visible ones right away, the others when activated.
+   */
+  setSession(session: Session | undefined): void {
+    if (session === this.session) return;
+    this.session = session;
+    this.detach();
+    for (const tab of this.tabs) {
+      if (!tab.view) continue;
+      tab.unwire?.();
+      tab.unwire = undefined;
+      tab.view.webContents.close();
+      tab.view = null;
+      Object.assign(tab.state, { isLoading: false, canGoBack: false, canGoForward: false, blockedCount: 0, permissionRequest: null });
+    }
+    if (this.activeId) this.activate(this.activeId);
+  }
+
+  /** "Ouvrir en vue scindée avec l'onglet actif": shows `id` next to the active tab (or adds it to its split). */
+  openSplit(id: TabId): boolean {
+    if (!this.find(id)) return false;
+    const split = splitWith(this.split, this.activeId, id);
+    if (!split) return false;
+    this.split = split;
+    if (this.activeId) this.activate(this.activeId);
+    return true;
+  }
+
+  /** Leaves split view: the active tab stays, alone. */
+  exitSplit(): void {
+    if (!this.split) return;
+    this.split = null;
+    this.syncAttachment();
+    this.emit();
+  }
+
+  /** Divider positions (from the chrome UI's drag), 0…1 each, clamped. */
+  setSplitRatios(ratioX: number, ratioY: number): void {
+    if (!this.split) return;
+    this.split = { ...this.split, ratioX: clampRatio(ratioX), ratioY: clampRatio(ratioY) };
+    this.layout();
+    this.emit();
+  }
+
+  /** Whether the split is on screen (the active tab is one of its tabs). */
+  get splitVisible(): boolean {
+    return !!this.activeId && !!this.split?.tabIds.includes(this.activeId);
   }
 
   navigate(id: TabId, input: string): void {
@@ -186,7 +300,7 @@ export class TabManager {
         // Load failures are reported through did-fail-load.
       });
     }
-    if (id === this.activeId) this.syncAttachment();
+    this.syncAttachment();
     this.emit();
   }
 
@@ -316,9 +430,12 @@ export class TabManager {
     else this.create(url, { index: this.indexAfterActive() });
   }
 
-  /** Where the active page is drawn, in window content coordinates. */
+  /** Where the active page is drawn, in window content coordinates (its pane in a split). */
   get viewBounds(): Bounds {
-    return { ...this.bounds };
+    const shown = this.shownTabs();
+    const index = shown.findIndex((tab) => tab.id === this.activeId);
+    if (shown.length < 2 || index === -1) return { ...this.bounds };
+    return splitLayout(this.bounds, shown.length, this.split?.ratioX, this.split?.ratioY).panes[index];
   }
 
   setBounds(bounds: Bounds): void {
@@ -328,13 +445,50 @@ export class TabManager {
       width: Math.max(0, Math.round(bounds.width)),
       height: Math.max(0, Math.round(bounds.height)),
     };
-    this.attached?.setBounds(this.bounds);
+    this.layout();
   }
 
   destroy(): void {
     this.unsubscribeShields();
+    // The window is closing: its views go with it (removing them from a destroyed window hangs).
+    this.attached.clear();
     for (const tab of this.tabs) tab.view?.webContents.close();
     this.tabs = [];
+  }
+
+  /** Removes a tab from the list (active tab and split follow); its page is left to the caller. */
+  private remove(id: TabId): Tab | undefined {
+    const index = this.tabs.findIndex((tab) => tab.id === id);
+    if (index === -1) return undefined;
+    const [tab] = this.tabs.splice(index, 1);
+    this.recent = this.recent.filter((recentId) => recentId !== id);
+    this.split = splitWithout(this.split, id);
+    if (tab.view && this.attached.has(tab.view)) {
+      this.window.contentView.removeChildView(tab.view);
+      this.attached.delete(tab.view);
+    }
+    if (this.activeId === id) {
+      const next = this.nextAfterClose(index);
+      this.activeId = null;
+      if (next) this.activate(next.id);
+      else this.detach();
+    } else {
+      this.syncAttachment();
+    }
+    if (this.tabs.length === 0) this.create();
+    this.emit();
+    return tab;
+  }
+
+  /** The tabs on screen: the split's when it is visible, else the active one. */
+  private shownTabs(): Tab[] {
+    if (this.splitVisible) return this.split!.tabIds.map((id) => this.find(id)).filter((tab) => tab !== undefined);
+    const active = this.activeId ? this.find(this.activeId) : undefined;
+    return active ? [active] : [];
+  }
+
+  private sessionOf(): Session {
+    return this.session ?? electronSession.defaultSession;
   }
 
   /** Where a new tab goes: at the end, or right after the active tab (never among pinned tabs). */
@@ -396,6 +550,7 @@ export class TabManager {
     if (tab.view) return tab.view;
     const view = new WebContentsView({
       webPreferences: {
+        ...(this.session ? { session: this.session } : {}),
         sandbox: true,
         contextIsolation: true,
         nodeIntegration: false,
@@ -425,24 +580,35 @@ export class TabManager {
   }
 
   /**
-   * The active tab's view is attached unless the chrome UI renders in its place
-   * (start page, internal page, interstitial).
+   * The shown tabs' views are attached (laid out side by side in a split), except where the chrome
+   * UI renders in their place (start page, internal page, interstitial), and none while hidden.
    */
   private syncAttachment(): void {
-    const tab = this.activeId ? this.find(this.activeId) : undefined;
-    const wanted = tab && showsWebPage(tab.state.url) && !tab.state.interstitial ? tab.view : null;
-    if (wanted === this.attached) return;
-    this.detach();
-    if (wanted) {
-      this.window.contentView.addChildView(wanted);
-      wanted.setBounds(this.bounds);
-      this.attached = wanted;
-    }
+    const wanted = new Set(this.visible ? this.paneViews().filter((view) => view !== null) : []);
+    for (const view of this.attached) if (!wanted.has(view)) this.window.contentView.removeChildView(view);
+    for (const view of wanted) if (!this.attached.has(view)) this.window.contentView.addChildView(view);
+    this.attached = wanted;
+    this.layout();
+  }
+
+  /** One entry per pane on screen: the view to show there, or null when the chrome UI draws it. */
+  private paneViews(): (WebContentsView | null)[] {
+    return this.shownTabs().map((tab) => (showsWebPage(tab.state.url) && !tab.state.interstitial ? tab.view : null));
+  }
+
+  /** Bounds of the attached views: the whole viewport, or the split's panes. */
+  private layout(): void {
+    if (!this.attached.size) return;
+    const panes = this.paneViews();
+    const { panes: rects } = splitLayout(this.bounds, panes.length, this.split?.ratioX, this.split?.ratioY);
+    panes.forEach((view, index) => {
+      if (view && this.attached.has(view)) view.setBounds(rects[index]);
+    });
   }
 
   private detach(): void {
-    if (this.attached) this.window.contentView.removeChildView(this.attached);
-    this.attached = null;
+    for (const view of this.attached) this.window.contentView.removeChildView(view);
+    this.attached.clear();
   }
 
   private isBookmarked(url: string): boolean {
@@ -457,6 +623,16 @@ export class TabManager {
   }
 
   private wire(tab: Tab, contents: WebContents): void {
+    // Listeners are tracked so that a live tab moving to another manager can be rewired there.
+    const listeners: [string, (...args: never[]) => void][] = [];
+    const on = ((event: string, listener: (...args: never[]) => void) => {
+      contents.on(event as "focus", listener as () => void);
+      listeners.push([event, listener]);
+    }) as unknown as WebContents["on"];
+    tab.unwire = () => {
+      for (const [event, listener] of listeners) contents.off(event as "focus", listener as () => void);
+    };
+
     hardenWebContents(contents, {
       openTab: (url, foreground) => {
         // Defense in depth: hardenWebContents already only lets web URLs through.
@@ -488,48 +664,52 @@ export class TabManager {
       this.emit();
     };
 
-    contents.on("did-start-navigation", (details) => {
+    // Clicking a pane of a visible split makes its tab the active one (address bar, shortcuts…).
+    on("focus", () => {
+      if (this.splitVisible && tab.id !== this.activeId && this.split?.tabIds.includes(tab.id)) this.activate(tab.id);
+    });
+    on("did-start-navigation", (details) => {
       if (!details.isMainFrame || details.isSameDocument) return;
       // A new page: fresh blocked counter, and any interstitial gives way to it.
       tab.state.blockedCount = 0;
       if (tab.state.interstitial) {
         tab.state.interstitial = null;
-        if (tab.id === this.activeId) this.syncAttachment();
+        this.syncAttachment();
       }
       this.emit();
     });
-    contents.on("did-start-loading", () => {
+    on("did-start-loading", () => {
       tab.state.isLoading = true;
       this.emit();
     });
-    contents.on("did-stop-loading", () => {
+    on("did-stop-loading", () => {
       tab.state.isLoading = false;
       refresh();
     });
-    contents.on("did-navigate", (_event, url) => {
+    on("did-navigate", (_event, url) => {
       if (url === tab.waking) tab.lastVisit = url;
       else this.visit(tab, url, false);
       tab.waking = undefined;
       refresh();
     });
-    contents.on("did-navigate-in-page", (_event, url, isMainFrame) => {
+    on("did-navigate-in-page", (_event, url, isMainFrame) => {
       if (isMainFrame) this.visit(tab, url, true);
       refresh();
     });
-    contents.on("page-title-updated", (_event, title) => {
+    on("page-title-updated", (_event, title) => {
       // A parked view (behind the start page or an internal page) does not name the tab.
       if (!showsWebPage(tab.state.url)) return;
       tab.state.title = title || displayUrl(contents.getURL());
       if (title) this.hooks.onPageInfo?.(contents.getURL(), { title });
       this.emit();
     });
-    contents.on("page-favicon-updated", (_event, favicons) => {
+    on("page-favicon-updated", (_event, favicons) => {
       if (!showsWebPage(tab.state.url)) return;
       tab.state.favicon = favicons.find(isNavigableUrl) ?? null;
       if (tab.state.favicon) this.hooks.onPageInfo?.(contents.getURL(), { favicon: tab.state.favicon });
       this.emit();
     });
-    contents.on("did-fail-load", (_event, code, description, url, isMainFrame) => {
+    on("did-fail-load", (_event, code, description, url, isMainFrame) => {
       // -3 is ERR_ABORTED: a navigation replaced by another one, not a real failure.
       if (!isMainFrame || code === -3) return;
       const httpUrl = httpsFallbackFor(contents.id, url, code);
@@ -539,7 +719,7 @@ export class TabManager {
         tab.state.url = httpUrl;
         tab.state.title = displayUrl(httpUrl);
         tab.state.isLoading = false;
-        if (tab.id === this.activeId) this.syncAttachment();
+        this.syncAttachment();
         this.emit();
         return;
       }

@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { cubicOut } from "svelte/easing";
+  import { fly } from "svelte/transition";
+  import type { SpaceId, TabState } from "@shared/types";
   import { api, browser } from "../lib/browser.svelte";
   import AddressBar from "./AddressBar.svelte";
   import { settings } from "../lib/settings.svelte";
@@ -6,6 +9,9 @@
   import TabIcon from "./TabIcon.svelte";
   import TabItem from "./TabItem.svelte";
   import WindowControls from "./WindowControls.svelte";
+  import SpaceEditor from "./spaces/SpaceEditor.svelte";
+  import SpaceSwitcher from "./spaces/SpaceSwitcher.svelte";
+  import SplitGroup from "./split/SplitGroup.svelte";
 
   let { onToggle }: { onToggle: () => void } = $props();
   let addressBar: AddressBar;
@@ -19,6 +25,33 @@
   export function focusAddress(): void {
     addressBar.focus();
   }
+
+  /** Space whose edit popover is open. */
+  let editing = $state<SpaceId | null>(null);
+  const editedSpace = $derived(browser.state.spaces.find((space) => space.id === editing));
+
+  // Switching spaces slides the tab list in from the side of the new space.
+  const spaceIndex = $derived(browser.state.spaces.findIndex((space) => space.id === browser.state.activeSpaceId));
+  let previousIndex = -1;
+  let direction = $state(1);
+  $effect.pre(() => {
+    const index = spaceIndex;
+    direction = index >= previousIndex ? 1 : -1;
+    previousIndex = index;
+  });
+
+  /** Regular tabs, with the tabs of a split gathered in one entry at the place of its first tab. */
+  type Entry = { key: string; tab: TabState } | { key: string; split: TabState[] };
+  const entries = $derived.by((): Entry[] => {
+    const splitIds = new Set(browser.state.split?.tabIds ?? []);
+    const members = browser.regularTabs.filter((item) => splitIds.has(item.id));
+    const list: Entry[] = [];
+    for (const item of browser.regularTabs) {
+      if (!splitIds.has(item.id) || members.length < 2) list.push({ key: item.id, tab: item });
+      else if (item === members[0]) list.push({ key: `split-${item.id}`, split: members });
+    }
+    return list;
+  });
 </script>
 
 <aside class="sidebar">
@@ -48,37 +81,63 @@
 
   <AddressBar bind:this={addressBar} />
 
-  {#if browser.pinnedTabs.length}
-    <div class="pinned" role="tablist" aria-label="Onglets épinglés">
-      {#each browser.pinnedTabs as pinned (pinned.id)}
-        <button
-          class="pinned-tab"
-          class:active={pinned.id === browser.state.activeTabId}
-          role="tab"
-          aria-selected={pinned.id === browser.state.activeTabId}
-          title={pinned.title}
-          onclick={() => api.tabs.activate(pinned.id)}
-          ondblclick={() => api.tabs.togglePin(pinned.id)}
-        >
-          <TabIcon tab={pinned} />
+  <div class="space-area">
+    {#key browser.state.activeSpaceId}
+      <div class="space-content" in:fly={{ x: direction * 36, duration: 240, easing: cubicOut, opacity: 0 }}>
+        {#if browser.activeSpace && browser.state.spaces.length > 1}
+          <div class="space-title" style:--dot={browser.activeSpace.color ?? "var(--accent)"}>
+            <span class="space-icon">{browser.activeSpace.icon}</span>
+            <span class="space-name">{browser.activeSpace.name}</span>
+            {#if browser.activeSpace.isolated}<span class="badge" title="Cookies et connexions séparés">Isolé</span>{/if}
+            <button class="icon small" aria-label="Modifier l'espace" title="Modifier l'espace" onclick={() => (editing = browser.state.activeSpaceId)}>
+              <Icon name="more" />
+            </button>
+          </div>
+        {/if}
+
+        {#if browser.pinnedTabs.length}
+          <div class="pinned" role="tablist" aria-label="Onglets épinglés">
+            {#each browser.pinnedTabs as pinned (pinned.id)}
+              <button
+                class="pinned-tab"
+                class:active={pinned.id === browser.state.activeTabId}
+                role="tab"
+                aria-selected={pinned.id === browser.state.activeTabId}
+                title={pinned.title}
+                onclick={() => api.tabs.activate(pinned.id)}
+                ondblclick={() => api.tabs.togglePin(pinned.id)}
+                oncontextmenu={(event) => (event.preventDefault(), api.tabs.contextMenu(pinned.id))}
+              >
+                <TabIcon tab={pinned} />
+              </button>
+            {/each}
+          </div>
+        {/if}
+
+        <div class="divider"></div>
+
+        <button class="new-tab" onclick={() => (api.tabs.create(), focusAddress())}>
+          <Icon name="plus" size={14} /> Nouvel onglet
         </button>
-      {/each}
-    </div>
-  {/if}
 
-  <div class="divider"></div>
-
-  <button class="new-tab" onclick={() => (api.tabs.create(), focusAddress())}>
-    <Icon name="plus" size={14} /> Nouvel onglet
-  </button>
-
-  <div class="tabs" role="tablist" aria-label="Onglets" aria-orientation="vertical">
-    {#each browser.regularTabs as item (item.id)}
-      <TabItem tab={item} active={item.id === browser.state.activeTabId} />
-    {/each}
+        <div class="tabs" role="tablist" aria-label="Onglets" aria-orientation="vertical">
+          {#each entries as entry (entry.key)}
+            {#if "split" in entry}
+              <SplitGroup tabs={entry.split} />
+            {:else}
+              <TabItem tab={entry.tab} active={entry.tab.id === browser.state.activeTabId} />
+            {/if}
+          {/each}
+        </div>
+      </div>
+    {/key}
   </div>
 
+  {#if editedSpace}
+    <SpaceEditor space={editedSpace} onClose={() => (editing = null)} />
+  {/if}
   <footer class="footer">
+    <SpaceSwitcher onEdit={(id) => (editing = editing === id ? null : id)} />
     <button class="icon" aria-label="Paramètres" title="Paramètres (Ctrl+,)" onclick={() => api.settings.open()}>
       <Icon name="settings" />
     </button>
@@ -97,6 +156,7 @@
 
 <style>
   .sidebar {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: var(--sidebar-gap);
@@ -176,6 +236,52 @@
     background: var(--surface-hover);
     color: var(--text);
   }
+  .space-area {
+    display: grid;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .space-content {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 0;
+  }
+  .space-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 30px;
+    margin-top: 4px;
+    padding: 0 2px 0 8px;
+  }
+  .space-icon {
+    font-size: 14px;
+  }
+  .space-name {
+    flex: 1;
+    overflow: hidden;
+    color: color-mix(in oklab, var(--dot) 55%, var(--text));
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .badge {
+    padding: 1px 6px;
+    border-radius: 6px;
+    background: color-mix(in oklab, var(--dot) 18%, transparent);
+    color: var(--text-muted);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+  .icon.small {
+    width: 26px;
+    height: 26px;
+  }
   .tabs {
     display: flex;
     flex-direction: column;
@@ -186,8 +292,10 @@
   .footer {
     display: flex;
     flex: none;
+    align-items: center;
     gap: 2px;
     margin-top: auto;
     padding-top: 6px;
+    border-top: 1px solid var(--border);
   }
 </style>

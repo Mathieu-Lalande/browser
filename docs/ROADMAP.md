@@ -19,8 +19,10 @@ barre d'adresse, page d'accueil, raccourcis, durcissement sécurité, tests unit
   moteur de recherche ; page d'accueil (prénom, horloge, sites, fond) ; session, position des
   nouveaux onglets, onglet affiché après fermeture ; effacement de l'historique, gestion des favoris.
 - ✅ Mode zen (Ctrl+Maj+B).
-- Espaces (workspaces) avec sessions isolées et thème propre.
-- Split view (2 à 4 pages côte à côte).
+- ✅ Espaces (workspaces) : onglets propres, emoji et couleur d'accent, sessions isolées optionnelles
+  (conteneurs), déplacement d'onglets, Ctrl+Alt+1…9 (ADR-009).
+- ✅ Vue scindée : 2 à 4 pages côte à côte, séparateurs déplaçables, Ctrl+Maj+\\ (ADR-009).
+  Reste : glisser-déposer d'un onglet sur un volet pour l'ajouter.
 - Raccourcis clavier configurables, CSS par site (« boosts »).
 
 ## Sprint 3 — Confort & vitesse

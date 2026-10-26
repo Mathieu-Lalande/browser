@@ -26,7 +26,11 @@ export type CommandId =
   | "clear-history"
   | "command-palette"
   | "open-settings"
-  | "toggle-zen";
+  | "toggle-zen"
+  | "toggle-split"
+  | "new-space"
+  | "next-space"
+  | "previous-space";
 
 /** Icon names used by commands; the UI's Icon component must know each of them. */
 export type CommandIcon =
@@ -49,7 +53,9 @@ export type CommandIcon =
   | "trash"
   | "command"
   | "settings"
-  | "zen";
+  | "zen"
+  | "split"
+  | "layers";
 
 /** What a command's label and availability may depend on. */
 export interface CommandContext {
@@ -164,6 +170,20 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
     keywords: ["zen", "compact", "focus", "plein écran", "distraction"],
     accelerator: "CmdOrCtrl+Shift+B",
     icon: "zen",
+  },
+  "toggle-split": {
+    label: "Vue scindée",
+    keywords: ["split", "scinder", "côte à côte", "diviser", "quitter la vue scindée"],
+    accelerator: "CmdOrCtrl+Shift+\\",
+    icon: "split",
+  },
+  "new-space": { label: "Nouvel espace", keywords: ["space", "workspace", "espace de travail", "conteneur"], icon: "layers" },
+  "next-space": { label: "Espace suivant", keywords: ["space", "workspace", "next"], accelerator: "CmdOrCtrl+Alt+Right", icon: "forward" },
+  "previous-space": {
+    label: "Espace précédent",
+    keywords: ["space", "workspace", "previous"],
+    accelerator: "CmdOrCtrl+Alt+Left",
+    icon: "back",
   },
 };
 

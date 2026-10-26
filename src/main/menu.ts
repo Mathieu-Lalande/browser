@@ -23,6 +23,13 @@ export function installMenu(): void {
     click: withFocused((c) => c.tabs.activateIndex(i === 8 ? -1 : i)),
   }));
 
+  const spaceNumbers: MenuItemConstructorOptions[] = Array.from({ length: 9 }, (_, i) => ({
+    id: `space-${i + 1}`,
+    label: i === 8 ? "Dernier espace" : `Espace ${i + 1}`,
+    accelerator: `CmdOrCtrl+Alt+${i + 1}`,
+    click: withFocused((c) => c.spaces.switchIndex(i === 8 ? -1 : i)),
+  }));
+
   const template: MenuItemConstructorOptions[] = [
     ...(isMac ? [{ role: "appMenu" as const }] : []),
     {
@@ -63,6 +70,8 @@ export function installMenu(): void {
         commandMenuItem("reload", { accelerator: "F5", visible: false }),
         commandMenuItem("devtools"),
         { type: "separator" },
+        commandMenuItem("toggle-split", { id: "toggle-split" }),
+        { type: "separator" },
         commandMenuItem("zoom-reset"),
         commandMenuItem("zoom-in"),
         // Ctrl+Plus (Shift+= on most layouts) zooms in too.
@@ -81,6 +90,16 @@ export function installMenu(): void {
         { label: "Onglet précédent", accelerator: "Ctrl+Shift+Tab", click: withFocused((c) => c.tabs.cycle(-1)) },
         commandMenuItem("toggle-pin"),
         ...tabNumbers,
+      ],
+    },
+    {
+      label: "Espaces",
+      submenu: [
+        commandMenuItem("new-space", { id: "space-new" }),
+        { type: "separator" },
+        commandMenuItem("next-space", { id: "space-next" }),
+        commandMenuItem("previous-space", { id: "space-previous" }),
+        ...spaceNumbers,
       ],
     },
     {

@@ -52,9 +52,45 @@ export interface TabInterstitial {
   url: string;
 }
 
-export interface BrowserState {
+/** The tabs of one space (what a TabManager owns). */
+export interface TabsState {
   tabs: TabState[];
   activeTabId: TabId | null;
+  /** Tabs shown side by side; visible while the active tab is one of them. */
+  split: SplitState | null;
+}
+
+export interface BrowserState extends TabsState {
+  /** Every space (shared by all windows); the window shows the tabs of `activeSpaceId`. */
+  spaces: SpaceInfo[];
+  activeSpaceId: SpaceId;
+}
+
+export type SpaceId = string;
+
+/** A workspace: its own tabs, accent color and, when isolated, its own cookies and storage. */
+export interface SpaceInfo {
+  id: SpaceId;
+  name: string;
+  /** An emoji (or a short symbol). */
+  icon: string;
+  /** `#rrggbb` accent used while the space is shown; null keeps the theme accent. */
+  color: string | null;
+  /** Own session partition (separate logins, like containers) instead of the shared default one. */
+  isolated: boolean;
+}
+
+/** Fields the chrome UI may set when creating or editing a space. */
+export type SpaceInput = Partial<Omit<SpaceInfo, "id">>;
+
+/**
+ * 2 to 4 tabs shown side by side. Layout: two columns split at `ratioX`; with 3 tabs the right
+ * column is split at `ratioY`, with 4 both columns are (2×2 grid).
+ */
+export interface SplitState {
+  tabIds: TabId[];
+  ratioX: number;
+  ratioY: number;
 }
 
 export interface Bounds {

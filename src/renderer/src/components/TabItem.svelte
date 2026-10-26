@@ -22,6 +22,7 @@
   onkeydown={(event) => event.key === "Enter" && api.tabs.activate(tab.id)}
   onauxclick={onAuxClick}
   ondblclick={() => api.tabs.togglePin(tab.id)}
+  oncontextmenu={(event) => (event.preventDefault(), api.tabs.contextMenu(tab.id))}
 >
   <TabIcon {tab} />
   <span class="title">{tab.title}</span>
