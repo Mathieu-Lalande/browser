@@ -1,0 +1,78 @@
+<script lang="ts">
+  import type { TabState } from "@shared/types";
+  import { api } from "../lib/browser.svelte";
+  import Favicon from "./Favicon.svelte";
+  import Icon from "./Icon.svelte";
+
+  let { tab, active }: { tab: TabState; active: boolean } = $props();
+
+  function onAuxClick(event: MouseEvent): void {
+    if (event.button === 1) api.tabs.close(tab.id);
+  }
+</script>
+
+<div
+  class="tab"
+  class:active
+  role="tab"
+  tabindex="0"
+  aria-selected={active}
+  title={tab.url || tab.title}
+  onclick={() => api.tabs.activate(tab.id)}
+  onkeydown={(event) => event.key === "Enter" && api.tabs.activate(tab.id)}
+  onauxclick={onAuxClick}
+  ondblclick={() => api.tabs.togglePin(tab.id)}
+>
+  <Favicon src={tab.favicon} loading={tab.isLoading} />
+  <span class="title">{tab.title}</span>
+  <button class="close" aria-label="Fermer l'onglet" onclick={(event) => (event.stopPropagation(), api.tabs.close(tab.id))}>
+    <Icon name="close" size={12} />
+  </button>
+</div>
+
+<style>
+  .tab {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 36px;
+    padding: 0 6px 0 10px;
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    transition: background 0.12s var(--ease);
+  }
+  .tab:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+  }
+  .tab.active {
+    background: var(--bg-elevated);
+    color: var(--text);
+    box-shadow:
+      0 1px 2px rgb(0 0 0 / 0.18),
+      inset 0 0 0 1px var(--border);
+  }
+  .title {
+    flex: 1;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .close {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    color: var(--text-faint);
+    opacity: 0;
+  }
+  .tab:hover .close,
+  .tab.active .close {
+    opacity: 1;
+  }
+  .close:hover {
+    background: var(--surface-active);
+    color: var(--text);
+  }
+</style>

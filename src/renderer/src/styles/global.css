@@ -1,0 +1,92 @@
+:root {
+  color-scheme: dark;
+  --accent: #8b7bff;
+  --accent-2: #d77bff;
+  --bg: #141318;
+  --bg-elevated: #1d1b23;
+  --surface: rgb(255 255 255 / 0.05);
+  --surface-hover: rgb(255 255 255 / 0.08);
+  --surface-active: rgb(255 255 255 / 0.12);
+  --border: rgb(255 255 255 / 0.08);
+  --text: #eeeaf6;
+  --text-muted: #9a94a8;
+  --text-faint: #6c6778;
+  --radius: 10px;
+  --sidebar-width: 264px;
+  --gutter: 8px;
+  --font: "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --bg: #ecebf2;
+    --bg-elevated: #ffffff;
+    --surface: rgb(20 10 40 / 0.05);
+    --surface-hover: rgb(20 10 40 / 0.08);
+    --surface-active: rgb(20 10 40 / 0.12);
+    --border: rgb(20 10 40 / 0.1);
+    --text: #1d1a25;
+    --text-muted: #5f5a6d;
+    --text-faint: #8e8a9b;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  background:
+    radial-gradient(120% 80% at 0% 0%, color-mix(in oklab, var(--accent) 16%, transparent), transparent 60%),
+    radial-gradient(100% 70% at 100% 100%, color-mix(in oklab, var(--accent-2) 10%, transparent), transparent 60%),
+    var(--bg);
+  color: var(--text);
+  font: 13px/1.4 var(--font);
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  border: 0;
+  background: none;
+  cursor: default;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.drag {
+  -webkit-app-region: drag;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

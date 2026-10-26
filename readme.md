@@ -1,23 +1,53 @@
 # Browser
 
-Browser est un navigateur desktop rapide, prive et minimaliste, inspire de Zen, Brave et Arc.
+Un navigateur desktop **rapide, privé et entièrement personnalisable**, dans l'esprit d'Arc et de Zen.
 
-## Sprint 1 — shell de navigation
+- Moteur Chromium via Electron, un onglet = une `WebContentsView` sandboxée.
+- Interface Svelte 5 : barre latérale verticale, onglets épinglés, barre d'adresse intégrée, page d'accueil.
+- Recherche privée par défaut (DuckDuckGo), protections de sécurité strictes (voir `docs/DECISIONS.md`).
 
-Le premier vertical slice fournit une interface Tauri 2 avec :
+## Démarrer
 
-- onglets creables et fermables ;
-- barre d'adresse avec normalisation des URLs et recherche ;
-- raccourcis `Ctrl+L`, `Ctrl+T` et `Ctrl+W` ;
-- page d'accueil et etat de navigation prets pour l'integration du moteur web.
-
-## Developpement
-
-Prerequis : Node.js 20+ et Rust via [rustup](https://rustup.rs/).
+Prérequis : Node.js 20+.
 
 ```bash
 npm install
-npm run dev
+npm run dev        # lance le navigateur en mode développement (HMR sur l'interface)
 ```
 
-Le moteur de rendu web, l'historique session-only et le blocage des traqueurs sont planifies pour les prochains sprints.
+## Scripts
+
+| Commande | Rôle |
+| --- | --- |
+| `npm run dev` | Développement |
+| `npm run build` | Build de production dans `out/` |
+| `npm run typecheck` | TypeScript (process principal) + svelte-check (interface) |
+| `npm test` | Tests unitaires (Vitest) |
+| `npm run test:e2e` | Tests end-to-end (Playwright pilotant Electron) |
+| `npm run dist` | Paquets installables (electron-builder) |
+
+Sous Linux sans affichage (CI) : `xvfb-run -a npm run test:e2e`.
+
+## Raccourcis
+
+| Raccourci | Action |
+| --- | --- |
+| `Ctrl/Cmd+L` | Barre d'adresse |
+| `Ctrl/Cmd+T` / `W` | Nouvel onglet / fermer l'onglet |
+| `Ctrl+Tab` / `Ctrl+Shift+Tab` | Onglet suivant / précédent |
+| `Ctrl/Cmd+1…9` | Aller à l'onglet n |
+| `Ctrl/Cmd+S` | Afficher/masquer la barre latérale |
+| `Ctrl/Cmd+R`, `F5` | Actualiser |
+| Double-clic sur un onglet | Épingler / désépingler |
+
+## Structure
+
+```
+src/
+  main/       process principal : fenêtres, onglets, sécurité, menus/raccourcis, IPC
+  preload/    pont sécurisé exposant window.browser à l'interface
+  renderer/   interface du navigateur (Svelte 5)
+  shared/     types, contrat IPC, logique d'URL (testée)
+tests/e2e/    tests Playwright + Electron
+docs/         décisions d'architecture et roadmap
+```
