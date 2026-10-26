@@ -118,6 +118,11 @@ export function attachTabPrivacy(contents: WebContents, hooks: TabPrivacyHooks):
   });
 }
 
+/** Whether `contents` is a tab page (registered by `attachTabPrivacy`), as opposed to browser UI. */
+export function isTabPage(contents: WebContents): boolean {
+  return tabs.get(contents.id)?.contents === contents;
+}
+
 /** Whether content blocking applies to this page (always true for non-web pages: nothing to toggle). */
 export function shieldsEnabledFor(url: string): boolean {
   const host = webHostname(url);

@@ -1,5 +1,6 @@
 import { app, session, shell, type WebContents } from "electron";
 import { isNavigableUrl } from "@shared/url";
+import { installDownloads } from "./downloads";
 import { installPrivacy } from "./privacy";
 
 /**
@@ -24,6 +25,8 @@ export function hardenSession(): void {
   const ses = session.defaultSession;
   // Content blocking, HTTPS-Only, Global Privacy Control and per-site permission prompts.
   installPrivacy(ses, ALLOWED_PERMISSIONS);
+  // Downloads: tab pages only, no automatic opening, dangerous types confirmed first (ADR-013).
+  installDownloads(ses);
   // A desktop-Chrome-like user agent: the default one advertises Electron and the app name,
   // which both breaks sites and makes users easier to fingerprint.
   const appToken = app.getName().replace(/[^\w-]/g, "");

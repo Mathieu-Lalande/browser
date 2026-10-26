@@ -4,6 +4,18 @@ import { Channels } from "@shared/ipc";
 import { isSettingsSection } from "@shared/settings";
 import type { BookmarkInput, Bounds } from "@shared/types";
 import { runCommand } from "./commands";
+import {
+  cancelDownload,
+  chooseDownloadsFolder,
+  clearDownloads,
+  keepDownload,
+  listDownloads,
+  openDownload,
+  pauseDownload,
+  removeDownload,
+  resumeDownload,
+  showDownloadInFolder,
+} from "./downloads";
 import { profile } from "./profile";
 import { resetSettingsSection, settings, updateSettings } from "./settings";
 import { BrowserController } from "./window";
@@ -137,4 +149,37 @@ export function registerIpc(): void {
     resetSettingsSection(section as Parameters<typeof resetSettingsSection>[0]),
   );
   on(Channels.settingsOpen, none, (c) => c.openSettings());
+
+  // Tab media and find in page (the find bar sends the query typed by the user).
+  on(Channels.tabToggleMute, id, (c, tabId) => c.tabs.toggleMute(tabId as string));
+  on(
+    Channels.findQuery,
+    (args) => isString(args[0]) && isString(args[1]) && args[1].length <= MAX_QUERY_LENGTH && isBoolean(args[2]),
+    (c, tabId, text, matchCase) => c.tabs.findQuery(tabId as string, text as string, matchCase as boolean),
+  );
+  on(Channels.findStep, (args) => isString(args[0]) && isBoolean(args[1]), (c, tabId, forward) =>
+    c.tabs.findStep(tabId as string, forward as boolean),
+  );
+  on(Channels.findClose, id, (c, tabId) => c.tabs.closeFind(tabId as string));
+
+  // Downloads: the UI only names downloads by id; paths never come from the renderer.
+  const downloadId = (args: unknown[]) => isString(args[0]) && args[0].length <= 64;
+  handle(Channels.downloadsList, none, () => listDownloads());
+  on(Channels.downloadsPause, downloadId, (_c, downloadId) => pauseDownload(downloadId as string));
+  on(Channels.downloadsResume, downloadId, (_c, downloadId) => resumeDownload(downloadId as string));
+  on(Channels.downloadsCancel, downloadId, (_c, downloadId) => cancelDownload(downloadId as string));
+  on(Channels.downloadsKeep, downloadId, (c, downloadId) => void keepDownload(downloadId as string, c.window));
+  on(Channels.downloadsOpen, downloadId, (_c, downloadId) => openDownload(downloadId as string));
+  on(Channels.downloadsShowInFolder, downloadId, (_c, downloadId) => showDownloadInFolder(downloadId as string));
+  on(Channels.downloadsRemove, downloadId, (_c, downloadId) => removeDownload(downloadId as string));
+  on(Channels.downloadsClear, none, () => clearDownloads());
+  ipcMain.handle(Channels.downloadsChooseFolder, (event) => {
+    const controller = BrowserController.fromUi(event.sender);
+    if (!controller) throw new Error(`Rejected ${Channels.downloadsChooseFolder}`);
+    return chooseDownloadsFolder(controller.window);
+  });
+  on(Channels.downloadsShowPanel, (args) => isBounds(args[0]), (c, anchor) =>
+    c.overlay.open({ kind: "downloads", anchor: anchor as Bounds }),
+  );
+  on(Channels.downloadsOpenPage, none, (c) => c.openDownloads());
 }

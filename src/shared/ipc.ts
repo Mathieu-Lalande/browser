@@ -1,4 +1,5 @@
 import type { CommandId } from "./commands";
+import type { DownloadEntry, DownloadsChange } from "./downloads";
 import type { Settings, SettingsPatch, SettingsSection } from "./settings";
 import type {
   Bookmark,
@@ -50,6 +51,23 @@ export const Channels = {
   settingsReset: "settings:reset",
   settingsChanged: "settings:changed",
   settingsOpen: "settings:open",
+  tabToggleMute: "tab:toggle-mute",
+  findQuery: "find:query",
+  findStep: "find:step",
+  findClose: "find:close",
+  downloadsList: "downloads:list",
+  downloadsChanged: "downloads:changed",
+  downloadsPause: "downloads:pause",
+  downloadsResume: "downloads:resume",
+  downloadsCancel: "downloads:cancel",
+  downloadsKeep: "downloads:keep",
+  downloadsOpen: "downloads:open",
+  downloadsShowInFolder: "downloads:show-in-folder",
+  downloadsRemove: "downloads:remove",
+  downloadsClear: "downloads:clear",
+  downloadsChooseFolder: "downloads:choose-folder",
+  downloadsShowPanel: "downloads:show-panel",
+  downloadsOpenPage: "downloads:open-page",
 } as const;
 
 /** API exposed to the chrome UI on `window.browser` by the preload script. */
@@ -72,6 +90,8 @@ export interface BrowserApi {
     toggleShields(id: TabId): void;
     /** HTTPS-Only interstitial: load the http:// address anyway (exception for this session). */
     proceedHttp(id: TabId): void;
+    /** Mutes the tab's sound, or unmutes it. */
+    toggleMute(id: TabId): void;
   };
   permissions: {
     respond(tabId: TabId, promptId: string, allow: boolean, remember: boolean): void;
@@ -124,5 +144,38 @@ export interface BrowserApi {
     onChanged(listener: (settings: Settings) => void): () => void;
     /** Shows `browser://settings` in this window (existing tab, or a new one). */
     open(): void;
+  };
+  find: {
+    /** Searches the tab's page for `query` (new search: the first match from the top is highlighted). */
+    query(tabId: TabId, query: string, matchCase: boolean): void;
+    /** Next (forward) or previous match of the current query. */
+    step(tabId: TabId, forward: boolean): void;
+    /** Hides the find bar and clears the highlights (the query is kept for the tab). */
+    close(tabId: TabId): void;
+  };
+  downloads: {
+    /** Every download, newest first. */
+    list(): Promise<DownloadEntry[]>;
+    /** Downloads added, updated or forgotten (from any window). */
+    onChanged(listener: (change: DownloadsChange) => void): () => void;
+    pause(id: string): void;
+    resume(id: string): void;
+    /** Cancels a running download, or discards a dangerous file waiting for confirmation. */
+    cancel(id: string): void;
+    /** Keeps a dangerous file: moves it to the downloads folder under its real name. */
+    keep(id: string): void;
+    /** Opens a completed file with its default app (never automatic). */
+    open(id: string): void;
+    showInFolder(id: string): void;
+    /** Forgets a finished download (the file stays on disk). */
+    remove(id: string): void;
+    /** Forgets every finished download. */
+    clear(): void;
+    /** Folder picker (native dialog in main); resolves to the resulting settings. */
+    chooseFolder(): Promise<Settings>;
+    /** Chrome UI: opens the downloads popover in the overlay layer, hanging from `anchor`. */
+    showPanel(anchor: Bounds): void;
+    /** Shows `browser://downloads` in this window. */
+    openPage(): void;
   };
 }

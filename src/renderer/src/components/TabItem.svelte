@@ -25,6 +25,18 @@
 >
   <TabIcon {tab} />
   <span class="title">{tab.title}</span>
+  {#if tab.isAudible || tab.isMuted}
+    <button
+      class="audio"
+      class:muted={tab.isMuted}
+      aria-label={tab.isMuted ? "Réactiver le son de l'onglet" : "Couper le son de l'onglet"}
+      aria-pressed={tab.isMuted}
+      title={tab.isMuted ? "Réactiver le son (Ctrl+M)" : "Couper le son (Ctrl+M)"}
+      onclick={(event) => (event.stopPropagation(), api.tabs.toggleMute(tab.id))}
+    >
+      <Icon name={tab.isMuted ? "volume-off" : "volume"} size={13} />
+    </button>
+  {/if}
   <button class="close" aria-label="Fermer l'onglet" onclick={(event) => (event.stopPropagation(), api.tabs.close(tab.id))}>
     <Icon name="close" size={12} />
   </button>
@@ -70,6 +82,23 @@
   .tab:hover .close,
   .tab.active .close {
     opacity: 1;
+  }
+  .audio {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    margin-right: -6px;
+    border-radius: 6px;
+    color: var(--accent-text);
+  }
+  .audio.muted {
+    color: var(--text-faint);
+  }
+  .audio:hover {
+    background: var(--surface-active);
+    color: var(--text);
   }
   .close:hover {
     background: var(--surface-active);

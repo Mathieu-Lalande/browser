@@ -13,8 +13,15 @@ Un navigateur desktop **rapide, privé et entièrement personnalisable**, dans l
 - Paramètres (`browser://settings`) appliqués à chaud : thème clair/sombre/auto, couleur d'accent avec
   palette dérivée accessible, arrière-plans, densité, coins, police, barre latérale à gauche ou à droite
   (redimensionnable), page bord à bord, mode zen, moteur de recherche, page d'accueil personnalisée.
+- Téléchargements sans boîte de dialogue (pause, reprise, annulation, historique, `browser://downloads`) ;
+  les programmes et scripts attendent une confirmation et rien n'est jamais ouvert automatiquement.
+- Recherche dans la page, zoom mémorisé par site, image dans l'image, son coupé onglet par onglet.
 
 ![Paramètres](docs/screenshots/settings.png)
+
+![Téléchargements](docs/screenshots/downloads.png)
+
+![Recherche dans la page](docs/screenshots/find.png)
 
 ## Démarrer
 
@@ -47,7 +54,10 @@ Sous Linux sans affichage (CI) : `xvfb-run -a npm run test:e2e`.
 | `Ctrl/Cmd+T` / `W` | Nouvel onglet / fermer l'onglet |
 | `Ctrl/Cmd+Shift+K` | Dupliquer l'onglet (avec son historique) |
 | `Ctrl/Cmd+Shift+C` | Copier l'URL de la page |
-| `Ctrl/Cmd+=` / `-` / `0` | Zoom avant / arrière / taille réelle (page active) |
+| `Ctrl/Cmd+=` / `-` / `0` | Zoom avant / arrière / zoom par défaut (mémorisé par site) |
+| `Ctrl/Cmd+F` | Rechercher dans la page (`Entrée` / `Maj+Entrée`, `F3` / `Maj+F3` : suivante / précédente) |
+| `Ctrl+Maj+J` (`⌥⌘L` sous macOS) | Téléchargements |
+| `Ctrl+M` | Couper / réactiver le son de l'onglet |
 | `Ctrl+Tab` / `Ctrl+Shift+Tab` | Onglet suivant / précédent |
 | `Ctrl/Cmd+1…9` | Aller à l'onglet n |
 | `Ctrl/Cmd+S` | Afficher/masquer la barre latérale |

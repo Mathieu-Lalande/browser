@@ -2,6 +2,7 @@
   import {
     ACCENT_PRESETS,
     LIMITS,
+    PAGE_ZOOM_LEVELS,
     type BackgroundStyle,
     type CloseTabActivates,
     type Density,
@@ -18,6 +19,7 @@
   import Icon, { type IconName } from "../Icon.svelte";
   import ColorPicker from "./ColorPicker.svelte";
   import DataSection from "./DataSection.svelte";
+  import DownloadsSection from "./DownloadsSection.svelte";
   import MiniBrowser from "./MiniBrowser.svelte";
   import Row from "./Row.svelte";
   import Section from "./Section.svelte";
@@ -31,6 +33,7 @@
     { id: "search", label: "Recherche", icon: "search" },
     { id: "startPage", label: "Page d'accueil", icon: "home" },
     { id: "behavior", label: "Comportement", icon: "sliders" },
+    { id: "downloads", label: "Téléchargements", icon: "download" },
     { id: "data", label: "Données", icon: "database" },
   ];
 
@@ -215,6 +218,18 @@
             onchange={(reduceMotion) => update({ appearance: { reduceMotion } })}
           />
         </Row>
+        <Row label="Zoom par défaut" hint="Taille des pages web. Le zoom choisi sur un site (Ctrl+ / Ctrl−) est mémorisé pour ce site." id="page-zoom">
+          <select
+            id="page-zoom"
+            class="field select"
+            value={s.appearance.pageZoom}
+            onchange={(event) => update({ appearance: { pageZoom: Number(event.currentTarget.value) } })}
+          >
+            {#each PAGE_ZOOM_LEVELS as level (level)}
+              <option value={level}>{level} %</option>
+            {/each}
+          </select>
+        </Row>
       </Section>
 
       <Section
@@ -380,6 +395,16 @@
             onchange={(closeTabActivates) => update({ behavior: { closeTabActivates } })}
           />
         </Row>
+      </Section>
+
+      <Section
+        id="downloads"
+        icon="download"
+        title="Téléchargements"
+        description="Où vont les fichiers, et comment."
+        onReset={() => settings.reset("downloads")}
+      >
+        <DownloadsSection />
       </Section>
 
       <Section id="data" icon="database" title="Données" description="Historique et favoris, stockés uniquement sur cet appareil.">
@@ -620,6 +645,12 @@
   }
   .field.wide {
     width: 300px;
+  }
+  .field.select {
+    width: 110px;
+    padding-right: 6px;
+    color: inherit;
+    font: inherit;
   }
   .field:focus {
     border-color: color-mix(in oklab, var(--accent) 60%, transparent);

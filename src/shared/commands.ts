@@ -26,7 +26,13 @@ export type CommandId =
   | "clear-history"
   | "command-palette"
   | "open-settings"
-  | "toggle-zen";
+  | "toggle-zen"
+  | "find"
+  | "find-next"
+  | "find-previous"
+  | "open-downloads"
+  | "toggle-mute"
+  | "picture-in-picture";
 
 /** Icon names used by commands; the UI's Icon component must know each of them. */
 export type CommandIcon =
@@ -49,7 +55,10 @@ export type CommandIcon =
   | "trash"
   | "command"
   | "settings"
-  | "zen";
+  | "zen"
+  | "download"
+  | "volume"
+  | "pip";
 
 /** What a command's label and availability may depend on. */
 export interface CommandContext {
@@ -62,7 +71,7 @@ export interface CommandDefinition {
   /** Label when the command would undo the active tab's current state (`toggles`). */
   activeLabel?: string;
   /** Which active-tab flag `activeLabel` follows. */
-  toggles?: "isPinned" | "isBookmarked";
+  toggles?: "isPinned" | "isBookmarked" | "isMuted";
   /** Label in the application menu, when it differs (toggles have a neutral one). */
   menuLabel?: string;
   /** Extra search terms (synonyms, English names). */
@@ -165,6 +174,39 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
     accelerator: "CmdOrCtrl+Shift+B",
     icon: "zen",
   },
+  find: {
+    label: "Rechercher dans la page",
+    menuLabel: "Rechercher…",
+    keywords: ["find", "chercher", "trouver", "occurrences"],
+    accelerator: "CmdOrCtrl+F",
+    icon: "search",
+    needsPage: true,
+  },
+  // Follow-ups of an open find bar: in the menu (shortcuts), not in the palette.
+  "find-next": { label: "Occurrence suivante", keywords: ["find next"], icon: "forward", needsPage: true, palette: false },
+  "find-previous": { label: "Occurrence précédente", keywords: ["find previous"], icon: "back", needsPage: true, palette: false },
+  "open-downloads": {
+    label: "Téléchargements",
+    keywords: ["downloads", "fichiers", "télécharger"],
+    icon: "download",
+  },
+  "toggle-mute": {
+    label: "Couper le son de l'onglet",
+    activeLabel: "Réactiver le son de l'onglet",
+    toggles: "isMuted",
+    menuLabel: "Couper/réactiver le son de l'onglet",
+    keywords: ["mute", "son", "audio", "silence", "muet"],
+    // Firefox's shortcut. Ctrl (not Cmd) on macOS too, where Cmd+M minimizes the window.
+    accelerator: "Ctrl+M",
+    icon: "volume",
+    needsPage: true,
+  },
+  "picture-in-picture": {
+    label: "Image dans l'image",
+    keywords: ["picture in picture", "pip", "vidéo", "flottante", "lecteur"],
+    icon: "pip",
+    needsPage: true,
+  },
 };
 
 /** Every command, in palette order. */
@@ -186,6 +228,10 @@ const PLATFORM_ACCELERATORS: Partial<Record<CommandId, { mac: string; other: str
   devtools: { mac: "Alt+Cmd+I", other: "Ctrl+Shift+I" },
   back: { mac: "Cmd+[", other: "Alt+Left" },
   forward: { mac: "Cmd+]", other: "Alt+Right" },
+  "find-next": { mac: "Cmd+G", other: "F3" },
+  "find-previous": { mac: "Cmd+Shift+G", other: "Shift+F3" },
+  // Chrome's shortcuts for the downloads page.
+  "open-downloads": { mac: "Alt+Cmd+L", other: "Ctrl+Shift+J" },
 };
 
 /** The command's accelerator on `platform` (`process.platform` values). */

@@ -24,7 +24,12 @@ barre d'adresse, page d'accueil, raccourcis, durcissement sécurité, tests unit
 - Raccourcis clavier configurables, CSS par site (« boosts »).
 
 ## Sprint 3 — Confort & vitesse
-- Téléchargements, recherche dans la page, zoom par site, picture-in-picture.
+- ✅ Téléchargements (sans boîte de dialogue, noms uniques, pause/reprise/annulation, exécutables
+  à confirmer, rien n'est ouvert automatiquement), popover dans l'overlay, `browser://downloads`,
+  historique ; recherche dans la page (Ctrl+F, compteur, casse, requête gardée par onglet) ; zoom
+  mémorisé par site et zoom par défaut ; image dans l'image ; indicateur de son et coupure par onglet.
+  Reste : reprise des téléchargements interrompus après un redémarrage, vidéos dans des iframes
+  pour l'image dans l'image.
 - Mise en veille des onglets inactifs (mémoire), préchargement intelligent.
 - Navigation privée (session éphémère), anti-fingerprinting.
 - Packaging & mises à jour automatiques (electron-builder).

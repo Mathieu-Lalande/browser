@@ -1,6 +1,8 @@
 <script lang="ts">
   import { internalPageOf } from "@shared/internal";
   import { api, browser } from "./lib/browser.svelte";
+  import DownloadsPage from "./components/downloads/DownloadsPage.svelte";
+  import FindBar from "./components/FindBar.svelte";
   import HttpsOnlyPage from "./components/HttpsOnlyPage.svelte";
   import { settings } from "./lib/settings.svelte";
   import { applyTheme } from "./lib/theme";
@@ -29,6 +31,12 @@
   const showStartPage = $derived(!browser.activeTab?.url);
   const permissionRequest = $derived(browser.activeTab?.permissionRequest ?? null);
   const internalPage = $derived(internalPageOf(browser.activeTab?.url ?? ""));
+  /** Find bar of the active tab, over web pages only. */
+  const findState = $derived(
+    browser.activeTab?.find?.open && !showStartPage && !internalPage && !browser.activeTab.interstitial ? browser.activeTab.find : null,
+  );
+  let findBar = $state<FindBar>();
+  let findFocusPending = $state(false);
   // macOS draws its traffic lights top-left: with the sidebar on the right, keep them off the page.
   const trafficLights = $derived(window.platform === "darwin" && right && !zen);
 
@@ -93,7 +101,16 @@
         showSidebarNow();
         queueMicrotask(() => sidebar?.focusAddress());
       }
+      // The bar may not be rendered yet (its state is on its way): focused as soon as it is.
+      if (command === "focus-find") findFocusPending = true;
     });
+  });
+
+  $effect(() => {
+    if (findFocusPending && findBar) {
+      findFocusPending = false;
+      findBar.focus();
+    }
   });
 </script>
 
@@ -125,11 +142,18 @@
     {#if browser.activeTab && permissionRequest}
       <PermissionBar tabId={browser.activeTab.id} prompt={permissionRequest} />
     {/if}
+    {#if browser.activeTab && findState}
+      {#key browser.activeTab.id}
+        <FindBar bind:this={findBar} tabId={browser.activeTab.id} find={findState} />
+      {/key}
+    {/if}
     <main class="viewport" bind:this={viewport}>
       {#if showStartPage}
         <StartPage />
       {:else if internalPage === "settings"}
         <SettingsPage />
+      {:else if internalPage === "downloads"}
+        <DownloadsPage />
       {:else if browser.activeTab?.interstitial}
         <HttpsOnlyPage tab={browser.activeTab} />
       {/if}
