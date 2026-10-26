@@ -14,13 +14,16 @@ import {
   setShieldsEnabled,
   shieldsEnabledFor,
 } from "./privacy";
+import { PageFind } from "./find";
+import { togglePictureInPicture } from "./media";
+import { webHostname } from "./privacy/hosts";
 import { hardenWebContents } from "./security";
 import type { SleepCandidate } from "./sleep";
 import type { SessionTab, SessionTabList } from "./storage/session";
+import { onSiteZoomChange, rememberSiteZoom, siteZoomFactor } from "./zoom";
+import { nextZoomFactor, sameFactor } from "./zoom/levels";
 
 const START_TITLE = "Nouvel onglet";
-/** Chrome's zoom steps. */
-const ZOOM_FACTORS = [0.25, 0.33, 0.5, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4, 5];
 
 interface Tab {
   id: TabId;
@@ -34,6 +37,8 @@ interface Tab {
   lastVisit?: string;
   /** Set while a discarded tab loads its saved URL: reopening a tab is not a new visit. */
   waking?: string;
+  /** Find in page, created with the view. */
+  finder?: PageFind;
   /** Removes the listeners `wire` added (the tab moves to another TabManager). */
   unwire?: () => void;
   /** Epoch ms when the tab was last on screen (or created): its idle time for tab sleeping. */
@@ -71,6 +76,8 @@ export interface TabOptions {
   closeTabActivates: CloseTabActivates;
   /** Corner radius of the page views, in px. */
   pageRadius: number;
+  /** Zoom factor of sites never zoomed by hand. */
+  defaultZoom: number;
 }
 
 const DEFAULT_TAB_OPTIONS: TabOptions = {
@@ -78,6 +85,7 @@ const DEFAULT_TAB_OPTIONS: TabOptions = {
   newTabPosition: "end",
   closeTabActivates: "next",
   pageRadius: 10,
+  defaultZoom: 1,
 };
 
 /** Whether a tab URL is a web page (vs the start page or an internal page drawn by the chrome UI). */
@@ -99,6 +107,7 @@ export class TabManager {
   private session: Session | undefined;
   private emitScheduled = false;
   private readonly unsubscribeShields: () => void;
+  private readonly unsubscribeZoom: () => void;
   private options: TabOptions = { ...DEFAULT_TAB_OPTIONS };
   /** Tab ids, least recently activated first (for "close → back to the last used tab"). */
   private recent: TabId[] = [];
@@ -116,6 +125,10 @@ export class TabManager {
       for (const tab of this.tabs) tab.state.shieldsEnabled = shieldsEnabledFor(tab.state.url, this.session);
       this.emit();
     });
+    // A site zoomed (from any window): its other tabs follow.
+    this.unsubscribeZoom = onSiteZoomChange((host) => {
+      for (const tab of this.tabs) if (tab.view && webHostname(tab.view.webContents.getURL()) === host) this.applyZoom(tab);
+    });
   }
 
   getState(): TabsState {
@@ -129,8 +142,10 @@ export class TabManager {
   /** Updates preferences; already open page views pick up the new radius right away. */
   configure(options: Partial<TabOptions>): void {
     const radiusChanged = options.pageRadius !== undefined && options.pageRadius !== this.options.pageRadius;
+    const zoomChanged = options.defaultZoom !== undefined && !sameFactor(options.defaultZoom, this.options.defaultZoom);
     this.options = { ...this.options, ...options };
     if (radiusChanged) for (const tab of this.tabs) tab.view?.setBorderRadius(this.options.pageRadius);
+    if (zoomChanged) for (const tab of this.tabs) this.applyZoom(tab);
   }
 
   create(input = "", options: { activate?: boolean; index?: number } = {}): TabId {
@@ -365,18 +380,60 @@ export class TabManager {
     return copy.id;
   }
 
-  /** Zooms the tab's page one step in (1) or out (-1), or back to 100 % (0). */
+  /**
+   * Zooms the tab's page one step in (1) or out (-1), or back to the default zoom (0). The level
+   * is remembered for the site (every tab on it follows), except for pages without a web host.
+   */
   zoom(id: TabId, direction: 1 | -1 | 0): void {
-    const contents = this.find(id)?.view?.webContents;
-    if (!contents) return;
-    const current = contents.getZoomFactor();
-    const next =
-      direction === 0
-        ? 1
-        : direction > 0
-          ? ZOOM_FACTORS.find((factor) => factor > current + 0.001)
-          : ZOOM_FACTORS.findLast((factor) => factor < current - 0.001);
-    if (next) contents.setZoomFactor(next);
+    const tab = this.find(id);
+    const contents = tab?.view?.webContents;
+    if (!tab || !contents || !showsWebPage(tab.state.url)) return;
+    const next = nextZoomFactor(contents.getZoomFactor(), direction, this.options.defaultZoom);
+    if (next === undefined) return;
+    if (webHostname(contents.getURL())) rememberSiteZoom(contents.getURL(), next, this.options.defaultZoom, this.session);
+    else contents.setZoomFactor(next);
+    this.applyZoom(tab);
+  }
+
+  toggleMute(id: TabId): void {
+    const tab = this.find(id);
+    const contents = tab?.view?.webContents;
+    if (!tab || !contents) return;
+    contents.setAudioMuted(!contents.isAudioMuted());
+    tab.state.isMuted = contents.isAudioMuted();
+    this.emit();
+  }
+
+  /** Opens the find bar on the tab's page; false (no-op) on the start page and internal pages. */
+  openFind(id: TabId): boolean {
+    const tab = this.find(id);
+    if (!tab?.finder || !showsWebPage(tab.state.url) || tab.state.interstitial) return false;
+    tab.finder.open();
+    return true;
+  }
+
+  findQuery(id: TabId, query: string, matchCase: boolean): void {
+    const tab = this.find(id);
+    if (tab && showsWebPage(tab.state.url)) tab.finder?.search(query, matchCase);
+  }
+
+  findStep(id: TabId, forward: boolean): void {
+    const tab = this.find(id);
+    if (tab && showsWebPage(tab.state.url) && !tab.state.interstitial) tab.finder?.step(forward);
+  }
+
+  /** Closes the find bar; the page gets the focus back when it is the active tab. */
+  closeFind(id: TabId): void {
+    const tab = this.find(id);
+    if (!tab?.finder) return;
+    tab.finder.close();
+    if (id === this.activeId && tab.view && this.attached.has(tab.view)) tab.view.webContents.focus();
+  }
+
+  /** Picture-in-picture on the page's main video (or back from it). */
+  pictureInPicture(id: TabId): void {
+    const tab = this.find(id);
+    if (tab?.view && showsWebPage(tab.state.url)) void togglePictureInPicture(tab.view.webContents);
   }
 
   move(id: TabId, toIndex: number): void {
@@ -458,6 +515,7 @@ export class TabManager {
 
   destroy(): void {
     this.unsubscribeShields();
+    this.unsubscribeZoom();
     // The window is closing: its views go with it (removing them from a destroyed window hangs).
     this.attached.clear();
     for (const tab of this.tabs) tab.view?.webContents.close();
@@ -542,6 +600,10 @@ export class TabManager {
         permissionRequest: null,
         interstitial: null,
         lastActiveAt: 0,
+        isAudible: false,
+        isMuted: false,
+        zoom: Math.round(this.options.defaultZoom * 100),
+        find: null,
       },
       lastSeenAt: Date.now(),
     };
@@ -602,7 +664,8 @@ export class TabManager {
         id: tab.id,
         hasView: !!contents && !contents.isDestroyed(),
         shown: shown.has(tab),
-        audible: contents?.isCurrentlyAudible() ?? false,
+        // Muted tabs still count: the user may unmute them at any time.
+        audible: tab.state.isAudible || (contents?.isCurrentlyAudible() ?? false),
         permissionPending: tab.state.permissionRequest !== null,
         devTools: contents?.isDevToolsOpened() ?? false,
         lastSeenAt: tab.lastSeenAt,
@@ -694,6 +757,18 @@ export class TabManager {
     this.attached.clear();
   }
 
+  /** Gives the page its site's zoom (or the default zoom), and mirrors it in the tab state. */
+  private applyZoom(tab: Tab): void {
+    const contents = tab.view?.webContents;
+    if (!contents || contents.isDestroyed()) return;
+    const factor = siteZoomFactor(contents.getURL(), this.options.defaultZoom, this.session);
+    if (factor !== undefined && !sameFactor(contents.getZoomFactor(), factor)) contents.setZoomFactor(factor);
+    const zoom = Math.round((factor ?? contents.getZoomFactor()) * 100);
+    if (zoom === tab.state.zoom) return;
+    tab.state.zoom = zoom;
+    this.emit();
+  }
+
   private isBookmarked(url: string): boolean {
     return url !== "" && (this.hooks.isBookmarked?.(url) ?? false);
   }
@@ -773,7 +848,19 @@ export class TabManager {
       if (url === tab.waking) tab.lastVisit = url;
       else this.visit(tab, url, false);
       tab.waking = undefined;
+      this.applyZoom(tab);
       refresh();
+    });
+    // Ctrl+wheel and pinch: same steps as the zoom commands, remembered per site.
+    on("zoom-changed", (_event, direction) => this.zoom(tab.id, direction === "in" ? 1 : -1));
+    on("audio-state-changed", (event) => {
+      tab.state.isAudible = event.audible;
+      this.emit();
+    });
+    // Listens through `on` too, so a tab moving to another space keeps a single finder (its query stays).
+    tab.finder = new PageFind(contents, on, tab.state.find, (find) => {
+      tab.state.find = find;
+      this.emit();
     });
     on("did-navigate-in-page", (_event, url, isMainFrame) => {
       if (isMainFrame) this.visit(tab, url, true);

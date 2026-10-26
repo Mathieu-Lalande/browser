@@ -1,9 +1,10 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ElectronApplication, Page } from "@playwright/test";
 import type { BrowserApi } from "@shared/ipc";
 import type { BrowserState } from "@shared/types";
-import { chromeOf, evalInTab, expect, launch, tabUrls, test } from "./fixtures";
+import { DOWNLOAD_CONTENT, chromeOf, evalInTab, expect, launch, tabUrls, test } from "./fixtures";
 
 async function visit(chrome: Page, url: string, title: string): Promise<void> {
   const address = chrome.getByLabel("Barre d'adresse");
@@ -128,4 +129,28 @@ test("closing a private window wipes its partition", async ({ app, chrome, serve
   await expect.poll(cookieCount).toBe(0);
   // The normal window is unaffected.
   await expect(chrome.locator(".sidebar")).toBeVisible();
+});
+
+test("a private window's downloads and zoom levels are not written to the profile", async ({ profile, server }) => {
+  const folder = mkdtempSync(join(tmpdir(), "browser-private-downloads-"));
+  writeFileSync(join(profile, "settings.json"), JSON.stringify({ version: 1, data: { downloads: { folder } } }));
+  const app = await launch(profile);
+  try {
+    const chrome = await chromeOf(app);
+    const priv = await openPrivateWindow(app, chrome);
+    await visit(priv, server.url("/downloads"), "Downloads");
+    await evalInTab(app, server.url("/downloads"), `document.getElementById("pdf").click()`);
+    // The file itself is saved where the user asked…
+    await expect.poll(() => existsSync(join(folder, "report.pdf")) && readFileSync(join(folder, "report.pdf"), "utf8")).toBe(DOWNLOAD_CONTENT);
+    // …and zooming a site is applied, but only remembered for this window.
+    await priv.evaluate(() => (globalThis as unknown as { browser: BrowserApi }).browser.commands.run("zoom-in"));
+    await expect.poll(async () => (await stateOf(priv)).tabs.find((tab) => tab.url.includes("/downloads"))?.zoom).toBe(110);
+  } finally {
+    await app.close();
+  }
+  const downloads = join(profile, "downloads.json");
+  if (existsSync(downloads)) expect(readFileSync(downloads, "utf8")).not.toContain("report.pdf");
+  const zoom = join(profile, "zoom.json");
+  if (existsSync(zoom)) expect(readFileSync(zoom, "utf8")).not.toContain("127.0.0.1");
+  rmSync(folder, { recursive: true, force: true });
 });

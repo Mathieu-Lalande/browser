@@ -1,5 +1,6 @@
 import { app, session, shell, type Session, type WebContents } from "electron";
 import { isNavigableUrl } from "@shared/url";
+import { installDownloads } from "./downloads";
 import { acceptLanguages, reduceUserAgent } from "./fingerprint";
 import { installPrivacy, type PrivacyOptions } from "./privacy";
 import { onSettingsChanged, settings } from "./settings";
@@ -40,6 +41,9 @@ export function hardenSession(ses: Session = session.defaultSession, options: Pr
   if (hardened.has(ses)) return ses;
   // Content blocking, HTTPS-Only, Global Privacy Control, client hints and per-site permission prompts.
   installPrivacy(ses, ALLOWED_PERMISSIONS, options);
+  // Downloads: tab pages only, no automatic opening, dangerous types confirmed first (ADR-013).
+  // A private session's downloads are not recorded in the downloads history (ADR-014).
+  installDownloads(ses, { ephemeral: options.ephemeral });
   // A desktop-Chrome-like user agent: the default one advertises Electron and the app name,
   // which both breaks sites and makes users easier to fingerprint (ADR-014).
   const userAgent = reduceUserAgent(ses.getUserAgent(), app.getName());

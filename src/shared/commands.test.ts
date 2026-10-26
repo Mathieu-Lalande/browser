@@ -17,6 +17,10 @@ const tab = (overrides: Partial<TabState> = {}): TabState => ({
   permissionRequest: null,
   interstitial: null,
   lastActiveAt: 0,
+  isAudible: false,
+  isMuted: false,
+  zoom: 100,
+  find: null,
   ...overrides,
 });
 
@@ -49,6 +53,25 @@ describe("command registry", () => {
     expect(getCommand("command-palette").accelerator).toBe("CmdOrCtrl+K");
     expect(commandAccelerator(getCommand("devtools"), "darwin")).toBe("Alt+Cmd+I");
     expect(commandAccelerator(getCommand("back"), "win32")).toBe("Alt+Left");
+  });
+
+  it("uses each platform's shortcuts for find, downloads and mute", () => {
+    expect(commandAccelerator(getCommand("find"), "linux")).toBe("CmdOrCtrl+F");
+    expect(commandAccelerator(getCommand("find-next"), "linux")).toBe("F3");
+    expect(commandAccelerator(getCommand("find-previous"), "win32")).toBe("Shift+F3");
+    expect(commandAccelerator(getCommand("find-next"), "darwin")).toBe("Cmd+G");
+    expect(commandAccelerator(getCommand("open-downloads"), "linux")).toBe("Ctrl+Shift+J");
+    expect(commandAccelerator(getCommand("open-downloads"), "darwin")).toBe("Alt+Cmd+L");
+    // Not Cmd+M: that minimizes the window on macOS.
+    expect(commandAccelerator(getCommand("toggle-mute"), "darwin")).toBe("Ctrl+M");
+  });
+
+  it("labels the mute toggle after the tab's sound", () => {
+    const mute = getCommand("toggle-mute");
+    expect(commandLabel(mute, { activeTab: tab() })).toBe("Couper le son de l'onglet");
+    expect(commandLabel(mute, { activeTab: tab({ isMuted: true }) })).toBe("Réactiver le son de l'onglet");
+    expect(isCommandAvailable(getCommand("find-next"), { activeTab: tab() })).toBe(false);
+    expect(isCommandAvailable(getCommand("picture-in-picture"), { activeTab: tab({ url: "" }) })).toBe(false);
   });
 
   it("labels toggles after the active tab's state", () => {

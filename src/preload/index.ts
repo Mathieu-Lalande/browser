@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
+import type { DownloadsChange } from "@shared/downloads";
 import { Channels, type BrowserApi } from "@shared/ipc";
 import type { Settings } from "@shared/settings";
 import type { BrowserState, OverlayBackdrop, OverlayRequest, UiCommand } from "@shared/types";
@@ -29,6 +30,7 @@ const api: BrowserApi = {
     move: (id, toIndex) => send(Channels.tabMove, id, toIndex),
     toggleShields: (id) => send(Channels.tabToggleShields, id),
     proceedHttp: (id) => send(Channels.tabProceedHttp, id),
+    toggleMute: (id) => send(Channels.tabToggleMute, id),
     contextMenu: (id) => send(Channels.tabContextMenu, id),
     moveToSpace: (id, spaceId) => send(Channels.tabMoveToSpace, id, spaceId),
   },
@@ -79,6 +81,26 @@ const api: BrowserApi = {
     reset: (section) => ipcRenderer.invoke(Channels.settingsReset, section),
     onChanged: (listener) => subscribe<Settings>(Channels.settingsChanged, listener),
     open: () => send(Channels.settingsOpen),
+  },
+  find: {
+    query: (tabId, query, matchCase) => send(Channels.findQuery, tabId, query, matchCase),
+    step: (tabId, forward) => send(Channels.findStep, tabId, forward),
+    close: (tabId) => send(Channels.findClose, tabId),
+  },
+  downloads: {
+    list: () => ipcRenderer.invoke(Channels.downloadsList),
+    onChanged: (listener) => subscribe<DownloadsChange>(Channels.downloadsChanged, listener),
+    pause: (id) => send(Channels.downloadsPause, id),
+    resume: (id) => send(Channels.downloadsResume, id),
+    cancel: (id) => send(Channels.downloadsCancel, id),
+    keep: (id) => send(Channels.downloadsKeep, id),
+    open: (id) => send(Channels.downloadsOpen, id),
+    showInFolder: (id) => send(Channels.downloadsShowInFolder, id),
+    remove: (id) => send(Channels.downloadsRemove, id),
+    clear: () => send(Channels.downloadsClear),
+    chooseFolder: () => ipcRenderer.invoke(Channels.downloadsChooseFolder),
+    showPanel: (anchor) => send(Channels.downloadsShowPanel, anchor),
+    openPage: () => send(Channels.downloadsOpenPage),
   },
 };
 

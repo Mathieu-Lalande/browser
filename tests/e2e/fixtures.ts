@@ -18,6 +18,9 @@ type Fixtures = {
 /** Tiny filter list replacing the downloaded ones (BROWSER_TEST_FILTERS), so the blocker stays offline. */
 const TEST_FILTERS = fileURLToPath(new URL("./filters.txt", import.meta.url));
 
+/** Body of the files served under /files/ (except the slow one). */
+export const DOWNLOAD_CONTENT = "%PDF-1.4 test download\n";
+
 /** Tiny local site so tests never touch the network. */
 function startServer(): Promise<{ server: Server; origin: string }> {
   const server = createServer((req, res) => {
@@ -38,6 +41,41 @@ function startServer(): Promise<{ server: Server; origin: string }> {
       res.end(`<title>Opener</title><a id="open" href="/second" target="_blank">open</a>`);
     } else if (path.startsWith("/internal-link")) {
       res.end(`<title>Internal link</title><a id="link" href="browser://settings">link</a><a id="popup" href="browser://settings" target="_blank">popup</a>`);
+    } else if (path.startsWith("/files/")) {
+      // Download targets: a document, an executable, and a slow one (to watch the progress).
+      const name = path.slice("/files/".length);
+      res.setHeader("content-type", name.endsWith(".pdf") ? "application/pdf" : "application/octet-stream");
+      if (name === "slow.zip") {
+        const chunk = Buffer.alloc(64 * 1024, 7);
+        const chunks = 40;
+        res.setHeader("content-length", String(chunk.length * chunks));
+        let sent = 0;
+        const timer = setInterval(() => {
+          if (res.destroyed || sent === chunks) return clearInterval(timer), res.end();
+          res.write(chunk);
+          sent++;
+        }, 250);
+        return;
+      }
+      res.end(DOWNLOAD_CONTENT);
+    } else if (path.startsWith("/downloads")) {
+      res.end(
+        `<title>Downloads</title><a id="pdf" href="/files/report.pdf" download>pdf</a>` +
+          `<a id="exe" href="/files/setup.exe" download>exe</a><a id="slow" href="/files/slow.zip" download>slow</a>`,
+      );
+    } else if (path.startsWith("/find")) {
+      res.end(
+        `<title>Find</title><p>Le renard brun saute. Un renard, deux renards.</p>` +
+          `<p>RENARD en majuscules, et encore un renard ici.</p><p style="margin-top:2000px">Dernier renard.</p>`,
+      );
+    } else if (path.startsWith("/video")) {
+      // A playing video without any media file: a canvas stream.
+      res.end(
+        `<title>Video</title><canvas id="c" width="160" height="90"></canvas><video id="v" muted autoplay width="320" height="180"></video>` +
+          `<script>const c = document.getElementById("c"), g = c.getContext("2d"); let t = 0;` +
+          `setInterval(() => { g.fillStyle = "hsl(" + (t++ * 9) % 360 + " 70% 50%)"; g.fillRect(0, 0, 160, 90); }, 40);` +
+          `document.getElementById("v").srcObject = c.captureStream(25);</script>`,
+      );
     } else if (path.startsWith("/file-link")) {
       res.end(`<title>File link</title><a id="file" href="file:///etc/hostname">file</a>`);
     } else if (path.startsWith("/headers")) {

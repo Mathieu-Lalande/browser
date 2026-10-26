@@ -4,6 +4,7 @@ import { Channels } from "@shared/ipc";
 import { PRIVATE_SPACE, privateSettings } from "@shared/private";
 import { pageRadius, searchEngineOf, type Settings } from "@shared/settings";
 import type { UiCommand } from "@shared/types";
+import { onDownloadsChanged } from "./downloads";
 import { Overlay } from "./overlay";
 import { createPrivateSession, wipePrivateSession } from "./private";
 import { persistentWindows, sessionOnClose, tabHooksFor } from "./private-guards";
@@ -54,6 +55,12 @@ const tabOptions = (current: Settings) => ({
   newTabPosition: current.behavior.newTabPosition,
   closeTabActivates: current.behavior.closeTabActivates,
   pageRadius: pageRadius(current),
+  defaultZoom: current.appearance.pageZoom / 100,
+});
+
+// Downloads progress and history changes reach every browser UI (sidebar button, panel, page).
+onDownloadsChanged((change) => {
+  for (const controller of controllers.values()) controller.send(Channels.downloadsChanged, change);
 });
 
 // Settings apply live: every window re-themes itself and its chrome UI gets the new values.
@@ -201,6 +208,16 @@ export class BrowserController {
   /** Native background color behind the UI: the theme's, or the private theme's (always dark). */
   background(current = settings()): string {
     return this.isPrivate ? windowBackground(privateSettings(current), "dark") : windowBackground(current);
+  }
+
+  openDownloads(): void {
+    this.tabs.openInternal("downloads");
+  }
+
+  /** Pushes a message to this window's browser UIs (chrome and overlay). */
+  send(channel: string, ...args: unknown[]): void {
+    if (!this.window.isDestroyed()) this.window.webContents.send(channel, ...args);
+    this.overlay.send(channel, ...args);
   }
 
   static toggleZenMode(): void {

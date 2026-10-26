@@ -1,6 +1,8 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync } from "node:fs";
-import { expect, test } from "./fixtures";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { chromeOf, evalInTab, expect, launch, test } from "./fixtures";
 
 /**
  * Documentation screenshots, only with SCREENSHOTS=1 (under xvfb-run, needs ImageMagick).
@@ -64,6 +66,72 @@ test("command palette over a page", async ({ app, chrome, server }) => {
     "256",
     "docs/screenshots/palette.png",
   ]);
+});
+
+/** A dark-themed profile whose downloads go to a scratch folder. */
+function prepareProfile(profile: string): string {
+  const folder = mkdtempSync(join(tmpdir(), "browser-shots-"));
+  const settings = { appearance: { mode: process.env.SCREENSHOT_THEME === "light" ? "light" : "dark" }, downloads: { folder } };
+  writeFileSync(join(profile, "settings.json"), JSON.stringify({ version: 1, data: settings }));
+  return folder;
+}
+
+const articleUrl = `data:text/html;charset=utf-8,${encodeURIComponent(article)}`;
+
+test("downloads popover", async ({ profile, server }) => {
+  const folder = prepareProfile(profile);
+  const app = await launch(profile);
+  try {
+    const chrome = await chromeOf(app);
+    const address = chrome.getByLabel("Barre d'adresse");
+    await address.fill(server.url("/downloads"));
+    await address.press("Enter");
+    await expect(chrome.locator(".tab.active .title")).toHaveText("Downloads");
+    for (const id of ["pdf", "exe", "slow"]) {
+      await evalInTab(app, server.url("/downloads"), `document.getElementById("${id}").click()`);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    }
+    await address.fill(articleUrl);
+    await address.press("Enter");
+    await expect(chrome.locator(".tab.active .title")).toHaveText("Le guide des navigateurs rapides");
+    await new Promise((resolve) => setTimeout(resolve, 2500));
+
+    await chrome.getByRole("button", { name: /^Téléchargements/ }).click();
+    const overlay = app.windows().find((page) => page.url().endsWith("/renderer/overlay.html"))!;
+    await expect(overlay.getByRole("dialog", { name: "Téléchargements" })).toBeVisible();
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    await captureWindow(app, "downloads");
+  } finally {
+    await app.close();
+    rmSync(folder, { recursive: true, force: true });
+  }
+});
+
+test("find bar", async ({ profile }) => {
+  const folder = prepareProfile(profile);
+  const app = await launch(profile);
+  try {
+    const chrome = await chromeOf(app);
+    const address = chrome.getByLabel("Barre d'adresse");
+    await address.fill(articleUrl);
+    await address.press("Enter");
+    await expect(chrome.locator(".tab.active .title")).toHaveText("Le guide des navigateurs rapides");
+    await app.evaluate(({ BrowserWindow }) => {
+      const contents = BrowserWindow.getAllWindows()[0].webContents;
+      contents.sendInputEvent({ type: "keyDown", keyCode: "F", modifiers: ["control"] });
+      contents.sendInputEvent({ type: "keyUp", keyCode: "F", modifiers: ["control"] });
+    });
+    const input = chrome.getByRole("search", { name: "Rechercher dans la page" }).getByRole("textbox");
+    await expect(input).toBeFocused();
+    await input.pressSequentially("navigateur");
+    await input.press("Enter");
+    await expect(chrome.getByTestId("find-count")).toHaveText(/^2\//);
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    await captureWindow(app, "find");
+  } finally {
+    await app.close();
+    rmSync(folder, { recursive: true, force: true });
+  }
 });
 
 /** A small article page with its own colors, as a `data:` URL. */

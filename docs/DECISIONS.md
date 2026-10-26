@@ -237,6 +237,63 @@ l'URL vide pour la compatibilité des sessions). Elles sont restaurées avec la 
   ni l'ouvrir dans un nouvel onglet, ni y être redirigée (testé en unitaire et en e2e).
 - Elles ne passent jamais par l'historique ni les favoris.
 
+## ADR-013 — Téléchargements, recherche dans la page, zoom par site, médias
+
+**Téléchargements** (`src/main/downloads/`).
+
+- `installDownloads(session)` branche `will-download` sur une session ; idempotente, elle est appelée
+  par le durcissement de session (`hardenSession`), donc pour chaque session le jour où il y en aura une
+  par espace. Seules les pages d'onglets téléchargent (`isTabPage`, le registre de la couche privacy) :
+  un téléchargement venu de l'interface, de l'overlay ou d'ailleurs est annulé.
+- Pas de boîte de dialogue : le fichier va directement dans le dossier choisi (paramètre
+  « Téléchargements », par défaut le dossier Téléchargements du système), sous un nom nettoyé
+  (séparateurs, caractères réservés, noms de périphériques Windows, fichiers cachés) et unique
+  (« rapport (1).pdf » ; les noms promis aux téléchargements en cours sont réservés). « Toujours demander
+  où enregistrer » rend la main à la boîte de dialogue d'Electron. Le dossier ne se choisit que par le
+  sélecteur natif (`dialog.showOpenDialog` dans main) ; le validateur des paramètres n'accepte de toute
+  façon que des chemins absolus.
+- **Fichiers dangereux** (exécutables, installeurs, scripts, raccourcis : `.exe`, `.msi`, `.bat`, `.js`,
+  `.ps1`, `.jar`, `.app`, `.dmg`, `.pkg`, `.deb`, `.sh`, `.AppImage`…, dernière extension, points et
+  espaces finaux ignorés comme le fait Windows — classification pure et testée) : téléchargés sous un nom
+  neutre (`<id>.download`) dans `userData/Unconfirmed downloads`, jamais dans le dossier de l'utilisateur
+  sous leur vrai nom. Ils restent « à confirmer » : « Conserver » (une fois terminés) les déplace vers le
+  dossier sous un nom unique, « Supprimer » les efface. Au redémarrage, ce qui n'a pas été confirmé est
+  supprimé (l'entrée revient « Annulé »).
+- **Rien ne s'ouvre tout seul.** « Ouvrir » (`shell.openPath`) n'est proposé qu'à un fichier terminé et
+  confirmé, « Afficher dans le dossier » utilise `shell.showItemInFolder`. L'interface ne désigne un
+  téléchargement que par son identifiant : aucun chemin ne vient jamais du renderer.
+- État : un réducteur pur (`applySnapshot`) traduit les mises à jour du `DownloadItem` (progression,
+  vitesse de Chromium, pause, reprise possible, fin). Historique `downloads.json` (couche ADR-005,
+  500 entrées, les plus anciennes terminées partent d'abord) ; un téléchargement en cours au moment de
+  quitter revient « Interrompu ». Les progrès sont diffusés à toutes les interfaces au plus 4 fois par
+  seconde, les changements d'état immédiatement, sous forme de différences (`DownloadsChange`).
+- Interface : bouton dans le pied de la barre latérale (anneau de progression, pastille si un fichier
+  attend une confirmation), **popover dans le calque overlay** (ADR-010, `OverlayKind` « downloads »,
+  ancré au bouton, sans voile ni flou : `isPopover`), et page interne `browser://downloads` (recherche,
+  effacement de la liste, jamais des fichiers). Ctrl+Maj+J (⌥⌘L sous macOS).
+
+**Recherche dans la page** (`src/main/find.ts`) : `findInPage` / `found-in-page` / `stopFindInPage` de
+Chromium. La barre est une **bande au-dessus de la page qui réduit le viewport**, comme la barre de
+permissions, et non l'overlay : l'overlay est une vue plein écran qui prend le focus et intercepte les
+clics, alors qu'on doit pouvoir lire, faire défiler et cliquer la page pendant une recherche. La requête,
+la casse et le compteur (« 3/17 ») vivent dans l'état de l'onglet (`TabState.find`) : chaque onglet garde
+sa recherche. Entrée / Maj+Entrée, F3 / Maj+F3 (⌘G / ⇧⌘G), Ctrl+G ; Échap ferme et rend le focus à la page.
+Sans effet sur la page d'accueil et les pages internes ; une nouvelle page chargée barre ouverte est
+recherchée à nouveau.
+
+**Zoom par site** (`src/main/zoom/`) : facteur mémorisé par hôte dans `zoom.json` (seulement s'il diffère
+du zoom par défaut, 2 000 hôtes au plus), appliqué à chaque navigation et propagé aux autres onglets du
+même site, quelle que soit la fenêtre (et demain la session : Chromium ne le fait qu'à l'intérieur d'une
+session). Ctrl+molette suit les mêmes paliers. « Zoom par défaut » (67–175 %) dans Apparence ; la barre
+d'adresse affiche le zoom quand il diffère du défaut, un clic le réinitialise.
+
+**Médias** : « Image dans l'image » exécute un court script dans un monde isolé (`executeJavaScriptInIsolatedWorld`,
+geste utilisateur transmis, aucun preload : ADR-003) qui choisit la vidéo en cours de lecture, sinon la
+plus visible, ou quitte le mode. Limite : les vidéos dans des iframes ne sont pas trouvées. Les onglets
+qui jouent du son (`audio-state-changed`) affichent un haut-parleur qui coupe/rétablit le son
+(`setAudioMuted`) ; commande « Couper le son de l'onglet », Ctrl+M (Ctrl et non ⌘ sous macOS, où ⌘M
+réduit la fenêtre ; c'est le raccourci de Firefox).
+
 ## ADR-014 — Mise en veille des onglets, fenêtres privées, anti-fingerprinting
 
 ### Mise en veille des onglets (mémoire)
@@ -249,7 +306,7 @@ et le mécanisme existant (`wake` à l'activation) le recharge ; rien n'est dupl
 précédent/suivant est restaurée (`navigationHistory.restore`), sinon l'URL est simplement rechargée.
 
 - Politique pure et testée (`src/main/sleep.ts`, `sleepBlocker`) : jamais un onglet à l'écran (actif,
-  ou d'une vue scindée visible), qui joue du son, qui attend une réponse à une demande d'autorisation,
+  ou d'une vue scindée visible), qui joue du son (`isAudible`, même coupé), qui attend une réponse à une demande d'autorisation,
   ou dont les DevTools sont ouverts. Les onglets épinglés peuvent dormir : ils gardent leur place.
 - Formulaires en cours : juste avant de décharger, un script **en lecture seule** exécuté dans un monde
   isolé (`executeJavaScriptInIsolatedWorld`, comme le scan cosmétique d'ADR-006, sans preload) regarde si
@@ -281,10 +338,13 @@ idempotent) : bloqueur, HTTPS-Only, GPC, client hints, invite de permissions.
   en mémoire (`PermissionStore(null)`, carte d'hôtes) : « Se souvenir pour ce site » est masqué, les
   choix valent pour la fenêtre et ne fuient pas vers les fenêtres normales. Les exceptions HTTPS-Only
   restent en mémoire et partagées, comme avant.
-- **Points d'accroche pour les autres fonctionnalités.** Ce qui persiste *par session* (téléchargements
-  via `will-download`, zoom par site…) doit vérifier `isPrivateSession(session)` : le fichier téléchargé
-  est enregistré où l'utilisateur l'a demandé, mais aucune entrée n'est ajoutée à l'historique des
-  téléchargements ; aucun niveau de zoom n'est mémorisé.
+- **Téléchargements et zoom (ADR-013).** `hardenSession` passe le drapeau à
+  `installDownloads(ses, { ephemeral })` : le fichier est enregistré où l'utilisateur l'a demandé, l'entrée
+  apparaît dans la liste pendant la session mais `DownloadList.toJSON` l'exclut de `downloads.json` ;
+  à la fermeture de la fenêtre, ses téléchargements en cours sont annulés et ses entrées retirées. Le zoom
+  par site part des niveaux mémorisés, mais une fenêtre privée garde ses changements en mémoire
+  (`isPrivateSession`, `src/main/zoom/`) : rien n'est écrit dans `zoom.json`. Toute nouvelle écriture
+  « par session » doit faire de même.
 - **Fermeture.** `clearStorageData`, `clearCache`, `clearAuthCache` et `clearHostResolverCache` sur la
   partition, sans attendre la fin de l'application.
 - **Espaces.** Désactivés : une fenêtre privée a un seul espace éphémère (« Navigation privée »), hors

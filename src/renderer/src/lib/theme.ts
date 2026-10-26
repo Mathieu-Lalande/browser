@@ -19,4 +19,5 @@ export function applyTheme(settings: Settings, mode: ResolvedMode, isPrivate = f
   root.dataset.density = settings.appearance.density;
   root.toggleAttribute("data-reduce-motion", settings.appearance.reduceMotion);
   root.toggleAttribute("data-private", isPrivate);
+  root.toggleAttribute("data-arrow-cursor", !settings.appearance.pointerCursor);
 }

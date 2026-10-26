@@ -39,6 +39,10 @@
     }
   });
 
+  /** Zoom indicator: shown when the page is not at the default zoom. */
+  const defaultZoom = $derived(settings.current.appearance.pageZoom);
+  const zoomed = $derived(!!tab && /^https?:|^data:/.test(tab.url) && !tab.interstitial && tab.zoom !== defaultZoom);
+
   const showShield = $derived(!!tab && /^https?:/.test(tab.url) && !tab.interstitial);
   const shieldTitle = $derived(
     tab?.shieldsEnabled
@@ -130,6 +134,17 @@
       aria-autocomplete="list"
       aria-activedescendant={open ? `suggestion-${selected}` : undefined}
     />
+    {#if tab && zoomed && !focused}
+      <button
+        type="button"
+        class="zoom"
+        title="Zoom de ce site : {tab.zoom} %. Cliquer pour revenir à {defaultZoom} % (Ctrl+0)."
+        aria-label="Zoom {tab.zoom} %, revenir à {defaultZoom} %"
+        onclick={() => api.commands.run("zoom-reset")}
+      >
+        {tab.zoom} %
+      </button>
+    {/if}
     {#if tab?.url && !focused && !isInternal}
       <button
         type="button"
@@ -267,6 +282,21 @@
   }
   input::placeholder {
     color: var(--text-faint);
+  }
+  .zoom {
+    flex: none;
+    height: 22px;
+    padding: 0 7px;
+    border-radius: 11px;
+    background: color-mix(in oklab, var(--accent) 16%, transparent);
+    color: var(--accent-text);
+    font-size: 11px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .zoom:hover {
+    background: color-mix(in oklab, var(--accent) 26%, transparent);
   }
   .star {
     display: grid;

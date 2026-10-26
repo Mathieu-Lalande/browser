@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { session, type Session } from "electron";
+import { forgetPrivateDownloads } from "./downloads";
 import { hardenSession, releaseSession } from "./security";
 
 /**
@@ -18,8 +19,9 @@ export function createPrivateSession(): Session {
 
 /**
  * Whether a session belongs to a private window. Profile writers that work per session rather than
- * per window must check it, e.g. downloads (`will-download` on the session): the file is saved where
- * the user asked, but no entry is added to the downloads history.
+ * per window must check it (per-site zoom does). Downloads get the flag from `hardenSession`
+ * (`installDownloads(ses, { ephemeral })`): the file is saved where the user asked, but its entry
+ * is never written to downloads.json.
  */
 export function isPrivateSession(ses: Session): boolean {
   return privateSessions.has(ses);
@@ -28,5 +30,6 @@ export function isPrivateSession(ses: Session): boolean {
 /** The window closed: everything its pages stored goes away now, not only when the app quits. */
 export async function wipePrivateSession(ses: Session): Promise<void> {
   releaseSession(ses);
+  forgetPrivateDownloads(ses);
   await Promise.allSettled([ses.clearStorageData(), ses.clearCache(), ses.clearAuthCache(), ses.clearHostResolverCache()]);
 }

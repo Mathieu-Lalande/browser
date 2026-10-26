@@ -39,6 +39,7 @@ export function installMenu(): void {
         commandMenuItem("new-window"),
         commandMenuItem("new-private-window"),
         commandMenuItem("duplicate-tab"),
+        commandMenuItem("open-downloads"),
         commandMenuItem("open-settings"),
         commandMenuItem("close-tab"),
         { type: "separator" },
@@ -57,6 +58,17 @@ export function installMenu(): void {
         { role: "selectAll", label: "Tout sélectionner" },
         { type: "separator" },
         commandMenuItem("copy-url"),
+        { type: "separator" },
+        commandMenuItem("find"),
+        commandMenuItem("find-next"),
+        commandMenuItem("find-previous"),
+        // Ctrl+G / Ctrl+Shift+G, as in Chrome (macOS already uses Cmd+G as the main shortcut).
+        ...(isMac
+          ? []
+          : [
+              commandMenuItem("find-next", { accelerator: "CmdOrCtrl+G", visible: false }),
+              commandMenuItem("find-previous", { accelerator: "CmdOrCtrl+Shift+G", visible: false }),
+            ]),
       ],
     },
     {
@@ -79,6 +91,9 @@ export function installMenu(): void {
         commandMenuItem("zoom-in", { accelerator: "CmdOrCtrl+Plus", visible: false }),
         commandMenuItem("zoom-out"),
         { role: "togglefullscreen", label: "Plein écran" },
+        { type: "separator" },
+        commandMenuItem("picture-in-picture"),
+        commandMenuItem("toggle-mute"),
       ],
     },
     {

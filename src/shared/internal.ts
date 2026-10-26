@@ -6,6 +6,7 @@
 
 export const INTERNAL_PAGES = {
   settings: { title: "Paramètres" },
+  downloads: { title: "Téléchargements" },
 } as const;
 
 export type InternalPage = keyof typeof INTERNAL_PAGES;

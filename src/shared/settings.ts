@@ -27,6 +27,10 @@ export interface AppearanceSettings {
   font: UiFont;
   shadows: boolean;
   reduceMotion: boolean;
+  /** Hand cursor over everything clickable (false: the arrow everywhere, like a native app). */
+  pointerCursor: boolean;
+  /** Zoom of web pages never zoomed by hand, in % (one of `PAGE_ZOOM_LEVELS`). */
+  pageZoom: number;
 }
 
 export interface LayoutSettings {
@@ -67,6 +71,13 @@ export interface PrivacySettings {
   normalizeAcceptLanguage: boolean;
 }
 
+export interface DownloadSettings {
+  /** Absolute path of the folder downloads go to; empty for the OS Downloads folder. */
+  folder: string;
+  /** Show a save dialog for every download instead of saving to `folder`. */
+  askWhere: boolean;
+}
+
 export interface Settings {
   appearance: AppearanceSettings;
   layout: LayoutSettings;
@@ -74,6 +85,7 @@ export interface Settings {
   startPage: StartPageSettings;
   behavior: BehaviorSettings;
   privacy: PrivacySettings;
+  downloads: DownloadSettings;
 }
 
 export type SettingsSection = keyof Settings;
@@ -85,7 +97,11 @@ export const LIMITS = {
   gutter: { min: 0, max: 16 },
   greetingName: 40,
   url: 2048,
+  path: 4096,
 } as const;
+
+/** Default page zoom choices, in %. */
+export const PAGE_ZOOM_LEVELS = [67, 75, 80, 90, 100, 110, 125, 150, 175] as const;
 
 /** Accent pairs offered as swatches (the second color feeds gradients). */
 export const ACCENT_PRESETS: readonly { name: string; accent: string; accent2: string }[] = [
@@ -110,12 +126,15 @@ export const DEFAULT_SETTINGS: Settings = {
     font: "system",
     shadows: true,
     reduceMotion: false,
+    pointerCursor: true,
+    pageZoom: 100,
   },
   layout: { sidebarPosition: "left", sidebarWidth: 264, gutter: 8, zenMode: false },
   search: { engine: DEFAULT_SEARCH_ENGINE.id },
   startPage: { showClock: true, showTopSites: true, greetingName: "", background: "theme", backgroundImage: "" },
   behavior: { restoreSession: true, newTabPosition: "end", closeTabActivates: "next", sleepTabsAfter: "30m" },
   privacy: { normalizeAcceptLanguage: false },
+  downloads: { folder: "", askWhere: false },
 };
 
 export const SETTINGS_SECTIONS = Object.keys(DEFAULT_SETTINGS) as SettingsSection[];
@@ -132,6 +151,11 @@ const oneOf =
   <T extends string>(...values: T[]): Field<T> =>
   (value) =>
     values.includes(value as T) ? (value as T) : undefined;
+
+const oneOfNumbers =
+  (values: readonly number[]): Field<number> =>
+  (value) =>
+    values.includes(value as number) ? (value as number) : undefined;
 
 const bool: Field<boolean> = (value) => (typeof value === "boolean" ? value : undefined);
 
@@ -167,6 +191,15 @@ const imageUrl: Field<string> = (value) => {
   }
 };
 
+/** Empty, or an absolute local path (POSIX, `C:\…` or a UNC `\\server\share` path) without control characters. */
+const folderPath: Field<string> = (value) => {
+  if (value === "") return "";
+  if (typeof value !== "string" || value.length > LIMITS.path) return undefined;
+  // eslint-disable-next-line no-control-regex
+  if (/[\u0000-\u001f\u007f]/.test(value)) return undefined;
+  return /^(\/|[a-z]:[\\/]|\\\\[^\\])/i.test(value) ? value : undefined;
+};
+
 const schema: Schema = {
   appearance: {
     mode: oneOf("system", "light", "dark"),
@@ -178,6 +211,8 @@ const schema: Schema = {
     font: oneOf("system", "rounded", "serif", "mono"),
     shadows: bool,
     reduceMotion: bool,
+    pointerCursor: bool,
+    pageZoom: oneOfNumbers(PAGE_ZOOM_LEVELS),
   },
   layout: {
     sidebarPosition: oneOf("left", "right"),
@@ -200,6 +235,7 @@ const schema: Schema = {
     sleepTabsAfter: oneOf("never", "15m", "30m", "1h", "2h"),
   },
   privacy: { normalizeAcceptLanguage: bool },
+  downloads: { folder: folderPath, askWhere: bool },
 };
 
 /**

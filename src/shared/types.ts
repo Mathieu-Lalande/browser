@@ -27,6 +27,24 @@ export interface TabState {
    * url/title/favicon and reloads when activated (ADR-014).
    */
   isAsleep?: boolean;
+  /** The page is playing sound (even if muted). */
+  isAudible: boolean;
+  isMuted: boolean;
+  /** Page zoom in % (the site's remembered zoom, or the default zoom). */
+  zoom: number;
+  /** Find in page: null until the find bar was first opened in this tab (the query is kept per tab). */
+  find: FindState | null;
+}
+
+export interface FindState {
+  /** The find bar is shown. */
+  open: boolean;
+  query: string;
+  matchCase: boolean;
+  /** Number of matches (0 when none, or before the first result). */
+  matches: number;
+  /** 1-based ordinal of the highlighted match, 0 when none. */
+  activeMatch: number;
 }
 
 /** Permissions a site can ask for; each one is decided (and remembered) separately per origin. */
@@ -108,14 +126,19 @@ export interface Bounds {
 }
 
 /** Commands triggered by main (menus, shortcuts) that the chrome UI must handle. */
-export type UiCommand = "focus-address" | "toggle-sidebar";
+export type UiCommand = "focus-address" | "toggle-sidebar" | "focus-find";
 
 /** Floating UI shown in the overlay layer, above the page (see `src/main/overlay.ts`). */
-export type OverlayKind = "palette";
+export type OverlayKind = "palette" | "downloads";
 
 export interface OverlayRequest {
   kind: OverlayKind;
+  /** Popovers: the chrome UI element they hang from, in window coordinates. */
+  anchor?: Bounds;
 }
+
+/** Popovers stay light: no dimmed, blurred backdrop behind them (the palette has one). */
+export const isPopover = (kind: OverlayKind) => kind === "downloads";
 
 /**
  * A downscaled snapshot of what is below the overlay (chrome UI, then the active page at its

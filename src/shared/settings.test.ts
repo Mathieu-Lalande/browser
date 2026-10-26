@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_SETTINGS,
+  PAGE_ZOOM_LEVELS,
   effectiveGutter,
   isSettingsSection,
   mergeSettings,
@@ -49,6 +50,12 @@ describe("sanitizeSettings", () => {
     expect(result.appearance).not.toHaveProperty("extra");
   });
 
+  it("defaults to the hand cursor, and keeps an explicit choice of the arrow", () => {
+    expect(DEFAULT_SETTINGS.appearance.pointerCursor).toBe(true);
+    expect(sanitizeSettings({ appearance: { pointerCursor: false } }).appearance.pointerCursor).toBe(false);
+    expect(sanitizeSettings({ appearance: { pointerCursor: "no" } }).appearance.pointerCursor).toBe(true);
+  });
+
   it("clamps and rounds numbers", () => {
     const result = sanitizeSettings({ appearance: { radius: 99.6 }, layout: { sidebarWidth: 10, gutter: 3.4 } });
     expect(result.appearance.radius).toBe(18);
@@ -87,6 +94,33 @@ describe("sanitizeSettings", () => {
     ]) {
       expect(image(bad)).toBe("");
     }
+  });
+});
+
+describe("downloads and page zoom settings", () => {
+  const folder = (value: unknown) => sanitizeSettings({ downloads: { folder: value } }).downloads.folder;
+
+  it("accepts absolute folders only", () => {
+    expect(folder("/home/me/Téléchargements")).toBe("/home/me/Téléchargements");
+    expect(folder("C:\\Users\\me\\Downloads")).toBe("C:\\Users\\me\\Downloads");
+    expect(folder("d:/data")).toBe("d:/data");
+    expect(folder("\\\\nas\\partage")).toBe("\\\\nas\\partage");
+    expect(folder("")).toBe("");
+    for (const bad of ["relative/dir", "~/Downloads", "file:///tmp", "/tmp/\u0000x", "/x".repeat(3000), 42, null]) {
+      expect(folder(bad)).toBe("");
+    }
+  });
+
+  it("keeps the ask-where toggle a boolean", () => {
+    expect(sanitizeSettings({ downloads: { askWhere: true } }).downloads.askWhere).toBe(true);
+    expect(sanitizeSettings({ downloads: { askWhere: "yes" } }).downloads.askWhere).toBe(false);
+  });
+
+  it("only offers the listed default zoom levels", () => {
+    expect(sanitizeSettings({ appearance: { pageZoom: 125 } }).appearance.pageZoom).toBe(125);
+    expect(PAGE_ZOOM_LEVELS[0]).toBe(67);
+    expect(PAGE_ZOOM_LEVELS.at(-1)).toBe(175);
+    for (const bad of [100.5, 300, 0, "125", null]) expect(sanitizeSettings({ appearance: { pageZoom: bad } }).appearance.pageZoom).toBe(100);
   });
 });
 
