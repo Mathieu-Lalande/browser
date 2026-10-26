@@ -1,8 +1,17 @@
 <script lang="ts">
+  import type { HistoryEntry } from "@shared/types";
+  import { displayUrl } from "@shared/url";
   import { api, browser } from "../lib/browser.svelte";
+  import Favicon from "./Favicon.svelte";
   import Icon from "./Icon.svelte";
 
   let query = $state("");
+  let topSites = $state<HistoryEntry[]>([]);
+
+  // The start page is mounted each time it shows, so this stays fresh without a subscription.
+  $effect(() => {
+    api.history.topSites(8).then((sites) => (topSites = sites), () => {});
+  });
   let now = $state(new Date());
 
   $effect(() => {
@@ -18,6 +27,11 @@
     const id = browser.state.activeTabId;
     if (query.trim() && id) api.tabs.navigate(id, query);
   }
+
+  function openSite(url: string): void {
+    const id = browser.state.activeTabId;
+    if (id) api.tabs.navigate(id, url);
+  }
 </script>
 
 <section class="start">
@@ -28,6 +42,16 @@
     <!-- svelte-ignore a11y_autofocus -->
     <input bind:value={query} placeholder="Rechercher sur le web ou saisir une adresse" spellcheck="false" autofocus />
   </form>
+  {#if topSites.length}
+    <nav class="sites" aria-label="Sites les plus visités">
+      {#each topSites as site (site.url)}
+        <button class="site" title={site.url} onclick={() => openSite(site.url)}>
+          <span class="tile"><Favicon src={site.favicon} /></span>
+          <span class="name">{site.title || displayUrl(site.url)}</span>
+        </button>
+      {/each}
+    </nav>
+  {/if}
   <p class="hint"><kbd>Ctrl</kbd> <kbd>L</kbd> barre d'adresse · <kbd>Ctrl</kbd> <kbd>T</kbd> nouvel onglet · <kbd>Ctrl</kbd> <kbd>S</kbd> barre latérale</p>
 </section>
 
@@ -82,6 +106,44 @@
     color: var(--text);
     font-size: 16px;
     user-select: text;
+  }
+  .sites {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 88px);
+    justify-content: center;
+    gap: 10px;
+    width: min(620px, 100%);
+    margin-top: 22px;
+  }
+  .site {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 4px;
+    border-radius: 12px;
+    color: var(--text-muted);
+  }
+  .site:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+  }
+  .tile {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+  }
+  .name {
+    width: 100%;
+    overflow: hidden;
+    font-size: 12px;
+    text-align: center;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
   .hint {
     margin-top: 18px;

@@ -2,9 +2,11 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { test as base, _electron as electron, type ElectronApplication, type Page } from "@playwright/test";
+import { test as base, expect, _electron as electron, type ElectronApplication, type Page } from "@playwright/test";
 
 type Fixtures = {
+  /** Fresh profile directory, removed after the test. */
+  profile: string;
   app: ElectronApplication;
   chrome: Page;
   server: { url: (path: string) => string };
@@ -33,26 +35,45 @@ function startServer(): Promise<{ server: Server; origin: string }> {
   );
 }
 
+/** Launches the app on `profile`; tests that restart the app call it directly. */
+export function launch(profile: string): Promise<ElectronApplication> {
+  return electron.launch({
+    args: ["--no-sandbox", "."],
+    env: { ...process.env, BROWSER_PROFILE_DIR: profile },
+  });
+}
+
+const isChrome = (page: Page) => page.url().endsWith("/renderer/index.html");
+
+/**
+ * The chrome UI page of a launched app, once the sidebar is rendered. Not simply `firstWindow()`:
+ * a restored tab's page is created right after the window and may be reported first.
+ */
+export async function chromeOf(app: ElectronApplication): Promise<Page> {
+  await expect.poll(() => app.windows().some(isChrome)).toBe(true);
+  const page = app.windows().find(isChrome)!;
+  await page.waitForSelector(".sidebar");
+  return page;
+}
+
 export const test = base.extend<Fixtures>({
   server: async ({}, use) => {
     const { server, origin } = await startServer();
     await use({ url: (path) => `${origin}${path}` });
     server.close();
   },
-  app: async ({}, use) => {
+  profile: async ({}, use) => {
     const profile = mkdtempSync(join(tmpdir(), "browser-e2e-"));
-    const app = await electron.launch({
-      args: ["--no-sandbox", "."],
-      env: { ...process.env, BROWSER_PROFILE_DIR: profile },
-    });
-    await use(app);
-    await app.close();
+    await use(profile);
     rmSync(profile, { recursive: true, force: true });
   },
+  app: async ({ profile }, use) => {
+    const app = await launch(profile);
+    await use(app);
+    await app.close();
+  },
   chrome: async ({ app }, use) => {
-    const page = await app.firstWindow();
-    await page.waitForSelector(".sidebar");
-    await use(page);
+    await use(await chromeOf(app));
   },
 });
 

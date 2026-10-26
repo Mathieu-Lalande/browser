@@ -35,6 +35,17 @@ const api: BrowserApi = {
     toggleMaximize: () => send(Channels.windowToggleMaximize),
     close: () => send(Channels.windowClose),
   },
+  history: {
+    search: (query, limit) => ipcRenderer.invoke(Channels.historySearch, query, limit),
+    topSites: (limit) => ipcRenderer.invoke(Channels.historyTopSites, limit),
+    clear: () => ipcRenderer.invoke(Channels.historyClear),
+  },
+  bookmarks: {
+    list: () => ipcRenderer.invoke(Channels.bookmarksList),
+    add: (input) => ipcRenderer.invoke(Channels.bookmarksAdd, input),
+    remove: (id) => ipcRenderer.invoke(Channels.bookmarksRemove, id),
+    toggleActive: () => send(Channels.bookmarksToggleActive),
+  },
 };
 
 contextBridge.exposeInMainWorld("browser", api);

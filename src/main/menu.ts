@@ -90,6 +90,12 @@ export function installMenu(): void {
         ...tabNumbers,
       ],
     },
+    {
+      label: "Favoris",
+      submenu: [
+        { label: "Ajouter/retirer des favoris", accelerator: "CmdOrCtrl+D", click: withFocused((c) => c.toggleBookmark()) },
+      ],
+    },
     ...(app.isPackaged
       ? []
       : [{ label: "Dev", submenu: [{ role: "toggleDevTools" as const, label: "DevTools de l'interface", accelerator: "F12" }] }]),

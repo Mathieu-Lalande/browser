@@ -4,6 +4,8 @@ Un navigateur desktop **rapide, privé et entièrement personnalisable**, dans l
 
 - Moteur Chromium via Electron, un onglet = une `WebContentsView` sandboxée.
 - Interface Svelte 5 : barre latérale verticale, onglets épinglés, barre d'adresse intégrée, page d'accueil.
+- Session restaurée au démarrage (onglets chargés à la demande), historique, favoris, suggestions
+  dans la barre d'adresse et sites les plus visités sur la page d'accueil.
 - Recherche privée par défaut (DuckDuckGo), protections de sécurité strictes (voir `docs/DECISIONS.md`).
 
 ## Démarrer
@@ -37,6 +39,7 @@ Sous Linux sans affichage (CI) : `xvfb-run -a npm run test:e2e`.
 | `Ctrl+Tab` / `Ctrl+Shift+Tab` | Onglet suivant / précédent |
 | `Ctrl/Cmd+1…9` | Aller à l'onglet n |
 | `Ctrl/Cmd+S` | Afficher/masquer la barre latérale |
+| `Ctrl/Cmd+D` | Ajouter/retirer la page des favoris |
 | `Ctrl/Cmd+R`, `F5` | Actualiser |
 | Double-clic sur un onglet | Épingler / désépingler |
 
@@ -45,9 +48,10 @@ Sous Linux sans affichage (CI) : `xvfb-run -a npm run test:e2e`.
 ```
 src/
   main/       process principal : fenêtres, onglets, sécurité, menus/raccourcis, IPC
+    storage/  persistance JSON (session, historique, favoris), logique pure et testée
   preload/    pont sécurisé exposant window.browser à l'interface
   renderer/   interface du navigateur (Svelte 5)
-  shared/     types, contrat IPC, logique d'URL (testée)
+  shared/     types, contrat IPC, logique d'URL et de recherche (testées)
 tests/e2e/    tests Playwright + Electron
 docs/         décisions d'architecture et roadmap
 ```
