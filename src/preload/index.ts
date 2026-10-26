@@ -26,6 +26,11 @@ const api: BrowserApi = {
     stop: (id) => send(Channels.tabStop, id),
     togglePin: (id) => send(Channels.tabTogglePin, id),
     move: (id, toIndex) => send(Channels.tabMove, id, toIndex),
+    toggleShields: (id) => send(Channels.tabToggleShields, id),
+    proceedHttp: (id) => send(Channels.tabProceedHttp, id),
+  },
+  permissions: {
+    respond: (tabId, promptId, allow, remember) => send(Channels.permissionRespond, tabId, promptId, allow, remember),
   },
   layout: {
     setContentBounds: (bounds) => send(Channels.layoutBounds, bounds),

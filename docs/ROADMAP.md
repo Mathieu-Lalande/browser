@@ -7,8 +7,8 @@ barre d'adresse, page d'accueil, raccourcis, durcissement sécurité, tests unit
 ## Sprint 1 — Le cœur d'un vrai navigateur
 - Persistance : session (onglets restaurés), historique, favoris, paramètres.
 - Command palette (Ctrl+K) façon Arc : onglets ouverts, historique, favoris, actions.
-- Bloqueur de pubs & traqueurs intégré, mise à niveau HTTPS, compteur par site.
-- Invite de permissions (caméra, micro, notifications…) par site.
+- Bloqueur de pubs & traqueurs intégré, mode HTTPS uniquement, compteur et désactivation par site ✅
+- Invite de permissions (caméra, micro, notifications…) par site ✅
 
 ## Sprint 2 — Personnalisation poussée
 - Thèmes : couleur d'accent, dégradés, mode clair/sombre/auto, densité, coins, police.

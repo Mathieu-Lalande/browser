@@ -2,6 +2,15 @@ import { randomUUID } from "node:crypto";
 import { WebContentsView, type BaseWindow, type WebContents } from "electron";
 import type { Bounds, BrowserState, TabId, TabState } from "@shared/types";
 import { displayUrl, isNavigableUrl, normalizeInput } from "@shared/url";
+import {
+  allowHttp,
+  attachTabPrivacy,
+  httpsFallbackFor,
+  onShieldsChange,
+  respondPermission,
+  setShieldsEnabled,
+  shieldsEnabledFor,
+} from "./privacy";
 import { hardenWebContents } from "./security";
 
 const START_TITLE = "Nouvel onglet";
@@ -23,11 +32,18 @@ export class TabManager {
   private bounds: Bounds = { x: 0, y: 0, width: 0, height: 0 };
   private attached: WebContentsView | null = null;
   private emitScheduled = false;
+  private readonly unsubscribeShields: () => void;
 
   constructor(
     private readonly window: BaseWindow,
     private readonly onChange: (state: BrowserState) => void,
-  ) {}
+  ) {
+    // Shields toggled for a site (from any window) apply to every tab showing it.
+    this.unsubscribeShields = onShieldsChange(() => {
+      for (const tab of this.tabs) tab.state.shieldsEnabled = shieldsEnabledFor(tab.state.url);
+      this.emit();
+    });
+  }
 
   getState(): BrowserState {
     return { tabs: this.tabs.map((tab) => ({ ...tab.state })), activeTabId: this.activeId };
@@ -59,6 +75,10 @@ export class TabManager {
         canGoBack: false,
         canGoForward: false,
         isPinned: false,
+        blockedCount: 0,
+        shieldsEnabled: true,
+        permissionRequest: null,
+        interstitial: null,
       },
     };
     tab.state.id = tab.id;
@@ -100,6 +120,8 @@ export class TabManager {
     if (!tab) return;
     const url = normalizeInput(input);
     tab.state.url = url;
+    tab.state.interstitial = null;
+    tab.state.shieldsEnabled = shieldsEnabledFor(url);
     if (!url) {
       tab.state.title = START_TITLE;
       tab.state.favicon = null;
@@ -149,6 +171,27 @@ export class TabManager {
     this.emit();
   }
 
+  /** Turn content blocking off (or back on) for the tab's site, then reload to apply it. */
+  toggleShields(id: TabId): void {
+    const tab = this.find(id);
+    if (!tab?.state.url || tab.state.interstitial) return;
+    setShieldsEnabled(tab.state.url, !tab.state.shieldsEnabled);
+    tab.view.webContents.reload();
+  }
+
+  /** HTTPS-Only interstitial: the user accepts plain http for this host (until the browser quits). */
+  proceedHttp(id: TabId): void {
+    const url = this.find(id)?.state.interstitial?.url;
+    if (!url) return;
+    allowHttp(url);
+    this.navigate(id, url);
+  }
+
+  respondPermission(id: TabId, promptId: string, allow: boolean, remember: boolean): void {
+    const tab = this.find(id);
+    if (tab) respondPermission(tab.view.webContents.id, promptId, allow, remember);
+  }
+
   /** Cycle through tabs in sidebar order (Ctrl+Tab / Ctrl+Shift+Tab). */
   cycle(direction: 1 | -1): void {
     if (this.tabs.length < 2 || !this.activeId) return;
@@ -182,6 +225,7 @@ export class TabManager {
   }
 
   destroy(): void {
+    this.unsubscribeShields();
     for (const tab of this.tabs) tab.view.webContents.close();
     this.tabs = [];
   }
@@ -190,10 +234,10 @@ export class TabManager {
     return this.tabs.find((tab) => tab.id === id);
   }
 
-  /** The active tab's view is attached unless it shows the start page (rendered by the chrome UI). */
+  /** The active tab's view is attached unless the chrome UI renders in its place (start page, interstitial). */
   private syncAttachment(): void {
     const tab = this.activeId ? this.find(this.activeId) : undefined;
-    const wanted = tab && tab.state.url ? tab.view : null;
+    const wanted = tab && tab.state.url && !tab.state.interstitial ? tab.view : null;
     if (wanted === this.attached) return;
     this.detach();
     if (wanted) {
@@ -216,15 +260,39 @@ export class TabManager {
         this.create(url, { activate: foreground, index });
       },
     });
+    attachTabPrivacy(contents, {
+      blocked: () => {
+        tab.state.blockedCount++;
+        this.emit();
+      },
+      permissionChanged: (prompt) => {
+        tab.state.permissionRequest = prompt;
+        this.emit();
+      },
+    });
 
     const refresh = () => {
       const url = contents.getURL();
-      if (url && url !== "about:blank") tab.state.url = url;
+      // While an interstitial is shown, the tab keeps the address the user asked for.
+      if (url && url !== "about:blank" && !tab.state.interstitial) {
+        tab.state.url = url;
+        tab.state.shieldsEnabled = shieldsEnabledFor(url);
+      }
       tab.state.canGoBack = contents.navigationHistory.canGoBack();
       tab.state.canGoForward = contents.navigationHistory.canGoForward();
       this.emit();
     };
 
+    contents.on("did-start-navigation", (details) => {
+      if (!details.isMainFrame || details.isSameDocument) return;
+      // A new page: fresh blocked counter, and any interstitial gives way to it.
+      tab.state.blockedCount = 0;
+      if (tab.state.interstitial) {
+        tab.state.interstitial = null;
+        if (tab.id === this.activeId) this.syncAttachment();
+      }
+      this.emit();
+    });
     contents.on("did-start-loading", () => {
       tab.state.isLoading = true;
       this.emit();
@@ -246,6 +314,17 @@ export class TabManager {
     contents.on("did-fail-load", (_event, code, description, url, isMainFrame) => {
       // -3 is ERR_ABORTED: a navigation replaced by another one, not a real failure.
       if (!isMainFrame || code === -3) return;
+      const httpUrl = httpsFallbackFor(contents.id, url, code);
+      if (httpUrl) {
+        // HTTPS-Only: the upgraded load failed; the chrome UI asks before falling back to http.
+        tab.state.interstitial = { kind: "https-only", url: httpUrl };
+        tab.state.url = httpUrl;
+        tab.state.title = displayUrl(httpUrl);
+        tab.state.isLoading = false;
+        if (tab.id === this.activeId) this.syncAttachment();
+        this.emit();
+        return;
+      }
       tab.state.title = `Erreur : ${displayUrl(url) || description}`;
       tab.state.isLoading = false;
       this.emit();

@@ -5,6 +5,8 @@ Un navigateur desktop **rapide, privé et entièrement personnalisable**, dans l
 - Moteur Chromium via Electron, un onglet = une `WebContentsView` sandboxée.
 - Interface Svelte 5 : barre latérale verticale, onglets épinglés, barre d'adresse intégrée, page d'accueil.
 - Recherche privée par défaut (DuckDuckGo), protections de sécurité strictes (voir `docs/DECISIONS.md`).
+- Boucliers intégrés : bloqueur de pubs & traqueurs (listes EasyList/uBlock via Ghostery), mode HTTPS uniquement,
+  Global Privacy Control, invite de permissions par site.
 
 ## Démarrer
 

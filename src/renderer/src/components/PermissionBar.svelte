@@ -1,0 +1,109 @@
+<script lang="ts">
+  import type { PermissionKind, PermissionPrompt, TabId } from "@shared/types";
+  import { api } from "../lib/browser.svelte";
+  import Icon from "./Icon.svelte";
+
+  let { tabId, prompt }: { tabId: TabId; prompt: PermissionPrompt } = $props();
+
+  const LABELS: Record<PermissionKind, string> = {
+    camera: "utiliser votre caméra",
+    microphone: "utiliser votre micro",
+    geolocation: "connaître votre position",
+    notifications: "vous envoyer des notifications",
+    midi: "accéder à vos appareils MIDI",
+    "midi-sysex": "contrôler entièrement vos appareils MIDI",
+    "clipboard-read": "lire votre presse-papiers",
+    "display-capture": "capturer votre écran",
+    "idle-detection": "savoir quand vous êtes inactif",
+    "window-management": "gérer les fenêtres sur vos écrans",
+    "storage-access": "utiliser ses cookies sur d'autres sites",
+    "local-fonts": "lister les polices installées",
+  };
+
+  let remember = $state(false);
+  // A new prompt starts with "remember" unchecked.
+  $effect.pre(() => {
+    void prompt.id;
+    remember = false;
+  });
+
+  const host = $derived.by(() => {
+    try {
+      return new URL(prompt.origin).host;
+    } catch {
+      return prompt.origin;
+    }
+  });
+  const request = $derived(new Intl.ListFormat("fr", { type: "conjunction" }).format(prompt.kinds.map((kind) => LABELS[kind])));
+
+  function answer(allow: boolean): void {
+    api.permissions.respond(tabId, prompt.id, allow, remember);
+  }
+</script>
+
+<div class="permission-bar" role="alertdialog" aria-label="Demande d'autorisation">
+  <Icon name="shield" size={15} />
+  <p><strong>{host}</strong> souhaite {request}.</p>
+  <label><input type="checkbox" bind:checked={remember} /> Se souvenir pour ce site</label>
+  <button class="secondary" onclick={() => answer(false)}>Bloquer</button>
+  <button class="primary" onclick={() => answer(true)}>Autoriser</button>
+</div>
+
+<style>
+  .permission-bar {
+    display: flex;
+    flex: none;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 6px 8px 6px 14px;
+    border-radius: var(--radius);
+    background: var(--bg-elevated);
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 35%, transparent);
+    color: var(--accent);
+    animation: drop 0.18s var(--ease);
+  }
+  p {
+    flex: 1;
+    min-width: 200px;
+    margin: 0;
+    color: var(--text);
+  }
+  label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+  input {
+    margin: 0;
+    accent-color: var(--accent);
+  }
+  button {
+    height: 30px;
+    padding: 0 14px;
+    border-radius: 8px;
+    font-weight: 500;
+  }
+  .secondary {
+    background: var(--surface);
+  }
+  .secondary:hover {
+    background: var(--surface-hover);
+  }
+  .primary {
+    background: var(--accent);
+    color: #fff;
+  }
+  .primary:hover {
+    background: color-mix(in oklab, var(--accent) 85%, #fff);
+  }
+  @keyframes drop {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+  }
+</style>
