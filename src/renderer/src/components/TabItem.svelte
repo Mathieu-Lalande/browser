@@ -67,12 +67,15 @@
   }
   .title {
     flex: 1;
+    min-width: 0;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
   }
+  /* Fixed size: on a narrow sidebar the title gives way, never the close button. */
   .close {
     display: grid;
+    flex: none;
     place-items: center;
     width: 22px;
     height: 22px;
