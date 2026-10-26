@@ -1,3 +1,4 @@
+import type { Settings, SettingsPatch, SettingsSection } from "./settings";
 import type { Bookmark, BookmarkInput, Bounds, BrowserState, HistoryEntry, TabId, UiCommand } from "./types";
 
 /** IPC channel names, shared by main and preload so they cannot drift. */
@@ -26,6 +27,11 @@ export const Channels = {
   bookmarksAdd: "bookmarks:add",
   bookmarksRemove: "bookmarks:remove",
   bookmarksToggleActive: "bookmarks:toggle-active",
+  settingsGet: "settings:get",
+  settingsUpdate: "settings:update",
+  settingsReset: "settings:reset",
+  settingsChanged: "settings:changed",
+  settingsOpen: "settings:open",
 } as const;
 
 /** API exposed to the chrome UI on `window.browser` by the preload script. */
@@ -67,5 +73,16 @@ export interface BrowserApi {
     remove(id: string): Promise<void>;
     /** Bookmarks the active tab of this window, or removes its bookmark. */
     toggleActive(): void;
+  };
+  settings: {
+    get(): Promise<Settings>;
+    /** Validated field by field in main; resolves to the resulting settings. */
+    update(patch: SettingsPatch): Promise<Settings>;
+    /** Back to defaults: one section, or everything. */
+    reset(section?: SettingsSection): Promise<Settings>;
+    /** Settings changed (from any window). */
+    onChanged(listener: (settings: Settings) => void): () => void;
+    /** Shows `browser://settings` in this window (existing tab, or a new one). */
+    open(): void;
   };
 }

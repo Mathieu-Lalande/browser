@@ -42,6 +42,7 @@ export function installMenu(): void {
           }),
         },
         { label: "Nouvelle fenêtre", accelerator: "CmdOrCtrl+N", click: () => new BrowserController() },
+        { label: "Paramètres…", accelerator: "CmdOrCtrl+,", click: withFocused((c) => c.openSettings()) },
         { label: "Fermer l'onglet", accelerator: "CmdOrCtrl+W", click: withActiveTab((c, id) => c.tabs.close(id)) },
         { type: "separator" },
         isMac ? { role: "close" } : { role: "quit", label: "Quitter" },
@@ -64,6 +65,7 @@ export function installMenu(): void {
       submenu: [
         { label: "Barre d'adresse", accelerator: "CmdOrCtrl+L", click: withFocused((c) => c.sendUiCommand("focus-address")) },
         { label: "Barre latérale", accelerator: "CmdOrCtrl+S", click: withFocused((c) => c.sendUiCommand("toggle-sidebar")) },
+        { label: "Mode zen", accelerator: "CmdOrCtrl+Shift+B", click: () => BrowserController.toggleZenMode() },
         { type: "separator" },
         { label: "Actualiser", accelerator: "CmdOrCtrl+R", click: withActiveTab((c, id) => c.tabs.reload(id)) },
         { label: "Actualiser", accelerator: "F5", visible: false, click: withActiveTab((c, id) => c.tabs.reload(id)) },

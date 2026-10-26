@@ -2,6 +2,7 @@
   import type { HistoryEntry } from "@shared/types";
   import { displayUrl } from "@shared/url";
   import { api, browser } from "../lib/browser.svelte";
+  import { settings } from "../lib/settings.svelte";
   import Favicon from "./Favicon.svelte";
   import Icon from "./Icon.svelte";
 
@@ -21,6 +22,9 @@
 
   const time = $derived(now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }));
   const greeting = $derived(now.getHours() < 5 || now.getHours() >= 18 ? "Bonsoir" : "Bonjour");
+  const options = $derived(settings.current.startPage);
+  const name = $derived(options.greetingName.trim());
+  const image = $derived(options.background === "image" && options.backgroundImage ? options.backgroundImage : null);
 
   function submit(event: SubmitEvent): void {
     event.preventDefault();
@@ -34,15 +38,20 @@
   }
 </script>
 
-<section class="start">
-  <p class="time">{time}</p>
-  <h1>{greeting}.</h1>
+<section
+  class="start"
+  class:aurora={options.background === "aurora"}
+  class:image={image !== null}
+  style:--start-image={image ? `url("${encodeURI(image)}")` : undefined}
+>
+  {#if options.showClock}<p class="time">{time}</p>{/if}
+  <h1>{greeting}{#if name}, {name}{/if}.</h1>
   <form class="search" onsubmit={submit}>
     <Icon name="search" size={18} />
     <!-- svelte-ignore a11y_autofocus -->
     <input bind:value={query} placeholder="Rechercher sur le web ou saisir une adresse" spellcheck="false" autofocus />
   </form>
-  {#if topSites.length}
+  {#if options.showTopSites && topSites.length}
     <nav class="sites" aria-label="Sites les plus visités">
       {#each topSites as site (site.url)}
         <button class="site" title={site.url} onclick={() => openSite(site.url)}>
@@ -57,6 +66,8 @@
 
 <style>
   .start {
+    position: relative;
+    isolation: isolate;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -65,6 +76,27 @@
     height: 100%;
     padding: 24px;
     animation: rise 0.4s var(--ease);
+  }
+  /* Optional backgrounds, behind the content (z-index -1 within the isolated section). */
+  .start.aurora::before,
+  .start.image::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+  }
+  .start.aurora::before {
+    background:
+      radial-gradient(45% 55% at 20% 25%, color-mix(in oklab, var(--accent) 38%, transparent), transparent 70%),
+      radial-gradient(40% 50% at 80% 30%, color-mix(in oklab, var(--accent-2) 32%, transparent), transparent 70%),
+      radial-gradient(50% 45% at 55% 90%, color-mix(in oklab, var(--accent) 22%, transparent), transparent 70%);
+    filter: blur(20px);
+    animation: drift 18s ease-in-out infinite alternate;
+  }
+  .start.image::before {
+    background:
+      linear-gradient(color-mix(in oklab, var(--bg-elevated) 35%, transparent), color-mix(in oklab, var(--bg-elevated) 70%, transparent)),
+      var(--start-image) center / cover no-repeat;
   }
   .time {
     margin: 0;
@@ -156,6 +188,11 @@
     border-radius: 4px;
     font: inherit;
     font-size: 11px;
+  }
+  @keyframes drift {
+    to {
+      transform: scale(1.08) translate(2%, -2%);
+    }
   }
   @keyframes rise {
     from {

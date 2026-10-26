@@ -1,3 +1,5 @@
+import { internalPageOf, internalUrl } from "./internal";
+
 export interface SearchEngine {
   id: string;
   name: string;
@@ -14,7 +16,10 @@ export const SEARCH_ENGINES: readonly SearchEngine[] = [
 
 export const DEFAULT_SEARCH_ENGINE = SEARCH_ENGINES[0];
 
-/** Schemes a tab is allowed to load. Everything else (file:, javascript:, …) is refused. */
+/**
+ * Schemes a tab is allowed to load. Everything else (file:, javascript:, browser:…) is refused:
+ * internal `browser://` pages are only reachable from `normalizeInput`, i.e. typed by the user.
+ */
 const NAVIGABLE_SCHEMES = new Set(["http:", "https:", "about:", "data:"]);
 
 export function searchUrl(query: string, engine: SearchEngine = DEFAULT_SEARCH_ENGINE): string {
@@ -38,6 +43,8 @@ export function normalizeInput(raw: string, engine: SearchEngine = DEFAULT_SEARC
   const input = raw.trim();
   if (!input) return "";
   if (/\s/.test(input)) return searchUrl(input, engine);
+  const internal = internalPageOf(input);
+  if (internal) return internalUrl(internal);
 
   if (/^[a-z][a-z\d+\-.]*:/i.test(input) && !/^[^:/]+:\d+(\/|$)/.test(input)) {
     try {

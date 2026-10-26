@@ -1,12 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { WebContentsView, type BaseWindow, type WebContents } from "electron";
+import { INTERNAL_PAGES, internalPageOf, internalUrl, isInternalUrl, type InternalPage } from "@shared/internal";
+import type { CloseTabActivates, NewTabPosition } from "@shared/settings";
 import type { Bounds, BrowserState, TabId, TabState } from "@shared/types";
-import { displayUrl, isNavigableUrl, normalizeInput } from "@shared/url";
+import { DEFAULT_SEARCH_ENGINE, displayUrl, isNavigableUrl, normalizeInput, type SearchEngine } from "@shared/url";
 import { hardenWebContents } from "./security";
 import type { SessionTab, SessionWindow } from "./storage/session";
 
 const START_TITLE = "Nouvel onglet";
-const CONTENT_RADIUS = 10;
 
 interface Tab {
   id: TabId;
@@ -31,7 +32,25 @@ export interface TabManagerHooks {
   isBookmarked?(url: string): boolean;
 }
 
-const isDiscarded = (tab: Tab) => !tab.view && tab.state.url !== "";
+/** User preferences TabManager follows (see `configure`). */
+export interface TabOptions {
+  searchEngine: SearchEngine;
+  newTabPosition: NewTabPosition;
+  closeTabActivates: CloseTabActivates;
+  /** Corner radius of the page views, in px. */
+  pageRadius: number;
+}
+
+const DEFAULT_TAB_OPTIONS: TabOptions = {
+  searchEngine: DEFAULT_SEARCH_ENGINE,
+  newTabPosition: "end",
+  closeTabActivates: "next",
+  pageRadius: 10,
+};
+
+/** Whether a tab URL is a web page (vs the start page or an internal page drawn by the chrome UI). */
+const showsWebPage = (url: string) => url !== "" && !isInternalUrl(url);
+const isDiscarded = (tab: Tab) => !tab.view && showsWebPage(tab.state.url);
 const withoutHash = (url: string) => url.split("#", 1)[0];
 
 /**
@@ -44,6 +63,9 @@ export class TabManager {
   private bounds: Bounds = { x: 0, y: 0, width: 0, height: 0 };
   private attached: WebContentsView | null = null;
   private emitScheduled = false;
+  private options: TabOptions = { ...DEFAULT_TAB_OPTIONS };
+  /** Tab ids, least recently activated first (for "close → back to the last used tab"). */
+  private recent: TabId[] = [];
 
   constructor(
     private readonly window: BaseWindow,
@@ -58,8 +80,15 @@ export class TabManager {
     };
   }
 
+  /** Updates preferences; already open page views pick up the new radius right away. */
+  configure(options: Partial<TabOptions>): void {
+    const radiusChanged = options.pageRadius !== undefined && options.pageRadius !== this.options.pageRadius;
+    this.options = { ...this.options, ...options };
+    if (radiusChanged) for (const tab of this.tabs) tab.view?.setBorderRadius(this.options.pageRadius);
+  }
+
   create(input = "", options: { activate?: boolean; index?: number } = {}): TabId {
-    const tab = this.insert({ url: "", title: START_TITLE, favicon: null, pinned: false }, options.index ?? this.tabs.length);
+    const tab = this.insert({ url: "", title: START_TITLE, favicon: null, pinned: false }, options.index ?? this.newTabIndex());
     if (options.activate ?? true) this.activate(tab.id);
     this.navigate(tab.id, input);
     this.emit();
@@ -96,8 +125,9 @@ export class TabManager {
     const index = this.tabs.findIndex((tab) => tab.id === id);
     if (index === -1) return;
     const [tab] = this.tabs.splice(index, 1);
+    this.recent = this.recent.filter((recentId) => recentId !== id);
     if (this.activeId === id) {
-      const next = this.tabs[Math.min(index, this.tabs.length - 1)];
+      const next = this.nextAfterClose(index);
       this.activeId = null;
       if (next) this.activate(next.id);
       else this.detach();
@@ -111,6 +141,7 @@ export class TabManager {
     const tab = this.find(id);
     if (!tab) return;
     this.activeId = id;
+    this.recent = [...this.recent.filter((recentId) => recentId !== id), id];
     this.wake(tab);
     this.syncAttachment();
     this.emit();
@@ -119,10 +150,12 @@ export class TabManager {
   navigate(id: TabId, input: string): void {
     const tab = this.find(id);
     if (!tab) return;
-    const url = normalizeInput(input);
+    const url = normalizeInput(input, this.options.searchEngine);
     tab.state.url = url;
-    if (!url) {
-      tab.state.title = START_TITLE;
+    if (!showsWebPage(url)) {
+      // Start page or internal page: drawn by the chrome UI, the page view (if any) is parked.
+      const page = internalPageOf(url);
+      tab.state.title = page ? INTERNAL_PAGES[page].title : START_TITLE;
       tab.state.favicon = null;
       tab.state.isLoading = false;
       if (tab.view?.webContents.getURL()) tab.view.webContents.loadURL("about:blank").catch(() => {});
@@ -146,7 +179,7 @@ export class TabManager {
 
   reload(id: TabId): void {
     const tab = this.find(id);
-    if (!tab?.state.url) return;
+    if (!tab || !showsWebPage(tab.state.url)) return;
     if (tab.view) tab.view.webContents.reload();
     else this.wake(tab);
   }
@@ -191,7 +224,15 @@ export class TabManager {
 
   activeWebContents(): WebContents | null {
     const tab = this.activeId ? this.find(this.activeId) : undefined;
-    return tab?.state.url && tab.view ? tab.view.webContents : null;
+    return tab && showsWebPage(tab.state.url) && tab.view ? tab.view.webContents : null;
+  }
+
+  /** Shows an internal page: switches to its tab if one is open, else opens it in a new tab. */
+  openInternal(page: InternalPage): void {
+    const url = internalUrl(page);
+    const existing = this.tabs.find((tab) => tab.state.url === url);
+    if (existing) this.activate(existing.id);
+    else this.create(url, { index: this.indexAfterActive() });
   }
 
   setBounds(bounds: Bounds): void {
@@ -209,6 +250,29 @@ export class TabManager {
     this.tabs = [];
   }
 
+  /** Where a new tab goes: at the end, or right after the active tab (never among pinned tabs). */
+  private newTabIndex(): number {
+    return this.options.newTabPosition === "next" ? this.indexAfterActive() : this.tabs.length;
+  }
+
+  private indexAfterActive(): number {
+    const active = this.tabs.findIndex((tab) => tab.id === this.activeId);
+    const pinned = this.tabs.filter((tab) => tab.state.isPinned).length;
+    return active === -1 ? this.tabs.length : Math.max(active + 1, pinned);
+  }
+
+  /** The tab to activate once the active tab, formerly at `index`, is removed. */
+  private nextAfterClose(index: number): Tab | undefined {
+    const behavior = this.options.closeTabActivates;
+    if (behavior === "recent") {
+      const recentId = this.recent.at(-1);
+      const recent = recentId ? this.find(recentId) : undefined;
+      if (recent) return recent;
+    }
+    if (behavior === "previous" && index > 0) return this.tabs[index - 1];
+    return this.tabs[Math.min(index, this.tabs.length - 1)];
+  }
+
   private insert(entry: SessionTab, index: number): Tab {
     const id = randomUUID();
     const tab: Tab = {
@@ -217,7 +281,7 @@ export class TabManager {
       state: {
         id,
         url: entry.url,
-        title: entry.title || (entry.url ? displayUrl(entry.url) : START_TITLE),
+        title: entry.title || this.defaultTitle(entry.url),
         favicon: entry.favicon,
         isLoading: false,
         canGoBack: false,
@@ -228,6 +292,12 @@ export class TabManager {
     };
     this.tabs.splice(Math.max(0, Math.min(index, this.tabs.length)), 0, tab);
     return tab;
+  }
+
+  private defaultTitle(url: string): string {
+    const page = internalPageOf(url);
+    if (page) return INTERNAL_PAGES[page].title;
+    return url ? displayUrl(url) : START_TITLE;
   }
 
   private ensureView(tab: Tab): WebContentsView {
@@ -242,7 +312,7 @@ export class TabManager {
         spellcheck: true,
       },
     });
-    view.setBorderRadius(CONTENT_RADIUS);
+    view.setBorderRadius(this.options.pageRadius);
     view.setBackgroundColor("#ffffff");
     tab.view = view;
     this.wire(tab, view.webContents);
@@ -262,10 +332,10 @@ export class TabManager {
     return this.tabs.find((tab) => tab.id === id);
   }
 
-  /** The active tab's view is attached unless it shows the start page (rendered by the chrome UI). */
+  /** The active tab's view is attached unless it shows the start page or an internal page (drawn by the chrome UI). */
   private syncAttachment(): void {
     const tab = this.activeId ? this.find(this.activeId) : undefined;
-    const wanted = tab?.state.url ? tab.view : null;
+    const wanted = tab && showsWebPage(tab.state.url) ? tab.view : null;
     if (wanted === this.attached) return;
     this.detach();
     if (wanted) {
@@ -294,6 +364,8 @@ export class TabManager {
   private wire(tab: Tab, contents: WebContents): void {
     hardenWebContents(contents, {
       openTab: (url, foreground) => {
+        // Defense in depth: hardenWebContents already only lets web URLs through.
+        if (!isNavigableUrl(url)) return;
         const index = this.tabs.indexOf(tab) + 1;
         this.create(url, { activate: foreground, index });
       },
@@ -326,11 +398,14 @@ export class TabManager {
       refresh();
     });
     contents.on("page-title-updated", (_event, title) => {
+      // A parked view (behind the start page or an internal page) does not name the tab.
+      if (!showsWebPage(tab.state.url)) return;
       tab.state.title = title || displayUrl(contents.getURL());
       if (title) this.hooks.onPageInfo?.(contents.getURL(), { title });
       this.emit();
     });
     contents.on("page-favicon-updated", (_event, favicons) => {
+      if (!showsWebPage(tab.state.url)) return;
       tab.state.favicon = favicons.find(isNavigableUrl) ?? null;
       if (tab.state.favicon) this.hooks.onPageInfo?.(contents.getURL(), { favicon: tab.state.favicon });
       this.emit();

@@ -1,7 +1,9 @@
 import { ipcMain, type IpcMainEvent, type IpcMainInvokeEvent } from "electron";
 import { Channels } from "@shared/ipc";
+import { isSettingsSection } from "@shared/settings";
 import type { BookmarkInput, Bounds } from "@shared/types";
 import { profile } from "./profile";
+import { resetSettingsSection, settings, updateSettings } from "./settings";
 import { BrowserController } from "./window";
 
 type Handler = (controller: BrowserController, ...args: unknown[]) => void;
@@ -18,6 +20,7 @@ function isBounds(value: unknown): value is Bounds {
 const MAX_QUERY_LENGTH = 1024;
 const MAX_URL_LENGTH = 8192;
 const MAX_RESULTS = 100;
+const MAX_SETTINGS_PATCH = 16 * 1024;
 
 /** Undefined (use the default) or an integer in 1…MAX_RESULTS. */
 const isLimit = (value: unknown) =>
@@ -108,4 +111,14 @@ export function registerIpc(): void {
     if (profile().bookmarks.remove(bookmarkId as string)) bookmarksChanged();
   });
   on(Channels.bookmarksToggleActive, none, (c) => c.toggleBookmark());
+
+  // Settings: the patch is an untrusted object, validated field by field by `sanitizeSettings`.
+  const isPatch = (value: unknown) =>
+    typeof value === "object" && value !== null && !Array.isArray(value) && JSON.stringify(value).length <= MAX_SETTINGS_PATCH;
+  handle(Channels.settingsGet, none, () => settings());
+  handle(Channels.settingsUpdate, (args) => isPatch(args[0]), (patch) => updateSettings(patch));
+  handle(Channels.settingsReset, (args) => args[0] === undefined || isSettingsSection(args[0]), (section) =>
+    resetSettingsSection(section as Parameters<typeof resetSettingsSection>[0]),
+  );
+  on(Channels.settingsOpen, none, (c) => c.openSettings());
 }

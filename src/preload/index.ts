@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
 import { Channels, type BrowserApi } from "@shared/ipc";
+import type { Settings } from "@shared/settings";
 import type { BrowserState, UiCommand } from "@shared/types";
 
 function subscribe<T>(channel: string, listener: (payload: T) => void): () => void {
@@ -45,6 +46,13 @@ const api: BrowserApi = {
     add: (input) => ipcRenderer.invoke(Channels.bookmarksAdd, input),
     remove: (id) => ipcRenderer.invoke(Channels.bookmarksRemove, id),
     toggleActive: () => send(Channels.bookmarksToggleActive),
+  },
+  settings: {
+    get: () => ipcRenderer.invoke(Channels.settingsGet),
+    update: (patch) => ipcRenderer.invoke(Channels.settingsUpdate, patch),
+    reset: (section) => ipcRenderer.invoke(Channels.settingsReset, section),
+    onChanged: (listener) => subscribe<Settings>(Channels.settingsChanged, listener),
+    open: () => send(Channels.settingsOpen),
   },
 };
 

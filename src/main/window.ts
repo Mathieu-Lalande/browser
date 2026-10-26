@@ -1,8 +1,10 @@
 import { join } from "node:path";
 import { app, BrowserWindow, nativeTheme, type WebContents } from "electron";
 import { Channels } from "@shared/ipc";
+import { pageRadius, searchEngineOf, type Settings } from "@shared/settings";
 import type { UiCommand } from "@shared/types";
 import { profile } from "./profile";
+import { onSettingsChanged, settings, updateSettings, windowBackground } from "./settings";
 import type { SessionWindow } from "./storage/session";
 import { TabManager, type TabManagerHooks } from "./tabs";
 
@@ -28,6 +30,23 @@ const tabHooks: TabManagerHooks = {
   isBookmarked: (url) => profile().bookmarks.has(url),
 };
 
+/** What each TabManager takes from the settings. */
+const tabOptions = (current: Settings) => ({
+  searchEngine: searchEngineOf(current),
+  newTabPosition: current.behavior.newTabPosition,
+  closeTabActivates: current.behavior.closeTabActivates,
+  pageRadius: pageRadius(current),
+});
+
+// Settings apply live: every window re-themes itself and its chrome UI gets the new values.
+onSettingsChanged((current) => {
+  for (const controller of controllers.values()) controller.applySettings(current);
+});
+// The OS switched light/dark: windows following the system need their native background updated.
+nativeTheme.on("updated", () => {
+  for (const controller of controllers.values()) controller.window.setBackgroundColor(windowBackground());
+});
+
 /** One browser window: the chrome UI (sidebar, address bar…) plus the TabManager for its pages. */
 export class BrowserController {
   readonly window: BrowserWindow;
@@ -43,7 +62,8 @@ export class BrowserController {
       minHeight: 420,
       show: false,
       title: "Browser",
-      backgroundColor: nativeTheme.shouldUseDarkColors ? "#141318" : "#f3f1f7",
+      // The theme's own background: no white flash while the UI loads or on resize.
+      backgroundColor: windowBackground(),
       titleBarStyle: "hidden",
       // macOS keeps its traffic lights; elsewhere the sidebar draws its own window controls.
       ...(isMac ? { trafficLightPosition: { x: 16, y: 16 } } : { frame: false }),
@@ -67,6 +87,7 @@ export class BrowserController {
 
     const chrome = this.window.webContents;
     controllers.set(chrome.id, this);
+    this.applySettings(settings(), false);
     // The chrome UI is a fixed app page: it never navigates nor opens windows.
     chrome.on("will-navigate", (event) => event.preventDefault());
     chrome.setWindowOpenHandler(() => ({ action: "deny" }));
@@ -97,6 +118,25 @@ export class BrowserController {
     bookmarks.toggle({ url: tab.url, title: tab.title, favicon: tab.favicon }, Date.now());
     saveBookmarks();
     BrowserController.refreshAll();
+  }
+
+  /** Applies settings to the native side of the window, and tells its chrome UI (unless `notify` is false). */
+  applySettings(current: Settings, notify = true): void {
+    if (this.window.isDestroyed()) return;
+    this.window.setBackgroundColor(windowBackground(current));
+    this.tabs.configure(tabOptions(current));
+    // Zen mode hides the macOS traffic lights along with the sidebar.
+    if (process.platform === "darwin") this.window.setWindowButtonVisibility(!current.layout.zenMode);
+    this.window.setHasShadow(current.appearance.shadows);
+    if (notify) this.window.webContents.send(Channels.settingsChanged, current);
+  }
+
+  openSettings(): void {
+    this.tabs.openInternal("settings");
+  }
+
+  static toggleZenMode(): void {
+    updateSettings({ layout: { zenMode: !settings().layout.zenMode } });
   }
 
   sendUiCommand(command: UiCommand): void {

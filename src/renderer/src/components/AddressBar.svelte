@@ -1,8 +1,10 @@
 <script lang="ts">
   import { mergeSuggestions, type Suggestion } from "@shared/search";
+  import { internalPageOf } from "@shared/internal";
   import type { Bookmark } from "@shared/types";
   import { displayUrl, normalizeInput, searchUrl } from "@shared/url";
   import { api, browser } from "../lib/browser.svelte";
+  import { settings } from "../lib/settings.svelte";
   import Favicon from "./Favicon.svelte";
   import Icon from "./Icon.svelte";
 
@@ -21,10 +23,12 @@
 
   const tab = $derived(browser.activeTab);
   const isSecure = $derived(tab?.url.startsWith("https://") ?? false);
+  /** Internal pages (browser://…) are trusted, and cannot be bookmarked. */
+  const isInternal = $derived(internalPageOf(tab?.url ?? "") !== null);
   const label = $derived(tab?.url ? displayUrl(tab.url) : "");
   const query = $derived(draft.trim());
   const open = $derived(focused && typed && query !== "");
-  const isSearch = $derived(normalizeInput(query) === searchUrl(query));
+  const isSearch = $derived(normalizeInput(query, settings.engine) === searchUrl(query, settings.engine));
 
   // Focus may come before the state of a just-created tab: follow the active tab until the user types.
   $effect(() => {
@@ -95,8 +99,12 @@
 
 <div class="omnibox no-drag">
   <form class="address" class:focused onsubmit={submit}>
-    <span class="status" class:secure={isSecure} title={isSecure ? "Connexion sécurisée" : undefined}>
-      <Icon name={!tab?.url ? "search" : isSecure ? "lock" : "warning"} size={13} />
+    <span
+      class="status"
+      class:secure={isSecure || isInternal}
+      title={isInternal ? "Page du navigateur" : isSecure ? "Connexion sécurisée" : undefined}
+    >
+      <Icon name={!tab?.url ? "search" : isInternal ? "sparkle" : isSecure ? "lock" : "warning"} size={13} />
     </span>
     <input
       bind:this={input}
@@ -115,7 +123,7 @@
       aria-autocomplete="list"
       aria-activedescendant={open ? `suggestion-${selected}` : undefined}
     />
-    {#if tab?.url && !focused}
+    {#if tab?.url && !focused && !isInternal}
       <button
         type="button"
         class="star"
@@ -145,7 +153,7 @@
       >
         <span class="icon"><Icon name={isSearch ? "search" : "globe"} size={14} /></span>
         <span class="text">
-          {#if isSearch}Rechercher « {query} »{:else}Aller à {displayUrl(normalizeInput(query))}{/if}
+          {#if isSearch}Rechercher « {query} »{:else}Aller à {displayUrl(normalizeInput(query, settings.engine))}{/if}
         </span>
       </li>
       {#each suggestions as suggestion, index (suggestion.url)}
@@ -183,7 +191,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    height: 36px;
+    height: var(--control-height);
     padding: 0 6px 0 10px;
     border: 1px solid transparent;
     border-radius: var(--radius);
