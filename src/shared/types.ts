@@ -12,6 +12,8 @@ export interface TabState {
   isPinned: boolean;
   /** Whether `url` is in the bookmarks. */
   isBookmarked: boolean;
+  /** Epoch milliseconds of the last activation (0: never active since the app started). */
+  lastActiveAt: number;
 }
 
 export interface BrowserState {
@@ -28,6 +30,21 @@ export interface Bounds {
 
 /** Commands triggered by main (menus, shortcuts) that the chrome UI must handle. */
 export type UiCommand = "focus-address" | "toggle-sidebar";
+
+/** Floating UI shown in the overlay layer, above the page (see `src/main/overlay.ts`). */
+export type OverlayKind = "palette";
+
+export interface OverlayRequest {
+  kind: OverlayKind;
+}
+
+/**
+ * A downscaled snapshot of what is below the overlay (chrome UI, then the active page at its
+ * bounds), which the overlay blurs: CSS cannot blur native views behind a transparent page.
+ */
+export interface OverlayBackdrop {
+  layers: { image: string; bounds: Bounds }[];
+}
 
 /** One history row per URL (visits are aggregated, not stored individually). */
 export interface HistoryEntry {

@@ -6,6 +6,7 @@ Un navigateur desktop **rapide, privé et entièrement personnalisable**, dans l
 - Interface Svelte 5 : barre latérale verticale, onglets épinglés, barre d'adresse intégrée, page d'accueil.
 - Session restaurée au démarrage (onglets chargés à la demande), historique, favoris, suggestions
   dans la barre d'adresse et sites les plus visités sur la page d'accueil.
+- Palette de commandes (`Ctrl/Cmd+K`) : onglets ouverts, favoris, historique et actions, recherche floue.
 - Recherche privée par défaut (DuckDuckGo), protections de sécurité strictes (voir `docs/DECISIONS.md`).
 
 ## Démarrer
@@ -34,8 +35,12 @@ Sous Linux sans affichage (CI) : `xvfb-run -a npm run test:e2e`.
 
 | Raccourci | Action |
 | --- | --- |
+| `Ctrl/Cmd+K` | Palette de commandes (`Ctrl/Cmd+Entrée` : ouvrir dans un nouvel onglet) |
 | `Ctrl/Cmd+L` | Barre d'adresse |
 | `Ctrl/Cmd+T` / `W` | Nouvel onglet / fermer l'onglet |
+| `Ctrl/Cmd+Shift+K` | Dupliquer l'onglet (avec son historique) |
+| `Ctrl/Cmd+Shift+C` | Copier l'URL de la page |
+| `Ctrl/Cmd+=` / `-` / `0` | Zoom avant / arrière / taille réelle (page active) |
 | `Ctrl+Tab` / `Ctrl+Shift+Tab` | Onglet suivant / précédent |
 | `Ctrl/Cmd+1…9` | Aller à l'onglet n |
 | `Ctrl/Cmd+S` | Afficher/masquer la barre latérale |

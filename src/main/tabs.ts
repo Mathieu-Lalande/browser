@@ -7,6 +7,8 @@ import type { SessionTab, SessionWindow } from "./storage/session";
 
 const START_TITLE = "Nouvel onglet";
 const CONTENT_RADIUS = 10;
+/** Chrome's zoom steps. */
+const ZOOM_FACTORS = [0.25, 0.33, 0.5, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4, 5];
 
 interface Tab {
   id: TabId;
@@ -111,6 +113,7 @@ export class TabManager {
     const tab = this.find(id);
     if (!tab) return;
     this.activeId = id;
+    tab.state.lastActiveAt = Date.now();
     this.wake(tab);
     this.syncAttachment();
     this.emit();
@@ -164,6 +167,45 @@ export class TabManager {
     this.emit();
   }
 
+  /**
+   * Opens a copy of a tab right after it (after the pinned tabs, as copies are not pinned),
+   * with its back/forward history, and activates it.
+   */
+  duplicate(id: TabId): TabId | undefined {
+    const source = this.find(id);
+    if (!source) return undefined;
+    const pinnedCount = this.tabs.filter((tab) => tab.state.isPinned).length;
+    const index = Math.max(this.tabs.indexOf(source) + 1, pinnedCount);
+    const { url, title, favicon } = source.state;
+    const copy = this.insert({ url, title, favicon, pinned: false }, index);
+    const entries = source.view?.webContents.navigationHistory;
+    if (url && entries && entries.length() > 0) {
+      const view = this.ensureView(copy);
+      // Like waking a restored tab: reopening a page is not a new visit.
+      copy.waking = url;
+      view.webContents.navigationHistory
+        .restore({ entries: entries.getAllEntries(), index: entries.getActiveIndex() })
+        .catch(() => view.webContents.loadURL(url).catch(() => {}));
+    }
+    // Without a live source page (start page, discarded tab) the copy loads on activation, like a restored tab.
+    this.activate(copy.id);
+    return copy.id;
+  }
+
+  /** Zooms the tab's page one step in (1) or out (-1), or back to 100 % (0). */
+  zoom(id: TabId, direction: 1 | -1 | 0): void {
+    const contents = this.find(id)?.view?.webContents;
+    if (!contents) return;
+    const current = contents.getZoomFactor();
+    const next =
+      direction === 0
+        ? 1
+        : direction > 0
+          ? ZOOM_FACTORS.find((factor) => factor > current + 0.001)
+          : ZOOM_FACTORS.findLast((factor) => factor < current - 0.001);
+    if (next) contents.setZoomFactor(next);
+  }
+
   move(id: TabId, toIndex: number): void {
     const from = this.tabs.findIndex((tab) => tab.id === id);
     if (from === -1) return;
@@ -192,6 +234,11 @@ export class TabManager {
   activeWebContents(): WebContents | null {
     const tab = this.activeId ? this.find(this.activeId) : undefined;
     return tab?.state.url && tab.view ? tab.view.webContents : null;
+  }
+
+  /** Where the active page is drawn, in window content coordinates. */
+  get viewBounds(): Bounds {
+    return { ...this.bounds };
   }
 
   setBounds(bounds: Bounds): void {
@@ -224,6 +271,7 @@ export class TabManager {
         canGoForward: false,
         isPinned: entry.pinned,
         isBookmarked: false,
+        lastActiveAt: 0,
       },
     };
     this.tabs.splice(Math.max(0, Math.min(index, this.tabs.length)), 0, tab);
