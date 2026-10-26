@@ -14,3 +14,5 @@
 - Vérifications avant commit : `npm run typecheck && npm test && npm run build && xvfb-run -a npx playwright test`
   (en root/conteneur, l'app est lancée avec `--no-sandbox`, déjà géré par les fixtures e2e).
 - `npm install` : `.npmrc` active `legacy-peer-deps` (contourne un bug npm avec vitest 4).
+- Préférences : `src/shared/settings.ts` (modèle + validateur) et `src/shared/theme.ts` (palette → variables CSS),
+  voir ADR-011. Pages internes `browser://…` dessinées par l'interface : ADR-012 (jamais accessibles aux pages web).

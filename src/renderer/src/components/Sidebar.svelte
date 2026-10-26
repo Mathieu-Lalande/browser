@@ -1,8 +1,9 @@
 <script lang="ts">
   import { api, browser } from "../lib/browser.svelte";
   import AddressBar from "./AddressBar.svelte";
-  import Favicon from "./Favicon.svelte";
+  import { settings } from "../lib/settings.svelte";
   import Icon from "./Icon.svelte";
+  import TabIcon from "./TabIcon.svelte";
   import TabItem from "./TabItem.svelte";
   import WindowControls from "./WindowControls.svelte";
 
@@ -11,6 +12,9 @@
 
   const tab = $derived(browser.activeTab);
   const isMac = window.platform === "darwin";
+  // macOS traffic lights sit at the window's top-left: only a left sidebar makes room for them.
+  const roomForTrafficLights = $derived(isMac && settings.current.layout.sidebarPosition === "left");
+  const zen = $derived(settings.current.layout.zenMode);
 
   export function focusAddress(): void {
     addressBar.focus();
@@ -18,7 +22,7 @@
 </script>
 
 <aside class="sidebar">
-  <header class="titlebar drag" class:mac={isMac}>
+  <header class="titlebar drag" class:mac={roomForTrafficLights}>
     {#if !isMac}<WindowControls />{/if}
     <div class="spacer"></div>
     <button class="icon no-drag" aria-label="Masquer la barre latérale" title="Masquer la barre latérale (Ctrl+S)" onclick={onToggle}>
@@ -56,7 +60,7 @@
           onclick={() => api.tabs.activate(pinned.id)}
           ondblclick={() => api.tabs.togglePin(pinned.id)}
         >
-          <Favicon src={pinned.favicon} loading={pinned.isLoading} />
+          <TabIcon tab={pinned} />
         </button>
       {/each}
     </div>
@@ -73,16 +77,32 @@
       <TabItem tab={item} active={item.id === browser.state.activeTabId} />
     {/each}
   </div>
+
+  <footer class="footer">
+    <button class="icon" aria-label="Paramètres" title="Paramètres (Ctrl+,)" onclick={() => api.settings.open()}>
+      <Icon name="settings" />
+    </button>
+    <button
+      class="icon"
+      class:on={zen}
+      aria-label="Mode zen"
+      aria-pressed={zen}
+      title="Mode zen (Ctrl+Maj+B)"
+      onclick={() => settings.update({ layout: { zenMode: !zen } })}
+    >
+      <Icon name="zen" />
+    </button>
+  </footer>
 </aside>
 
 <style>
   .sidebar {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--sidebar-gap);
     width: var(--sidebar-width);
     height: 100%;
-    padding: 0 8px 10px var(--gutter);
+    padding: 0 8px 8px;
   }
   .titlebar {
     display: flex;
@@ -103,10 +123,13 @@
   .icon {
     display: grid;
     place-items: center;
-    width: 30px;
-    height: 30px;
+    width: var(--icon-button);
+    height: var(--icon-button);
     border-radius: 8px;
     color: var(--text-muted);
+  }
+  .icon.on {
+    color: var(--accent-text);
   }
   .icon:hover:not(:disabled) {
     background: var(--surface-hover);
@@ -144,7 +167,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    height: 34px;
+    height: calc(var(--tab-height) - 2px);
     padding: 0 11px;
     border-radius: var(--radius);
     color: var(--text-muted);
@@ -159,5 +182,12 @@
     gap: 2px;
     min-height: 0;
     overflow-y: auto;
+  }
+  .footer {
+    display: flex;
+    flex: none;
+    gap: 2px;
+    margin-top: auto;
+    padding-top: 6px;
   }
 </style>

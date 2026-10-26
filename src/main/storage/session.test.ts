@@ -42,4 +42,11 @@ describe("parseSession", () => {
     });
     expect(parsed).toEqual({ windows: [{ tabs: [{ url: "https://a.com/", title: "", favicon: null, pinned: false }], activeIndex: 0 }] });
   });
+
+  it("restores internal pages, but not unknown internal URLs", () => {
+    const parsed = parseSession({
+      windows: [{ tabs: [tab("browser://settings"), tab("browser://evil"), tab("browser:settings")], activeIndex: 0 }],
+    });
+    expect(parsed?.windows[0].tabs.map((t) => t.url)).toEqual(["browser://settings"]);
+  });
 });

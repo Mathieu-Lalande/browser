@@ -11,6 +11,7 @@ describe("History", () => {
     expect(history.recordVisit("about:blank", NOW)).toBe(false);
     expect(history.recordVisit("data:text/html,hi", NOW)).toBe(false);
     expect(history.recordVisit("file:///etc/passwd", NOW)).toBe(false);
+    expect(history.recordVisit("browser://settings", NOW)).toBe(false);
     expect(history.size).toBe(1);
   });
 

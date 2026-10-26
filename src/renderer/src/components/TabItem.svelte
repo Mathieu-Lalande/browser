@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { TabState } from "@shared/types";
   import { api } from "../lib/browser.svelte";
-  import Favicon from "./Favicon.svelte";
   import Icon from "./Icon.svelte";
+  import TabIcon from "./TabIcon.svelte";
 
   let { tab, active }: { tab: TabState; active: boolean } = $props();
 
@@ -23,7 +23,7 @@
   onauxclick={onAuxClick}
   ondblclick={() => api.tabs.togglePin(tab.id)}
 >
-  <Favicon src={tab.favicon} loading={tab.isLoading} />
+  <TabIcon {tab} />
   <span class="title">{tab.title}</span>
   <button class="close" aria-label="Fermer l'onglet" onclick={(event) => (event.stopPropagation(), api.tabs.close(tab.id))}>
     <Icon name="close" size={12} />
@@ -35,7 +35,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    height: 36px;
+    height: var(--tab-height);
     padding: 0 6px 0 10px;
     border-radius: var(--radius);
     color: var(--text-muted);
@@ -49,7 +49,7 @@
     background: var(--bg-elevated);
     color: var(--text);
     box-shadow:
-      0 1px 2px rgb(0 0 0 / 0.18),
+      var(--elevation),
       inset 0 0 0 1px var(--border);
   }
   .title {

@@ -22,6 +22,7 @@ describe("Bookmarks", () => {
     expect(bookmarks.add({ url: "https://www.a.com/docs" }, NOW)?.title).toBe("a.com/docs");
     expect(bookmarks.add({ url: "file:///etc/passwd" }, NOW)).toBeNull();
     expect(bookmarks.add({ url: "javascript:alert(1)" }, NOW)).toBeNull();
+    expect(bookmarks.add({ url: "browser://settings" }, NOW)).toBeNull();
   });
 
   it("toggles a page", () => {

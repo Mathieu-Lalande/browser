@@ -36,6 +36,8 @@ function startServer(): Promise<{ server: Server; origin: string }> {
       res.end(`<title>Permission</title><p>asks for permissions</p>`);
     } else if (path.startsWith("/popup")) {
       res.end(`<title>Opener</title><a id="open" href="/second" target="_blank">open</a>`);
+    } else if (path.startsWith("/internal-link")) {
+      res.end(`<title>Internal link</title><a id="link" href="browser://settings">link</a><a id="popup" href="browser://settings" target="_blank">popup</a>`);
     } else if (path.startsWith("/file-link")) {
       res.end(`<title>File link</title><a id="file" href="file:///etc/hostname">file</a>`);
     } else {

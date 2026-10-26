@@ -1,10 +1,11 @@
+import { internalPageOf, internalUrl } from "@shared/internal";
 import { isNavigableUrl } from "@shared/url";
 
 export const SESSION_VERSION = 1;
 
 /** What is needed to bring a tab back without loading it. */
 export interface SessionTab {
-  /** Empty string means the start page. */
+  /** Empty string means the start page; `browser://…` an internal page. */
   url: string;
   title: string;
   favicon: string | null;
@@ -25,10 +26,12 @@ const MAX_TEXT = 2048;
 function sanitizeTab(value: unknown): SessionTab | null {
   if (typeof value !== "object" || value === null) return null;
   const t = value as Record<string, unknown>;
+  if (typeof t.url !== "string") return null;
   // Never restore something a tab could not have loaded in the first place (file:, javascript:…).
-  if (typeof t.url !== "string" || (t.url !== "" && !isNavigableUrl(t.url))) return null;
+  const internal = internalPageOf(t.url);
+  if (t.url !== "" && !internal && !isNavigableUrl(t.url)) return null;
   return {
-    url: t.url,
+    url: internal ? internalUrl(internal) : t.url,
     title: typeof t.title === "string" ? t.title.slice(0, MAX_TEXT) : "",
     favicon: typeof t.favicon === "string" && isNavigableUrl(t.favicon) ? t.favicon : null,
     pinned: t.pinned === true,

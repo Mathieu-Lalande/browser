@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
 import { Channels, type BrowserApi } from "@shared/ipc";
+import type { Settings } from "@shared/settings";
 import type { BrowserState, OverlayBackdrop, OverlayRequest, UiCommand } from "@shared/types";
 
 function subscribe<T>(channel: string, listener: (payload: T) => void): () => void {
@@ -58,6 +59,13 @@ const api: BrowserApi = {
     onShow: (listener) => subscribe<OverlayRequest>(Channels.overlayShow, listener),
     onBackdrop: (listener) => subscribe<OverlayBackdrop>(Channels.overlayBackdrop, listener),
     close: (restoreFocus) => send(Channels.overlayClose, restoreFocus),
+  },
+  settings: {
+    get: () => ipcRenderer.invoke(Channels.settingsGet),
+    update: (patch) => ipcRenderer.invoke(Channels.settingsUpdate, patch),
+    reset: (section) => ipcRenderer.invoke(Channels.settingsReset, section),
+    onChanged: (listener) => subscribe<Settings>(Channels.settingsChanged, listener),
+    open: () => send(Channels.settingsOpen),
   },
 };
 

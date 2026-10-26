@@ -3,6 +3,7 @@ import { registerIpc } from "./ipc";
 import { installMenu } from "./menu";
 import { flushProfile, openProfile } from "./profile";
 import { hardenApp, hardenSession } from "./security";
+import { applyNativeTheme } from "./settings";
 import { BrowserController } from "./window";
 
 app.setName("Browser");
@@ -27,8 +28,10 @@ if (!app.requestSingleInstanceLock()) {
     hardenSession();
     registerIpc();
     installMenu();
-    const { previousSession } = openProfile();
-    if (previousSession?.windows.length) for (const saved of previousSession.windows) new BrowserController(saved);
+    const { previousSession, settings } = openProfile();
+    applyNativeTheme(settings);
+    const restore = settings.behavior.restoreSession ? (previousSession?.windows ?? []) : [];
+    if (restore.length) for (const saved of restore) new BrowserController(saved);
     else new BrowserController();
 
     app.on("activate", () => {

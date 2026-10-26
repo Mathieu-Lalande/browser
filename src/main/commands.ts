@@ -42,6 +42,8 @@ const RUNNERS: Record<CommandId, Runner> = {
     profile().saveHistory();
   },
   "command-palette": (c) => c.overlay.toggle({ kind: "palette" }),
+  "open-settings": (c) => c.openSettings(),
+  "toggle-zen": () => BrowserController.toggleZenMode(),
 };
 
 /** Commands that make sense without any window (macOS keeps the app running windowless). */

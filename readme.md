@@ -10,6 +10,11 @@ Un navigateur desktop **rapide, privé et entièrement personnalisable**, dans l
 - Recherche privée par défaut (DuckDuckGo), protections de sécurité strictes (voir `docs/DECISIONS.md`).
 - Boucliers intégrés : bloqueur de pubs & traqueurs (listes EasyList/uBlock via Ghostery), mode HTTPS uniquement,
   Global Privacy Control, invite de permissions par site.
+- Paramètres (`browser://settings`) appliqués à chaud : thème clair/sombre/auto, couleur d'accent avec
+  palette dérivée accessible, arrière-plans, densité, coins, police, barre latérale à gauche ou à droite
+  (redimensionnable), page bord à bord, mode zen, moteur de recherche, page d'accueil personnalisée.
+
+![Paramètres](docs/screenshots/settings.png)
 
 ## Démarrer
 
@@ -46,6 +51,8 @@ Sous Linux sans affichage (CI) : `xvfb-run -a npm run test:e2e`.
 | `Ctrl+Tab` / `Ctrl+Shift+Tab` | Onglet suivant / précédent |
 | `Ctrl/Cmd+1…9` | Aller à l'onglet n |
 | `Ctrl/Cmd+S` | Afficher/masquer la barre latérale |
+| `Ctrl/Cmd+Maj+B` | Mode zen (barre latérale masquée, page bord à bord) |
+| `Ctrl/Cmd+,` | Paramètres |
 | `Ctrl/Cmd+D` | Ajouter/retirer la page des favoris |
 | `Ctrl/Cmd+R`, `F5` | Actualiser |
 | Double-clic sur un onglet | Épingler / désépingler |
@@ -55,10 +62,10 @@ Sous Linux sans affichage (CI) : `xvfb-run -a npm run test:e2e`.
 ```
 src/
   main/       process principal : fenêtres, onglets, sécurité, menus/raccourcis, IPC
-    storage/  persistance JSON (session, historique, favoris), logique pure et testée
+    storage/  persistance JSON (session, historique, favoris, paramètres), logique pure et testée
   preload/    pont sécurisé exposant window.browser à l'interface
   renderer/   interface du navigateur (Svelte 5)
-  shared/     types, contrat IPC, logique d'URL et de recherche (testées)
+  shared/     types, contrat IPC, URL et recherche, paramètres, moteur de thème (testés)
 tests/e2e/    tests Playwright + Electron
 docs/         décisions d'architecture et roadmap
 ```

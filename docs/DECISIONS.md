@@ -153,3 +153,33 @@ transparente (`setBackgroundColor("#00000000")`) qui charge une seconde entrée 
 
 **Conséquences.** Les futures UI flottantes (menus contextuels, popovers) se branchent sur le même calque
 (`OverlayKind`). Le thème doit être appliqué aux deux pages (chrome et overlay), qui partagent `global.css`.
+
+## ADR-011 — Paramètres et moteur de thème
+
+**Décision.** Les préférences vivent dans `settings.json` (même couche de stockage qu'ADR-005).
+`src/shared/settings.ts` définit le modèle, les valeurs par défaut et `sanitizeSettings`, un validateur
+champ par champ : une valeur invalide retombe sur la précédente (ou la valeur par défaut) au lieu
+d'invalider tout le fichier. Le process principal est le seul à écrire : l'interface envoie des
+patchs partiels (`settings:update`), validés, sauvegardés puis diffusés à toutes les fenêtres
+(`settings:changed`) ; tout s'applique à chaud.
+
+- Thème : `src/shared/theme.ts` dérive toute la palette (fonds, surfaces, bordures, tons de texte)
+  de la couleur d'accent et du mode clair/sombre, en OKLCH, puis ajuste la luminosité des textes
+  jusqu'aux seuils WCAG AA (texte ≥ 4,5:1 sur tous les fonds et surfaces, indications ≥ 3:1),
+  vérifiés par les tests pour de nombreux accents. Le résultat est un jeu de variables CSS posées sur `:root`.
+- Le mode choisi pilote `nativeTheme.themeSource` : interface **et** pages web suivent
+  `prefers-color-scheme`, et le fond natif de la fenêtre prend la couleur du thème (pas de flash blanc).
+- Mode zen : barre latérale masquée, page bord à bord. L'interface ne voyant pas la souris au-dessus
+  de la page native, une bande de 6 px reste découverte au bord de la fenêtre ; la survoler fait
+  apparaître la barre, qui se masque peu après que la souris l'a quittée.
+
+## ADR-012 — Pages internes `browser://`
+
+**Décision.** Les pages du navigateur (`browser://settings`) sont des onglets ordinaires dont le
+contenu est dessiné par l'interface, sans `WebContentsView` (comme la page d'accueil, qui reste
+l'URL vide pour la compatibilité des sessions). Elles sont restaurées avec la session.
+
+- Seul l'utilisateur peut les ouvrir : `normalizeInput` (barre d'adresse, menus) reconnaît les pages
+  connues ; `isNavigableUrl` refuse le schéma `browser:`, donc une page web ne peut ni y naviguer,
+  ni l'ouvrir dans un nouvel onglet, ni y être redirigée (testé en unitaire et en e2e).
+- Elles ne passent jamais par l'historique ni les favoris.

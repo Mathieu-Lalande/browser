@@ -13,9 +13,14 @@ barre d'adresse, page d'accueil, raccourcis, durcissement sécurité, tests unit
 - Invite de permissions (caméra, micro, notifications…) par site ✅
 
 ## Sprint 2 — Personnalisation poussée
-- Thèmes : couleur d'accent, dégradés, mode clair/sombre/auto, densité, coins, police.
+- ✅ Paramètres (`browser://settings`) appliqués à chaud : thème clair/sombre/auto, couleur d'accent
+  et dégradé (palette dérivée, contraste WCAG AA), arrière-plan, densité, coins, police, ombres,
+  animations réduites ; barre latérale à gauche/droite et redimensionnable, marge de page ;
+  moteur de recherche ; page d'accueil (prénom, horloge, sites, fond) ; session, position des
+  nouveaux onglets, onglet affiché après fermeture ; effacement de l'historique, gestion des favoris.
+- ✅ Mode zen (Ctrl+Maj+B).
 - Espaces (workspaces) avec sessions isolées et thème propre.
-- Split view (2 à 4 pages côte à côte), mode compact/zen.
+- Split view (2 à 4 pages côte à côte).
 - Raccourcis clavier configurables, CSS par site (« boosts »).
 
 ## Sprint 3 — Confort & vitesse

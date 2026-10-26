@@ -24,7 +24,9 @@ export type CommandId =
   | "zoom-reset"
   | "devtools"
   | "clear-history"
-  | "command-palette";
+  | "command-palette"
+  | "open-settings"
+  | "toggle-zen";
 
 /** Icon names used by commands; the UI's Icon component must know each of them. */
 export type CommandIcon =
@@ -45,7 +47,9 @@ export type CommandIcon =
   | "zoom-reset"
   | "code"
   | "trash"
-  | "command";
+  | "command"
+  | "settings"
+  | "zen";
 
 /** What a command's label and availability may depend on. */
 export interface CommandContext {
@@ -147,6 +151,19 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
     accelerator: "CmdOrCtrl+K",
     icon: "command",
     palette: false,
+  },
+  "open-settings": {
+    label: "Paramètres",
+    menuLabel: "Paramètres…",
+    keywords: ["settings", "préférences", "options", "thème", "personnaliser"],
+    accelerator: "CmdOrCtrl+,",
+    icon: "settings",
+  },
+  "toggle-zen": {
+    label: "Mode zen",
+    keywords: ["zen", "compact", "focus", "plein écran", "distraction"],
+    accelerator: "CmdOrCtrl+Shift+B",
+    icon: "zen",
   },
 };
 
