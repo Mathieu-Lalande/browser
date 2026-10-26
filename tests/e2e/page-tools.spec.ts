@@ -142,6 +142,44 @@ test("muting a tab shows the sound indicator, which unmutes it", async ({ app, c
   expect(await isMuted()).toBe(true);
 });
 
+test("in split view, find, zoom and mute act on the focused pane", async ({ app, chrome, server }) => {
+  const findUrl = server.url("/find");
+  const otherUrl = server.url("/other").replace("127.0.0.1", "localhost");
+  await visit(chrome, otherUrl, "Page other");
+  await chrome.getByRole("button", { name: "Nouvel onglet" }).click();
+  await visit(chrome, findUrl, "Find");
+  const otherId = await chrome.evaluate<string>(
+    `window.browser.getState().then((s) => s.tabs.find((t) => t.url === ${JSON.stringify(otherUrl)}).id)`,
+  );
+  await chrome.evaluate(`window.browser.split.open(${JSON.stringify(otherId)})`);
+  await expect(chrome.locator(".split .pane")).toHaveCount(2);
+  await expect(chrome.locator(".tab.active .title")).toHaveText("Find");
+  const muted = (url: string) =>
+    app.evaluate(({ webContents }, url) => webContents.getAllWebContents().find((c) => c.getURL() === url)?.isAudioMuted(), url);
+
+  await press(app, "F");
+  const input = chrome.getByRole("search", { name: "Rechercher dans la page" }).getByRole("textbox");
+  await input.fill("renard");
+  await expect(chrome.getByTestId("find-count")).toHaveText("1/6");
+  await input.press("Escape");
+
+  await press(app, "=");
+  await expect.poll(() => zoomOf(app, findUrl)).toBeCloseTo(1.1);
+  expect(await zoomOf(app, otherUrl)).toBeCloseTo(1);
+  await press(app, "M");
+  await expect.poll(() => muted(findUrl)).toBe(true);
+  expect(await muted(otherUrl)).toBe(false);
+
+  // Focusing the other pane (a click on it) makes it the active tab: commands follow.
+  await app.evaluate(({ webContents }, url) => webContents.getAllWebContents().find((c) => c.getURL() === url)!.focus(), otherUrl);
+  await expect(chrome.locator(".tab.active .title")).toHaveText("Page other");
+  await press(app, "M");
+  await expect.poll(() => muted(otherUrl)).toBe(true);
+  await press(app, "-");
+  await expect.poll(() => zoomOf(app, otherUrl)).toBeCloseTo(0.9);
+  expect(await zoomOf(app, findUrl)).toBeCloseTo(1.1);
+});
+
 test("the picture-in-picture command pops the page's video out, and back", async ({ app, chrome, server }) => {
   const url = server.url("/video");
   await visit(chrome, url, "Video");

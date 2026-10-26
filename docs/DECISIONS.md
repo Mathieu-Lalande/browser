@@ -128,6 +128,59 @@ par le main au début du chargement, toujours sans preload.
 - **WebRTC.** Politique `default_public_interface_only` sur chaque onglet : les pages ne voient pas les
   adresses IP locales.
 
+## ADR-009 — Espaces (sessions partitionnées) et vue scindée
+
+**Espaces.** Un espace = nom, emoji, couleur (facultative), onglets propres (épinglés compris) et
+une option « isolé ». La liste des espaces est commune à toutes les fenêtres ; chaque fenêtre en
+affiche un à la fois, avec ses propres onglets pour chaque espace.
+
+- **Composition plutôt que modification de TabManager.** `SpaceManager` (`src/main/spaces.ts`)
+  possède un `TabManager` par espace (créé quand l'espace est affiché pour la première fois) ;
+  `BrowserController.tabs` devient un accesseur vers le TabManager de l'espace affiché, si bien que
+  l'IPC, le menu, les commandes et la palette continuent d'agir sur « les onglets à l'écran » sans
+  changement. TabManager ne connaît pas les espaces ; il gagne seulement des options (`session`,
+  `visible`), `setVisible`, `setSession`, et `release`/`adopt` pour déplacer un onglet.
+- **Partitions.** Par défaut (comme Arc) les espaces partagent la session par défaut : on reste
+  connecté partout. Un espace « isolé » (comme les conteneurs de Firefox/Zen) utilise sa propre
+  partition persistante `persist:space-<id>` : cookies, stockage et cache séparés, donc des comptes
+  distincts. Changer l'option recharge les onglets de l'espace dans la nouvelle session ; supprimer
+  un espace isolé efface les données de sa partition.
+- **Même durcissement pour toutes les sessions.** `hardenSession(ses)` est idempotent (une fois par
+  session) et appliqué à chaque partition avant son premier onglet : pipeline `webRequest`
+  (bloqueur, HTTPS-Only, GPC), gestionnaires de permissions, user agent nettoyé. Le moteur de
+  filtres, les exceptions HTTPS, la liste des sites sans protection et les décisions de permission
+  sont partagés par toutes les sessions (un choix « bloquer les notifications de X » vaut partout).
+- **Déplacer un onglet** (menu contextuel natif « Déplacer vers l'espace… ») : si les deux espaces
+  ont la même session, la page vivante est déplacée (ses écouteurs sont rebranchés sur le
+  TabManager cible) ; sinon elle est fermée et rechargée dans la session cible.
+- **Persistance.** `session.json` passe en version 2 : `{ spaces, windows: [{ activeSpaceId,
+  spaces: [{ spaceId, tabs, activeIndex, split }] }] }`. Les sessions v1 sont migrées dans un espace
+  par défaut « Personnel ». Le chargement paresseux est conservé : au démarrage seul l'onglet actif
+  de l'espace affiché charge (ou les onglets de sa vue scindée si elle est visible).
+- **Interface.** Sélecteur d'espaces en bas de la barre latérale (Ctrl+Alt+1…9, Ctrl+Alt+←/→, aussi
+  dans la palette), glissement latéral de la liste d'onglets au changement d'espace, popover
+  d'édition dans la barre latérale (nom, emoji, couleur, isolement, suppression confirmée). La
+  couleur de l'espace remplace `--accent` dans l'interface (et est exposée en `--space-color`) ;
+  sans couleur, l'accent du thème s'applique.
+
+**Vue scindée.** 2 à 4 onglets d'un même espace côte à côte (2 colonnes ; 3 = une colonne pleine +
+une colonne coupée en deux ; 4 = grille 2×2), séparés par des interstices de 8 px.
+
+- La géométrie est une fonction pure partagée (`src/shared/split.ts`, testée) : le main l'utilise
+  pour placer les `WebContentsView`, l'interface pour dessiner dans les interstices (poignées de
+  redimensionnement, contour d'accent du volet actif) et les volets sans page (page d'accueil,
+  interstitiel). Les interstices appartenant à l'interface, elle reçoit le glisser des séparateurs
+  et renvoie les ratios au main (IPC `split:ratios`, une fois par image).
+- La vue scindée est visible tant que l'onglet actif en fait partie ; cliquer dans un volet (focus
+  de sa page) en fait l'onglet actif pour la barre d'adresse et les raccourcis. Dans la barre
+  latérale, ses onglets sont regroupés dans une même pastille.
+- Entrées : menu contextuel d'onglet (« Ouvrir en vue scindée avec l'onglet actif » / « Quitter la
+  vue scindée »), `Ctrl/Cmd+Maj+\` (bascule ; sans vue scindée, l'onglet actif est associé au suivant)
+  et la palette. Les vues scindées sont enregistrées dans la session.
+- Limite connue : pendant le glisser d'un séparateur, si le pointeur passe très vite au-dessus
+  d'une page, les mouvements dépendent de la capture implicite du clic par la vue de l'interface
+  (comportement de Chromium) ; non vérifié avec un vrai pointeur dans la CI.
+
 ## ADR-010 — Calque overlay pour l'interface flottante
 
 **Contexte.** Chaque onglet est une `WebContentsView` native ajoutée *au-dessus* du webContents de la

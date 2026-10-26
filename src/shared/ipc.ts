@@ -9,6 +9,9 @@ import type {
   HistoryEntry,
   OverlayBackdrop,
   OverlayRequest,
+  SpaceId,
+  SpaceInfo,
+  SpaceInput,
   TabId,
   UiCommand,
 } from "./types";
@@ -30,6 +33,15 @@ export const Channels = {
   tabMove: "tab:move",
   tabToggleShields: "tab:toggle-shields",
   tabProceedHttp: "tab:proceed-http",
+  tabContextMenu: "tab:context-menu",
+  tabMoveToSpace: "tab:move-to-space",
+  spaceCreate: "space:create",
+  spaceUpdate: "space:update",
+  spaceRemove: "space:remove",
+  spaceSwitch: "space:switch",
+  splitOpen: "split:open",
+  splitExit: "split:exit",
+  splitRatios: "split:ratios",
   permissionRespond: "permission:respond",
   layoutBounds: "layout:bounds",
   windowMinimize: "window:minimize",
@@ -92,6 +104,25 @@ export interface BrowserApi {
     proceedHttp(id: TabId): void;
     /** Mutes the tab's sound, or unmutes it. */
     toggleMute(id: TabId): void;
+    /** Native context menu for the tab (pin, duplicate, split, move to space, close…). */
+    contextMenu(id: TabId): void;
+    /** Moves the tab to another space of this window (reloads it if the spaces' sessions differ). */
+    moveToSpace(id: TabId, spaceId: SpaceId): void;
+  };
+  spaces: {
+    /** Creates a space (defaults for missing fields) and shows it in this window; null at the limit. */
+    create(input?: SpaceInput): Promise<SpaceInfo | null>;
+    update(id: SpaceId, input: SpaceInput): void;
+    /** Deletes the space and closes its tabs, in every window. The last space cannot be deleted. */
+    remove(id: SpaceId): void;
+    switchTo(id: SpaceId): void;
+  };
+  split: {
+    /** Shows `tabId` side by side with the active tab (or adds it to the visible split). */
+    open(tabId: TabId): void;
+    exit(): void;
+    /** Divider positions while dragging, 0…1. */
+    setRatios(ratioX: number, ratioY: number): void;
   };
   permissions: {
     respond(tabId: TabId, promptId: string, allow: boolean, remember: boolean): void;

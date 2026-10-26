@@ -15,25 +15,29 @@ export class PageFind {
   /** A new page started loading since the last search. */
   private stale = false;
 
+  /** `on` subscribes to `contents` (TabManager tracks its listeners to unwire a tab that moves to another space). */
   constructor(
     private readonly contents: WebContents,
+    on: WebContents["on"],
+    initial: FindState | null,
     private readonly onChange: (state: FindState | null) => void,
   ) {
-    contents.on("found-in-page", (_event, result) => {
+    this.state = initial && { ...initial, matches: 0, activeMatch: 0 };
+    on("found-in-page", (_event, result) => {
       if (!this.state || result.requestId !== this.requestId) return;
       this.set({
         matches: result.matches ?? this.state.matches,
         activeMatch: result.activeMatchOrdinal ?? this.state.activeMatch,
       });
     });
-    contents.on("did-start-navigation", (details) => {
+    on("did-start-navigation", (details) => {
       if (!details.isMainFrame || details.isSameDocument || !this.state) return;
       this.requestId = 0;
       this.stale = true;
       this.set({ matches: 0, activeMatch: 0 });
     });
     // A new page loaded while the bar is open: search it too.
-    contents.on("did-stop-loading", () => {
+    on("did-stop-loading", () => {
       if (!this.stale) return;
       this.stale = false;
       if (this.state?.open && this.state.query) this.search(this.state.query, this.state.matchCase);

@@ -28,7 +28,13 @@ interface PrivacyState {
  * Only tab pages are filtered: requests from anything else (the chrome UI, the main process)
  * are never blocked, upgraded or modified.
  */
-const tabs = new Map<number, { contents: WebContents; hooks: TabPrivacyHooks }>();
+/**
+ * Tab pages known to the privacy layer. `documentUrl` is the page their subresources belong to:
+ * the main-frame URL last requested, then the committed one. `contents.getURL()` alone lags behind:
+ * a new page can request its subresources before main has seen it commit, and they would then be
+ * judged against the previous page (or none at all, letting them through).
+ */
+const tabs = new Map<number, { contents: WebContents; hooks: TabPrivacyHooks; documentUrl?: string }>();
 let privacy: PrivacyState | undefined;
 
 /** Lists are downloaded in a separate in-memory session, outside the filtered default one. */
@@ -38,11 +44,9 @@ async function fetchList(url: string): Promise<string> {
   return response.text();
 }
 
-/**
- * Installs the shields on a session: content blocking, HTTPS-Only, Global Privacy Control and
- * per-site permission prompts. `alwaysAllowed` permissions are granted without asking.
- */
-export function installPrivacy(ses: Session, alwaysAllowed: ReadonlySet<string>): void {
+/** The shared privacy state (lists, exceptions, prompts), created with the first hardened session. */
+function privacyState(): PrivacyState {
+  if (privacy) return privacy;
   const dir = app.getPath("userData");
   const state: PrivacyState = {
     shields: new ShieldsAllowList(join(dir, "shields.json")),
@@ -55,15 +59,32 @@ export function installPrivacy(ses: Session, alwaysAllowed: ReadonlySet<string>)
   privacy = state;
   state.blocker.start();
   app.once("will-quit", () => state.blocker.stop());
+  return state;
+}
+
+/** Sessions already filtered: `webRequest` accepts one listener per event, so install only once. */
+const installed = new WeakSet<Session>();
+
+/**
+ * Installs the shields on a session: content blocking, HTTPS-Only, Global Privacy Control and
+ * per-site permission prompts. `alwaysAllowed` permissions are granted without asking.
+ * Every session tabs use (the default one, isolated spaces' partitions) goes through here; the
+ * filter engine, exceptions and permission decisions are shared by all of them. Idempotent.
+ */
+export function installPrivacy(ses: Session, alwaysAllowed: ReadonlySet<string>): void {
+  if (installed.has(ses)) return;
+  installed.add(ses);
+  const state = privacyState();
 
   ses.webRequest.onBeforeRequest((details, callback) => {
     const tab = details.webContentsId === undefined ? undefined : tabs.get(details.webContentsId);
     if (!tab) return callback({});
     if (details.resourceType === "mainFrame") {
       const upgraded = state.https.upgrade(tab.contents.id, details.url);
+      tab.documentUrl = upgraded ?? details.url;
       return callback(upgraded ? { redirectURL: upgraded } : {});
     }
-    const pageUrl = tab.contents.getURL();
+    const pageUrl = tab.documentUrl || tab.contents.getURL();
     const host = webHostname(pageUrl);
     if (!host || !state.shields.isEnabled(host)) return callback({});
     const verdict = state.blocker.match(details.url, details.resourceType, pageUrl);
@@ -92,9 +113,14 @@ export function installPrivacy(ses: Session, alwaysAllowed: ReadonlySet<string>)
   });
 }
 
-/** Registers a tab page with the privacy layer, for as long as its webContents lives. */
+/**
+ * Registers a tab page with the privacy layer, for as long as its webContents lives. Calling it
+ * again (a live tab moved to another space) only replaces `hooks`.
+ */
 export function attachTabPrivacy(contents: WebContents, hooks: TabPrivacyHooks): void {
   const id = contents.id;
+  const known = tabs.get(id);
+  if (known) return void (known.hooks = hooks);
   tabs.set(id, { contents, hooks });
   // WebRTC must not reveal local network addresses to pages.
   contents.setWebRTCIPHandlingPolicy("default_public_interface_only");
@@ -103,6 +129,11 @@ export function attachTabPrivacy(contents: WebContents, hooks: TabPrivacyHooks):
     if (details.isMainFrame && !details.isSameDocument) privacy?.prompts.denyAll(id);
   });
   contents.on("did-navigate", () => privacy?.https.clear(id));
+  // Back to the committed page once loading settles (a main-frame request may not have committed: download, 204…).
+  contents.on("did-stop-loading", () => {
+    const tab = tabs.get(id);
+    if (tab) tab.documentUrl = contents.getURL();
+  });
   if (privacy) {
     // Element hiding, driven from main (ADR-006); listens to the tab's events for its lifetime.
     const { blocker, shields } = privacy;

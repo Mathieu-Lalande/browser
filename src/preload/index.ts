@@ -31,6 +31,19 @@ const api: BrowserApi = {
     toggleShields: (id) => send(Channels.tabToggleShields, id),
     proceedHttp: (id) => send(Channels.tabProceedHttp, id),
     toggleMute: (id) => send(Channels.tabToggleMute, id),
+    contextMenu: (id) => send(Channels.tabContextMenu, id),
+    moveToSpace: (id, spaceId) => send(Channels.tabMoveToSpace, id, spaceId),
+  },
+  spaces: {
+    create: (input) => ipcRenderer.invoke(Channels.spaceCreate, input),
+    update: (id, input) => send(Channels.spaceUpdate, id, input),
+    remove: (id) => send(Channels.spaceRemove, id),
+    switchTo: (id) => send(Channels.spaceSwitch, id),
+  },
+  split: {
+    open: (tabId) => send(Channels.splitOpen, tabId),
+    exit: () => send(Channels.splitExit),
+    setRatios: (ratioX, ratioY) => send(Channels.splitRatios, ratioX, ratioY),
   },
   permissions: {
     respond: (tabId, promptId, allow, remember) => send(Channels.permissionRespond, tabId, promptId, allow, remember),

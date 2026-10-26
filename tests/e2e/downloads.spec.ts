@@ -121,6 +121,30 @@ test("an executable waits for confirmation before reaching the downloads folder"
   }
 });
 
+test("downloads work in an isolated space too (every space session gets the handler)", async ({ profile, server }) => {
+  const app = await launchWithFolder(profile, folder);
+  try {
+    const chrome = await chromeOf(app);
+    await chrome.evaluate(`window.browser.spaces.create({ name: "Travail", isolated: true })`);
+    await expect(chrome.locator(".space-name")).toHaveText("Travail");
+    await visit(chrome, server.url("/downloads"), "Downloads");
+    // The page really lives in its own partition, not the default session.
+    const partitioned = await app.evaluate(({ session, webContents }, url) => {
+      const page = webContents.getAllWebContents().find((contents) => contents.getURL() === url)!;
+      return page.session !== session.defaultSession;
+    }, server.url("/downloads"));
+    expect(partitioned).toBe(true);
+
+    await evalInTab(app, server.url("/downloads"), `document.getElementById("pdf").click()`);
+    await expect.poll(() => existsSync(join(folder, "report.pdf")) && readFileSync(join(folder, "report.pdf"), "utf8")).toBe(DOWNLOAD_CONTENT);
+    await evalInTab(app, server.url("/downloads"), `document.getElementById("exe").click()`);
+    await expect(chrome.getByRole("button", { name: "Téléchargements : un fichier attend votre confirmation" })).toBeVisible();
+    expect(readdirSync(folder)).toEqual(["report.pdf"]);
+  } finally {
+    await app.close();
+  }
+});
+
 test("pages cannot reach the downloads IPC, and the folder setting only takes absolute paths", async ({ app, server }) => {
   const chrome = await chromeOf(app);
   await visit(chrome, server.url("/downloads"), "Downloads");

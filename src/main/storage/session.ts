@@ -1,7 +1,14 @@
 import { internalPageOf, internalUrl } from "@shared/internal";
+import type { SpaceId, SpaceInfo } from "@shared/types";
+import { DEFAULT_SPACE, isSpaceId, sanitizeSpace } from "@shared/spaces";
+import { MAX_SPLIT_TABS, clampRatio } from "@shared/split";
 import { isNavigableUrl } from "@shared/url";
 
-export const SESSION_VERSION = 1;
+/**
+ * v1: `{ windows: [{ tabs, activeIndex }] }`.
+ * v2: spaces — `{ spaces, windows: [{ activeSpaceId, spaces: [{ spaceId, tabs, activeIndex, split }] }] }`.
+ */
+export const SESSION_VERSION = 2;
 
 /** What is needed to bring a tab back without loading it. */
 export interface SessionTab {
@@ -12,12 +19,32 @@ export interface SessionTab {
   pinned: boolean;
 }
 
-export interface SessionWindow {
+/** Tabs shown side by side, by index in their tab list. */
+export interface SessionSplit {
+  tabIndexes: number[];
+  ratioX: number;
+  ratioY: number;
+}
+
+/** The tabs of one space in one window (what a TabManager saves and restores). */
+export interface SessionTabList {
   tabs: SessionTab[];
   activeIndex: number;
+  split?: SessionSplit | null;
+}
+
+export interface SessionSpaceTabs extends SessionTabList {
+  spaceId: SpaceId;
+}
+
+export interface SessionWindow {
+  activeSpaceId: SpaceId;
+  spaces: SessionSpaceTabs[];
 }
 
 export interface Session {
+  /** Space definitions, shared by every window. Never empty. */
+  spaces: SpaceInfo[];
   windows: SessionWindow[];
 }
 
@@ -38,27 +65,81 @@ function sanitizeTab(value: unknown): SessionTab | null {
   };
 }
 
-function sanitizeWindow(value: unknown): SessionWindow | null {
+/** Validates a tab list; indexes (active tab, split) follow the tabs through drops and reordering. */
+function sanitizeTabList(value: unknown): SessionTabList | null {
   if (typeof value !== "object" || value === null) return null;
   const w = value as Record<string, unknown>;
   if (!Array.isArray(w.tabs)) return null;
-  const valid = w.tabs.map((tab) => ({ tab: sanitizeTab(tab), original: tab }));
-  const activeOriginal = typeof w.activeIndex === "number" ? w.tabs[w.activeIndex] : undefined;
-  const kept = valid.filter((item): item is { tab: SessionTab; original: unknown } => item.tab !== null);
+  const valid = w.tabs.map((tab, index) => ({ tab: sanitizeTab(tab), index }));
+  const kept = valid.filter((item): item is { tab: SessionTab; index: number } => item.tab !== null);
   if (kept.length === 0) return null;
   // Pinned tabs always lead, as in the live TabManager (stable sort keeps the rest in order).
   kept.sort((a, b) => Number(b.tab.pinned) - Number(a.tab.pinned));
-  const activeIndex = Math.max(
-    0,
-    kept.findIndex((item) => item.original === activeOriginal),
-  );
-  return { tabs: kept.map((item) => item.tab), activeIndex };
+  const newIndex = (original: unknown) => (typeof original === "number" ? kept.findIndex((item) => item.index === original) : -1);
+  const list: SessionTabList = { tabs: kept.map((item) => item.tab), activeIndex: Math.max(0, newIndex(w.activeIndex)) };
+  const split = sanitizeSplit(w.split, newIndex);
+  if (split) list.split = split;
+  return list;
 }
 
-/** Validates a stored session; unusable windows/tabs are dropped, a malformed root is corrupt. */
-export function parseSession(data: unknown): Session | null {
-  if (typeof data !== "object" || data === null) return null;
-  const windows = (data as Record<string, unknown>).windows;
-  if (!Array.isArray(windows)) return null;
-  return { windows: windows.map(sanitizeWindow).filter((window) => window !== null) };
+function sanitizeSplit(value: unknown, newIndex: (original: unknown) => number): SessionSplit | null {
+  if (typeof value !== "object" || value === null) return null;
+  const s = value as Record<string, unknown>;
+  if (!Array.isArray(s.tabIndexes)) return null;
+  const indexes = [...new Set(s.tabIndexes.map(newIndex).filter((index) => index !== -1))].slice(0, MAX_SPLIT_TABS);
+  if (indexes.length < 2) return null;
+  const ratio = (r: unknown) => clampRatio(typeof r === "number" ? r : 0.5);
+  return { tabIndexes: indexes, ratioX: ratio(s.ratioX), ratioY: ratio(s.ratioY) };
 }
+
+function sanitizeWindow(value: unknown, spaceIds: ReadonlySet<SpaceId>): SessionWindow | null {
+  if (typeof value !== "object" || value === null) return null;
+  const w = value as Record<string, unknown>;
+  if (!Array.isArray(w.spaces)) return null;
+  const seen = new Set<SpaceId>();
+  const spaces: SessionSpaceTabs[] = [];
+  for (const entry of w.spaces) {
+    const spaceId = (entry as Record<string, unknown> | null)?.spaceId;
+    if (!isSpaceId(spaceId) || !spaceIds.has(spaceId) || seen.has(spaceId)) continue;
+    const list = sanitizeTabList(entry);
+    if (!list) continue;
+    seen.add(spaceId);
+    spaces.push({ spaceId, ...list });
+  }
+  if (spaces.length === 0) return null;
+  const activeSpaceId = isSpaceId(w.activeSpaceId) && spaceIds.has(w.activeSpaceId) ? w.activeSpaceId : spaces[0].spaceId;
+  return { activeSpaceId, spaces };
+}
+
+function parseV2(data: Record<string, unknown>): Session | null {
+  if (!Array.isArray(data.spaces) || !Array.isArray(data.windows)) return null;
+  const spaces: SpaceInfo[] = [];
+  for (const value of data.spaces) {
+    const space = sanitizeSpace(value);
+    if (space && !spaces.some((other) => other.id === space.id)) spaces.push(space);
+  }
+  if (spaces.length === 0) spaces.push({ ...DEFAULT_SPACE });
+  const ids = new Set(spaces.map((space) => space.id));
+  return { spaces, windows: data.windows.map((window) => sanitizeWindow(window, ids)).filter((window) => window !== null) };
+}
+
+/** v1 had no spaces: every window's tabs move into the default space ("Personnel"). */
+function migrateV1(data: Record<string, unknown>): Session | null {
+  if (!Array.isArray(data.windows)) return null;
+  const space = { ...DEFAULT_SPACE };
+  const windows = data.windows
+    .map(sanitizeTabList)
+    .filter((list) => list !== null)
+    .map((list): SessionWindow => ({ activeSpaceId: space.id, spaces: [{ spaceId: space.id, ...list }] }));
+  return { spaces: [space], windows };
+}
+
+/** Validates (and migrates) a stored session; unusable windows/tabs are dropped, a malformed root is corrupt. */
+export function parseSession(data: unknown, version = SESSION_VERSION): Session | null {
+  if (typeof data !== "object" || data === null) return null;
+  const root = data as Record<string, unknown>;
+  return version < 2 ? migrateV1(root) : parseV2(root);
+}
+
+/** The session of a first launch: one empty window in the default space. */
+export const emptySession = (): Session => ({ spaces: [{ ...DEFAULT_SPACE }], windows: [] });

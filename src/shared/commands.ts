@@ -32,7 +32,11 @@ export type CommandId =
   | "find-previous"
   | "open-downloads"
   | "toggle-mute"
-  | "picture-in-picture";
+  | "picture-in-picture"
+  | "toggle-split"
+  | "new-space"
+  | "next-space"
+  | "previous-space";
 
 /** Icon names used by commands; the UI's Icon component must know each of them. */
 export type CommandIcon =
@@ -58,7 +62,9 @@ export type CommandIcon =
   | "zen"
   | "download"
   | "volume"
-  | "pip";
+  | "pip"
+  | "split"
+  | "layers";
 
 /** What a command's label and availability may depend on. */
 export interface CommandContext {
@@ -206,6 +212,20 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
     keywords: ["picture in picture", "pip", "vidéo", "flottante", "lecteur"],
     icon: "pip",
     needsPage: true,
+  },
+  "toggle-split": {
+    label: "Vue scindée",
+    keywords: ["split", "scinder", "côte à côte", "diviser", "quitter la vue scindée"],
+    accelerator: "CmdOrCtrl+Shift+\\",
+    icon: "split",
+  },
+  "new-space": { label: "Nouvel espace", keywords: ["space", "workspace", "espace de travail", "conteneur"], icon: "layers" },
+  "next-space": { label: "Espace suivant", keywords: ["space", "workspace", "next"], accelerator: "CmdOrCtrl+Alt+Right", icon: "forward" },
+  "previous-space": {
+    label: "Espace précédent",
+    keywords: ["space", "workspace", "previous"],
+    accelerator: "CmdOrCtrl+Alt+Left",
+    icon: "back",
   },
 };
 

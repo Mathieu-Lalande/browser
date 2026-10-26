@@ -7,8 +7,9 @@ import { onDownloadsChanged } from "./downloads";
 import { Overlay } from "./overlay";
 import { profile } from "./profile";
 import { onSettingsChanged, settings, updateSettings, windowBackground } from "./settings";
+import { SpaceManager, spaces } from "./spaces";
 import type { SessionWindow } from "./storage/session";
-import { TabManager, type TabManagerHooks } from "./tabs";
+import type { TabManager, TabManagerHooks } from "./tabs";
 
 /** Browser windows, keyed by their chrome UI's webContents id. */
 const controllers = new Map<number, BrowserController>();
@@ -68,12 +69,18 @@ nativeTheme.on("updated", () => {
   for (const controller of controllers.values()) controller.window.setBackgroundColor(windowBackground());
 });
 
-/** One browser window: the chrome UI (sidebar, address bar…) plus the TabManager for its pages. */
+/** One browser window: the chrome UI (sidebar, address bar…) plus the spaces and tabs of its pages. */
 export class BrowserController {
   readonly window: BrowserWindow;
-  readonly tabs: TabManager;
+  /** One TabManager per space; only the active space's pages are shown. */
+  readonly spaces: SpaceManager;
   /** Floating UI above the pages (command palette). */
   readonly overlay: Overlay;
+
+  /** The tabs of the space on screen (what tab commands and shortcuts act on). */
+  get tabs(): TabManager {
+    return this.spaces.active;
+  }
 
   /** `restore`: a window from the previous session, whose tabs come back discarded (lazy). */
   constructor(restore?: SessionWindow) {
@@ -99,7 +106,7 @@ export class BrowserController {
       },
     });
 
-    this.tabs = new TabManager(
+    this.spaces = new SpaceManager(
       this.window,
       (state) => {
         if (!this.window.isDestroyed()) this.window.webContents.send(Channels.state, state);
@@ -109,6 +116,7 @@ export class BrowserController {
         BrowserController.saveSession();
       },
       tabHooks,
+      restore,
     );
 
     const chrome = this.window.webContents;
@@ -144,15 +152,12 @@ export class BrowserController {
       if (last) BrowserController.saveSession(true);
       controllers.delete(chrome.id);
       if (!last) BrowserController.saveSession();
-      this.tabs.destroy();
+      this.spaces.destroy();
       this.overlay.destroy();
     });
 
     if (process.env.ELECTRON_RENDERER_URL) void this.window.loadURL(process.env.ELECTRON_RENDERER_URL);
     else void this.window.loadFile(join(import.meta.dirname, "../renderer/index.html"));
-
-    if (restore) this.tabs.restore(restore);
-    else this.tabs.create();
   }
 
   /** Toggles the bookmark of the active tab's page, then refreshes `isBookmarked` everywhere. */
@@ -169,7 +174,7 @@ export class BrowserController {
   applySettings(current: Settings, notify = true): void {
     if (this.window.isDestroyed()) return;
     this.window.setBackgroundColor(windowBackground(current));
-    this.tabs.configure(tabOptions(current));
+    this.spaces.configure(tabOptions(current));
     // Zen mode hides the macOS traffic lights along with the sidebar.
     if (process.platform === "darwin") this.window.setWindowButtonVisibility(!current.layout.zenMode);
     this.window.setHasShadow(current.appearance.shadows);
@@ -227,14 +232,14 @@ export class BrowserController {
 
   /** Re-sends every window's state (bookmarks changed, …). */
   static refreshAll(): void {
-    for (const controller of controllers.values()) controller.tabs.refresh();
+    for (const controller of controllers.values()) controller.spaces.refresh();
   }
 
   /** Persists the open windows (debounced unless `now`). An empty window list is never saved. */
   static saveSession(now = false): void {
     if (quitting || controllers.size === 0) return;
     const { saveSession, flush } = profile();
-    saveSession(() => ({ windows: BrowserController.all().map((controller) => controller.tabs.snapshot()) }));
+    saveSession(() => ({ spaces: spaces.list(), windows: BrowserController.all().map((controller) => controller.spaces.snapshot()) }));
     if (now) flush();
   }
 }

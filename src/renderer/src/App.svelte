@@ -10,6 +10,7 @@
   import PermissionBar from "./components/PermissionBar.svelte";
   import Sidebar from "./components/Sidebar.svelte";
   import SidebarResizer from "./components/SidebarResizer.svelte";
+  import SplitView from "./components/split/SplitView.svelte";
   import StartPage from "./components/StartPage.svelte";
   import SettingsPage from "./components/settings/SettingsPage.svelte";
 
@@ -30,6 +31,8 @@
   const showSidebar = $derived(zen ? revealed : sidebarVisible);
   const showStartPage = $derived(!browser.activeTab?.url);
   const permissionRequest = $derived(browser.activeTab?.permissionRequest ?? null);
+  /** The active space's accent (null: the theme's own accent). */
+  const spaceColor = $derived(browser.activeSpace?.color ?? null);
   const internalPage = $derived(internalPageOf(browser.activeTab?.url ?? ""));
   /** Find bar of the active tab, over web pages only. */
   const findState = $derived(
@@ -114,7 +117,17 @@
   });
 </script>
 
-<div class="shell" class:right class:zen class:collapsed={!showSidebar} class:lights={trafficLights}>
+<!-- The space color overrides the accent for everything inside the shell (theme layer: `--space-color`). -->
+<div
+  class="shell"
+  class:right
+  class:zen
+  class:collapsed={!showSidebar}
+  class:lights={trafficLights}
+  class:tinted={spaceColor}
+  style:--space-color={spaceColor}
+  style:--accent={spaceColor}
+>
   {#if trafficLights}<div class="lights drag"></div>{/if}
   {#if showSidebar}
     <!-- Pointer tracking only (zen auto-hide); every control inside stays keyboard reachable. -->
@@ -147,8 +160,10 @@
         <FindBar bind:this={findBar} tabId={browser.activeTab.id} find={findState} />
       {/key}
     {/if}
-    <main class="viewport" bind:this={viewport}>
-      {#if showStartPage}
+    <main class="viewport" class:split={browser.splitTabs.length > 1} bind:this={viewport}>
+      {#if browser.splitTabs.length > 1 && browser.state.split}
+        <SplitView tabs={browser.splitTabs} split={browser.state.split} />
+      {:else if showStartPage}
         <StartPage />
       {:else if internalPage === "settings"}
         <SettingsPage />
@@ -170,6 +185,10 @@
   }
   .shell.collapsed {
     padding-left: 0;
+  }
+  .shell.tinted {
+    background: radial-gradient(120% 80% at 0% 0%, color-mix(in oklab, var(--space-color) 14%, transparent), transparent 60%);
+    transition: background 0.3s var(--ease);
   }
   .shell.right {
     flex-direction: row-reverse;
@@ -231,5 +250,11 @@
     border-radius: var(--page-radius, var(--radius));
     background: var(--bg-elevated);
     box-shadow: var(--viewport-shadow);
+  }
+  /* Split view: each pane draws its own card. */
+  .viewport.split {
+    overflow: visible;
+    background: none;
+    box-shadow: none;
   }
 </style>

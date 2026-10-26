@@ -4,6 +4,7 @@ import { installMenu } from "./menu";
 import { flushProfile, openProfile } from "./profile";
 import { hardenApp, hardenSession } from "./security";
 import { applyNativeTheme } from "./settings";
+import { spaces } from "./spaces";
 import { BrowserController } from "./window";
 
 app.setName("Browser");
@@ -30,6 +31,8 @@ if (!app.requestSingleInstanceLock()) {
     installMenu();
     const { previousSession, settings } = openProfile();
     applyNativeTheme(settings);
+    // Spaces are kept even when windows are not restored.
+    spaces.init(previousSession?.spaces);
     const restore = settings.behavior.restoreSession ? (previousSession?.windows ?? []) : [];
     if (restore.length) for (const saved of restore) new BrowserController(saved);
     else new BrowserController();

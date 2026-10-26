@@ -2,7 +2,8 @@ import { ipcMain, type IpcMainEvent, type IpcMainInvokeEvent } from "electron";
 import { isCommandId, type CommandId } from "@shared/commands";
 import { Channels } from "@shared/ipc";
 import { isSettingsSection } from "@shared/settings";
-import type { BookmarkInput, Bounds } from "@shared/types";
+import { isSpaceId, isSpaceInput } from "@shared/spaces";
+import type { BookmarkInput, Bounds, SpaceInput } from "@shared/types";
 import { runCommand } from "./commands";
 import {
   cancelDownload,
@@ -18,6 +19,8 @@ import {
 } from "./downloads";
 import { profile } from "./profile";
 import { resetSettingsSection, settings, updateSettings } from "./settings";
+import { spaces } from "./spaces";
+import { showTabMenu } from "./tab-menu";
 import { BrowserController } from "./window";
 
 type Handler = (controller: BrowserController, ...args: unknown[]) => void;
@@ -74,7 +77,7 @@ function on(channel: string, guard: (args: unknown[]) => boolean, handler: Handl
 const id = (args: unknown[]) => isString(args[0]);
 
 export function registerIpc(): void {
-  ipcMain.handle(Channels.getState, (event) => BrowserController.fromUi(event.sender)?.tabs.getState() ?? null);
+  ipcMain.handle(Channels.getState, (event) => BrowserController.fromUi(event.sender)?.spaces.getState() ?? null);
 
   on(Channels.tabCreate, (args) => args[0] === undefined || isString(args[0]), (c, input) =>
     c.tabs.create(input as string | undefined),
@@ -100,7 +103,32 @@ export function registerIpc(): void {
     (c, tabId, promptId, allow, remember) =>
       c.tabs.respondPermission(tabId as string, promptId as string, allow as boolean, remember as boolean),
   );
-  on(Channels.layoutBounds, (args) => isBounds(args[0]), (c, bounds) => c.tabs.setBounds(bounds as Bounds));
+  on(Channels.tabContextMenu, id, (c, tabId) => showTabMenu(c, tabId as string));
+  on(Channels.tabMoveToSpace, (args) => isString(args[0]) && isSpaceId(args[1]), (c, tabId, spaceId) =>
+    c.spaces.moveTab(tabId as string, spaceId as string),
+  );
+
+  // Spaces are shared by every window; the one that creates a space shows it.
+  ipcMain.handle(Channels.spaceCreate, (event, input: unknown) => {
+    const controller = BrowserController.fromUi(event.sender);
+    if (!controller || !(input === undefined || isSpaceInput(input))) throw new Error(`Rejected ${Channels.spaceCreate}`);
+    const space = spaces.create(input);
+    if (space) controller.spaces.switchTo(space.id);
+    return space;
+  });
+  on(Channels.spaceUpdate, (args) => isSpaceId(args[0]) && isSpaceInput(args[1]), (_c, spaceId, input) =>
+    spaces.update(spaceId as string, input as SpaceInput),
+  );
+  on(Channels.spaceRemove, (args) => isSpaceId(args[0]), (_c, spaceId) => spaces.remove(spaceId as string));
+  on(Channels.spaceSwitch, (args) => isSpaceId(args[0]), (c, spaceId) => c.spaces.switchTo(spaceId as string));
+
+  on(Channels.splitOpen, id, (c, tabId) => c.tabs.openSplit(tabId as string));
+  on(Channels.splitExit, () => true, (c) => c.tabs.exitSplit());
+  on(Channels.splitRatios, (args) => isNumber(args[0]) && isNumber(args[1]), (c, x, y) =>
+    c.tabs.setSplitRatios(x as number, y as number),
+  );
+
+  on(Channels.layoutBounds, (args) => isBounds(args[0]), (c, bounds) => c.spaces.setBounds(bounds as Bounds));
 
   const none = () => true;
   on(Channels.windowMinimize, none, (c) => c.window.minimize());

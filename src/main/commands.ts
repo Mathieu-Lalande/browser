@@ -1,6 +1,8 @@
 import { clipboard, type MenuItemConstructorOptions } from "electron";
 import { commandAccelerator, getCommand, type CommandId } from "@shared/commands";
 import { profile } from "./profile";
+import { spaces } from "./spaces";
+import { toggleSplit } from "./split";
 import { BrowserController } from "./window";
 
 type Runner = (controller: BrowserController) => void;
@@ -63,6 +65,13 @@ const RUNNERS: Record<CommandId, Runner> = {
   "open-downloads": (c) => c.openDownloads(),
   "toggle-mute": onActiveTab((c, id) => c.tabs.toggleMute(id)),
   "picture-in-picture": onActiveTab((c, id) => c.tabs.pictureInPicture(id)),
+  "toggle-split": (c) => toggleSplit(c.tabs),
+  "new-space": (c) => {
+    const space = spaces.create();
+    if (space) c.spaces.switchTo(space.id);
+  },
+  "next-space": (c) => c.spaces.switchBy(1),
+  "previous-space": (c) => c.spaces.switchBy(-1),
 };
 
 /** Commands that make sense without any window (macOS keeps the app running windowless). */
