@@ -7,7 +7,8 @@ barre d'adresse, page d'accueil, raccourcis, durcissement sécurité, tests unit
 ## Sprint 1 — Le cœur d'un vrai navigateur
 - ✅ Persistance : session (onglets restaurés à la demande), historique, favoris, suggestions
   dans la barre d'adresse, sites fréquents sur la page d'accueil. Reste : paramètres.
-- Command palette (Ctrl+K) façon Arc : onglets ouverts, historique, favoris, actions.
+- ✅ Palette de commandes (Ctrl+K) façon Arc : onglets ouverts, historique, favoris, actions,
+  recherche floue ; calque flottant (« overlay ») au-dessus des pages, réutilisable pour menus et popovers.
 - Bloqueur de pubs & traqueurs intégré, mode HTTPS uniquement, compteur et désactivation par site ✅
 - Invite de permissions (caméra, micro, notifications…) par site ✅
 

@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
 import { Channels, type BrowserApi } from "@shared/ipc";
-import type { BrowserState, UiCommand } from "@shared/types";
+import type { BrowserState, OverlayBackdrop, OverlayRequest, UiCommand } from "@shared/types";
 
 function subscribe<T>(channel: string, listener: (payload: T) => void): () => void {
   const wrapped = (_event: IpcRendererEvent, payload: T) => listener(payload);
@@ -50,6 +50,14 @@ const api: BrowserApi = {
     add: (input) => ipcRenderer.invoke(Channels.bookmarksAdd, input),
     remove: (id) => ipcRenderer.invoke(Channels.bookmarksRemove, id),
     toggleActive: () => send(Channels.bookmarksToggleActive),
+  },
+  commands: {
+    run: (id) => send(Channels.commandRun, id),
+  },
+  overlay: {
+    onShow: (listener) => subscribe<OverlayRequest>(Channels.overlayShow, listener),
+    onBackdrop: (listener) => subscribe<OverlayBackdrop>(Channels.overlayBackdrop, listener),
+    close: (restoreFocus) => send(Channels.overlayClose, restoreFocus),
   },
 };
 

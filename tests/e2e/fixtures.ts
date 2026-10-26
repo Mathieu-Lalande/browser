@@ -101,10 +101,12 @@ export { expect } from "@playwright/test";
 export async function tabUrls(app: ElectronApplication): Promise<string[]> {
   return app.evaluate(({ BrowserWindow, webContents }) => {
     const chromeIds = new Set(BrowserWindow.getAllWindows().map((window) => window.webContents.id));
+    // Skips the chrome UI, the overlay layer (browser UI too) and DevTools.
     return webContents
       .getAllWebContents()
-      .filter((contents) => !chromeIds.has(contents.id) && !contents.getURL().startsWith("devtools:"))
-      .map((contents) => contents.getURL());
+      .map((contents) => ({ id: contents.id, url: contents.getURL() }))
+      .filter(({ id, url }) => !chromeIds.has(id) && !url.startsWith("devtools:") && !url.endsWith("/renderer/overlay.html"))
+      .map(({ url }) => url);
   });
 }
 

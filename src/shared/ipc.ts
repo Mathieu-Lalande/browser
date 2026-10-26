@@ -1,4 +1,15 @@
-import type { Bookmark, BookmarkInput, Bounds, BrowserState, HistoryEntry, TabId, UiCommand } from "./types";
+import type { CommandId } from "./commands";
+import type {
+  Bookmark,
+  BookmarkInput,
+  Bounds,
+  BrowserState,
+  HistoryEntry,
+  OverlayBackdrop,
+  OverlayRequest,
+  TabId,
+  UiCommand,
+} from "./types";
 
 /** IPC channel names, shared by main and preload so they cannot drift. */
 export const Channels = {
@@ -29,6 +40,10 @@ export const Channels = {
   bookmarksAdd: "bookmarks:add",
   bookmarksRemove: "bookmarks:remove",
   bookmarksToggleActive: "bookmarks:toggle-active",
+  commandRun: "command:run",
+  overlayShow: "overlay:show",
+  overlayBackdrop: "overlay:backdrop",
+  overlayClose: "overlay:close",
 } as const;
 
 /** API exposed to the chrome UI on `window.browser` by the preload script. */
@@ -77,5 +92,20 @@ export interface BrowserApi {
     remove(id: string): Promise<void>;
     /** Bookmarks the active tab of this window, or removes its bookmark. */
     toggleActive(): void;
+  };
+  commands: {
+    /** Runs a registry command (`src/shared/commands.ts`) against this window, like its menu item. */
+    run(id: CommandId): void;
+  };
+  overlay: {
+    /** Overlay page only: main asks it to show a floating UI (it is attached and focused right after). */
+    onShow(listener: (request: OverlayRequest) => void): () => void;
+    /** Overlay page only: snapshot of the window below, sent shortly after `onShow`. */
+    onBackdrop(listener: (backdrop: OverlayBackdrop) => void): () => void;
+    /**
+     * Hides the overlay layer. `restoreFocus`: give focus back to what had it before (cancel);
+     * otherwise focus goes to the active page, or the chrome UI on the start page.
+     */
+    close(restoreFocus?: boolean): void;
   };
 }

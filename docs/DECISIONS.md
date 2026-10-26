@@ -127,3 +127,29 @@ par le main au début du chargement, toujours sans preload.
   connexions (SSO). Non fait pour l'instant ; à reprendre avec les sessions partitionnées (espaces).
 - **WebRTC.** Politique `default_public_interface_only` sur chaque onglet : les pages ne voient pas les
   adresses IP locales.
+
+## ADR-010 — Calque overlay pour l'interface flottante
+
+**Contexte.** Chaque onglet est une `WebContentsView` native ajoutée *au-dessus* du webContents de la
+fenêtre : l'interface (chrome) ne peut rien dessiner sur la page. Une palette de commandes, des menus
+ou des popovers façon Arc doivent pourtant flotter au-dessus.
+
+**Décision.** Un calque « overlay » par fenêtre (`src/main/overlay.ts`) : une `WebContentsView`
+transparente (`setBackgroundColor("#00000000")`) qui charge une seconde entrée du même bundle
+(`overlay.html`, racine Svelte `src/renderer/src/overlay/`) avec le même preload durci.
+
+- Attachée au-dessus des onglets seulement quand une UI flottante est ouverte, puis détachée : la page
+  reçoit à nouveau clics et clavier. Si une vue d'onglet est attachée pendant ce temps, l'overlay est remonté.
+- Créée paresseusement mais préchauffée juste après l'affichage de la fenêtre, puis gardée chargée :
+  ouvrir = envoyer la requête + `addChildView` + focus (premier rendu mesuré à 7–27 ms après Ctrl+K sous xvfb).
+- Fermeture (Échap, clic sur le fond, action) : focus rendu à ce qui l'avait (annulation) ou à la page active.
+- Sécurité : `src/main/window.ts` tient un registre `webContents.id → BrowserController` des interfaces
+  du navigateur (chrome **et** overlay) ; c'est la liste blanche des émetteurs IPC. Les pages d'onglets n'y
+  sont jamais inscrites (et n'ont pas de preload).
+- Flou : CSS (`backdrop-filter`) ne peut pas flouter une vue native située derrière. L'overlay affiche
+  un voile translucide immédiatement, puis main envoie une capture réduite (¼, JPEG) du chrome et de la
+  page active, floutée en CSS. Coût mesuré : ~6–11 ms de capture + ~4 ms d'encodage par calque, fait
+  *après* l'ouverture (jamais sur le chemin critique) ; l'image n'est ni stockée ni envoyée ailleurs.
+
+**Conséquences.** Les futures UI flottantes (menus contextuels, popovers) se branchent sur le même calque
+(`OverlayKind`). Le thème doit être appliqué aux deux pages (chrome et overlay), qui partagent `global.css`.

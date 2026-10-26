@@ -1,6 +1,8 @@
 import { ipcMain, type IpcMainEvent, type IpcMainInvokeEvent } from "electron";
+import { isCommandId, type CommandId } from "@shared/commands";
 import { Channels } from "@shared/ipc";
 import type { BookmarkInput, Bounds } from "@shared/types";
+import { runCommand } from "./commands";
 import { profile } from "./profile";
 import { BrowserController } from "./window";
 
@@ -40,15 +42,15 @@ function isBookmarkInput(value: unknown): value is BookmarkInput {
 /** Same as `on` for request/response channels: rejected calls reject the renderer's promise. */
 function handle(channel: string, guard: (args: unknown[]) => boolean, handler: (...args: unknown[]) => unknown): void {
   ipcMain.handle(channel, (event: IpcMainInvokeEvent, ...args: unknown[]) => {
-    if (!BrowserController.fromChrome(event.sender) || !guard(args)) throw new Error(`Rejected ${channel}`);
+    if (!BrowserController.fromUi(event.sender) || !guard(args)) throw new Error(`Rejected ${channel}`);
     return handler(...args);
   });
 }
 
-/** Wraps a handler so it only runs for messages from a known chrome UI, with validated arguments. */
+/** Wraps a handler so it only runs for messages from a known browser UI (chrome or overlay), with validated arguments. */
 function on(channel: string, guard: (args: unknown[]) => boolean, handler: Handler): void {
   ipcMain.on(channel, (event: IpcMainEvent, ...args: unknown[]) => {
-    const controller = BrowserController.fromChrome(event.sender);
+    const controller = BrowserController.fromUi(event.sender);
     if (!controller || !guard(args)) return;
     handler(controller, ...args);
   });
@@ -57,7 +59,7 @@ function on(channel: string, guard: (args: unknown[]) => boolean, handler: Handl
 const id = (args: unknown[]) => isString(args[0]);
 
 export function registerIpc(): void {
-  ipcMain.handle(Channels.getState, (event) => BrowserController.fromChrome(event.sender)?.tabs.getState() ?? null);
+  ipcMain.handle(Channels.getState, (event) => BrowserController.fromUi(event.sender)?.tabs.getState() ?? null);
 
   on(Channels.tabCreate, (args) => args[0] === undefined || isString(args[0]), (c, input) =>
     c.tabs.create(input as string | undefined),
@@ -117,4 +119,10 @@ export function registerIpc(): void {
     if (profile().bookmarks.remove(bookmarkId as string)) bookmarksChanged();
   });
   on(Channels.bookmarksToggleActive, none, (c) => c.toggleBookmark());
+
+  // Command palette: registry commands and the overlay layer.
+  on(Channels.commandRun, (args) => isCommandId(args[0]), (c, commandId) => runCommand(commandId as CommandId, c));
+  on(Channels.overlayClose, (args) => args[0] === undefined || typeof args[0] === "boolean", (c, restoreFocus) =>
+    c.overlay.close(restoreFocus as boolean | undefined),
+  );
 }

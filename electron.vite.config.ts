@@ -19,7 +19,13 @@ export default defineConfig({
     resolve: { alias: shared },
     plugins: [svelte({ configFile: resolve(import.meta.dirname, "svelte.config.js") })],
     build: {
-      rollupOptions: { input: { index: resolve(import.meta.dirname, "src/renderer/index.html") } },
+      rollupOptions: {
+        input: {
+          index: resolve(import.meta.dirname, "src/renderer/index.html"),
+          // Floating UI layer drawn above the pages (src/main/overlay.ts).
+          overlay: resolve(import.meta.dirname, "src/renderer/overlay.html"),
+        },
+      },
     },
   },
 });

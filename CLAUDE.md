@@ -5,8 +5,11 @@
 - Contrat IPC unique : `src/shared/ipc.ts` (`Channels` + `BrowserApi`). Tout nouveau canal : l'ajouter là,
   l'exposer dans `src/preload/index.ts`, le valider dans `src/main/ipc.ts` (arguments vérifiés, émetteur = fenêtre connue).
 - Les pages web ne reçoivent jamais de preload ni d'accès Node.
-- L'interface ne peut pas dessiner au-dessus des pages (`WebContentsView` est natif) : tout panneau
-  doit soit réduire la zone `viewport`, soit masquer la vue active.
+- L'interface (chrome) ne peut pas dessiner au-dessus des pages (`WebContentsView` est natif) : un panneau
+  doit soit réduire la zone `viewport`, soit masquer la vue active, soit vivre dans le calque overlay
+  (`src/main/overlay.ts`, entrée `src/renderer/overlay.html`) comme la palette de commandes (ADR-010).
+- Actions du navigateur : registre unique `src/shared/commands.ts` (libellé, mots-clés, raccourci) exécuté
+  par `src/main/commands.ts` ; le menu et la palette s'en servent tous les deux.
 - Texte d'interface en français ; code, identifiants et commentaires en anglais.
 - Vérifications avant commit : `npm run typecheck && npm test && npm run build && xvfb-run -a npx playwright test`
   (en root/conteneur, l'app est lancée avec `--no-sandbox`, déjà géré par les fixtures e2e).
