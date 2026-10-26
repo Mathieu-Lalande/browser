@@ -22,6 +22,11 @@ export interface TabState {
   interstitial: TabInterstitial | null;
   /** Epoch milliseconds of the last activation (0: never active since the app started). */
   lastActiveAt: number;
+  /**
+   * The tab's page is unloaded (put to sleep, or restored and not yet shown): it keeps its
+   * url/title/favicon and reloads when activated (ADR-014).
+   */
+  isAsleep?: boolean;
 }
 
 /** Permissions a site can ask for; each one is decided (and remembered) separately per origin. */
@@ -64,6 +69,8 @@ export interface BrowserState extends TabsState {
   /** Every space (shared by all windows); the window shows the tabs of `activeSpaceId`. */
   spaces: SpaceInfo[];
   activeSpaceId: SpaceId;
+  /** A private window: one ephemeral space, in-memory session, nothing written to disk (ADR-014). */
+  isPrivate?: boolean;
 }
 
 export type SpaceId = string;

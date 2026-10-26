@@ -16,3 +16,7 @@
 - `npm install` : `.npmrc` active `legacy-peer-deps` (contourne un bug npm avec vitest 4).
 - Préférences : `src/shared/settings.ts` (modèle + validateur) et `src/shared/theme.ts` (palette → variables CSS),
   voir ADR-011. Pages internes `browser://…` dessinées par l'interface : ADR-012 (jamais accessibles aux pages web).
+- Fenêtres privées (ADR-014) : tout ce qui écrit dans le profil vérifie `BrowserController.isPrivate`
+  (par fenêtre) ou `isPrivateSession(session)` (`src/main/private.ts`, par session : téléchargements, zoom…).
+- Mise en veille des onglets : un onglet déchargé = `view` null + URL (mécanisme unique de `TabManager`),
+  politique pure dans `src/main/sleep.ts`. Packaging/CI : ADR-015 (`npm run dist:dir`, test `packaging`).

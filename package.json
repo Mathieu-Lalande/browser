@@ -5,6 +5,12 @@
   "version": "0.2.0",
   "description": "Un navigateur desktop rapide, privé et entièrement personnalisable.",
   "author": "Mathieu Lalande",
+  "homepage": "https://github.com/Mathieu-Lalande/browser",
+  "desktopName": "browser.desktop",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mathieu-Lalande/browser.git"
+  },
   "license": "UNLICENSED",
   "type": "module",
   "main": "out/main/index.js",
@@ -16,7 +22,8 @@
     "test": "vitest run",
     "test:e2e": "npm run build && playwright test",
     "check": "npm run typecheck && npm test",
-    "dist": "npm run build && electron-builder"
+    "dist": "npm run build && electron-builder --publish never",
+    "dist:dir": "npm run build && electron-builder --dir --publish never"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",
@@ -43,6 +50,8 @@
       "out/**/*",
       "package.json"
     ],
+    "asar": true,
+    "publish": null,
     "mac": {
       "target": "dmg",
       "category": "public.app-category.productivity"
@@ -50,12 +59,19 @@
     "win": {
       "target": "nsis"
     },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
     "linux": {
       "target": [
         "AppImage",
         "deb"
       ],
-      "category": "Network"
+      "category": "Network",
+      "maintainer": "Mathieu Lalande",
+      "syncDesktopName": true,
+      "synopsis": "Navigateur rapide, privé et personnalisable"
     }
   },
   "dependencies": {

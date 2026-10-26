@@ -44,8 +44,8 @@ export function resolvedMode(): ResolvedMode {
 }
 
 /** Native window color behind the UI: the theme's background, so no white flash on open/resize. */
-export function windowBackground(current = settings()): string {
-  return derivePalette(current.appearance.accent, current.appearance.accent2, resolvedMode()).bg;
+export function windowBackground(current = settings(), mode: ResolvedMode = resolvedMode()): string {
+  return derivePalette(current.appearance.accent, current.appearance.accent2, mode).bg;
 }
 
 /**

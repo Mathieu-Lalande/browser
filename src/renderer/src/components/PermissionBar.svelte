@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { PermissionKind, PermissionPrompt, TabId } from "@shared/types";
-  import { api } from "../lib/browser.svelte";
+  import { api, browser } from "../lib/browser.svelte";
   import Icon from "./Icon.svelte";
 
   let { tabId, prompt }: { tabId: TabId; prompt: PermissionPrompt } = $props();
@@ -44,7 +44,10 @@
 <div class="permission-bar" role="alertdialog" aria-label="Demande d'autorisation">
   <Icon name="shield" size={15} />
   <p><strong>{host}</strong> souhaite {request}.</p>
-  <label><input type="checkbox" bind:checked={remember} /> Se souvenir pour ce site</label>
+  <!-- Private window: decisions last as long as the window, nothing is remembered (ADR-014). -->
+  {#if !browser.isPrivate}
+    <label><input type="checkbox" bind:checked={remember} /> Se souvenir pour ce site</label>
+  {/if}
   <button class="secondary" onclick={() => answer(false)}>Bloquer</button>
   <button class="primary" onclick={() => answer(true)}>Autoriser</button>
 </div>

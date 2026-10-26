@@ -27,6 +27,23 @@ barre d'adresse, page d'accueil, raccourcis, durcissement sécurité, tests unit
 
 ## Sprint 3 — Confort & vitesse
 - Téléchargements, recherche dans la page, zoom par site, picture-in-picture.
-- Mise en veille des onglets inactifs (mémoire), préchargement intelligent.
-- Navigation privée (session éphémère), anti-fingerprinting.
-- Packaging & mises à jour automatiques (electron-builder).
+- ✅ Mise en veille des onglets inactifs (délai réglable, jamais pour le son, les autorisations en
+  attente ni les formulaires en cours ; onglets estompés ; commandes « Mettre en veille ») (ADR-014).
+  Reste : préchargement intelligent, indicateur de mémoire libérée.
+- ✅ Fenêtres privées (Ctrl/Cmd+Maj+N) : partition en mémoire par fenêtre, effacée à la fermeture,
+  rien d'écrit sur le disque, thème privé (ADR-014).
+- ✅ Anti-fingerprinting modeste : UA réduit, client hints cohérents, `Accept-Language` uniformisable.
+  Hors périmètre (scripts injectés) : canvas, WebGL, polices (ADR-014).
+- ✅ Packaging electron-builder (AppImage/deb, NSIS, dmg ; asar vérifié avec le worker du bloqueur)
+  et CI GitHub Actions (vérifications + e2e, paquets non signés sur `master`) (ADR-015).
+- Mises à jour automatiques — **plan**, non implémenté :
+  1. Signature : certificat Apple Developer ID + notarisation (`notarize` d'electron-builder) et
+     certificat de signature de code Windows (Authenticode, idéalement EV ou Azure Trusted Signing) ;
+     secrets dans GitHub Actions, jamais dans le dépôt.
+  2. Publication : releases GitHub créées par la CI sur tag `v*` (`--publish always`, provider
+     `github`), avec `latest*.yml` et blockmaps pour des mises à jour différentielles.
+  3. Client : `electron-updater` dans le process principal, vérification au démarrage puis toutes
+     les 6 h, téléchargement en arrière-plan, installation au redémarrage proposée dans l'interface
+     (jamais forcée) ; option « Mises à jour automatiques » dans les paramètres.
+  4. Linux : AppImage via electron-updater ; les paquets deb passent par un dépôt apt plus tard.
+  5. Canal bêta (`allowPrerelease`) pour tester avant diffusion.

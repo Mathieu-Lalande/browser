@@ -96,18 +96,21 @@ export function registerIpc(): void {
     c.spaces.moveTab(tabId as string, spaceId as string),
   );
 
-  // Spaces are shared by every window; the one that creates a space shows it.
+  // Spaces are shared by every window; the one that creates a space shows it. A private window
+  // only has its own ephemeral space: it cannot see nor edit the shared ones (ADR-014).
   ipcMain.handle(Channels.spaceCreate, (event, input: unknown) => {
     const controller = BrowserController.fromUi(event.sender);
-    if (!controller || !(input === undefined || isSpaceInput(input))) throw new Error(`Rejected ${Channels.spaceCreate}`);
+    if (!controller || controller.isPrivate || !(input === undefined || isSpaceInput(input))) throw new Error(`Rejected ${Channels.spaceCreate}`);
     const space = spaces.create(input);
     if (space) controller.spaces.switchTo(space.id);
     return space;
   });
-  on(Channels.spaceUpdate, (args) => isSpaceId(args[0]) && isSpaceInput(args[1]), (_c, spaceId, input) =>
-    spaces.update(spaceId as string, input as SpaceInput),
-  );
-  on(Channels.spaceRemove, (args) => isSpaceId(args[0]), (_c, spaceId) => spaces.remove(spaceId as string));
+  on(Channels.spaceUpdate, (args) => isSpaceId(args[0]) && isSpaceInput(args[1]), (c, spaceId, input) => {
+    if (!c.isPrivate) spaces.update(spaceId as string, input as SpaceInput);
+  });
+  on(Channels.spaceRemove, (args) => isSpaceId(args[0]), (c, spaceId) => {
+    if (!c.isPrivate) spaces.remove(spaceId as string);
+  });
   on(Channels.spaceSwitch, (args) => isSpaceId(args[0]), (c, spaceId) => c.spaces.switchTo(spaceId as string));
 
   on(Channels.splitOpen, id, (c, tabId) => c.tabs.openSplit(tabId as string));

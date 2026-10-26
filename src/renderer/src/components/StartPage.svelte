@@ -10,7 +10,9 @@
   let topSites = $state<HistoryEntry[]>([]);
 
   // The start page is mounted each time it shows, so this stays fresh without a subscription.
+  // A private window does not show them (someone looking at the screen would see your habits).
   $effect(() => {
+    if (browser.isPrivate) return;
     api.history.topSites(8).then((sites) => (topSites = sites), () => {});
   });
   let now = $state(new Date());
@@ -44,14 +46,26 @@
   class:image={image !== null}
   style:--start-image={image ? `url("${encodeURI(image)}")` : undefined}
 >
-  {#if options.showClock}<p class="time">{time}</p>{/if}
-  <h1>{greeting}{#if name}, {name}{/if}.</h1>
+  {#if browser.isPrivate}
+    <span class="mask"><Icon name="mask" size={30} /></span>
+    <h1>Navigation privée</h1>
+  {:else}
+    {#if options.showClock}<p class="time">{time}</p>{/if}
+    <h1>{greeting}{#if name}, {name}{/if}.</h1>
+  {/if}
   <form class="search" onsubmit={submit}>
     <Icon name="search" size={18} />
     <!-- svelte-ignore a11y_autofocus -->
     <input bind:value={query} placeholder="Rechercher sur le web ou saisir une adresse" spellcheck="false" autofocus />
   </form>
-  {#if options.showTopSites && topSites.length}
+  {#if browser.isPrivate}
+    <ul class="private" aria-label="Ce que la navigation privée conserve">
+      <li><Icon name="check" size={14} /> Ni historique, ni sites fréquents, ni session restaurée</li>
+      <li><Icon name="check" size={14} /> Cookies, cache et données de sites effacés à la fermeture de la fenêtre</li>
+      <li><Icon name="check" size={14} /> Autorisations accordées pour cette fenêtre seulement</li>
+      <li class="kept"><Icon name="star" size={14} /> Les favoris ajoutés et les fichiers téléchargés sont conservés</li>
+    </ul>
+  {:else if options.showTopSites && topSites.length}
     <nav class="sites" aria-label="Sites les plus visités">
       {#each topSites as site (site.url)}
         <button class="site" title={site.url} onclick={() => openSite(site.url)}>
@@ -176,6 +190,47 @@
     text-align: center;
     white-space: nowrap;
     text-overflow: ellipsis;
+  }
+  .mask {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    margin-bottom: 10px;
+    border-radius: 20px;
+    background: linear-gradient(140deg, color-mix(in oklab, var(--accent) 40%, transparent), color-mix(in oklab, var(--accent-2) 30%, transparent));
+    box-shadow:
+      inset 0 0 0 1px color-mix(in oklab, var(--accent) 45%, transparent),
+      0 18px 50px -18px var(--accent);
+    color: var(--text);
+  }
+  .private {
+    display: grid;
+    gap: 9px;
+    width: min(620px, 100%);
+    margin: 24px 0 0;
+    padding: 16px 20px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: color-mix(in oklab, var(--bg-elevated) 70%, transparent);
+    color: var(--text-muted);
+    font-size: 13px;
+    list-style: none;
+  }
+  .private li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .private li > :global(svg) {
+    flex: none;
+    color: var(--accent-text);
+  }
+  .private li.kept {
+    color: var(--text-faint);
+  }
+  .private li.kept > :global(svg) {
+    color: var(--text-faint);
   }
   .hint {
     margin-top: 18px;

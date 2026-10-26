@@ -1,9 +1,12 @@
 import { join } from "node:path";
-import { app, BrowserWindow, nativeTheme, type WebContents } from "electron";
+import { app, BrowserWindow, nativeTheme, type Session, type WebContents } from "electron";
 import { Channels } from "@shared/ipc";
+import { PRIVATE_SPACE, privateSettings } from "@shared/private";
 import { pageRadius, searchEngineOf, type Settings } from "@shared/settings";
 import type { UiCommand } from "@shared/types";
 import { Overlay } from "./overlay";
+import { createPrivateSession, wipePrivateSession } from "./private";
+import { persistentWindows, sessionOnClose, tabHooksFor } from "./private-guards";
 import { profile } from "./profile";
 import { onSettingsChanged, settings, updateSettings, windowBackground } from "./settings";
 import { SpaceManager, spaces } from "./spaces";
@@ -59,8 +62,13 @@ onSettingsChanged((current) => {
 });
 // The OS switched light/dark: windows following the system need their native background updated.
 nativeTheme.on("updated", () => {
-  for (const controller of controllers.values()) controller.window.setBackgroundColor(windowBackground());
+  for (const controller of controllers.values()) controller.window.setBackgroundColor(controller.background());
 });
+
+export interface WindowOptions {
+  /** A private window (ADR-014): in-memory session, no history nor session entry, private theme. */
+  private?: boolean;
+}
 
 /** One browser window: the chrome UI (sidebar, address bar…) plus the spaces and tabs of its pages. */
 export class BrowserController {
@@ -69,6 +77,13 @@ export class BrowserController {
   readonly spaces: SpaceManager;
   /** Floating UI above the pages (command palette). */
   readonly overlay: Overlay;
+  /**
+   * Private window: never written to the profile (history, session, permissions…). Anything that
+   * persists per window checks this; per-session hooks (downloads) use `isPrivateSession` (./private).
+   */
+  readonly isPrivate: boolean;
+  /** The in-memory session of a private window's pages, wiped when it closes. */
+  private readonly privateSession: Session | null;
 
   /** The tabs of the space on screen (what tab commands and shortcuts act on). */
   get tabs(): TabManager {
@@ -76,7 +91,9 @@ export class BrowserController {
   }
 
   /** `restore`: a window from the previous session, whose tabs come back discarded (lazy). */
-  constructor(restore?: SessionWindow) {
+  constructor(restore?: SessionWindow, options: WindowOptions = {}) {
+    this.isPrivate = options.private === true;
+    this.privateSession = this.isPrivate ? createPrivateSession() : null;
     const isMac = process.platform === "darwin";
     this.window = new BrowserWindow({
       width: 1280,
@@ -84,9 +101,9 @@ export class BrowserController {
       minWidth: 640,
       minHeight: 420,
       show: false,
-      title: "Browser",
+      title: this.isPrivate ? "Browser — Navigation privée" : "Browser",
       // The theme's own background: no white flash while the UI loads or on resize.
-      backgroundColor: windowBackground(),
+      backgroundColor: this.background(),
       titleBarStyle: "hidden",
       // macOS keeps its traffic lights; elsewhere the sidebar draws its own window controls.
       ...(isMac ? { trafficLightPosition: { x: 16, y: 16 } } : { frame: false }),
@@ -106,10 +123,11 @@ export class BrowserController {
         this.overlay.send(Channels.state, state);
         // A tab view attached while the overlay is open must not cover it.
         if (this.overlay.isOpen) this.overlay.raise();
-        BrowserController.saveSession();
+        if (!this.isPrivate) BrowserController.saveSession();
       },
-      tabHooks,
-      restore,
+      tabHooksFor(tabHooks, this.isPrivate),
+      this.isPrivate ? undefined : restore,
+      this.privateSession ? { space: PRIVATE_SPACE, session: this.privateSession } : undefined,
     );
 
     const chrome = this.window.webContents;
@@ -140,13 +158,15 @@ export class BrowserController {
     });
     this.window.on("closed", () => {
       // Closing the last window keeps it in the session (that is how the app usually quits on
-      // Windows/Linux); closing one of several windows forgets it.
-      const last = controllers.size === 1;
-      if (last) BrowserController.saveSession(true);
+      // Windows/Linux); closing one of several windows forgets it. Private windows never count.
+      const outcome = sessionOnClose(this, BrowserController.all());
+      if (outcome === "keep") BrowserController.saveSession(true);
       controllers.delete(chrome.id);
-      if (!last) BrowserController.saveSession();
+      if (outcome === "forget") BrowserController.saveSession();
       this.spaces.destroy();
       this.overlay.destroy();
+      // A private window takes its cookies, storage and cache with it.
+      if (this.privateSession) void wipePrivateSession(this.privateSession);
     });
 
     if (process.env.ELECTRON_RENDERER_URL) void this.window.loadURL(process.env.ELECTRON_RENDERER_URL);
@@ -166,7 +186,7 @@ export class BrowserController {
   /** Applies settings to the native side of the window, and tells its chrome UI (unless `notify` is false). */
   applySettings(current: Settings, notify = true): void {
     if (this.window.isDestroyed()) return;
-    this.window.setBackgroundColor(windowBackground(current));
+    this.window.setBackgroundColor(this.background(current));
     this.spaces.configure(tabOptions(current));
     // Zen mode hides the macOS traffic lights along with the sidebar.
     if (process.platform === "darwin") this.window.setWindowButtonVisibility(!current.layout.zenMode);
@@ -176,6 +196,11 @@ export class BrowserController {
 
   openSettings(): void {
     this.tabs.openInternal("settings");
+  }
+
+  /** Native background color behind the UI: the theme's, or the private theme's (always dark). */
+  background(current = settings()): string {
+    return this.isPrivate ? windowBackground(privateSettings(current), "dark") : windowBackground(current);
   }
 
   static toggleZenMode(): void {
@@ -218,11 +243,17 @@ export class BrowserController {
     for (const controller of controllers.values()) controller.spaces.refresh();
   }
 
-  /** Persists the open windows (debounced unless `now`). An empty window list is never saved. */
+  /**
+   * Persists the open windows (debounced unless `now`), private ones excepted. An empty window
+   * list is never saved.
+   */
   static saveSession(now = false): void {
-    if (quitting || controllers.size === 0) return;
+    if (quitting || persistentWindows(BrowserController.all()).length === 0) return;
     const { saveSession, flush } = profile();
-    saveSession(() => ({ spaces: spaces.list(), windows: BrowserController.all().map((controller) => controller.spaces.snapshot()) }));
+    saveSession(() => ({
+      spaces: spaces.list(),
+      windows: persistentWindows(BrowserController.all()).map((controller) => controller.spaces.snapshot()),
+    }));
     if (now) flush();
   }
 }

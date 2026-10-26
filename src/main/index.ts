@@ -1,11 +1,21 @@
 import { app, BrowserWindow } from "electron";
+import { tabSleepDelayMs } from "@shared/settings";
 import { registerIpc } from "./ipc";
 import { installMenu } from "./menu";
 import { flushProfile, openProfile } from "./profile";
 import { hardenApp, hardenSession } from "./security";
-import { applyNativeTheme } from "./settings";
+import { applyNativeTheme, settings as currentSettings } from "./settings";
+import { startTabSleeper } from "./sleep";
 import { spaces } from "./spaces";
 import { BrowserController } from "./window";
+
+/** Test hook: `BROWSER_TEST_SLEEP_MS` replaces the sleep delay (unless sleeping is off). */
+const TEST_SLEEP_MS = Number(process.env.BROWSER_TEST_SLEEP_MS) || 0;
+
+function sleepDelay(): number | null {
+  const delay = tabSleepDelayMs(currentSettings());
+  return delay !== null && TEST_SLEEP_MS > 0 ? TEST_SLEEP_MS : delay;
+}
 
 app.setName("Browser");
 // Lets tests and power users run isolated profiles.
@@ -26,11 +36,16 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   void app.whenReady().then(() => {
+    // The profile comes first: session hardening reads the settings (Accept-Language).
+    const { previousSession, settings } = openProfile();
     hardenSession();
     registerIpc();
     installMenu();
-    const { previousSession, settings } = openProfile();
     applyNativeTheme(settings);
+    startTabSleeper({
+      targets: () => BrowserController.all().flatMap((controller) => controller.spaces.tabManagers()),
+      idleMs: sleepDelay,
+    });
     // Spaces are kept even when windows are not restored.
     spaces.init(previousSession?.spaces);
     const restore = settings.behavior.restoreSession ? (previousSession?.windows ?? []) : [];

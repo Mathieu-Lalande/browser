@@ -103,7 +103,18 @@ export class SpaceManager {
     private readonly onChange: (state: BrowserState) => void,
     private readonly hooks: TabManagerHooks = {},
     saved?: SessionWindow,
+    /**
+     * Private window: a single space of its own (not in the shared list) whose tabs use this
+     * in-memory session. Nothing is restored, and the shared spaces are never shown.
+     */
+    private readonly ephemeral?: { space: SpaceInfo; session: Session },
   ) {
+    if (ephemeral) {
+      this.activeId = ephemeral.space.id;
+      this.managerFor(this.activeId);
+      this.unsubscribe = () => {};
+      return;
+    }
     const list = spaces.list();
     this.activeId = saved && spaces.get(saved.activeSpaceId) ? saved.activeSpaceId : list[0].id;
     for (const entry of saved?.spaces ?? []) {
@@ -111,6 +122,20 @@ export class SpaceManager {
     }
     this.managerFor(this.activeId);
     this.unsubscribe = spaces.onChange((change) => this.spacesChanged(change));
+  }
+
+  /** Every TabManager of the window (shown space or not), e.g. for tab sleeping. */
+  tabManagers(): TabManager[] {
+    return [...this.managers.values()];
+  }
+
+  /** The spaces this window can show: the shared list, or its own private space. */
+  private list(): SpaceInfo[] {
+    return this.ephemeral ? [{ ...this.ephemeral.space }] : spaces.list();
+  }
+
+  private has(id: SpaceId): boolean {
+    return this.list().some((space) => space.id === id);
   }
 
   /** The TabManager of the space on screen. */
@@ -123,11 +148,12 @@ export class SpaceManager {
   }
 
   getState(): BrowserState {
-    return { ...this.active.getState(), spaces: spaces.list(), activeSpaceId: this.activeId };
+    const state: BrowserState = { ...this.active.getState(), spaces: this.list(), activeSpaceId: this.activeId };
+    return this.ephemeral ? { ...state, isPrivate: true } : state;
   }
 
   snapshot(): SessionWindow {
-    const known = spaces.list().filter((space) => this.managers.has(space.id));
+    const known = this.list().filter((space) => this.managers.has(space.id));
     return {
       activeSpaceId: this.activeId,
       spaces: known.map((space) => ({ spaceId: space.id, ...this.managers.get(space.id)!.snapshot() })),
@@ -135,7 +161,7 @@ export class SpaceManager {
   }
 
   switchTo(id: SpaceId): void {
-    if (id === this.activeId || !spaces.get(id)) return;
+    if (id === this.activeId || !this.has(id)) return;
     this.managers.get(this.activeId)?.setVisible(false);
     this.activeId = id;
     this.managerFor(id).setVisible(true);
@@ -144,13 +170,13 @@ export class SpaceManager {
 
   /** Next/previous space (wrapping), e.g. Ctrl+Alt+→. */
   switchBy(delta: number): void {
-    const id = cycleSpace(spaces.list(), this.activeId, delta);
+    const id = cycleSpace(this.list(), this.activeId, delta);
     if (id) this.switchTo(id);
   }
 
   /** The n-th space; a negative index counts from the end. */
   switchIndex(index: number): void {
-    const list = spaces.list();
+    const list = this.list();
     const space = index < 0 ? list.at(index) : list[index];
     if (space) this.switchTo(space.id);
   }
@@ -160,7 +186,7 @@ export class SpaceManager {
    * otherwise it reloads in the target space's session.
    */
   moveTab(tabId: TabId, spaceId: SpaceId): void {
-    if (!spaces.get(spaceId)) return;
+    if (!this.has(spaceId)) return;
     const source = [...this.managers.values()].find((manager) => manager.getState().tabs.some((tab) => tab.id === tabId));
     const target = this.managerFor(spaceId, false);
     if (!source || source === target) return;
@@ -196,7 +222,7 @@ export class SpaceManager {
     let manager = this.managers.get(id);
     if (!manager) {
       manager = new TabManager(this.window, () => this.emit(), this.hooks, {
-        session: spaces.sessionFor(id),
+        session: this.ephemeral?.session ?? spaces.sessionFor(id),
         visible: id === this.activeId,
       });
       manager.configure(this.options);

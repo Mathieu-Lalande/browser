@@ -132,6 +132,27 @@ test("sidebar with spaces", async ({ app, chrome }) => {
   await captureWindow(app, "spaces");
 });
 
+test("private window", async ({ app, chrome }) => {
+  await app.evaluate(({ BrowserWindow }) => {
+    const contents = BrowserWindow.getAllWindows()[0].webContents;
+    contents.sendInputEvent({ type: "keyDown", keyCode: "N", modifiers: ["control", "shift"] });
+    contents.sendInputEvent({ type: "keyUp", keyCode: "N", modifiers: ["control", "shift"] });
+  });
+  await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(2);
+  // Only the private window stays on screen (captureWindow shoots the first window).
+  await chrome.evaluate(() => (globalThis as unknown as { browser: Api }).browser.window.close());
+  await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(1);
+  const priv = app.windows().find((candidate) => candidate.url().endsWith("/renderer/index.html") && !candidate.isClosed())!;
+  await priv.waitForSelector(".private-badge");
+  await open(priv, page("Idées cadeaux", "#e8536b", "Une surprise pour dimanche."), "Idées cadeaux", false);
+  await open(priv, page("Billets de train", "#5aa9ff", "Paris → Lyon, samedi matin."), "Billets de train");
+  await priv.getByRole("button", { name: "Nouvel onglet" }).click();
+  await expect(priv.getByRole("heading", { name: "Navigation privée" })).toBeVisible();
+  await priv.locator(".start input").blur();
+  await new Promise((resolve) => setTimeout(resolve, 600));
+  await captureWindow(app, "private");
+});
+
 test("split view", async ({ app, chrome }) => {
   await chrome.emulateMedia({ colorScheme: "dark" });
   await open(chrome, `data:text/html;charset=utf-8,${encodeURIComponent(article)}`, "Le guide des navigateurs rapides", false);

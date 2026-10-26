@@ -236,3 +236,106 @@ l'URL vide pour la compatibilité des sessions). Elles sont restaurées avec la 
   connues ; `isNavigableUrl` refuse le schéma `browser:`, donc une page web ne peut ni y naviguer,
   ni l'ouvrir dans un nouvel onglet, ni y être redirigée (testé en unitaire et en e2e).
 - Elles ne passent jamais par l'historique ni les favoris.
+
+## ADR-014 — Mise en veille des onglets, fenêtres privées, anti-fingerprinting
+
+### Mise en veille des onglets (mémoire)
+
+**Décision.** Un onglet en arrière-plan inactif depuis un délai réglable (« Jamais / 15 min / 30 min /
+1 h / 2 h », 30 min par défaut, `behavior.sleepTabsAfter`) perd sa page : sa `WebContentsView` est
+détruite, il garde URL, titre, favicon **et** sa liste précédent/suivant. C'est exactement l'état
+« déchargé » des onglets restaurés de la session (ADR-005) : `TabManager.discard` remet `view` à null
+et le mécanisme existant (`wake` à l'activation) le recharge ; rien n'est dupliqué. Au réveil, la liste
+précédent/suivant est restaurée (`navigationHistory.restore`), sinon l'URL est simplement rechargée.
+
+- Politique pure et testée (`src/main/sleep.ts`, `sleepBlocker`) : jamais un onglet à l'écran (actif,
+  ou d'une vue scindée visible), qui joue du son, qui attend une réponse à une demande d'autorisation,
+  ou dont les DevTools sont ouverts. Les onglets épinglés peuvent dormir : ils gardent leur place.
+- Formulaires en cours : juste avant de décharger, un script **en lecture seule** exécuté dans un monde
+  isolé (`executeJavaScriptInIsolatedWorld`, comme le scan cosmétique d'ADR-006, sans preload) regarde si
+  un champ du document principal diffère de sa valeur initiale (`value`/`defaultValue`, cases, listes)
+  ou si une zone éditable a le focus. En cas de doute (erreur, page qui ne répond pas en 2 s), l'onglet
+  reste éveillé. Limites : les iframes et les éditeurs riches non focalisés ne sont pas inspectés.
+- Le temps d'inactivité part du moment où l'onglet quitte l'écran (`lastSeenAt`), pas de sa dernière
+  activation. Un seul minuteur pour toute l'application, réarmé à chaque passage (¼ du délai, entre
+  250 ms et 1 min), `unref` ; il parcourt tous les espaces de toutes les fenêtres.
+- Commandes du registre : « Mettre l'onglet en veille » (l'onglet actif cède la place au dernier
+  utilisé) et « Mettre les autres onglets en veille » ; entrée « Mettre en veille » dans le menu
+  contextuel d'onglet. Elles ignorent seulement le délai : son, autorisation et formulaire protègent toujours.
+- Interface : `TabState.isAsleep` (déchargé, quelle qu'en soit la raison — y compris un onglet
+  restauré pas encore affiché) estompe l'onglet dans la barre latérale.
+- Crochet de test : `BROWSER_TEST_SLEEP_MS` remplace le délai (sauf « Jamais »).
+
+### Fenêtres privées
+
+**Décision.** `Ctrl/Cmd+Maj+N` (« Nouvelle fenêtre privée ») ouvre une fenêtre dont tous les onglets
+utilisent une partition **en mémoire** (nom sans `persist:`), unique par fenêtre (`src/main/private.ts`).
+Elle reçoit le même durcissement que les autres sessions (`hardenSession(ses, { ephemeral: true })`,
+idempotent) : bloqueur, HTTPS-Only, GPC, client hints, invite de permissions.
+
+- **Rien n'est écrit sur le disque.** `BrowserController.isPrivate` est le drapeau à consulter ; les
+  règles pures sont dans `src/main/private-guards.ts` (testées) : pas de crochets d'historique (ni
+  visite, ni titre/favicon, donc pas de sites fréquents), fenêtre absente de `session.json` (et sa
+  fermeture ne décide jamais du sort de la session sauvegardée), jamais restaurée. Les décisions
+  d'autorisation et les boucliers désactivés par site vivent dans un état propre à la session privée,
+  en mémoire (`PermissionStore(null)`, carte d'hôtes) : « Se souvenir pour ce site » est masqué, les
+  choix valent pour la fenêtre et ne fuient pas vers les fenêtres normales. Les exceptions HTTPS-Only
+  restent en mémoire et partagées, comme avant.
+- **Points d'accroche pour les autres fonctionnalités.** Ce qui persiste *par session* (téléchargements
+  via `will-download`, zoom par site…) doit vérifier `isPrivateSession(session)` : le fichier téléchargé
+  est enregistré où l'utilisateur l'a demandé, mais aucune entrée n'est ajoutée à l'historique des
+  téléchargements ; aucun niveau de zoom n'est mémorisé.
+- **Fermeture.** `clearStorageData`, `clearCache`, `clearAuthCache` et `clearHostResolverCache` sur la
+  partition, sans attendre la fin de l'application.
+- **Espaces.** Désactivés : une fenêtre privée a un seul espace éphémère (« Navigation privée »), hors
+  de la liste partagée ; le sélecteur est masqué, l'IPC et les commandes d'espaces sont refusés.
+- **Favoris.** Autorisés, comme dans Firefox : ajouter un favori est un geste explicite, il est
+  enregistré dans `bookmarks.json`. Les paramètres modifiés depuis une fenêtre privée sont, eux aussi,
+  enregistrés (ce sont des préférences, pas des traces de navigation).
+- **Apparence.** Thème privé fixe (sombre, violet, fond « mesh », `src/shared/private.ts`) appliqué au
+  chrome et à l'overlay, pastille « Navigation privée » avec un masque dans l'en-tête de la barre
+  latérale, page d'accueil qui explique ce qui est conservé et ne montre pas les sites fréquents.
+- La lecture de l'historique (suggestions de la barre d'adresse) reste possible, comme dans Firefox.
+
+### Anti-fingerprinting (modeste)
+
+**Décision.** Ce que le navigateur dit de lui dans les en-têtes HTTP ressemble à un navigateur Chromium
+de bureau quelconque (`src/main/fingerprint.ts`, fonctions pures testées) :
+
+- User agent sans `Electron/…` ni le nom de l'application, et version **réduite** comme le fait Chrome
+  (`Chrome/152.0.0.0`) ; la version complète reste disponible par les client hints à haute entropie,
+  exactement comme dans Chrome.
+- Client hints : Chromium (Electron 44) envoie `Sec-CH-UA: "Not?A_Brand";v="24", "Chromium";v="152"`
+  (vérifié), cohérent avec l'UA réduit. Par sécurité, `Sec-CH-UA` et `Sec-CH-UA-Full-Version-List`
+  sont filtrés dans `onBeforeSendHeaders` (onglets seulement) : toute marque « Electron » ou au nom de
+  l'application est retirée. On n'ajoute pas de fausse marque « Google Chrome ».
+- `Accept-Language` : option « Uniformiser la langue envoyée aux sites » (désactivée par défaut) qui
+  annonce `en-US,en;q=0.9`, la valeur la plus courante, via `session.setUserAgent(ua, langues)`.
+- **Non couvert**, car il faudrait injecter du code dans les pages avant leurs scripts (preload ou
+  script de monde principal), ce qu'ADR-003 exclut : canvas, WebGL, audio, polices installées,
+  `navigator.userAgentData` en JavaScript (marques et version complète), `navigator.languages`,
+  résolution d'écran, fuseau horaire. Une protection partielle de ces surfaces rendrait d'ailleurs
+  l'utilisateur *plus* distinctif ; c'est le terrain de Tor Browser/Brave, pas un objectif à court terme.
+
+## ADR-015 — Packaging et intégration continue
+
+**Décision.** electron-builder (clé `build` de `package.json`) produit les paquets : `npm run dist`
+(cibles par OS : AppImage + deb, NSIS, dmg) et `npm run dist:dir` (dossier décompressé, le plus rapide).
+`--publish never` et `"publish": null` : aucune publication ni fichier de mise à jour automatique.
+
+- Le code est empaqueté en **asar**. Le worker du bloqueur (`blocker-worker.ts`, chargé par chemin via
+  `?modulePath` d'electron-vite) se charge **depuis l'archive** : Electron 44 prend en charge asar dans
+  les `worker_threads`, y compris les imports de `node_modules` ; vérifié sur le paquet Linux, donc pas
+  d'`asarUnpack`. La page overlay (seconde entrée du renderer) est empaquetée avec le reste de `out/`.
+- Icônes : `build/icon.png` (512 px), `icon.ico` et `icon.icns` de l'ancien projet Tauri, utilisées
+  automatiquement (`buildResources`). `desktopName` relie la fenêtre à son entrée `.desktop` sous Linux.
+- Test de fumée du paquet (`tests/e2e/packaging.spec.ts`, ignoré sans `BROWSER_PACKAGED`) : l'app
+  empaquetée démarre, affiche sa fenêtre et l'overlay, charge une page filtrée, et le worker tourne
+  depuis `app.asar`.
+- CI GitHub Actions (`.github/workflows/ci.yml`) : sur chaque push/PR, Ubuntu exécute typecheck,
+  tests unitaires, build puis e2e sous `xvfb-run` (les fixtures passent `--no-sandbox`). Sur `master`,
+  une matrice Ubuntu/Windows/macOS lance `npm run dist:dir` sans signature
+  (`CSC_IDENTITY_AUTO_DISCOVERY=false`), le test de fumée sous Linux, et publie les dossiers comme
+  artefacts (l'archive d'artefacts ne conserve pas les liens symboliques du bundle macOS : à zipper si
+  l'on veut le distribuer). Actions épinglées en v4, Node 22, cache npm.
+- **Mises à jour automatiques : non implémentées** (ni signature ni infrastructure) ; plan dans la roadmap.

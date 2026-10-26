@@ -8,6 +8,7 @@ import {
   resetSettings,
   sanitizeSettings,
   searchEngineOf,
+  tabSleepDelayMs,
   type Settings,
 } from "./settings";
 
@@ -149,7 +150,18 @@ describe("derived values", () => {
     expect(pageRadius(custom((s) => (s.layout.gutter = 0)))).toBe(0);
   });
 
+  it("puts tabs to sleep after 30 minutes by default, or never", () => {
+    expect(tabSleepDelayMs(DEFAULT_SETTINGS)).toBe(30 * 60_000);
+    expect(tabSleepDelayMs(custom((s) => (s.behavior.sleepTabsAfter = "2h")))).toBe(2 * 3600_000);
+    expect(tabSleepDelayMs(custom((s) => (s.behavior.sleepTabsAfter = "never")))).toBeNull();
+    // Older settings files (no such field) and bad values get the default.
+    expect(sanitizeSettings({ behavior: { restoreSession: false } }).behavior.sleepTabsAfter).toBe("30m");
+    expect(sanitizeSettings({ behavior: { sleepTabsAfter: 30 } }).behavior.sleepTabsAfter).toBe("30m");
+    expect(sanitizeSettings({ privacy: { normalizeAcceptLanguage: "yes" } }).privacy.normalizeAcceptLanguage).toBe(false);
+  });
+
   it("recognizes section names", () => {
+    expect(isSettingsSection("privacy")).toBe(true);
     expect(isSettingsSection("appearance")).toBe(true);
     expect(isSettingsSection("__proto__")).toBe(false);
     expect(isSettingsSection(undefined)).toBe(false);

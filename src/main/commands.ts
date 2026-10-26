@@ -1,6 +1,7 @@
 import { clipboard, type MenuItemConstructorOptions } from "electron";
 import { commandAccelerator, getCommand, type CommandId } from "@shared/commands";
 import { profile } from "./profile";
+import { sleepTabNow, sleepTabs } from "./sleep";
 import { spaces } from "./spaces";
 import { toggleSplit } from "./split";
 import { BrowserController } from "./window";
@@ -48,15 +49,30 @@ const RUNNERS: Record<CommandId, Runner> = {
   "toggle-zen": () => BrowserController.toggleZenMode(),
   "toggle-split": (c) => toggleSplit(c.tabs),
   "new-space": (c) => {
+    // A private window has a single ephemeral space (ADR-014).
+    if (c.isPrivate) return;
     const space = spaces.create();
     if (space) c.spaces.switchTo(space.id);
   },
   "next-space": (c) => c.spaces.switchBy(1),
   "previous-space": (c) => c.spaces.switchBy(-1),
+  "new-private-window": () => openPrivateWindow(),
+  "sleep-tab": onActiveTab((c, id) => void sleepTabNow(c.tabs, id)),
+  // Every tab of the window not on screen, in all its spaces (manual: no idle delay).
+  "sleep-other-tabs": (c) => {
+    for (const manager of c.spaces.tabManagers()) void sleepTabs(manager, null, null);
+  },
 };
 
 /** Commands that make sense without any window (macOS keeps the app running windowless). */
-const WINDOWLESS = new Set<CommandId>(["new-window"]);
+const WINDOWLESS: Partial<Record<CommandId, () => void>> = {
+  "new-window": () => new BrowserController(),
+  "new-private-window": () => openPrivateWindow(),
+};
+
+function openPrivateWindow(): BrowserController {
+  return new BrowserController(undefined, { private: true });
+}
 
 export function runCommand(id: CommandId, controller: BrowserController): void {
   RUNNERS[id](controller);
@@ -74,7 +90,7 @@ export function commandMenuItem(id: CommandId, options: MenuItemConstructorOptio
     click: () => {
       const controller = BrowserController.focused();
       if (controller) RUNNERS[id](controller);
-      else if (WINDOWLESS.has(id)) new BrowserController();
+      else WINDOWLESS[id]?.();
     },
     ...options,
   };

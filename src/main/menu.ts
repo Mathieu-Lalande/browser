@@ -37,6 +37,7 @@ export function installMenu(): void {
       submenu: [
         commandMenuItem("new-tab"),
         commandMenuItem("new-window"),
+        commandMenuItem("new-private-window"),
         commandMenuItem("duplicate-tab"),
         commandMenuItem("open-settings"),
         commandMenuItem("close-tab"),
@@ -89,6 +90,8 @@ export function installMenu(): void {
         { label: "Onglet suivant", accelerator: "Ctrl+Tab", click: withFocused((c) => c.tabs.cycle(1)) },
         { label: "Onglet précédent", accelerator: "Ctrl+Shift+Tab", click: withFocused((c) => c.tabs.cycle(-1)) },
         commandMenuItem("toggle-pin"),
+        commandMenuItem("sleep-tab"),
+        commandMenuItem("sleep-other-tabs"),
         ...tabNumbers,
       ],
     },
