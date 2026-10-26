@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from "electron";
 import { registerIpc } from "./ipc";
 import { installMenu } from "./menu";
+import { flushProfile, openProfile } from "./profile";
 import { hardenApp, hardenSession } from "./security";
 import { BrowserController } from "./window";
 
@@ -26,12 +27,17 @@ if (!app.requestSingleInstanceLock()) {
     hardenSession();
     registerIpc();
     installMenu();
-    new BrowserController();
+    const { previousSession } = openProfile();
+    if (previousSession?.windows.length) for (const saved of previousSession.windows) new BrowserController(saved);
+    else new BrowserController();
 
     app.on("activate", () => {
       if (BrowserController.count() === 0) new BrowserController();
     });
   });
+
+  // Last chance to write pending history/bookmarks/session changes.
+  app.on("will-quit", flushProfile);
 
   app.on("window-all-closed", () => {
     if (process.platform !== "darwin") app.quit();

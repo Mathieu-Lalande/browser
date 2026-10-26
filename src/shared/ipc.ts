@@ -1,4 +1,4 @@
-import type { Bounds, BrowserState, TabId, UiCommand } from "./types";
+import type { Bookmark, BookmarkInput, Bounds, BrowserState, HistoryEntry, TabId, UiCommand } from "./types";
 
 /** IPC channel names, shared by main and preload so they cannot drift. */
 export const Channels = {
@@ -19,6 +19,13 @@ export const Channels = {
   windowMinimize: "window:minimize",
   windowToggleMaximize: "window:toggle-maximize",
   windowClose: "window:close",
+  historySearch: "history:search",
+  historyTopSites: "history:top-sites",
+  historyClear: "history:clear",
+  bookmarksList: "bookmarks:list",
+  bookmarksAdd: "bookmarks:add",
+  bookmarksRemove: "bookmarks:remove",
+  bookmarksToggleActive: "bookmarks:toggle-active",
 } as const;
 
 /** API exposed to the chrome UI on `window.browser` by the preload script. */
@@ -45,5 +52,20 @@ export interface BrowserApi {
     minimize(): void;
     toggleMaximize(): void;
     close(): void;
+  };
+  history: {
+    /** Entries matching `query` (url + title), best first by match quality × frecency. */
+    search(query: string, limit?: number): Promise<HistoryEntry[]>;
+    /** Most frecent sites, one entry per host. */
+    topSites(limit?: number): Promise<HistoryEntry[]>;
+    clear(): Promise<void>;
+  };
+  bookmarks: {
+    list(): Promise<Bookmark[]>;
+    /** Resolves to null for URLs that cannot be bookmarked. */
+    add(input: BookmarkInput): Promise<Bookmark | null>;
+    remove(id: string): Promise<void>;
+    /** Bookmarks the active tab of this window, or removes its bookmark. */
+    toggleActive(): void;
   };
 }

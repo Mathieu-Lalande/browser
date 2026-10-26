@@ -39,3 +39,22 @@ réactive (onglets qui chargent, favicons, titres) qui doit rester fluide.
 ## ADR-004 — Moteur de recherche par défaut
 
 DuckDuckGo par défaut (cohérent avec « privé ») ; Brave Search, Startpage et Google proposés.
+
+## ADR-005 — Persistance en fichiers JSON
+
+**Décision.** Session, historique et favoris sont des fichiers JSON dans le dossier de profil
+(`userData`, ou `BROWSER_PROFILE_DIR`) : `session.json`, `history.json`, `bookmarks.json`.
+Pas de dépendance (SQLite natif compliquerait le packaging et les rebuilds Electron) ; les volumes
+restent petits (historique plafonné à 10 000 URL, les plus anciennes sont supprimées).
+
+- Format `{ version, data }` : chaque fichier a un numéro de schéma, migré au chargement.
+- Écriture atomique : fichier temporaire + `fsync` + `rename`, jamais de fichier tronqué.
+- Sauvegardes regroupées (debounce) et forcées à la fermeture ; contenu inchangé ⇒ pas d'écriture.
+- Fichier illisible ou d'une version plus récente ⇒ mis de côté en `*.corrupt-<horodatage>`, on repart à vide.
+- La logique (validation, historique, recherche, favoris) est pure et testée ; seul `src/main/profile.ts` touche à Electron.
+- Restauration paresseuse : seul l'onglet actif se charge au démarrage, les autres gardent
+  URL/titre/favicon et n'ont pas de `WebContentsView` tant qu'ils ne sont pas activés.
+- Historique et favoris ne sont accessibles qu'à l'interface (IPC validé), jamais aux pages web.
+
+**À revoir** si l'historique doit garder chaque visite (et non une ligne par URL) ou grossir
+fortement : SQLite (`node:sqlite`) serait alors le bon outil.
