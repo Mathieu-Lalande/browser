@@ -1,0 +1,2 @@
+Le but de ce repo est de créer un navigateur internet moderne, ultra pratique, rapide et sécurisé, qui respecte la vie privée de ses utilisateurs. Il est conçu pour offrir une expérience de navigation fluide et intuitive, tout en intégrant des fonctionnalités avancées pour protéger les données personnelles et la confidentialité en ligne.
+Les inspirations pour ce projet proviennent de navigateurs existants tels que Brave, Zen et Arc, mais avec une approche unique qui met l'accent sur la simplicité d'utilisation et la performance.
