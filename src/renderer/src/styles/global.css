@@ -78,6 +78,32 @@ input {
 button {
   border: 0;
   background: none;
+}
+
+/*
+ * Hand cursor over everything clickable (setting "Curseur main"). Zero specificity (:where) so a
+ * component's own cursor (resizers, text fields) always wins.
+ */
+:where(
+    button,
+    [role="tab"],
+    [role="option"],
+    [role="radio"],
+    [role="switch"],
+    [role="menuitem"],
+    select,
+    summary,
+    label:has(> input:is([type="checkbox"], [type="radio"])),
+    input:is([type="checkbox"], [type="radio"], [type="range"], [type="color"])
+  ) {
+  cursor: var(--clickable-cursor, pointer);
+}
+
+:root[data-arrow-cursor] {
+  --clickable-cursor: default;
+}
+
+:where(button:disabled, [aria-disabled="true"]) {
   cursor: default;
 }
 

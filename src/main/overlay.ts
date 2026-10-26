@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { WebContentsView, type BaseWindow, type WebContents } from "electron";
 import { Channels } from "@shared/ipc";
-import type { Bounds, OverlayRequest } from "@shared/types";
+import { isPopover, type Bounds, type OverlayRequest } from "@shared/types";
 
 interface OverlayHooks {
   /** The overlay page was created: it must be accepted as this window's UI by the IPC layer. */
@@ -63,7 +63,8 @@ export class Overlay {
     else this.pending = request;
     this.raise();
     view.webContents.focus();
-    if (opening) void this.sendBackdrop(++this.openings);
+    if (opening) this.openings++;
+    if (opening && !isPopover(request.kind)) void this.sendBackdrop(this.openings);
   }
 
   /**

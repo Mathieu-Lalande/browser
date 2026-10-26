@@ -4,6 +4,7 @@
   import type { SpaceId, TabState } from "@shared/types";
   import { api, browser } from "../lib/browser.svelte";
   import AddressBar from "./AddressBar.svelte";
+  import DownloadsButton from "./downloads/DownloadsButton.svelte";
   import { settings } from "../lib/settings.svelte";
   import Icon from "./Icon.svelte";
   import TabIcon from "./TabIcon.svelte";
@@ -138,6 +139,7 @@
   {/if}
   <footer class="footer">
     <SpaceSwitcher onEdit={(id) => (editing = editing === id ? null : id)} />
+    <DownloadsButton />
     <button class="icon" aria-label="Paramètres" title="Paramètres (Ctrl+,)" onclick={() => api.settings.open()}>
       <Icon name="settings" />
     </button>

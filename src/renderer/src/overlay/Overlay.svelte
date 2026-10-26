@@ -1,9 +1,10 @@
 <script lang="ts">
-  import type { OverlayBackdrop, OverlayRequest } from "@shared/types";
+  import { isPopover, type OverlayBackdrop, type OverlayRequest } from "@shared/types";
   import { api } from "../lib/browser.svelte";
   import { settings } from "../lib/settings.svelte";
   import { applyTheme } from "../lib/theme";
   import CommandPalette from "./CommandPalette.svelte";
+  import DownloadsPanel from "./DownloadsPanel.svelte";
 
   // Root of the overlay layer (src/main/overlay.ts): a transparent page above the tab views,
   // attached only while a floating UI is open.
@@ -73,9 +74,15 @@
   {#key current.id}
     <!-- Clicking outside the panel closes it (pointer only: Escape is the keyboard way). -->
     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-    <div class="scrim" onmousedown={(event) => event.target === event.currentTarget && close(true)}>
+    <div
+      class="scrim"
+      class:clear={isPopover(current.request.kind)}
+      onmousedown={(event) => event.target === event.currentTarget && close(true)}
+    >
       {#if current.request.kind === "palette"}
         <CommandPalette onClose={close} />
+      {:else if current.request.kind === "downloads"}
+        <DownloadsPanel anchor={current.request.anchor} onClose={close} />
       {/if}
     </div>
   {/key}
@@ -110,6 +117,10 @@
     .scrim {
       background: rgb(30 20 55 / 0.22);
     }
+  }
+  /* Popovers: the page stays as it is around them (the layer still catches outside clicks). */
+  .scrim.clear {
+    background: transparent;
   }
   @keyframes fade {
     from {

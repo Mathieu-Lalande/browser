@@ -17,3 +17,5 @@
   plus son binaire à l'installation : `scripts/ensure-electron.mjs` le fait (`postinstall`, `predev`).
 - Préférences : `src/shared/settings.ts` (modèle + validateur) et `src/shared/theme.ts` (palette → variables CSS),
   voir ADR-011. Pages internes `browser://…` dessinées par l'interface : ADR-012 (jamais accessibles aux pages web).
+- Téléchargements, recherche dans la page, zoom par site, médias : ADR-013. `installDownloads(session)`
+  (`src/main/downloads/`) est idempotente et doit être appliquée à chaque session d'onglets.

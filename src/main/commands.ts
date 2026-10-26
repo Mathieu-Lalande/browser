@@ -15,6 +15,19 @@ const onActiveTab =
     if (tabId) action(controller, tabId);
   };
 
+/** Find in page: shows the bar and focuses its field (a no-op on the start page and internal pages). */
+function openFind(controller: BrowserController, tabId: string): void {
+  if (controller.tabs.openFind(tabId)) controller.sendUiCommand("focus-find");
+}
+
+/** F3 / Shift+F3: next or previous match, or opens the find bar when it is closed. */
+const findStep = (forward: boolean): Runner =>
+  onActiveTab((c, id) => {
+    const open = c.tabs.getState().tabs.find((tab) => tab.id === id)?.find?.open;
+    if (open) c.tabs.findStep(id, forward);
+    else openFind(c, id);
+  });
+
 /** What each registry command does. Menu items and the command palette both run these. */
 const RUNNERS: Record<CommandId, Runner> = {
   "new-tab": (c) => {
@@ -46,6 +59,12 @@ const RUNNERS: Record<CommandId, Runner> = {
   "command-palette": (c) => c.overlay.toggle({ kind: "palette" }),
   "open-settings": (c) => c.openSettings(),
   "toggle-zen": () => BrowserController.toggleZenMode(),
+  find: onActiveTab(openFind),
+  "find-next": findStep(true),
+  "find-previous": findStep(false),
+  "open-downloads": (c) => c.openDownloads(),
+  "toggle-mute": onActiveTab((c, id) => c.tabs.toggleMute(id)),
+  "picture-in-picture": onActiveTab((c, id) => c.tabs.pictureInPicture(id)),
   "toggle-split": (c) => toggleSplit(c.tabs),
   "new-space": (c) => {
     const space = spaces.create();

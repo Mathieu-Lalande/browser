@@ -1,21 +1,30 @@
 import { join } from "node:path";
 import { app } from "electron";
 import { sanitizeSettings, type Settings } from "@shared/settings";
+import type { DownloadEntry } from "@shared/downloads";
+import { DOWNLOADS_VERSION, DownloadList } from "./downloads/list";
 import { BOOKMARKS_VERSION, Bookmarks, type BookmarksData } from "./storage/bookmarks";
 import { HISTORY_VERSION, History } from "@shared/history";
 import { JsonFile } from "./storage/json-file";
 import { SESSION_VERSION, parseSession, type Session } from "./storage/session";
+import { SiteZoom, ZOOM_VERSION } from "./zoom/levels";
 
 /** Everything the browser persists in the user's profile directory (`userData`). */
 export interface Profile {
   history: History;
   bookmarks: Bookmarks;
+  /** Download history (`downloads.json`). */
+  downloads: DownloadList;
+  /** Zoom factor per site (`zoom.json`). */
+  zoom: SiteZoom;
   /** The session saved by the previous run (null on first launch or if it was unreadable). */
   previousSession: Session | null;
   /** Current user settings (always complete and valid). */
   readonly settings: Settings;
   saveHistory(): void;
   saveBookmarks(): void;
+  saveDownloads(): void;
+  saveZoom(): void;
   /** Replaces the settings and schedules their write. */
   saveSettings(next: Settings): void;
   /** Debounced: `snapshot` is taken when the write happens. */
@@ -56,19 +65,38 @@ export function openProfile(dir = app.getPath("userData")): Profile {
     debounceMs: 300,
   });
 
+  const downloadsFile = new JsonFile<DownloadEntry[]>({
+    path: join(dir, "downloads.json"),
+    version: DOWNLOADS_VERSION,
+    parse: (data) => DownloadList.parse(data),
+    debounceMs: 1000,
+  });
+  const zoomFile = new JsonFile<Record<string, number>>({
+    path: join(dir, "zoom.json"),
+    version: ZOOM_VERSION,
+    parse: (data) => SiteZoom.parse(data),
+    debounceMs: 500,
+  });
+
   const history = new History(historyFile.load() ?? []);
   const bookmarks = new Bookmarks(bookmarksFile.load() ?? undefined);
+  const downloads = new DownloadList(downloadsFile.load() ?? []);
+  const zoom = new SiteZoom(zoomFile.load() ?? {});
   let settings = settingsFile.load() ?? sanitizeSettings(undefined);
 
   current = {
     history,
     bookmarks,
+    downloads,
+    zoom,
     previousSession: sessionFile.load(),
     get settings() {
       return settings;
     },
     saveHistory: () => historyFile.scheduleSave(() => history.toJSON()),
     saveBookmarks: () => bookmarksFile.scheduleSave(() => bookmarks.toJSON()),
+    saveDownloads: () => downloadsFile.scheduleSave(() => downloads.toJSON()),
+    saveZoom: () => zoomFile.scheduleSave(() => zoom.toJSON()),
     saveSession: (snapshot) => sessionFile.scheduleSave(snapshot),
     saveSettings: (next) => {
       settings = next;
@@ -79,6 +107,8 @@ export function openProfile(dir = app.getPath("userData")): Profile {
       bookmarksFile.flush();
       sessionFile.flush();
       settingsFile.flush();
+      downloadsFile.flush();
+      zoomFile.flush();
     },
   };
   return current;

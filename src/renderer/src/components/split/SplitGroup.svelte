@@ -48,8 +48,10 @@
     height: 32px;
     padding: 0 4px 0 8px;
   }
+  /* Half-width tabs: a smaller close button, still always reachable. */
   .members :global(.tab .close) {
-    display: none;
+    width: 18px;
+    height: 18px;
   }
   .exit {
     display: grid;

@@ -17,6 +17,10 @@ const tab = (id: string, title: string, url: string, lastActiveAt = 0): TabState
   permissionRequest: null,
   interstitial: null,
   lastActiveAt,
+  isAudible: false,
+  isMuted: false,
+  zoom: 100,
+  find: null,
 });
 
 const tabs = [
