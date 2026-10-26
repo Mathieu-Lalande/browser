@@ -1,4 +1,4 @@
-import { webHostname } from "../privacy/hosts";
+import { webHostname } from "@shared/hosts";
 import { profile } from "../profile";
 
 /**

@@ -16,7 +16,7 @@ import {
 } from "./privacy";
 import { PageFind } from "./find";
 import { togglePictureInPicture } from "./media";
-import { webHostname } from "./privacy/hosts";
+import { webHostname } from "@shared/hosts";
 import { hardenWebContents } from "./security";
 import type { SessionTab, SessionTabList } from "./storage/session";
 import { onSiteZoomChange, rememberSiteZoom, siteZoomFactor } from "./zoom";
