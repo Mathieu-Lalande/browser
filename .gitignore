@@ -26,3 +26,6 @@ out
 release
 coverage
 test-results
+
+# Agent worktrees
+.claude/worktrees
