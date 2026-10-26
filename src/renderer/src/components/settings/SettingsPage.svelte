@@ -67,7 +67,13 @@
   );
 
   let content: HTMLElement;
+  let inner: HTMLElement;
   let current = $state("appearance");
+  /** Section the user jumped to: kept highlighted until the scroll it started settles. */
+  let jumping: string | null = null;
+  let jumpTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Room after the last section, so every section (the last ones too) can scroll to the top. */
+  let tail = $state(0);
   /** URL field of the start page image: saved once complete (on change), not on every keystroke. */
   let imageDraft = $state<string | null>(null);
   let imageError = $state(false);
@@ -75,6 +81,7 @@
   // Highlight the section being read in the side navigation: the last one whose title passed
   // the top third, or the last one once scrolled to the bottom.
   function onScroll(): void {
+    if (jumping) return;
     const sections = [...content.querySelectorAll<HTMLElement>("[data-section]")];
     const top = content.getBoundingClientRect().top + content.clientHeight / 3;
     const atBottom = content.scrollTop + content.clientHeight >= content.scrollHeight - 4;
@@ -83,8 +90,40 @@
   }
 
   function jump(id: string): void {
-    content.querySelector(`#${id}`)?.scrollIntoView({ behavior: s.appearance.reduceMotion ? "auto" : "smooth", block: "start" });
+    const section = content.querySelector<HTMLElement>(`[data-section="${id}"]`);
+    if (!section) return;
+    current = id;
+    jumping = id;
+    const settle = () => {
+      clearTimeout(jumpTimer);
+      jumping = null;
+    };
+    content.addEventListener("scrollend", settle, { once: true });
+    // No scrollend when the content was already there; never keep the scroll spy off for long.
+    clearTimeout(jumpTimer);
+    jumpTimer = setTimeout(settle, 1000);
+    const margin = parseFloat(getComputedStyle(section).scrollMarginTop) || 0;
+    const top = section.getBoundingClientRect().top - content.getBoundingClientRect().top + content.scrollTop - margin;
+    // Only the settings column scrolls: scrollIntoView would also nudge its scrollable ancestors.
+    content.scrollTo({ top, behavior: s.appearance.reduceMotion ? "auto" : "smooth" });
   }
+
+  $effect(() => {
+    const measure = () => {
+      const last = [...inner.querySelectorAll<HTMLElement>("[data-section]")].at(-1);
+      if (!last) return;
+      const margin = parseFloat(getComputedStyle(last).scrollMarginTop) || 0;
+      const below = inner.getBoundingClientRect().bottom - last.getBoundingClientRect().top;
+      tail = Math.max(0, Math.ceil(content.clientHeight - margin - below));
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(content);
+    observer.observe(inner);
+    return () => {
+      observer.disconnect();
+      clearTimeout(jumpTimer);
+    };
+  });
 
   function commitImage(event: Event & { currentTarget: HTMLInputElement }): void {
     const value = event.currentTarget.value.trim();
@@ -110,7 +149,7 @@
   </nav>
 
   <div class="content" bind:this={content} onscroll={onScroll}>
-    <div class="inner">
+    <div class="inner" bind:this={inner}>
       <Section
         id="appearance"
         icon="palette"
@@ -418,6 +457,7 @@
         <DataSection />
       </Section>
     </div>
+    <div class="tail" style:height="{tail}px" aria-hidden="true"></div>
   </div>
 </div>
 

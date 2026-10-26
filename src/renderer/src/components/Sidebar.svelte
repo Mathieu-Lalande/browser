@@ -238,8 +238,10 @@
     background: var(--surface-hover);
     color: var(--text);
   }
+  /* One column as wide as the sidebar: a long tab title must ellipsize, never widen (and shift) the area. */
   .space-area {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     flex: 1;
     min-height: 0;
     overflow: hidden;
@@ -248,6 +250,7 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
+    min-width: 0;
     min-height: 0;
   }
   .space-title {

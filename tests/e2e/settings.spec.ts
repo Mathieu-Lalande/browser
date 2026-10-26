@@ -187,3 +187,39 @@ test("the sidebar can move to the right and be resized by dragging its edge", as
   await expect(handle).toHaveAttribute("aria-valuenow", "340");
   await expect.poll(async () => Math.round((await sidebar.boundingBox())!.width)).toBe(340);
 });
+
+test("the side navigation brings each section to the top, the last ones included", async ({ chrome }) => {
+  await chrome.getByRole("button", { name: "Paramètres" }).first().click();
+  const nav = chrome.getByRole("navigation", { name: "Sections des paramètres" });
+  await expect(nav).toBeVisible();
+  // Where the section's top lands in the scrolling column, once the smooth scroll has settled.
+  const landing = (id: string) =>
+    chrome.evaluate(async (section) => {
+      // The e2e tsconfig has no DOM lib: just the few members used here.
+      type Box = { top: number };
+      type Node = { scrollTop: number; getBoundingClientRect(): Box; querySelector(selector: string): Node };
+      const { document } = globalThis as unknown as { document: Node };
+      const content = document.querySelector(".settings .content");
+      let before = -1;
+      while (before !== content.scrollTop) {
+        before = content.scrollTop;
+        await new Promise((resolve) => setTimeout(resolve, 120));
+      }
+      const target = content.querySelector(`[data-section="${section}"]`);
+      return Math.round(target.getBoundingClientRect().top - content.getBoundingClientRect().top);
+    }, id);
+
+  const sections = [
+    ["Disposition", "layout"],
+    ["Téléchargements", "downloads"],
+    ["Données", "data"],
+    ["Apparence", "appearance"],
+  ] as const;
+  for (const [label, id] of sections) {
+    await nav.getByRole("button", { name: label }).click();
+    await chrome.waitForTimeout(200);
+    // Lands just under the top (its 24px scroll margin), never further down the screen.
+    expect(await landing(id)).toBe(24);
+    await expect(nav.locator("[aria-current=true]")).toHaveText(label);
+  }
+});

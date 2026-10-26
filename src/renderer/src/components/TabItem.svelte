@@ -81,8 +81,9 @@
     height: 22px;
     border-radius: 6px;
     color: var(--text-faint);
-    opacity: 0;
+    opacity: 0.6;
   }
+  /* Always there to close any tab; full strength on the active or hovered one. */
   .tab:hover .close,
   .tab.active .close {
     opacity: 1;

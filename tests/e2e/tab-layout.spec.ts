@@ -2,6 +2,8 @@ import type { BrowserApi } from "@shared/ipc";
 import { expect, test } from "./fixtures";
 
 type Window = { browser: BrowserApi };
+// The e2e tsconfig has no DOM lib: reach getComputedStyle through a typed globalThis.
+type Styles = { getComputedStyle(element: unknown): { cursor: string; opacity: string } };
 const LONG = "un-titre-de-page-vraiment-tres-long-qui-ne-tient-jamais-dans-la-barre-laterale";
 
 async function open(chrome: import("@playwright/test").Page, url: string) {
@@ -18,6 +20,27 @@ test("close buttons keep their size on the narrowest sidebar, split tabs include
   const close = chrome.locator(".tabs .tab.active .close");
   await expect(close).toBeVisible();
   expect((await close.boundingBox())!.width).toBeGreaterThanOrEqual(22);
+
+  // A long title in a background tab must not widen (and shift) the tab list: in every density, each
+  // tab's close button stays visible and fully inside the sidebar.
+  await chrome.getByRole("button", { name: "Nouvel onglet" }).click();
+  await open(chrome, server.url("/court"));
+  await expect(chrome.locator(".tab.active .title")).toHaveText("Page court");
+  for (const density of ["compact", "comfortable", "spacious"] as const) {
+    await chrome.evaluate((d) => (globalThis as unknown as Window).browser.settings.update({ appearance: { density: d } }), density);
+    const sidebar = (await chrome.locator(".sidebar").boundingBox())!;
+    const newTab = (await chrome.getByRole("button", { name: "Nouvel onglet" }).boundingBox())!;
+    expect(newTab.x).toBeGreaterThanOrEqual(sidebar.x);
+    for (const button of await chrome.locator(".tabs [role=tab] .close").all()) {
+      await expect(button).toBeVisible();
+      expect(Number(await button.evaluate((element) => (globalThis as unknown as Styles).getComputedStyle(element).opacity))).toBeGreaterThan(0.4);
+      const box = (await button.boundingBox())!;
+      expect(box.width).toBeGreaterThanOrEqual(22);
+      expect(box.x).toBeGreaterThanOrEqual(sidebar.x);
+      expect(box.x + box.width).toBeLessThanOrEqual(sidebar.x + sidebar.width);
+    }
+  }
+  await chrome.locator(".tabs [role=tab]", { hasText: LONG }).first().click();
 
   // Two long tabs side by side in a split pill: each still has its close button.
   await chrome.getByRole("button", { name: "Nouvel onglet" }).click();
@@ -36,8 +59,6 @@ test("close buttons keep their size on the narrowest sidebar, split tabs include
 });
 
 test("clickable UI shows a hand cursor, text fields a text cursor, and the setting brings the arrow back", async ({ chrome }) => {
-  // The e2e tsconfig has no DOM lib: reach getComputedStyle through a typed globalThis.
-  type Styles = { getComputedStyle(element: unknown): { cursor: string } };
   const cursor = (selector: string) =>
     chrome.locator(selector).first().evaluate((element) => (globalThis as unknown as Styles).getComputedStyle(element).cursor);
   await expect.poll(() => cursor(".tabs [role=tab]")).toBe("pointer");
