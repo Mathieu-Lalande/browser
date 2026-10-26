@@ -162,7 +162,10 @@ test("tabs move between spaces, and spaces, tabs and splits survive a restart", 
     await expect.poll(() => tabUrls(app)).toEqual([server.url("/moved")]);
     await chrome.locator(".split-group [role=tab]").first().click();
     await expect.poll(async () => (await attachedViews(app)).length).toBe(2);
-    expect((await tabUrls(app)).sort()).toEqual([server.url("/moved"), server.url("/work-a"), server.url("/work-b")].sort());
+    // Attached first, then loaded: wait for both split pages to commit their URL.
+    await expect
+      .poll(async () => (await tabUrls(app)).sort())
+      .toEqual([server.url("/moved"), server.url("/work-a"), server.url("/work-b")].sort());
   } finally {
     await app.close();
   }

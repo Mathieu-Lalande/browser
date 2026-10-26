@@ -28,7 +28,13 @@ interface PrivacyState {
  * Only tab pages are filtered: requests from anything else (the chrome UI, the main process)
  * are never blocked, upgraded or modified.
  */
-const tabs = new Map<number, { contents: WebContents; hooks: TabPrivacyHooks }>();
+/**
+ * Tab pages known to the privacy layer. `documentUrl` is the page their subresources belong to:
+ * the main-frame URL last requested, then the committed one. `contents.getURL()` alone lags behind:
+ * a new page can request its subresources before main has seen it commit, and they would then be
+ * judged against the previous page (or none at all, letting them through).
+ */
+const tabs = new Map<number, { contents: WebContents; hooks: TabPrivacyHooks; documentUrl?: string }>();
 let privacy: PrivacyState | undefined;
 
 /** Lists are downloaded in a separate in-memory session, outside the filtered default one. */
@@ -75,9 +81,10 @@ export function installPrivacy(ses: Session, alwaysAllowed: ReadonlySet<string>)
     if (!tab) return callback({});
     if (details.resourceType === "mainFrame") {
       const upgraded = state.https.upgrade(tab.contents.id, details.url);
+      tab.documentUrl = upgraded ?? details.url;
       return callback(upgraded ? { redirectURL: upgraded } : {});
     }
-    const pageUrl = tab.contents.getURL();
+    const pageUrl = tab.documentUrl || tab.contents.getURL();
     const host = webHostname(pageUrl);
     if (!host || !state.shields.isEnabled(host)) return callback({});
     const verdict = state.blocker.match(details.url, details.resourceType, pageUrl);
@@ -122,6 +129,11 @@ export function attachTabPrivacy(contents: WebContents, hooks: TabPrivacyHooks):
     if (details.isMainFrame && !details.isSameDocument) privacy?.prompts.denyAll(id);
   });
   contents.on("did-navigate", () => privacy?.https.clear(id));
+  // Back to the committed page once loading settles (a main-frame request may not have committed: download, 204…).
+  contents.on("did-stop-loading", () => {
+    const tab = tabs.get(id);
+    if (tab) tab.documentUrl = contents.getURL();
+  });
   if (privacy) {
     // Element hiding, driven from main (ADR-006); listens to the tab's events for its lifetime.
     const { blocker, shields } = privacy;
