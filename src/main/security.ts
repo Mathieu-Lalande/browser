@@ -1,7 +1,11 @@
 import { app, session, shell, type WebContents } from "electron";
 import { isNavigableUrl } from "@shared/url";
+import { installPrivacy } from "./privacy";
 
-/** Permissions granted without asking. Everything else is denied until the permission prompt lands. */
+/**
+ * Permissions granted without asking. Sensitive ones (camera, location…) are asked per site through
+ * the permission bar; everything else is denied (see `src/main/privacy/permissions.ts`).
+ */
 const ALLOWED_PERMISSIONS = new Set(["fullscreen", "clipboard-sanitized-write", "pointerLock"]);
 
 /** Process-wide hardening, applied once before any window is created. */
@@ -18,10 +22,8 @@ export function hardenApp(): void {
 /** Default-session hardening, applied once the app is ready. */
 export function hardenSession(): void {
   const ses = session.defaultSession;
-  ses.setPermissionRequestHandler((_contents, permission, callback) => {
-    callback(ALLOWED_PERMISSIONS.has(permission));
-  });
-  ses.setPermissionCheckHandler((_contents, permission) => ALLOWED_PERMISSIONS.has(permission));
+  // Content blocking, HTTPS-Only, Global Privacy Control and per-site permission prompts.
+  installPrivacy(ses, ALLOWED_PERMISSIONS);
   // A desktop-Chrome-like user agent: the default one advertises Electron and the app name,
   // which both breaks sites and makes users easier to fingerprint.
   const appToken = app.getName().replace(/[^\w-]/g, "");

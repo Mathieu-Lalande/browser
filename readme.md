@@ -7,6 +7,8 @@ Un navigateur desktop **rapide, privé et entièrement personnalisable**, dans l
 - Session restaurée au démarrage (onglets chargés à la demande), historique, favoris, suggestions
   dans la barre d'adresse et sites les plus visités sur la page d'accueil.
 - Recherche privée par défaut (DuckDuckGo), protections de sécurité strictes (voir `docs/DECISIONS.md`).
+- Boucliers intégrés : bloqueur de pubs & traqueurs (listes EasyList/uBlock via Ghostery), mode HTTPS uniquement,
+  Global Privacy Control, invite de permissions par site.
 
 ## Démarrer
 

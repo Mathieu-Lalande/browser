@@ -1,0 +1,4 @@
+! Test-only filter list, loaded through BROWSER_TEST_FILTERS instead of the downloaded lists.
+/ads/banner.
+##.ad-box
+127.0.0.1##.site-ad

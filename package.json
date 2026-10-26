@@ -57,5 +57,8 @@
       ],
       "category": "Network"
     }
+  },
+  "dependencies": {
+    "@ghostery/adblocker": "2.20.1"
   }
 }

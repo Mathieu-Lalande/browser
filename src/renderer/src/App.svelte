@@ -1,6 +1,8 @@
 <script lang="ts">
   import { api, browser } from "./lib/browser.svelte";
+  import HttpsOnlyPage from "./components/HttpsOnlyPage.svelte";
   import Icon from "./components/Icon.svelte";
+  import PermissionBar from "./components/PermissionBar.svelte";
   import Sidebar from "./components/Sidebar.svelte";
   import StartPage from "./components/StartPage.svelte";
 
@@ -9,6 +11,7 @@
   let viewport: HTMLElement;
 
   const showStartPage = $derived(!browser.activeTab?.url);
+  const permissionRequest = $derived(browser.activeTab?.permissionRequest ?? null);
 
   function toggleSidebar(): void {
     sidebarVisible = !sidebarVisible;
@@ -49,9 +52,15 @@
       <button class="no-drag" aria-label="Afficher la barre latérale" onclick={toggleSidebar}><Icon name="sidebar" /></button>
     </div>
   {/if}
-  <main class="viewport" bind:this={viewport}>
-    {#if showStartPage}<StartPage />{/if}
-  </main>
+  <div class="content">
+    <!-- The page view is native and cannot be drawn over: the bar shrinks the viewport instead. -->
+    {#if browser.activeTab && permissionRequest}
+      <PermissionBar tabId={browser.activeTab.id} prompt={permissionRequest} />
+    {/if}
+    <main class="viewport" bind:this={viewport}>
+      {#if showStartPage}<StartPage />{:else if browser.activeTab?.interstitial}<HttpsOnlyPage tab={browser.activeTab} />{/if}
+    </main>
+  </div>
 </div>
 
 <style>
@@ -80,9 +89,17 @@
   .reveal button:hover {
     background: var(--surface-hover);
   }
+  .content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: var(--gutter);
+    min-width: 0;
+  }
   .viewport {
     flex: 1;
     min-width: 0;
+    min-height: 0;
     border-radius: var(--radius);
     background: var(--bg-elevated);
     box-shadow:

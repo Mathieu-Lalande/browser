@@ -7,6 +7,7 @@ import { BrowserController } from "./window";
 type Handler = (controller: BrowserController, ...args: unknown[]) => void;
 
 const isString = (value: unknown): value is string => typeof value === "string";
+const isBoolean = (value: unknown): value is boolean => typeof value === "boolean";
 const isNumber = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
 
 function isBounds(value: unknown): value is Bounds {
@@ -73,6 +74,14 @@ export function registerIpc(): void {
   on(Channels.tabTogglePin, id, (c, tabId) => c.tabs.togglePin(tabId as string));
   on(Channels.tabMove, (args) => isString(args[0]) && isNumber(args[1]), (c, tabId, index) =>
     c.tabs.move(tabId as string, index as number),
+  );
+  on(Channels.tabToggleShields, id, (c, tabId) => c.tabs.toggleShields(tabId as string));
+  on(Channels.tabProceedHttp, id, (c, tabId) => c.tabs.proceedHttp(tabId as string));
+  on(
+    Channels.permissionRespond,
+    (args) => isString(args[0]) && isString(args[1]) && isBoolean(args[2]) && isBoolean(args[3]),
+    (c, tabId, promptId, allow, remember) =>
+      c.tabs.respondPermission(tabId as string, promptId as string, allow as boolean, remember as boolean),
   );
   on(Channels.layoutBounds, (args) => isBounds(args[0]), (c, bounds) => c.tabs.setBounds(bounds as Bounds));
 

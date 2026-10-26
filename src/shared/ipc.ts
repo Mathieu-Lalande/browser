@@ -15,6 +15,9 @@ export const Channels = {
   tabStop: "tab:stop",
   tabTogglePin: "tab:toggle-pin",
   tabMove: "tab:move",
+  tabToggleShields: "tab:toggle-shields",
+  tabProceedHttp: "tab:proceed-http",
+  permissionRespond: "permission:respond",
   layoutBounds: "layout:bounds",
   windowMinimize: "window:minimize",
   windowToggleMaximize: "window:toggle-maximize",
@@ -44,6 +47,13 @@ export interface BrowserApi {
     stop(id: TabId): void;
     togglePin(id: TabId): void;
     move(id: TabId, toIndex: number): void;
+    /** Turn content blocking off/on for the tab's site, then reload it. */
+    toggleShields(id: TabId): void;
+    /** HTTPS-Only interstitial: load the http:// address anyway (exception for this session). */
+    proceedHttp(id: TabId): void;
+  };
+  permissions: {
+    respond(tabId: TabId, promptId: string, allow: boolean, remember: boolean): void;
   };
   layout: {
     setContentBounds(bounds: Bounds): void;

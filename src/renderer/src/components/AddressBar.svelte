@@ -35,6 +35,13 @@
     }
   });
 
+  const showShield = $derived(!!tab && /^https?:/.test(tab.url) && !tab.interstitial);
+  const shieldTitle = $derived(
+    tab?.shieldsEnabled
+      ? `Protections activées : ${tab.blockedCount} élément${tab.blockedCount > 1 ? "s" : ""} bloqué${tab.blockedCount > 1 ? "s" : ""}. Cliquer pour les désactiver sur ce site.`
+      : "Protections désactivées sur ce site. Cliquer pour les réactiver.",
+  );
+
   export function focus(): void {
     input.focus();
     input.select();
@@ -128,6 +135,20 @@
         <Icon name="star" size={14} filled={tab.isBookmarked} />
       </button>
     {/if}
+    {#if tab && showShield}
+      <button
+        type="button"
+        class="shield"
+        class:off={!tab.shieldsEnabled}
+        title={shieldTitle}
+        aria-label={shieldTitle}
+        aria-pressed={tab.shieldsEnabled}
+        onclick={() => tab && api.tabs.toggleShields(tab.id)}
+      >
+        <Icon name={tab.shieldsEnabled ? "shield" : "shield-off"} size={13} />
+        {#if tab.shieldsEnabled && tab.blockedCount > 0}<span class="count">{tab.blockedCount > 99 ? "99+" : tab.blockedCount}</span>{/if}
+      </button>
+    {/if}
   </form>
 
   {#if open}
@@ -216,6 +237,25 @@
     background: transparent;
     font-size: 13px;
     user-select: text;
+  }
+  .shield {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 3px;
+    height: 24px;
+    margin-right: -4px;
+    padding: 0 6px;
+    border-radius: 7px;
+    color: var(--accent);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+  .shield:hover {
+    background: var(--surface-hover);
+  }
+  .shield.off {
+    color: var(--text-faint);
   }
   input::placeholder {
     color: var(--text-faint);
