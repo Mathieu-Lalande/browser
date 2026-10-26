@@ -34,3 +34,19 @@ test("close buttons keep their size on the narrowest sidebar, split tabs include
     expect((await button.boundingBox())!.width).toBeGreaterThanOrEqual(18);
   }
 });
+
+test("clickable UI shows a hand cursor, text fields a text cursor, and the setting brings the arrow back", async ({ chrome }) => {
+  // The e2e tsconfig has no DOM lib: reach getComputedStyle through a typed globalThis.
+  type Styles = { getComputedStyle(element: unknown): { cursor: string } };
+  const cursor = (selector: string) =>
+    chrome.locator(selector).first().evaluate((element) => (globalThis as unknown as Styles).getComputedStyle(element).cursor);
+  await expect.poll(() => cursor(".tabs [role=tab]")).toBe("pointer");
+  expect(await cursor(".new-tab")).toBe("pointer");
+  expect(await cursor("[aria-label=\"Barre d'adresse\"]")).toBe("text");
+  // Disabled navigation buttons (nothing to go back to) keep the arrow.
+  expect(await cursor('[aria-label="Précédent"]')).toBe("default");
+
+  await chrome.evaluate(() => (globalThis as unknown as Window).browser.settings.update({ appearance: { pointerCursor: false } }));
+  await expect.poll(() => cursor(".tabs [role=tab]")).toBe("default");
+  expect(await cursor("[aria-label=\"Barre d'adresse\"]")).toBe("text");
+});

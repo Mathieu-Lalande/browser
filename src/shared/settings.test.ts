@@ -49,6 +49,12 @@ describe("sanitizeSettings", () => {
     expect(result.appearance).not.toHaveProperty("extra");
   });
 
+  it("defaults to the hand cursor, and keeps an explicit choice of the arrow", () => {
+    expect(DEFAULT_SETTINGS.appearance.pointerCursor).toBe(true);
+    expect(sanitizeSettings({ appearance: { pointerCursor: false } }).appearance.pointerCursor).toBe(false);
+    expect(sanitizeSettings({ appearance: { pointerCursor: "no" } }).appearance.pointerCursor).toBe(true);
+  });
+
   it("clamps and rounds numbers", () => {
     const result = sanitizeSettings({ appearance: { radius: 99.6 }, layout: { sidebarWidth: 10, gutter: 3.4 } });
     expect(result.appearance.radius).toBe(18);

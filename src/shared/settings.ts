@@ -25,6 +25,8 @@ export interface AppearanceSettings {
   font: UiFont;
   shadows: boolean;
   reduceMotion: boolean;
+  /** Hand cursor over everything clickable (false: the arrow everywhere, like a native app). */
+  pointerCursor: boolean;
   /** Zoom of web pages never zoomed by hand, in % (one of `PAGE_ZOOM_LEVELS`). */
   pageZoom: number;
 }
@@ -114,6 +116,7 @@ export const DEFAULT_SETTINGS: Settings = {
     font: "system",
     shadows: true,
     reduceMotion: false,
+    pointerCursor: true,
     pageZoom: 100,
   },
   layout: { sidebarPosition: "left", sidebarWidth: 264, gutter: 8, zenMode: false },
@@ -197,6 +200,7 @@ const schema: Schema = {
     font: oneOf("system", "rounded", "serif", "mono"),
     shadows: bool,
     reduceMotion: bool,
+    pointerCursor: bool,
     pageZoom: oneOfNumbers(PAGE_ZOOM_LEVELS),
   },
   layout: {

@@ -218,6 +218,13 @@
             onchange={(reduceMotion) => update({ appearance: { reduceMotion } })}
           />
         </Row>
+        <Row label="Curseur main" hint="Pointeur en forme de main sur les boutons, onglets et liens de l'interface.">
+          <Toggle
+            label="Curseur main"
+            checked={s.appearance.pointerCursor}
+            onchange={(pointerCursor) => update({ appearance: { pointerCursor } })}
+          />
+        </Row>
         <Row label="Zoom par défaut" hint="Taille des pages web. Le zoom choisi sur un site (Ctrl+ / Ctrl−) est mémorisé pour ce site." id="page-zoom">
           <select
             id="page-zoom"

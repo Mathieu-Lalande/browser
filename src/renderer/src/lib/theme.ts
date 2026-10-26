@@ -12,4 +12,5 @@ export function applyTheme(settings: Settings, mode: ResolvedMode): void {
   root.dataset.background = settings.appearance.background;
   root.dataset.density = settings.appearance.density;
   root.toggleAttribute("data-reduce-motion", settings.appearance.reduceMotion);
+  root.toggleAttribute("data-arrow-cursor", !settings.appearance.pointerCursor);
 }
