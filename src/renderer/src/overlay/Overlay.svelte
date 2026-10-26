@@ -1,6 +1,6 @@
 <script lang="ts">
   import { isPopover, type OverlayBackdrop, type OverlayRequest } from "@shared/types";
-  import { api } from "../lib/browser.svelte";
+  import { api, browser } from "../lib/browser.svelte";
   import { settings } from "../lib/settings.svelte";
   import { applyTheme } from "../lib/theme";
   import CommandPalette from "./CommandPalette.svelte";
@@ -10,7 +10,7 @@
   // attached only while a floating UI is open.
 
   // Follow theme changes made while the overlay stays loaded.
-  $effect(() => applyTheme(settings.current, settings.mode));
+  $effect(() => applyTheme(settings.current, settings.mode, browser.isPrivate));
 
   /** What is shown, null when hidden. `id` remounts the UI on every open (fresh state). */
   let current = $state<{ request: OverlayRequest; id: number } | null>(null);

@@ -14,6 +14,7 @@
 <div
   class="tab"
   class:active
+  class:asleep={tab.isAsleep}
   role="tab"
   tabindex="0"
   aria-selected={active}
@@ -64,6 +65,14 @@
     box-shadow:
       var(--elevation),
       inset 0 0 0 1px var(--border);
+  }
+  /* Asleep (page unloaded, reloads when activated, ADR-014): dimmed. */
+  .tab.asleep:not(.active) .title {
+    color: var(--text-faint);
+  }
+  .tab.asleep:not(.active) > :global(:first-child) {
+    opacity: 0.5;
+    filter: grayscale(0.7);
   }
   .title {
     flex: 1;

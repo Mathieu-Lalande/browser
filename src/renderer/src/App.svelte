@@ -44,7 +44,7 @@
   const trafficLights = $derived(window.platform === "darwin" && right && !zen);
 
   // Theme: every setting maps to CSS variables on :root, re-applied live.
-  $effect(() => applyTheme(settings.current, settings.mode));
+  $effect(() => applyTheme(settings.current, settings.mode, browser.isPrivate));
 
   // Entering or leaving zen mode starts with the sidebar tucked away.
   $effect(() => {

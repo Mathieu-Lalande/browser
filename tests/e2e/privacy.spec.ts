@@ -1,4 +1,28 @@
+import type { BrowserApi } from "@shared/ipc";
 import { evalInTab, expect, tabUrls, test, type ElectronApplication } from "./fixtures";
+
+test("the user agent and client hints never mention Electron; Accept-Language can be normalized", async ({ app, chrome, server }) => {
+  const address = chrome.getByLabel("Barre d'adresse");
+  await address.fill(server.url("/hints"));
+  await address.press("Enter");
+  await expect(chrome.locator(".tab.active .title")).toHaveText("Page hints");
+  const headers = () => evalInTab<Record<string, string>>(app, server.url("/hints"), "fetch('/headers').then((r) => r.json())");
+
+  const sent = await headers();
+  expect(sent["sec-ch-ua"]).toContain("Chromium");
+  expect(sent["sec-ch-ua"]).not.toMatch(/electron|browser/i);
+  expect(sent["user-agent"]).toMatch(/ Chrome\/\d+\.0\.0\.0 /);
+  expect(sent["user-agent"]).not.toMatch(/electron|browser\//i);
+  // Same major version in the user agent and the client hints.
+  const major = /Chrome\/(\d+)/.exec(sent["user-agent"])![1];
+  expect(sent["sec-ch-ua"]).toContain(`"Chromium";v="${major}"`);
+  expect(sent["sec-gpc"]).toBe("1");
+
+  await chrome.evaluate(() =>
+    (globalThis as unknown as { browser: BrowserApi }).browser.settings.update({ privacy: { normalizeAcceptLanguage: true } }),
+  );
+  await expect.poll(async () => (await headers())["accept-language"]).toBe("en-US,en;q=0.9");
+});
 
 /** `display` of the decoy ads of the /shields page: [generic `.ad-box` rule, `127.0.0.1##.site-ad` rule]. */
 const adDisplay = (app: ElectronApplication, url: string) =>

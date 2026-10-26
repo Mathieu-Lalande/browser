@@ -11,7 +11,12 @@ Un navigateur desktop **rapide, privé et entièrement personnalisable**, dans l
 - Palette de commandes (`Ctrl/Cmd+K`) : onglets ouverts, favoris, historique et actions, recherche floue.
 - Recherche privée par défaut (DuckDuckGo), protections de sécurité strictes (voir `docs/DECISIONS.md`).
 - Boucliers intégrés : bloqueur de pubs & traqueurs (listes EasyList/uBlock via Ghostery), mode HTTPS uniquement,
-  Global Privacy Control, invite de permissions par site.
+  Global Privacy Control, invite de permissions par site, user agent et client hints sans trace d'Electron,
+  `Accept-Language` uniformisable.
+- Fenêtres privées (`Ctrl/Cmd+Maj+N`) : session en mémoire propre à la fenêtre, effacée à sa fermeture ;
+  ni historique, ni session, ni autorisations mémorisées.
+- Mise en veille des onglets inactifs (mémoire libérée, page rechargée au retour ; jamais pour un onglet
+  qui joue du son ou un formulaire en cours).
 - Paramètres (`browser://settings`) appliqués à chaud : thème clair/sombre/auto, couleur d'accent avec
   palette dérivée accessible, arrière-plans, densité, coins, police, barre latérale à gauche ou à droite
   (redimensionnable), page bord à bord, mode zen, moteur de recherche, page d'accueil personnalisée.
@@ -21,6 +26,7 @@ Un navigateur desktop **rapide, privé et entièrement personnalisable**, dans l
 
 ![Paramètres](docs/screenshots/settings.png)
 
+![Fenêtre privée](docs/screenshots/private.png)
 ![Téléchargements](docs/screenshots/downloads.png)
 
 ![Recherche dans la page](docs/screenshots/find.png)
@@ -43,9 +49,13 @@ npm run dev        # lance le navigateur en mode développement (HMR sur l'inter
 | `npm run typecheck` | TypeScript (process principal) + svelte-check (interface) |
 | `npm test` | Tests unitaires (Vitest) |
 | `npm run test:e2e` | Tests end-to-end (Playwright pilotant Electron) |
-| `npm run dist` | Paquets installables (electron-builder) |
+| `npm run dist` | Paquets installables (electron-builder) dans `release/` |
+| `npm run dist:dir` | Application empaquetée non compressée (plus rapide, pour tester) |
 
-Sous Linux sans affichage (CI) : `xvfb-run -a npm run test:e2e`.
+Sous Linux sans affichage (CI) : `xvfb-run -a npm run test:e2e`. Test de fumée du paquet :
+`npm run dist:dir && BROWSER_PACKAGED=release/linux-unpacked/browser xvfb-run -a npx playwright test packaging`.
+La CI GitHub Actions (`.github/workflows/ci.yml`) lance les vérifications à chaque push et construit des
+paquets non signés pour Linux, Windows et macOS sur `master` (ADR-015).
 
 ## Raccourcis
 
@@ -54,6 +64,7 @@ Sous Linux sans affichage (CI) : `xvfb-run -a npm run test:e2e`.
 | `Ctrl/Cmd+K` | Palette de commandes (`Ctrl/Cmd+Entrée` : ouvrir dans un nouvel onglet) |
 | `Ctrl/Cmd+L` | Barre d'adresse |
 | `Ctrl/Cmd+T` / `W` | Nouvel onglet / fermer l'onglet |
+| `Ctrl/Cmd+N` / `Ctrl/Cmd+Maj+N` | Nouvelle fenêtre / nouvelle fenêtre privée |
 | `Ctrl/Cmd+Shift+K` | Dupliquer l'onglet (avec son historique) |
 | `Ctrl/Cmd+Shift+C` | Copier l'URL de la page |
 | `Ctrl/Cmd+=` / `-` / `0` | Zoom avant / arrière / zoom par défaut (mémorisé par site) |
@@ -66,7 +77,8 @@ Sous Linux sans affichage (CI) : `xvfb-run -a npm run test:e2e`.
 | `Ctrl/Cmd+Maj+B` | Mode zen (barre latérale masquée, page bord à bord) |
 | `Ctrl/Cmd+Alt+1…9`, `Ctrl/Cmd+Alt+←/→` | Aller à l'espace n / espace précédent, suivant |
 | `Ctrl/Cmd+Maj+\` | Vue scindée (l'onglet actif et le suivant côte à côte) / la quitter |
-| Clic droit sur un onglet | Épingler, dupliquer, vue scindée, déplacer vers un espace, fermer… |
+| Clic droit sur un onglet | Épingler, dupliquer, vue scindée, déplacer vers un espace, mettre en veille, fermer… |
+| Palette : « veille » | Mettre l'onglet / les autres onglets en veille |
 | `Ctrl/Cmd+,` | Paramètres |
 | `Ctrl/Cmd+D` | Ajouter/retirer la page des favoris |
 | `Ctrl/Cmd+R`, `F5` | Actualiser |

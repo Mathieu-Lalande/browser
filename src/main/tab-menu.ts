@@ -1,6 +1,7 @@
 import { Menu, type MenuItemConstructorOptions } from "electron";
 import { MAX_SPLIT_TABS } from "@shared/split";
 import type { TabId } from "@shared/types";
+import { sleepTabNow } from "./sleep";
 import { spaces } from "./spaces";
 import type { BrowserController } from "./window";
 
@@ -22,7 +23,8 @@ export function buildTabMenu(c: BrowserController, tabId: TabId): Menu | null {
   if (!tab) return null;
   const inSplit = !!split?.tabIds.includes(tabId);
   const splitVisible = !!activeTabId && !!split?.tabIds.includes(activeTabId);
-  const others = spaces.list().filter((space) => space.id !== c.spaces.activeSpaceId);
+  // A private window has no other space to move tabs to.
+  const others = c.isPrivate ? [] : spaces.list().filter((space) => space.id !== c.spaces.activeSpaceId);
   const canAddToSplit = tabId !== activeTabId && !(splitVisible && split!.tabIds.length >= MAX_SPLIT_TABS);
 
   const template: MenuItemConstructorOptions[] = [
@@ -46,6 +48,12 @@ export function buildTabMenu(c: BrowserController, tabId: TabId): Menu | null {
         label: `${space.icon}  ${space.name}`,
         click: () => c.spaces.moveTab(tabId, space.id),
       })),
+    },
+    {
+      id: "sleep",
+      label: "Mettre en veille",
+      enabled: !tab.isAsleep && c.tabs.pageOf(tabId) !== null,
+      click: () => void sleepTabNow(c.tabs, tabId),
     },
     { type: "separator" },
     { id: "close", label: "Fermer", click: () => c.tabs.close(tabId) },

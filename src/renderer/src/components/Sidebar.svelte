@@ -58,6 +58,12 @@
 <aside class="sidebar">
   <header class="titlebar drag" class:mac={roomForTrafficLights}>
     {#if !isMac}<WindowControls />{/if}
+    {#if browser.isPrivate}
+      <div class="private-badge" title="Navigation privée : ni historique, ni cookies conservés après la fermeture de la fenêtre">
+        <Icon name="mask" size={15} />
+        <span>Navigation privée</span>
+      </div>
+    {/if}
     <div class="spacer"></div>
     <button class="icon no-drag" aria-label="Masquer la barre latérale" title="Masquer la barre latérale (Ctrl+S)" onclick={onToggle}>
       <Icon name="sidebar" />
@@ -102,6 +108,7 @@
               <button
                 class="pinned-tab"
                 class:active={pinned.id === browser.state.activeTabId}
+                class:asleep={pinned.isAsleep}
                 role="tab"
                 aria-selected={pinned.id === browser.state.activeTabId}
                 title={pinned.title}
@@ -138,7 +145,14 @@
     <SpaceEditor space={editedSpace} onClose={() => (editing = null)} />
   {/if}
   <footer class="footer">
-    <SpaceSwitcher onEdit={(id) => (editing = editing === id ? null : id)} />
+    {#if browser.isPrivate}
+      <!-- One ephemeral space per private window: no switcher (ADR-014). -->
+      <p class="private-hint" title="Cookies, cache et données de sites sont effacés à la fermeture de la fenêtre">
+        Effacée à la fermeture
+      </p>
+    {:else}
+      <SpaceSwitcher onEdit={(id) => (editing = editing === id ? null : id)} />
+    {/if}
     <DownloadsButton />
     <button class="icon" aria-label="Paramètres" title="Paramètres (Ctrl+,)" onclick={() => api.settings.open()}>
       <Icon name="settings" />
@@ -219,6 +233,37 @@
   .pinned-tab.active {
     background: var(--bg-elevated);
     box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 45%, transparent);
+  }
+  /* Asleep (page unloaded, reloads on click): dimmed, like in the tab list. */
+  .pinned-tab.asleep:not(.active) > :global(*) {
+    opacity: 0.45;
+    filter: grayscale(0.6);
+  }
+  .private-badge {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-left: 6px;
+    padding: 4px 10px 4px 8px;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--accent) 22%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 40%, transparent);
+    color: var(--accent-text);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+  }
+  .private-hint {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    padding-left: 6px;
+    overflow: hidden;
+    color: var(--text-faint);
+    font-size: 11.5px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
   .divider {
     height: 1px;

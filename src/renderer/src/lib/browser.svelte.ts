@@ -15,11 +15,19 @@ class BrowserStore {
     return split.tabIds.map((id) => tabs.find((tab) => tab.id === id)).filter((tab) => tab !== undefined);
   });
 
+  /** Private window (ADR-014): private theme, no spaces, no top sites. */
+  isPrivate: boolean = $derived(this.state.isPrivate === true);
+  /** Resolves once the first state arrived (the private theme must apply before the first render). */
+  readonly ready: Promise<void>;
+
   constructor() {
     window.browser.onState((next) => (this.state = next));
-    void window.browser.getState().then((initial) => {
-      if (initial) this.state = initial;
-    });
+    this.ready = window.browser.getState().then(
+      (initial) => {
+        if (initial) this.state = initial;
+      },
+      () => {},
+    );
   }
 }
 

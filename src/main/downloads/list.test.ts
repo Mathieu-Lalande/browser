@@ -127,4 +127,13 @@ describe("DownloadList", () => {
     expect(list.update("d1", (e) => ({ ...e, receivedBytes: 10 }))?.receivedBytes).toBe(10);
     expect(list.update("nope", (e) => e)).toBeUndefined();
   });
+
+  it("lists private windows' downloads but never saves them (ADR-014)", () => {
+    const list = new DownloadList([entry({ id: "old", startedAt: 1 })]);
+    list.add(entry({ id: "secret", startedAt: 3 }), { ephemeral: true });
+    list.add(entry({ id: "normal", startedAt: 2 }));
+    expect(list.list().map((e) => e.id)).toEqual(["normal", "secret", "old"]);
+    expect(list.isEphemeral("secret")).toBe(true);
+    expect(list.toJSON().map((e) => e.id)).toEqual(["normal", "old"]);
+  });
 });

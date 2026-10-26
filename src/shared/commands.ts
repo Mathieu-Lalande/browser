@@ -36,7 +36,10 @@ export type CommandId =
   | "toggle-split"
   | "new-space"
   | "next-space"
-  | "previous-space";
+  | "previous-space"
+  | "new-private-window"
+  | "sleep-tab"
+  | "sleep-other-tabs";
 
 /** Icon names used by commands; the UI's Icon component must know each of them. */
 export type CommandIcon =
@@ -64,7 +67,9 @@ export type CommandIcon =
   | "volume"
   | "pip"
   | "split"
-  | "layers";
+  | "layers"
+  | "mask"
+  | "moon";
 
 /** What a command's label and availability may depend on. */
 export interface CommandContext {
@@ -226,6 +231,23 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
     keywords: ["space", "workspace", "previous"],
     accelerator: "CmdOrCtrl+Alt+Left",
     icon: "back",
+  },
+  "new-private-window": {
+    label: "Nouvelle fenêtre privée",
+    keywords: ["private", "incognito", "navigation privée", "anonyme"],
+    accelerator: "CmdOrCtrl+Shift+N",
+    icon: "mask",
+  },
+  "sleep-tab": {
+    label: "Mettre l'onglet en veille",
+    keywords: ["sleep", "discard", "veille", "mémoire", "décharger"],
+    icon: "moon",
+    needsPage: true,
+  },
+  "sleep-other-tabs": {
+    label: "Mettre les autres onglets en veille",
+    keywords: ["sleep", "discard", "veille", "mémoire", "libérer"],
+    icon: "moon",
   },
 };
 

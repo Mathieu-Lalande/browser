@@ -1,0 +1,78 @@
+# Checks every push and pull request; on master, also builds unsigned packages for the three OSes.
+# Auto-update and code signing are not set up (see docs/ROADMAP.md and ADR-015).
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Typecheck, tests, build, e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      # The e2e fixtures launch Electron with --no-sandbox (no setuid sandbox on CI runners).
+      - run: xvfb-run -a npx playwright test
+      - name: Upload Playwright results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  package:
+    name: Package (${{ matrix.os }})
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      # Unsigned builds: no certificate lookup on macOS/Windows.
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run dist:dir
+      # Smoke test of the packaged (asar) app: starts, browses, runs the filter worker.
+      - name: Smoke test the packaged app
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npx playwright test packaging
+        env:
+          BROWSER_PACKAGED: release/linux-unpacked/browser
+      - uses: actions/upload-artifact@v4
+        with:
+          name: browser-${{ runner.os }}
+          path: |
+            release/*-unpacked/
+            release/mac*/
+          retention-days: 14
+          if-no-files-found: error

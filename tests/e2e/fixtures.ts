@@ -78,6 +78,12 @@ function startServer(): Promise<{ server: Server; origin: string }> {
       );
     } else if (path.startsWith("/file-link")) {
       res.end(`<title>File link</title><a id="file" href="file:///etc/hostname">file</a>`);
+    } else if (path.startsWith("/headers")) {
+      // What the browser sent (user agent, client hints, languages…), as JSON.
+      res.setHeader("content-type", "application/json");
+      res.end(JSON.stringify(req.headers));
+    } else if (path.startsWith("/form")) {
+      res.end(`<title>Form</title><form><input id="field" name="field" value=""><textarea id="notes"></textarea></form>`);
     } else {
       const name = path.slice(1) || "home";
       res.end(`<title>Page ${name}</title><h1>${name}</h1><a id="next" href="/next">next</a>`);
@@ -92,12 +98,15 @@ function startServer(): Promise<{ server: Server; origin: string }> {
   );
 }
 
-/** Launches the app on `profile`; tests that restart the app call it directly. */
-export function launch(profile: string): Promise<ElectronApplication> {
+/**
+ * Launches the app on `profile`; tests that restart the app call it directly. `env`: extra test
+ * hooks (e.g. `BROWSER_TEST_SLEEP_MS`).
+ */
+export function launch(profile: string, env: Record<string, string> = {}): Promise<ElectronApplication> {
   return electron.launch({
     // `*.test` hosts resolve to the local server, to exercise HTTPS-Only on a "public" hostname.
     args: ["--no-sandbox", "--host-resolver-rules=MAP *.test 127.0.0.1", "."],
-    env: { ...process.env, BROWSER_PROFILE_DIR: profile, BROWSER_TEST_FILTERS: TEST_FILTERS },
+    env: { ...process.env, BROWSER_PROFILE_DIR: profile, BROWSER_TEST_FILTERS: TEST_FILTERS, ...env },
   });
 }
 

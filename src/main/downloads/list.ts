@@ -80,6 +80,8 @@ export function sanitizeEntry(value: unknown): DownloadEntry | null {
 /** Download history, newest first. */
 export class DownloadList {
   private entries: DownloadEntry[];
+  /** Downloads of private windows (ADR-014): listed during the run, never written to disk. */
+  private readonly ephemeral = new Set<string>();
 
   constructor(entries: DownloadEntry[] = []) {
     this.entries = entries.slice(0, MAX_DOWNLOADS);
@@ -107,8 +109,9 @@ export class DownloadList {
   }
 
   /** Adds a new download on top. Returns the ids of old entries dropped to stay within the cap. */
-  add(entry: DownloadEntry): string[] {
+  add(entry: DownloadEntry, options: { ephemeral?: boolean } = {}): string[] {
     this.entries.unshift(entry);
+    if (options.ephemeral) this.ephemeral.add(entry.id);
     const removed: string[] = [];
     // Running downloads are never dropped, however many there are.
     for (let index = this.entries.length - 1; this.entries.length > MAX_DOWNLOADS && index >= 0; index--) {
@@ -132,6 +135,7 @@ export class DownloadList {
     const entry = this.get(id);
     if (!entry || isActiveDownload(entry) || entry.awaitingConfirmation) return false;
     this.entries = this.entries.filter((item) => item !== entry);
+    this.ephemeral.delete(id);
     return true;
   }
 
@@ -143,7 +147,13 @@ export class DownloadList {
     return removed;
   }
 
+  /** Whether an entry comes from a private window (kept in memory only). */
+  isEphemeral(id: string): boolean {
+    return this.ephemeral.has(id);
+  }
+
+  /** What is saved to downloads.json: private windows' downloads are left out. */
   toJSON(): DownloadEntry[] {
-    return this.entries;
+    return this.ephemeral.size ? this.entries.filter((entry) => !this.ephemeral.has(entry.id)) : this.entries;
   }
 }

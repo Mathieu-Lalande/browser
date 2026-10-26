@@ -11,6 +11,8 @@ export type NewTabPosition = "end" | "next";
 /** Which tab becomes active when the active one is closed. */
 export type CloseTabActivates = "next" | "previous" | "recent";
 export type StartBackground = "theme" | "aurora" | "image";
+/** Idle time after which a background tab is put to sleep (its page unloaded), or never. */
+export type TabSleepDelay = "never" | "15m" | "30m" | "1h" | "2h";
 
 export interface AppearanceSettings {
   mode: ThemeMode;
@@ -60,6 +62,13 @@ export interface BehaviorSettings {
   restoreSession: boolean;
   newTabPosition: NewTabPosition;
   closeTabActivates: CloseTabActivates;
+  /** Background tabs inactive for this long are put to sleep (ADR-014). */
+  sleepTabsAfter: TabSleepDelay;
+}
+
+export interface PrivacySettings {
+  /** Send the most common `Accept-Language` ("en-US,en") instead of the browser's own languages (ADR-014). */
+  normalizeAcceptLanguage: boolean;
 }
 
 export interface DownloadSettings {
@@ -75,6 +84,7 @@ export interface Settings {
   search: SearchSettings;
   startPage: StartPageSettings;
   behavior: BehaviorSettings;
+  privacy: PrivacySettings;
   downloads: DownloadSettings;
 }
 
@@ -122,7 +132,8 @@ export const DEFAULT_SETTINGS: Settings = {
   layout: { sidebarPosition: "left", sidebarWidth: 264, gutter: 8, zenMode: false },
   search: { engine: DEFAULT_SEARCH_ENGINE.id },
   startPage: { showClock: true, showTopSites: true, greetingName: "", background: "theme", backgroundImage: "" },
-  behavior: { restoreSession: true, newTabPosition: "end", closeTabActivates: "next" },
+  behavior: { restoreSession: true, newTabPosition: "end", closeTabActivates: "next", sleepTabsAfter: "30m" },
+  privacy: { normalizeAcceptLanguage: false },
   downloads: { folder: "", askWhere: false },
 };
 
@@ -221,7 +232,9 @@ const schema: Schema = {
     restoreSession: bool,
     newTabPosition: oneOf("end", "next"),
     closeTabActivates: oneOf("next", "previous", "recent"),
+    sleepTabsAfter: oneOf("never", "15m", "30m", "1h", "2h"),
   },
+  privacy: { normalizeAcceptLanguage: bool },
   downloads: { folder: folderPath, askWhere: bool },
 };
 
@@ -274,4 +287,17 @@ export function effectiveGutter(settings: Settings): number {
 /** Corner radius of the page view: square when it touches the window edges. */
 export function pageRadius(settings: Settings): number {
   return effectiveGutter(settings) === 0 ? 0 : settings.appearance.radius;
+}
+
+const SLEEP_DELAYS_MS: Record<TabSleepDelay, number | null> = {
+  never: null,
+  "15m": 15 * 60_000,
+  "30m": 30 * 60_000,
+  "1h": 60 * 60_000,
+  "2h": 120 * 60_000,
+};
+
+/** Idle time before a background tab sleeps, in ms; null when tabs never sleep. */
+export function tabSleepDelayMs(settings: Settings): number | null {
+  return SLEEP_DELAYS_MS[settings.behavior.sleepTabsAfter];
 }

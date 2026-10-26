@@ -10,6 +10,7 @@
     type SettingsPatch,
     type SidebarPosition,
     type StartBackground,
+    type TabSleepDelay,
     type ThemeMode,
     type UiFont,
   } from "@shared/settings";
@@ -33,6 +34,7 @@
     { id: "search", label: "Recherche", icon: "search" },
     { id: "startPage", label: "Page d'accueil", icon: "home" },
     { id: "behavior", label: "Comportement", icon: "sliders" },
+    { id: "privacy", label: "Confidentialité", icon: "shield" },
     { id: "downloads", label: "Téléchargements", icon: "download" },
     { id: "data", label: "Données", icon: "database" },
   ];
@@ -439,6 +441,42 @@
               { value: "recent" as CloseTabActivates, label: "Le dernier utilisé" },
             ]}
             onchange={(closeTabActivates) => update({ behavior: { closeTabActivates } })}
+          />
+        </Row>
+        <Row
+          label="Mettre en veille les onglets inactifs après"
+          hint="Libère la mémoire : la page se recharge quand vous revenez sur l'onglet. Jamais pour un onglet qui joue du son ou un formulaire en cours."
+        >
+          <Segmented
+            label="Mettre en veille les onglets inactifs après"
+            value={s.behavior.sleepTabsAfter}
+            options={[
+              { value: "never" as TabSleepDelay, label: "Jamais" },
+              { value: "15m" as TabSleepDelay, label: "15 min" },
+              { value: "30m" as TabSleepDelay, label: "30 min" },
+              { value: "1h" as TabSleepDelay, label: "1 h" },
+              { value: "2h" as TabSleepDelay, label: "2 h" },
+            ]}
+            onchange={(sleepTabsAfter) => update({ behavior: { sleepTabsAfter } })}
+          />
+        </Row>
+      </Section>
+
+      <Section
+        id="privacy"
+        icon="shield"
+        title="Confidentialité"
+        description="Ce que le navigateur révèle de vous aux sites."
+        onReset={() => settings.reset("privacy")}
+      >
+        <Row
+          label="Uniformiser la langue envoyée aux sites"
+          hint="Annonce « en-US, en » comme la majorité des navigateurs, pour moins se distinguer. Les sites peuvent alors s'afficher en anglais."
+        >
+          <Toggle
+            label="Uniformiser la langue envoyée aux sites"
+            checked={s.privacy.normalizeAcceptLanguage}
+            onchange={(normalizeAcceptLanguage) => update({ privacy: { normalizeAcceptLanguage } })}
           />
         </Row>
       </Section>

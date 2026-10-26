@@ -18,6 +18,7 @@ import { PageFind } from "./find";
 import { togglePictureInPicture } from "./media";
 import { webHostname } from "./privacy/hosts";
 import { hardenWebContents } from "./security";
+import type { SleepCandidate } from "./sleep";
 import type { SessionTab, SessionTabList } from "./storage/session";
 import { onSiteZoomChange, rememberSiteZoom, siteZoomFactor } from "./zoom";
 import { nextZoomFactor, sameFactor } from "./zoom/levels";
@@ -40,6 +41,10 @@ interface Tab {
   finder?: PageFind;
   /** Removes the listeners `wire` added (the tab moves to another TabManager). */
   unwire?: () => void;
+  /** Epoch ms when the tab was last on screen (or created): its idle time for tab sleeping. */
+  lastSeenAt: number;
+  /** Back/forward entries of a tab put to sleep, restored when it wakes. */
+  sleptHistory?: { entries: Electron.NavigationEntry[]; index: number };
 }
 
 /** A tab taken out of a TabManager (`release`) to be adopted by another one, live page included. */
@@ -117,7 +122,7 @@ export class TabManager {
     this.visible = options.visible ?? true;
     // Shields toggled for a site (from any window) apply to every tab showing it.
     this.unsubscribeShields = onShieldsChange(() => {
-      for (const tab of this.tabs) tab.state.shieldsEnabled = shieldsEnabledFor(tab.state.url);
+      for (const tab of this.tabs) tab.state.shieldsEnabled = shieldsEnabledFor(tab.state.url, this.session);
       this.emit();
     });
     // A site zoomed (from any window): its other tabs follow.
@@ -128,7 +133,7 @@ export class TabManager {
 
   getState(): TabsState {
     return {
-      tabs: this.tabs.map((tab) => ({ ...tab.state, isBookmarked: this.isBookmarked(tab.state.url) })),
+      tabs: this.tabs.map((tab) => ({ ...tab.state, isBookmarked: this.isBookmarked(tab.state.url), isAsleep: isDiscarded(tab) })),
       activeTabId: this.activeId,
       split: this.split && { ...this.split, tabIds: [...this.split.tabIds] },
     };
@@ -211,7 +216,7 @@ export class TabManager {
       view.webContents.close();
       view = null;
     }
-    const tab: Tab = { id: state.id, view, state: { ...state } };
+    const tab: Tab = { id: state.id, view, state: { ...state }, lastSeenAt: Date.now() };
     if (!view) {
       Object.assign(tab.state, { isLoading: false, canGoBack: false, canGoForward: false, blockedCount: 0, permissionRequest: null, interstitial: null });
     } else {
@@ -229,6 +234,7 @@ export class TabManager {
   activate(id: TabId): void {
     const tab = this.find(id);
     if (!tab) return;
+    this.markSeen();
     this.activeId = id;
     tab.state.lastActiveAt = Date.now();
     this.recent = [...this.recent.filter((recentId) => recentId !== id), id];
@@ -240,6 +246,7 @@ export class TabManager {
   /** Shows (space switched to) or hides this manager's pages. Showing loads the active tab if needed. */
   setVisible(visible: boolean): void {
     if (this.visible === visible) return;
+    this.markSeen();
     this.visible = visible;
     if (visible && this.activeId) this.activate(this.activeId);
     else this.syncAttachment();
@@ -277,6 +284,7 @@ export class TabManager {
   /** Leaves split view: the active tab stays, alone. */
   exitSplit(): void {
     if (!this.split) return;
+    this.markSeen();
     this.split = null;
     this.syncAttachment();
     this.emit();
@@ -301,7 +309,7 @@ export class TabManager {
     const url = normalizeInput(input, this.options.searchEngine);
     tab.state.url = url;
     tab.state.interstitial = null;
-    tab.state.shieldsEnabled = shieldsEnabledFor(url);
+    tab.state.shieldsEnabled = shieldsEnabledFor(url, this.session);
     if (!showsWebPage(url)) {
       // Start page or internal page: drawn by the chrome UI, the page view (if any) is parked.
       const page = internalPageOf(url);
@@ -382,7 +390,7 @@ export class TabManager {
     if (!tab || !contents || !showsWebPage(tab.state.url)) return;
     const next = nextZoomFactor(contents.getZoomFactor(), direction, this.options.defaultZoom);
     if (next === undefined) return;
-    if (webHostname(contents.getURL())) rememberSiteZoom(contents.getURL(), next, this.options.defaultZoom);
+    if (webHostname(contents.getURL())) rememberSiteZoom(contents.getURL(), next, this.options.defaultZoom, this.session);
     else contents.setZoomFactor(next);
     this.applyZoom(tab);
   }
@@ -440,7 +448,7 @@ export class TabManager {
   toggleShields(id: TabId): void {
     const tab = this.find(id);
     if (!tab?.state.url || tab.state.interstitial) return;
-    setShieldsEnabled(tab.state.url, !tab.state.shieldsEnabled);
+    setShieldsEnabled(tab.state.url, !tab.state.shieldsEnabled, this.session);
     this.reload(id);
   }
 
@@ -588,7 +596,7 @@ export class TabManager {
         isPinned: entry.pinned,
         isBookmarked: false,
         blockedCount: 0,
-        shieldsEnabled: shieldsEnabledFor(entry.url),
+        shieldsEnabled: shieldsEnabledFor(entry.url, this.session),
         permissionRequest: null,
         interstitial: null,
         lastActiveAt: 0,
@@ -597,6 +605,7 @@ export class TabManager {
         zoom: Math.round(this.options.defaultZoom * 100),
         find: null,
       },
+      lastSeenAt: Date.now(),
     };
     this.tabs.splice(Math.max(0, Math.min(index, this.tabs.length)), 0, tab);
     return tab;
@@ -632,9 +641,84 @@ export class TabManager {
   private wake(tab: Tab): void {
     if (!isDiscarded(tab)) return;
     tab.waking = tab.state.url;
-    this.ensureView(tab).webContents.loadURL(tab.state.url).catch(() => {
+    const contents = this.ensureView(tab).webContents;
+    const load = () => contents.loadURL(tab.state.url).catch(() => {
       // Load failures are reported through did-fail-load.
     });
+    // A tab put to sleep gets its back/forward list back (a restored tab has none).
+    const history = tab.sleptHistory;
+    tab.sleptHistory = undefined;
+    if (history?.entries[history.index]?.url === tab.state.url) contents.navigationHistory.restore(history).catch(load);
+    else void load();
+  }
+
+  // --- Tab sleeping (ADR-014, policy and scheduler in ./sleep.ts) ---------------------------
+
+  /** What the sleep policy needs to know about each tab; tabs on screen are marked seen now. */
+  sleepCandidates(now = Date.now()): SleepCandidate[] {
+    this.markSeen(now);
+    const shown = new Set(this.visible ? this.shownTabs() : []);
+    return this.tabs.map((tab) => {
+      const contents = tab.view?.webContents;
+      return {
+        id: tab.id,
+        hasView: !!contents && !contents.isDestroyed(),
+        shown: shown.has(tab),
+        // Muted tabs still count: the user may unmute them at any time.
+        audible: tab.state.isAudible || (contents?.isCurrentlyAudible() ?? false),
+        permissionPending: tab.state.permissionRequest !== null,
+        devTools: contents?.isDevToolsOpened() ?? false,
+        lastSeenAt: tab.lastSeenAt,
+        pinned: tab.state.isPinned,
+      };
+    });
+  }
+
+  /** The live page of a tab (null when it has none: start page, discarded…). */
+  pageOf(id: TabId): WebContents | null {
+    return this.find(id)?.view?.webContents ?? null;
+  }
+
+  /**
+   * Puts a background tab to sleep: its page is destroyed, url/title/favicon (and the back/forward
+   * list) are kept, and it loads again when activated, like a tab restored from the session.
+   * Refused for tabs on screen. The caller checks the policy (`./sleep.ts`) first.
+   */
+  discard(id: TabId): boolean {
+    const tab = this.find(id);
+    if (!tab?.view || (this.visible && this.shownTabs().includes(tab))) return false;
+    const { view } = tab;
+    if (this.attached.has(view)) {
+      this.window.contentView.removeChildView(view);
+      this.attached.delete(view);
+    }
+    const history = view.webContents.navigationHistory;
+    if (showsWebPage(tab.state.url) && !tab.state.interstitial && history.length() > 0) {
+      tab.sleptHistory = { entries: history.getAllEntries(), index: history.getActiveIndex() };
+    }
+    tab.unwire?.();
+    tab.unwire = undefined;
+    tab.view = null;
+    view.webContents.close();
+    Object.assign(tab.state, { isLoading: false, blockedCount: 0, permissionRequest: null });
+    this.emit();
+    return true;
+  }
+
+  /** Makes another tab active (the most recently used one), so that `id` can sleep. */
+  activateOther(id: TabId): boolean {
+    const others = this.recent.filter((recentId) => recentId !== id && this.find(recentId));
+    const next = others.at(-1) ?? this.tabs.find((tab) => tab.id !== id)?.id;
+    if (!next) return false;
+    if (this.split?.tabIds.includes(id)) this.exitSplit();
+    this.activate(next);
+    return true;
+  }
+
+  /** Tabs on screen were seen now (their idle time starts when they leave the screen). */
+  private markSeen(now = Date.now()): void {
+    if (!this.visible) return;
+    for (const tab of this.shownTabs()) tab.lastSeenAt = now;
   }
 
   private find(id: TabId): Tab | undefined {
@@ -677,7 +761,7 @@ export class TabManager {
   private applyZoom(tab: Tab): void {
     const contents = tab.view?.webContents;
     if (!contents || contents.isDestroyed()) return;
-    const factor = siteZoomFactor(contents.getURL(), this.options.defaultZoom);
+    const factor = siteZoomFactor(contents.getURL(), this.options.defaultZoom, this.session);
     if (factor !== undefined && !sameFactor(contents.getZoomFactor(), factor)) contents.setZoomFactor(factor);
     const zoom = Math.round((factor ?? contents.getZoomFactor()) * 100);
     if (zoom === tab.state.zoom) return;
@@ -731,7 +815,7 @@ export class TabManager {
       // While an interstitial is shown, the tab keeps the address the user asked for.
       if (url && url !== "about:blank" && !tab.state.interstitial) {
         tab.state.url = url;
-        tab.state.shieldsEnabled = shieldsEnabledFor(url);
+        tab.state.shieldsEnabled = shieldsEnabledFor(url, this.session);
       }
       tab.state.canGoBack = contents.navigationHistory.canGoBack();
       tab.state.canGoForward = contents.navigationHistory.canGoForward();

@@ -47,11 +47,16 @@ export function listDownloads(): DownloadEntry[] {
   return profile().downloads.list();
 }
 
+/** Private sessions (ADR-014) → ids of their downloads, kept out of downloads.json. */
+const privateDownloads = new WeakMap<Session, Set<string>>();
+
 /**
  * Handles downloads of a session. Idempotent: safe to call for every session (one per space).
- * Must run once the app is ready.
+ * Must run once the app is ready. `ephemeral`: a private window's session — its files are saved
+ * where the user asked, but its entries are never written to the downloads history.
  */
-export function installDownloads(ses: Session): void {
+export function installDownloads(ses: Session, options: { ephemeral?: boolean } = {}): void {
+  if (options.ephemeral && !privateDownloads.has(ses)) privateDownloads.set(ses, new Set());
   if (sessions.has(ses)) return;
   sessions.add(ses);
   if (!quarantineSwept) {
@@ -63,9 +68,33 @@ export function installDownloads(ses: Session): void {
   ses.on("will-download", (event, item, contents) => {
     // Only tab pages download: never the browser UI, nor anything else in the session.
     if (!contents || !isTabPage(contents)) return event.preventDefault();
-    start(item);
+    start(item, privateDownloads.get(ses));
   });
 }
+
+/**
+ * A private window closed: its running downloads are cancelled and its entries leave the list
+ * (they were never on disk), like Chrome and Firefox do.
+ */
+export function forgetPrivateDownloads(ses: Session): void {
+  const ids = privateDownloads.get(ses);
+  if (!ids) return;
+  for (const id of ids) {
+    const item = items.get(id);
+    if (item) {
+      forgetWhenDone.add(id);
+      item.cancel();
+    } else {
+      // A dangerous file still waiting for confirmation is discarded first.
+      if (profile().downloads.get(id)?.awaitingConfirmation) cancelDownload(id);
+      forget(id);
+    }
+  }
+  privateDownloads.delete(ses);
+}
+
+/** Entries to drop once their item settles (a private window closed while they ran). */
+const forgetWhenDone = new Set<string>();
 
 function snapshot(item: DownloadItem): ItemSnapshot {
   return {
@@ -86,8 +115,9 @@ function reservePath(folder: string, filename: string): string {
   return path;
 }
 
-function start(item: DownloadItem): void {
+function start(item: DownloadItem, privateIds?: Set<string>): void {
   const id = randomUUID();
+  privateIds?.add(id);
   const { askWhere } = settings().downloads;
   const filename = sanitizeFilename(item.getFilename());
   const dangerous = isDangerousFile(filename);
@@ -131,7 +161,7 @@ function start(item: DownloadItem): void {
 
   items.set(id, item);
   const { downloads, saveDownloads } = profile();
-  const dropped = downloads.add(entry);
+  const dropped = downloads.add(entry, { ephemeral: !!privateIds });
   saveDownloads();
   push(id, true, dropped);
 
@@ -141,6 +171,10 @@ function start(item: DownloadItem): void {
     if (reservedPath) reserved.delete(reservedPath);
     const done = update(id, item, true);
     if (!done) return;
+    if (forgetWhenDone.delete(id)) {
+      if (done.dangerous) discardFile(item.getSavePath());
+      return forget(id);
+    }
     // A save dialog that was cancelled: nothing was downloaded, nothing to remember.
     if (done.state === "cancelled" && !done.path && !done.dangerous) return forget(id);
     // A dangerous download that did not complete leaves nothing behind.
