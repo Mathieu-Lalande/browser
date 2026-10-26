@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { PermissionKind, PermissionPrompt } from "@shared/types";
-import { isTrustworthyOrigin } from "./hosts";
+import { isTrustworthyOrigin } from "@shared/hosts";
 import type { PermissionStore } from "./permission-store";
 
 /** Electron permissions that map 1:1 to a prompt. `media` (camera/microphone) is handled apart. */

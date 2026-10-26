@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { app } from "electron";
 import { sanitizeSettings, type Settings } from "@shared/settings";
 import { BOOKMARKS_VERSION, Bookmarks, type BookmarksData } from "./storage/bookmarks";
-import { HISTORY_VERSION, History } from "./storage/history";
+import { HISTORY_VERSION, History } from "@shared/history";
 import { JsonFile } from "./storage/json-file";
 import { SESSION_VERSION, parseSession, type Session } from "./storage/session";
 
