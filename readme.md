@@ -33,6 +33,8 @@ Un navigateur desktop **rapide, privé et entièrement personnalisable**, dans l
 
 ## Démarrer
 
+Guide complet (développement sur PC et iPhone, installateurs, TestFlight, App Store) : [`docs/INSTALL.md`](docs/INSTALL.md).
+
 Prérequis : Node.js 20+.
 
 ```bash
