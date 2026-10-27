@@ -177,6 +177,17 @@ export async function chromeOf(app: ElectronApplication): Promise<Page> {
   return page;
 }
 
+const isOverlay = (page: Page) => page.url() === OVERLAY_URL;
+
+/**
+ * The overlay layer's page (palette, popovers). It is pre-warmed shortly after the window shows,
+ * and its page only gets its URL once loaded: wait for it rather than looking it up once.
+ */
+export async function overlayOf(app: ElectronApplication): Promise<Page> {
+  await expect.poll(() => app.windows().some(isOverlay)).toBe(true);
+  return app.windows().find(isOverlay)!;
+}
+
 export const test = base.extend<Fixtures>({
   server: async ({}, use) => {
     const { server, origin, log } = await startServer();

@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { chromeOf, evalInTab, expect, launch, test } from "./fixtures";
+import { chromeOf, evalInTab, expect, launch, overlayOf, test } from "./fixtures";
 
 /**
  * Documentation screenshots, only with SCREENSHOTS=1 (under xvfb-run, needs ImageMagick).
@@ -38,8 +38,7 @@ test("command palette over a page", async ({ app, chrome, server }) => {
   await address.press("Enter");
   await expect(chrome.locator(".tab.active .title")).toHaveText("Le guide des navigateurs rapides");
 
-  await expect.poll(() => app.windows().some((page) => page.url().startsWith("app://browser/overlay.html"))).toBe(true);
-  const overlay = app.windows().find((page) => page.url().startsWith("app://browser/overlay.html"))!;
+  const overlay = await overlayOf(app);
   await overlay.emulateMedia({ colorScheme });
   await app.evaluate(({ BrowserWindow }) => {
     const contents = BrowserWindow.getAllWindows()[0].webContents;
@@ -97,7 +96,7 @@ test("downloads popover", async ({ profile, server }) => {
     await new Promise((resolve) => setTimeout(resolve, 2500));
 
     await chrome.getByRole("button", { name: /^Téléchargements/ }).click();
-    const overlay = app.windows().find((page) => page.url().startsWith("app://browser/overlay.html"))!;
+    const overlay = await overlayOf(app);
     await expect(overlay.getByRole("dialog", { name: "Téléchargements" })).toBeVisible();
     await new Promise((resolve) => setTimeout(resolve, 400));
     await captureWindow(app, "downloads");
@@ -210,7 +209,7 @@ test("private window", async ({ app, chrome }) => {
   // Only the private window stays on screen (captureWindow shoots the first window).
   await chrome.evaluate(() => (globalThis as unknown as { browser: Api }).browser.window.close());
   await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(1);
-  const priv = app.windows().find((candidate) => candidate.url().startsWith("app://browser/index.html") && !candidate.isClosed())!;
+  const priv = app.windows().find((candidate) => candidate.url() === "app://browser/index.html" && !candidate.isClosed())!;
   await priv.waitForSelector(".private-badge");
   await open(priv, page("Idées cadeaux", "#e8536b", "Une surprise pour dimanche."), "Idées cadeaux", false);
   await open(priv, page("Billets de train", "#5aa9ff", "Paris → Lyon, samedi matin."), "Billets de train");
