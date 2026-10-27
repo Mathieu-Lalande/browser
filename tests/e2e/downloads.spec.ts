@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ElectronApplication, Page } from "@playwright/test";
-import { DOWNLOAD_CONTENT, chromeOf, evalInTab, expect, launch, test } from "./fixtures";
+import { DOWNLOAD_CONTENT, chromeOf, evalInTab, expect, launch, overlayOf, test } from "./fixtures";
 
 /** Native key press through the main process, so Electron menu accelerators fire (see library.spec.ts). */
 async function press(app: ElectronApplication, keyCode: string, modifiers: ("control" | "shift")[] = ["control"]): Promise<void> {
@@ -55,7 +55,7 @@ test("a download goes straight to the downloads folder under a unique name, and 
 
     // The sidebar button opens the popover in the overlay layer.
     await chrome.getByRole("button", { name: "Téléchargements", exact: true }).click();
-    const overlay = app.windows().find((page) => page.url().endsWith("/renderer/overlay.html"))!;
+    const overlay = await overlayOf(app);
     const panel = overlay.getByRole("dialog", { name: "Téléchargements" });
     await expect(panel).toBeVisible();
     await expect(panel.getByText("report (1).pdf")).toBeVisible();
