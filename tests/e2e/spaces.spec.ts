@@ -1,7 +1,7 @@
 import type { ElectronApplication, Page } from "@playwright/test";
 import type { BrowserApi } from "@shared/ipc";
 import type { BrowserState, SpaceInput } from "@shared/types";
-import { chromeOf, evalInTab, expect, launch, tabUrls, test } from "./fixtures";
+import { attachedViews, chromeOf, evalInTab, expect, launch, tabUrls, test } from "./fixtures";
 
 async function visit(chrome: Page, url: string, title: string): Promise<void> {
   const address = chrome.getByLabel("Barre d'adresse");
@@ -28,16 +28,6 @@ async function press(app: ElectronApplication, keyCode: string, modifiers: ("con
       contents.sendInputEvent({ type: "keyUp", keyCode, modifiers });
     },
     { keyCode, modifiers },
-  );
-}
-
-/** Tab page views attached to the window, with their bounds (the overlay layer excluded). */
-function attachedViews(app: ElectronApplication): Promise<{ url: string; x: number; y: number; width: number; height: number }[]> {
-  return app.evaluate(({ BrowserWindow, WebContentsView }) =>
-    BrowserWindow.getAllWindows()[0]
-      .contentView.children.filter((view) => view instanceof WebContentsView)
-      .map((view) => ({ url: (view as InstanceType<typeof WebContentsView>).webContents.getURL(), ...view.getBounds() }))
-      .filter((view) => !view.url.endsWith("/renderer/overlay.html")),
   );
 }
 

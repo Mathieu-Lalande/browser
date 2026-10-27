@@ -237,6 +237,9 @@ l'URL vide pour la compatibilité des sessions). Elles sont restaurées avec la 
   connues ; `isNavigableUrl` refuse le schéma `browser:`, donc une page web ne peut ni y naviguer,
   ni l'ouvrir dans un nouvel onglet, ni y être redirigée (testé en unitaire et en e2e).
 - Elles ne passent jamais par l'historique ni les favoris.
+- Ouvrir la page d'accueil ou une page interne dans un onglet qui affiche une page web ne navigue pas
+  la vue : elle est détachée et gardée telle quelle (historique compris). « Précédent » la rattache,
+  « Suivant » revient alors à la page interne, jusqu'à ce que la page navigue ailleurs.
 
 ## ADR-013 — Téléchargements, recherche dans la page, zoom par site, médias
 

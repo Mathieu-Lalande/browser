@@ -34,6 +34,8 @@ export function isDangerousFile(filename: string): boolean {
 
 const WINDOWS_RESERVED = /^(con|prn|aux|nul|com\d|lpt\d)(\..*)?$/i;
 const MAX_NAME_LENGTH = 200;
+/** Longest extension kept whole when a name is shortened (".tar.gz", ".numbers"…, never 500 chars). */
+const MAX_EXTENSION_LENGTH = 32;
 export const FALLBACK_FILENAME = "téléchargement";
 
 /**
@@ -51,7 +53,9 @@ export function sanitizeFilename(name: string): string {
   if (WINDOWS_RESERVED.test(clean)) clean = `_${clean}`;
   if (clean.length > MAX_NAME_LENGTH) {
     const { base, ext } = splitName(clean);
-    clean = base.slice(0, Math.max(1, MAX_NAME_LENGTH - ext.length)) + ext;
+    // An absurdly long "extension" is cut too: the limit always holds.
+    const kept = ext.slice(0, MAX_EXTENSION_LENGTH);
+    clean = (base.slice(0, MAX_NAME_LENGTH - kept.length) + kept).replace(/[.\s]+$/, "");
   }
   return clean || FALLBACK_FILENAME;
 }

@@ -170,10 +170,14 @@ export class BrowserController {
       if (outcome === "keep") BrowserController.saveSession(true);
       controllers.delete(chrome.id);
       if (outcome === "forget") BrowserController.saveSession();
-      this.spaces.destroy();
-      this.overlay.destroy();
-      // A private window takes its cookies, storage and cache with it.
-      if (this.privateSession) void wipePrivateSession(this.privateSession);
+      try {
+        this.spaces.destroy();
+      } finally {
+        // Whatever happened to the pages, the overlay goes and a private window takes its
+        // cookies, storage and cache with it.
+        this.overlay.destroy();
+        if (this.privateSession) void wipePrivateSession(this.privateSession);
+      }
     });
 
     if (process.env.ELECTRON_RENDERER_URL) void this.window.loadURL(process.env.ELECTRON_RENDERER_URL);

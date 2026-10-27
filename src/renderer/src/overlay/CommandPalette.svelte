@@ -62,10 +62,9 @@
 
   async function refreshSuggestions(text: string): Promise<void> {
     const id = ++request;
-    if (!text.trim()) {
-      suggestions = [];
-      return;
-    }
+    // Suggestions for older text go right away: Arrow/Enter must never run one while the new ones load.
+    suggestions = [];
+    if (!text.trim()) return;
     const history = await api.history.search(text, MAX_SUGGESTIONS + 4).catch(() => []);
     // A newer keystroke already asked for fresher results.
     if (id === request) suggestions = mergeSuggestions(text, history, bookmarks, MAX_SUGGESTIONS + 4);

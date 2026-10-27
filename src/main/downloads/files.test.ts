@@ -67,12 +67,25 @@ describe("sanitizeFilename", () => {
     expect(sanitizeFilename("CON")).toBe("_CON");
     expect(sanitizeFilename("nul.txt")).toBe("_nul.txt");
     expect(sanitizeFilename("console.txt")).toBe("console.txt");
+    // Whatever the case.
+    expect(sanitizeFilename("Con.TXT")).toBe("_Con.TXT");
+    expect(sanitizeFilename("lPt1")).toBe("_lPt1");
+    expect(sanitizeFilename("cOm9.tar.gz")).toBe("_cOm9.tar.gz");
   });
 
   it("bounds the length but keeps the extension", () => {
     const name = sanitizeFilename(`${"x".repeat(500)}.pdf`);
     expect(name.length).toBe(200);
     expect(name.endsWith(".pdf")).toBe(true);
+  });
+
+  it("bounds the length even with a very long extension", () => {
+    for (const name of [`a.${"x".repeat(500)}`, `${"b".repeat(300)}.${"y".repeat(300)}`, `c.${"z ".repeat(200)}`]) {
+      const clean = sanitizeFilename(name);
+      expect(clean.length).toBeLessThanOrEqual(200);
+      expect(clean).not.toMatch(/[.\s]$/);
+    }
+    expect(sanitizeFilename(`a.${"x".repeat(500)}`).startsWith("a.")).toBe(true);
   });
 });
 

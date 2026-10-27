@@ -15,7 +15,7 @@ import { initialCollapse, nextCollapse } from "../lib/gestures";
 import type { LinkMenuRequest } from "../lib/linkMenu";
 import type { Rect } from "../lib/overviewLayout";
 import type { SheetItem } from "../lib/searchSheet";
-import { activeTab, isPrivateTab, liveTabIds, orderedTabs, swipeTarget, type MobileTab } from "../lib/tabs";
+import { activeTab, isPrivateTab, liveTabIds, mountUrl, orderedTabs, swipeTarget, type MobileTab } from "../lib/tabs";
 import { useBrowserActions, useBrowserState, useEvent } from "../state/BrowserProvider";
 import { useTheme } from "../state/theme";
 import { ActionSheet, type MenuItem, type MenuSpec } from "./ActionSheet";
@@ -457,6 +457,7 @@ export function BrowserScreen() {
               id={candidate.id}
               loadUrl={candidate.load.url}
               loadSeq={candidate.load.seq}
+              resumeUrl={mountUrl(candidate)}
               upgradedFrom={candidate.upgradedFrom}
               isPrivate={isPrivateTab(candidate)}
               active={candidate.id === tab?.id && !showStart && !candidate.interstitial}

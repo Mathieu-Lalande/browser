@@ -170,3 +170,13 @@ export async function evalInTab<T>(app: ElectronApplication, urlPrefix: string, 
     [urlPrefix, script] as const,
   ) as Promise<T>;
 }
+
+/** Tab page views attached to the window, with their bounds (the overlay layer excluded). */
+export function attachedViews(app: ElectronApplication): Promise<{ url: string; x: number; y: number; width: number; height: number }[]> {
+  return app.evaluate(({ BrowserWindow, WebContentsView }) =>
+    BrowserWindow.getAllWindows()[0]
+      .contentView.children.filter((view) => view instanceof WebContentsView)
+      .map((view) => ({ url: (view as InstanceType<typeof WebContentsView>).webContents.getURL(), ...view.getBounds() }))
+      .filter((view) => !view.url.endsWith("/renderer/overlay.html")),
+  );
+}

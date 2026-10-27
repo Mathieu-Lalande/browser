@@ -1,3 +1,4 @@
+import { isLocalHost } from "./hosts";
 import { internalPageOf, internalUrl } from "./internal";
 
 export interface SearchEngine {
@@ -26,10 +27,24 @@ export function searchUrl(query: string, engine: SearchEngine = DEFAULT_SEARCH_E
   return engine.template.replace("%s", encodeURIComponent(query.trim()));
 }
 
+/** `host[:port]` of typed text without a scheme (before any path, query or fragment). */
+const typedAuthority = (input: string) => input.split(/[/?#]/, 1)[0];
+
+/** The host of typed text without a scheme: no port, no brackets, no final dot ("example.com."). */
+function typedHost(input: string): string {
+  return typedAuthority(input)
+    .replace(/:\d+$/, "")
+    .replace(/^\[(.*)\]$/, "$1")
+    .replace(/\.$/, "");
+}
+
 function looksLikeHost(input: string): boolean {
-  if (/^localhost(:\d+)?(\/|$)/i.test(input)) return true;
-  if (/^\[[\da-f:]+\](:\d+)?(\/|$)/i.test(input)) return true;
-  const host = input.split(/[/?#]/, 1)[0].replace(/:\d+$/, "");
+  const authority = typedAuthority(input);
+  if (/^\[[\da-f:]+\](:\d+)?$/i.test(authority)) return true;
+  // A single-label name with a port: an intranet machine or a dev server ("devbox:3000").
+  if (/^[a-z\d-]+\.?:\d{1,5}$/i.test(authority)) return true;
+  const host = typedHost(input);
+  if (/^localhost$/i.test(host)) return true;
   if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return true;
   // A dotted host whose TLD is alphabetic (or punycode), e.g. "example.com", "sub.domain.co.uk".
   return /^([a-z\d¡-￿-]+\.)+([a-z¡-￿]{2,}|xn--[a-z\d-]+)$/i.test(host);
@@ -57,7 +72,8 @@ export function normalizeInput(raw: string, engine: SearchEngine = DEFAULT_SEARC
   }
 
   if (looksLikeHost(input)) {
-    const scheme = /^(localhost|127\.|\[::1\])/i.test(input) ? "http" : "https";
+    // Local hosts (loopback, mDNS, private ranges, intranet names) usually only speak http.
+    const scheme = isLocalHost(typedHost(input)) ? "http" : "https";
     try {
       return new URL(`${scheme}://${input}`).href;
     } catch {

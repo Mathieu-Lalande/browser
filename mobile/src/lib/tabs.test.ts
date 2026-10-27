@@ -3,6 +3,7 @@ import {
   activeTab,
   initialTabsModel,
   liveTabIds,
+  mountUrl,
   orderedTabs,
   parseSession,
   PRIVATE_SPACE_ID,
@@ -189,5 +190,49 @@ describe("session persistence", () => {
   it("rejects non-sessions", () => {
     expect(parseSession(null)).toBeNull();
     expect(parseSession({ tabs: "x", spaces: [] })).toBeNull();
+  });
+});
+
+describe("closing the active tab with pinned tabs", () => {
+  it("activates its neighbor in display order (pinned first)", () => {
+    let model = run([open("t1"), open("t2"), open("t3"), { type: "pin", id: "t3", pinned: true }]);
+    expect(orderedTabs(model).map((tab) => tab.id)).toEqual(["t3", "t1", "t2"]);
+    model = tabsReducer(model, { type: "close", id: "t3", activates: "next", now: 4 });
+    expect(activeTab(model)?.id).toBe("t1");
+  });
+
+  it("goes to the previous tab in display order", () => {
+    let model = run([open("t1"), open("t2"), open("t3"), { type: "pin", id: "t3", pinned: true }, { type: "activate", id: "t1", now: 4 }]);
+    model = tabsReducer(model, { type: "close", id: "t1", activates: "previous", now: 5 });
+    expect(activeTab(model)?.id).toBe("t3");
+  });
+});
+
+describe("mountUrl", () => {
+  it("brings an evicted tab back on its current page, not its first one", () => {
+    let model = run([open("t1")]);
+    model = tabsReducer(model, {
+      type: "navigation",
+      id: "t1",
+      url: "https://t1.example/article",
+      title: "Article",
+      isLoading: false,
+      canGoBack: true,
+      canGoForward: false,
+    });
+    model = run([open("t2"), open("t3"), open("t4"), open("t5"), open("t6")], model);
+    expect(liveTabIds(model, 4)).not.toContain("t1");
+    model = tabsReducer(model, { type: "activate", id: "t1", now: 7 });
+    const tab = activeTab(model)!;
+    // The explicit load is unchanged (a live WebView must not reload)…
+    expect(tab.load.url).toBe("https://t1.example/");
+    // …but a WebView created now starts where the tab was.
+    expect(mountUrl(tab)).toBe("https://t1.example/article");
+  });
+
+  it("uses the requested load while the first page has not committed", () => {
+    const tab = activeTab(run([open("t1")]))!;
+    expect(mountUrl(tab)).toBe("https://t1.example/");
+    expect(mountUrl({ ...tab, url: "" })).toBe("https://t1.example/");
   });
 });

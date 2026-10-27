@@ -117,6 +117,7 @@ export class DownloadList {
     for (let index = this.entries.length - 1; this.entries.length > MAX_DOWNLOADS && index >= 0; index--) {
       if (isActiveDownload(this.entries[index])) continue;
       removed.push(this.entries[index].id);
+      this.ephemeral.delete(this.entries[index].id);
       this.entries.splice(index, 1);
     }
     return removed;
@@ -144,6 +145,7 @@ export class DownloadList {
     const removed = this.entries.filter((entry) => !isActiveDownload(entry) && !entry.awaitingConfirmation).map((entry) => entry.id);
     const gone = new Set(removed);
     this.entries = this.entries.filter((entry) => !gone.has(entry.id));
+    for (const id of removed) this.ephemeral.delete(id);
     return removed;
   }
 

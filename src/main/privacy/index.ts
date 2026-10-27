@@ -6,6 +6,7 @@ import { ContentBlocker } from "./blocker";
 import { TabCosmetics } from "./cosmetics";
 import { webHostname } from "@shared/hosts";
 import { HttpsOnly } from "@shared/https-only";
+import { flushJsonWriters } from "./json-file";
 import { PermissionStore } from "./permission-store";
 import { PermissionPrompts, permissionKinds } from "./permissions";
 import { ShieldsAllowList } from "./shields";
@@ -70,7 +71,11 @@ function privacyState(): PrivacyState {
   };
   privacy = state;
   state.blocker.start();
-  app.once("will-quit", () => state.blocker.stop());
+  app.once("will-quit", () => {
+    state.blocker.stop();
+    // Shields toggles and remembered permissions saved just before quitting reach the disk too.
+    flushJsonWriters();
+  });
   return state;
 }
 

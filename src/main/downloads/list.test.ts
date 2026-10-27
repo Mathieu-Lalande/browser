@@ -136,4 +136,16 @@ describe("DownloadList", () => {
     expect(list.isEphemeral("secret")).toBe(true);
     expect(list.toJSON().map((e) => e.id)).toEqual(["normal", "old"]);
   });
+
+  it("forgets the private mark of entries it drops", () => {
+    const list = new DownloadList();
+    list.add(entry({ id: "cleared", state: "completed" }), { ephemeral: true });
+    expect(list.clearFinished()).toEqual(["cleared"]);
+    expect(list.isEphemeral("cleared")).toBe(false);
+
+    list.add(entry({ id: "capped", state: "completed" }), { ephemeral: true });
+    for (let i = 0; i < MAX_DOWNLOADS; i++) list.add(entry({ id: `done-${i}`, state: "completed" }));
+    expect(list.get("capped")).toBeUndefined();
+    expect(list.isEphemeral("capped")).toBe(false);
+  });
 });

@@ -4,6 +4,8 @@ export interface WebTabProps {
   id: string;
   loadUrl: string;
   loadSeq: number;
+  /** The tab's current page (`mountUrl`): where the WebView starts when it is created. */
+  resumeUrl: string;
   upgradedFrom: string | null;
   isPrivate: boolean;
   /** Shown and interactive (others stay mounted but hidden). */
