@@ -1,6 +1,6 @@
 import { ACCENT_PRESETS, LIMITS, type CloseTabActivates, type NewTabPosition, type ThemeMode } from "@shared/settings";
 import { displayUrl, SEARCH_ENGINES } from "@shared/url";
-import { memo, type ReactNode } from "react";
+import { memo, useState, type ReactNode } from "react";
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -8,6 +8,8 @@ import { APP_VERSION } from "../lib/version";
 import { useBrowserActions, useBrowserState } from "../state/BrowserProvider";
 import { useTheme } from "../state/theme";
 import { Icon, type IconName } from "./Icon";
+import { PairingScanner } from "./PairingScanner";
+import { SyncSettings } from "./SyncSettings";
 import { IconButton, SiteIcon, Tap } from "./ui";
 
 /** Settings: search engine, theme/accent, start page, tabs, privacy, favorites, about. */
@@ -17,6 +19,8 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
   const actions = useBrowserActions();
   const insets = useSafeAreaInsets();
   const { appearance, startPage, behavior } = settings;
+  const [scanning, setScanning] = useState(false);
+  const { sync } = useBrowserState();
 
   const confirm = (title: string, message: string, action: string, run: () => void) =>
     Alert.alert(title, message, [
@@ -166,6 +170,10 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
           )}
         </Group>
 
+        <Group title="Synchronisation" icon="cloud">
+          <SyncSettings onScan={() => setScanning(true)} />
+        </Group>
+
         <Group title="Confidentialité" icon="shield">
           <Info
             first
@@ -195,7 +203,9 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
             onPress={() =>
               confirm(
                 "Tout effacer ?",
-                "Historique, favoris et onglets ouverts seront supprimés. Les cookies des sites restent gérés par le système.",
+                sync?.configured
+                  ? "Historique, favoris et onglets ouverts seront supprimés, aussi sur vos appareils synchronisés. Les cookies des sites restent gérés par le système."
+                  : "Historique, favoris et onglets ouverts seront supprimés. Les cookies des sites restent gérés par le système.",
                 "Tout effacer",
                 () => void actions.clearAllData(),
               )
@@ -235,6 +245,17 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
           />
         </Group>
       </ScrollView>
+      {scanning && (
+        <PairingScanner
+          onClose={() => setScanning(false)}
+          onCode={(code) => {
+            setScanning(false);
+            void actions.sync.pair(code).then((result) =>
+              Alert.alert("Synchronisation", result.ok ? "Téléphone jumelé avec votre ordinateur." : result.message),
+            );
+          }}
+        />
+      )}
     </Animated.View>
   );
 });

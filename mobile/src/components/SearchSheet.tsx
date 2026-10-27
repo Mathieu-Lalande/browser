@@ -29,7 +29,7 @@ interface Props {
  */
 export const SearchSheet = memo(function SearchSheet({ initialText, onSubmit, onPick, onClose }: Props) {
   const { colors, dark, isPrivate, reduceMotion } = useTheme();
-  const { model, bookmarks, settings } = useBrowserState();
+  const { model, bookmarks, settings, sync } = useBrowserState();
   const history = useHistoryEntries();
   const insets = useSafeAreaInsets();
   const [text, setText] = useState(initialText);
@@ -53,8 +53,9 @@ export const SearchSheet = memo(function SearchSheet({ initialText, onSubmit, on
       engine,
       context: { activeTab: activeState },
       now: Date.now(),
+      remoteTabs: isPrivate ? [] : (sync?.devices ?? []).flatMap((device) => device.tabs.map((tab) => ({ device: device.name, url: tab.url, title: tab.title }))),
     });
-  }, [model, bookmarks, history, query, initialText, engine, isPrivate]);
+  }, [model, bookmarks, history, query, initialText, engine, isPrivate, sync]);
 
   const activeState = useMemo(() => {
     const current = activeTab(model);
@@ -156,6 +157,8 @@ function iconFor(item: SheetItem): IconName {
       return item.action.icon as IconName;
     case "search":
       return "search";
+    case "remote":
+      return "cloud";
     case "navigate":
       return "globe";
     default:
@@ -177,7 +180,7 @@ const Row = memo(function Row({
   onFill: (value: string) => void;
 }) {
   const { colors } = useTheme();
-  const siteUrl = item.kind === "tab" ? item.tab.url : item.kind === "bookmark" || item.kind === "history" ? item.url : null;
+  const siteUrl = item.kind === "tab" ? item.tab.url : item.kind === "bookmark" || item.kind === "history" || item.kind === "remote" ? item.url : null;
   const fillValue = item.kind === "bookmark" || item.kind === "history" ? item.url : null;
   const badge = item.kind === "tab" ? "Onglet" : item.kind === "bookmark" ? "Favori" : null;
   return (

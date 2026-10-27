@@ -22,6 +22,7 @@ import { siteHue, siteLabel } from "../lib/site";
 import { isPrivateTab, orderedTabs, PRIVATE_SPACE_ID, type MobileTab, type TabsModel } from "../lib/tabs";
 import { useTheme } from "../state/theme";
 import { Icon } from "./Icon";
+import { RemoteTabs } from "./RemoteTabs";
 import { IconButton, SiteIcon, Tap } from "./ui";
 
 export const CHIPS_HEIGHT = 56;
@@ -82,6 +83,8 @@ interface Props {
   onShowSpace: (id: string) => void;
   onSpaceMenu: (space: SpaceInfo) => void;
   onAddSpace: () => void;
+  /** Opens a tab of another synced device ("Autres appareils"). */
+  onOpenRemote?: (url: string) => void;
 }
 
 /** Tab grid with spaces (chips), private tabs and pinned favorites, Arc/Safari style. */
@@ -172,6 +175,7 @@ export const TabOverview = memo(function TabOverview(props: Props) {
             <Text style={[styles.emptyText, { color: colors.textMuted }]}>Touchez + pour ouvrir un nouvel onglet{isPrivate ? " privé" : ""}.</Text>
           </Animated.View>
         )}
+        {!isPrivate && props.onOpenRemote && <RemoteTabs onOpen={props.onOpenRemote} />}
       </Animated.ScrollView>
 
       <Animated.View style={[styles.bottom, { height: OVERVIEW_BAR + insets.bottom, paddingBottom: insets.bottom, borderTopColor: colors.hairline, backgroundColor: colors.bgElevated }, bottomChrome]}>

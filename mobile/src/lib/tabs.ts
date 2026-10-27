@@ -92,7 +92,9 @@ export type TabsAction =
   | { type: "add-space"; id: SpaceId; input?: SpaceInput }
   | { type: "update-space"; id: SpaceId; input: SpaceInput }
   | { type: "remove-space"; id: SpaceId }
-  | { type: "restore"; model: TabsModel };
+  | { type: "restore"; model: TabsModel }
+  /** Space list merged from another device (sync, ADR-018): removed spaces close their tabs. */
+  | { type: "sync-spaces"; spaces: SpaceInfo[] };
 
 // --- Selectors --------------------------------------------------------------------------------
 
@@ -353,6 +355,19 @@ export function tabsReducer(model: TabsModel, action: TabsAction): TabsModel {
     }
     case "restore":
       return action.model;
+    case "sync-spaces": {
+      const spaces = action.spaces.map(sanitizeSpace).filter((space): space is SpaceInfo => space !== null && space.id !== PRIVATE_SPACE_ID);
+      if (spaces.length === 0) return model;
+      const kept = new Set(spaces.map((space) => space.id));
+      const activeTabs = Object.fromEntries(Object.entries(model.activeTabs).filter(([id]) => id === PRIVATE_SPACE_ID || kept.has(id)));
+      return {
+        ...model,
+        spaces,
+        tabs: model.tabs.filter((tab) => tab.spaceId === PRIVATE_SPACE_ID || kept.has(tab.spaceId)),
+        activeTabs,
+        activeSpaceId: model.activeSpaceId === PRIVATE_SPACE_ID || kept.has(model.activeSpaceId) ? model.activeSpaceId : spaces[0].id,
+      };
+    }
   }
 }
 

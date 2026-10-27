@@ -61,7 +61,11 @@
       "<rootDir>/node_modules"
     ],
     "moduleNameMapper": {
-      "^@shared/(.*)$": "<rootDir>/../src/shared/$1"
-    }
+      "^@shared/(.*)$": "<rootDir>/../src/shared/$1",
+      "^@noble/(.*)$": "<rootDir>/node_modules/@noble/$1"
+    },
+    "transformIgnorePatterns": [
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|react-native-svg|@noble/.*|uqr)"
+    ]
   }
 }

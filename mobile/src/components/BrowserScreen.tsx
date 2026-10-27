@@ -224,6 +224,9 @@ export function BrowserScreen() {
       case "open-settings":
         setOverlay("settings");
         return;
+      case "sync-now":
+        actions.sync.syncNow();
+        break;
       case "new-space": {
         const spaceId = actions.addSpace();
         setEditingSpace({ id: spaceId, name: "", icon: "⭐", color: null, isolated: false });
@@ -252,6 +255,10 @@ export function BrowserScreen() {
       case "navigate":
       case "search":
         submit(item.url);
+        break;
+      case "remote":
+        actions.openUrl(item.url, { private: isPrivate });
+        setOverlay("none");
         break;
       case "command":
         runCommand(item.command.id);
@@ -402,6 +409,7 @@ export function BrowserScreen() {
   const newTabHere = useEvent(() => newTab(isPrivate));
   const overviewDone = useEvent(() => closeOverview());
   const selectTab = useEvent((id: string) => closeOverview(id));
+  const openRemote = useEvent((url: string) => closeOverview(actions.openUrl(url)));
 
   // Android back: close what is open, then go back in the page.
   useEffect(() => {
@@ -442,6 +450,7 @@ export function BrowserScreen() {
             onShowSpace={showSpace}
             onSpaceMenu={setEditingSpace}
             onAddSpace={addSpace}
+            onOpenRemote={openRemote}
           />
         </View>
       )}

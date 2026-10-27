@@ -3,14 +3,18 @@ import { webHostname } from "@shared/hosts";
 import { internalPageOf } from "@shared/internal";
 import { DEFAULT_SETTINGS, mergeSettings, sanitizeSettings, searchEngineOf, type Settings, type SettingsPatch } from "@shared/settings";
 import { nextSpaceDefaults } from "@shared/spaces";
+import { SyncError } from "@shared/sync/client";
+import type { SyncController, SyncStatus } from "@shared/sync/controller";
 import type { Bookmark, HistoryEntry, SpaceInput } from "@shared/types";
 import { normalizeInput } from "@shared/url";
 import { createContext, use, useCallback, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 import { AppState } from "react-native";
 import type { WebViewHandle } from "../components/webViewHandle";
-import { parseBookmarks, toggleBookmark } from "../lib/bookmarks";
+import { parseBookmarks, parseFolders, toggleBookmark } from "../lib/bookmarks";
 import { DEFAULT_MOBILE_SETTINGS, sanitizeMobileSettings, type MobileSettings } from "../lib/mobileSettings";
 import { initialLoad } from "../lib/navigation";
+import type { BookmarkFolder, MobileSyncStore } from "../lib/sync/adapters";
+import { createMobileSync } from "../lib/sync/platform";
 import { flushDocuments, KEYS, loadDocument, removeDocuments, saveDocument } from "../lib/storage";
 import {
   activeTab,
@@ -29,8 +33,8 @@ import {
 export const HISTORY_VERSION = 1;
 export const BOOKMARKS_VERSION = 1;
 export const SETTINGS_VERSION = 1;
-/** AsyncStorage values must stay small (Android limits a row to ~2 MB). */
-const MAX_HISTORY = 3000;
+/** AsyncStorage values must stay small (Android limits a row to ~2 MB); 5 000 is also the synced maximum. */
+const MAX_HISTORY = 5000;
 
 export const newId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
@@ -81,6 +85,27 @@ export interface BrowserActions {
   updateMobileSettings(patch: Partial<MobileSettings>): void;
   registerWebView(id: TabId, ref: WebViewHandle | null): void;
   httpExceptions(): ReadonlySet<string>;
+  /** End-to-end encrypted sync (ADR-018). */
+  sync: {
+    createAccount(serverUrl: string, registrationSecret?: string): Promise<SyncResult>;
+    pair(code: string): Promise<SyncResult>;
+    /** Full access to the synced data: only after an explicit user action. */
+    pairingCode(): string | null;
+    syncNow(): void;
+    disconnect(): Promise<SyncResult>;
+    reset(): Promise<SyncResult>;
+  };
+}
+
+export type SyncResult = { ok: true } | { ok: false; message: string };
+
+async function syncAttempt(action: () => Promise<void>): Promise<SyncResult> {
+  try {
+    await action();
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, message: error instanceof SyncError ? error.message : "La synchronisation a échoué." };
+  }
 }
 
 interface BrowserState {
@@ -92,6 +117,8 @@ interface BrowserState {
   /** Bumped when history changes (the History instance is mutable). */
   historyVersion: number;
   history: History;
+  /** Null until loaded. */
+  sync: SyncStatus | null;
 }
 
 const StateContext = createContext<BrowserState | null>(null);
@@ -124,10 +151,15 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [historyVersion, setHistoryVersion] = useState(0);
   const historyRef = useRef(new History([], MAX_HISTORY));
+  const [folders, setFolders] = useState<BookmarkFolder[]>([]);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
+  const syncRef = useRef<SyncController | null>(null);
+  /** Pages the user deleted from the history (cleared), as opposed to pruned because it is full. */
+  const deletedHistory = useRef(new Set<string>());
 
   // Latest values for the stable action callbacks.
-  const latest = useRef({ model, settings, mobile, bookmarks });
-  latest.current = { model, settings, mobile, bookmarks };
+  const latest = useRef({ model, settings, mobile, bookmarks, folders });
+  latest.current = { model, settings, mobile, bookmarks, folders };
   const webViews = useRef(new Map<TabId, WebViewHandle>());
   const httpExceptions = useRef(new Set<string>());
 
@@ -135,18 +167,20 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const [session, history, storedBookmarks, storedSettings, storedMobile] = await Promise.all([
+      const [session, history, storedBookmarks, storedSettings, storedMobile, storedFolders] = await Promise.all([
         loadDocument(KEYS.session, SESSION_VERSION),
         loadDocument(KEYS.history, HISTORY_VERSION),
         loadDocument(KEYS.bookmarks, BOOKMARKS_VERSION),
         loadDocument(KEYS.settings, SETTINGS_VERSION),
         loadDocument(KEYS.mobile, SETTINGS_VERSION),
+        loadDocument(KEYS.folders, BOOKMARKS_VERSION),
       ]);
       if (cancelled) return;
       const nextSettings = sanitizeSettings(storedSettings);
       setSettings(nextSettings);
       setMobile(sanitizeMobileSettings(storedMobile));
       setBookmarks(parseBookmarks(storedBookmarks));
+      setFolders(parseFolders(storedFolders));
       historyRef.current = new History(History.parse(history) ?? [], MAX_HISTORY);
       setHistoryVersion((v) => v + 1);
       const restored = nextSettings.behavior.restoreSession ? parseSession(session) : null;
@@ -168,6 +202,9 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
     if (ready) saveDocument(KEYS.settings, SETTINGS_VERSION, () => latest.current.settings, 200);
   }, [settings, ready]);
   useEffect(() => {
+    if (ready) saveDocument(KEYS.folders, BOOKMARKS_VERSION, () => latest.current.folders);
+  }, [folders, ready]);
+  useEffect(() => {
     if (ready) saveDocument(KEYS.mobile, SETTINGS_VERSION, () => latest.current.mobile, 200);
   }, [mobile, ready]);
   useEffect(() => {
@@ -177,9 +214,54 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
       if (state !== "active") void flushDocuments();
+      else syncRef.current?.notifyForeground();
     });
     return () => subscription.remove();
   }, []);
+
+  // --- Sync (ADR-018) -----------------------------------------------------------------------
+  useEffect(() => {
+    if (!ready) return;
+    // Writes go to `latest` at once: the engine reads the data back right after applying it.
+    const store: MobileSyncStore = {
+      settings: () => latest.current.settings,
+      setSettings: (next) => {
+        latest.current.settings = next;
+        setSettings(next);
+      },
+      model: () => latest.current.model,
+      dispatch: (action) => {
+        latest.current.model = tabsReducer(latest.current.model, action);
+        dispatch(action);
+      },
+      bookmarks: () => latest.current.bookmarks,
+      folders: () => latest.current.folders,
+      setBookmarks: (nextBookmarks, nextFolders) => {
+        latest.current.bookmarks = nextBookmarks;
+        latest.current.folders = nextFolders;
+        setBookmarks(nextBookmarks);
+        setFolders(nextFolders);
+      },
+      history: () => historyRef.current,
+      historyChanged: () => setHistoryVersion((v) => v + 1),
+      historyDeleted: (url) => deletedHistory.current.has(url),
+      newId,
+      now: () => Date.now(),
+    };
+    const controller = createMobileSync({ store, onStatus: setSyncStatus });
+    syncRef.current = controller;
+    setSyncStatus(controller.getStatus());
+    void controller.init();
+    return () => {
+      controller.dispose();
+      syncRef.current = null;
+    };
+  }, [ready]);
+
+  // Any synced data changed: sync a little later (the controller debounces and ignores no-ops).
+  useEffect(() => {
+    if (ready) syncRef.current?.notifyChange();
+  }, [model.tabs, model.spaces, bookmarks, settings, historyVersion, ready]);
 
   // --- Actions ------------------------------------------------------------------------------
   const actions = useMemo<BrowserActions>(() => {
@@ -320,10 +402,12 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
         setBookmarks((list) => list.filter((bookmark) => bookmark.id !== id));
       },
       clearHistory() {
+        for (const entry of historyRef.current.toJSON()) deletedHistory.current.add(entry.url);
         historyRef.current.clear();
         setHistoryVersion((v) => v + 1);
       },
       async clearAllData() {
+        for (const entry of historyRef.current.toJSON()) deletedHistory.current.add(entry.url);
         historyRef.current.clear();
         setHistoryVersion((v) => v + 1);
         setBookmarks([]);
@@ -342,12 +426,20 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
         else webViews.current.delete(id);
       },
       httpExceptions: () => httpExceptions.current,
+      sync: {
+        createAccount: (serverUrl, secret) => syncAttempt(async () => syncRef.current?.createAccount(serverUrl, secret)),
+        pair: (code) => syncAttempt(async () => syncRef.current?.pair(code)),
+        pairingCode: () => syncRef.current?.pairingCode() ?? null,
+        syncNow: () => void syncRef.current?.syncNow(),
+        disconnect: () => syncAttempt(async () => syncRef.current?.disconnect()),
+        reset: () => syncAttempt(async () => syncRef.current?.reset()),
+      },
     };
   }, []);
 
   const state = useMemo<BrowserState>(
-    () => ({ ready, model, settings, mobile, bookmarks, historyVersion, history: historyRef.current }),
-    [ready, model, settings, mobile, bookmarks, historyVersion],
+    () => ({ ready, model, settings, mobile, bookmarks, historyVersion, history: historyRef.current, sync: syncStatus }),
+    [ready, model, settings, mobile, bookmarks, historyVersion, syncStatus],
   );
 
   return (

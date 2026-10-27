@@ -38,7 +38,19 @@ export function parseBookmarks(data: unknown): Bookmark[] {
       title: typeof b.title === "string" ? b.title.slice(0, MAX_TEXT) : "",
       favicon: null,
       createdAt: typeof b.createdAt === "number" && Number.isFinite(b.createdAt) ? b.createdAt : 0,
+      // Folders come from the desktop through sync (not shown on the phone, but kept).
+      ...(typeof b.folderId === "string" && /^[\w-]{1,64}$/.test(b.folderId) ? { folderId: b.folderId } : {}),
     });
   }
   return result.slice(-MAX_BOOKMARKS);
+}
+
+/** Bookmark folders received from the desktop (sync); invalid entries are dropped. */
+export function parseFolders(data: unknown): { id: string; name: string; createdAt: number }[] {
+  if (!Array.isArray(data)) return [];
+  return data
+    .filter((value): value is Record<string, unknown> => typeof value === "object" && value !== null)
+    .filter((f) => typeof f.id === "string" && /^[\w-]{1,64}$/.test(f.id) && typeof f.name === "string")
+    .map((f) => ({ id: f.id as string, name: (f.name as string).slice(0, 128), createdAt: typeof f.createdAt === "number" ? f.createdAt : 0 }))
+    .slice(0, 500);
 }

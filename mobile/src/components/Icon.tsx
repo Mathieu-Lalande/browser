@@ -94,6 +94,20 @@ const shapes = {
     <Path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.13-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.13a.5.5 0 0 1 .96 0L14.06 8.5A2 2 0 0 0 15.5 9.94l6.13 1.58a.5.5 0 0 1 0 .96L15.5 14.06a2 2 0 0 0-1.44 1.44l-1.58 6.13a.5.5 0 0 1-.96 0zM20 3v4M22 5h-4" />
   ),
   chevronDown: <Path d="m6 9 6 6 6-6" />,
+  // Sync (ADR-018).
+  cloud: <Path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z" />,
+  cloudOff: <Path d="M2 2l20 20M5.78 5.78A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.31-.2M21.53 16.82A4.5 4.5 0 0 0 17.5 10h-1.79A7 7 0 0 0 10.21 5.2" />,
+  laptop: <Path d="M20 16V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9M2 16h20l-1.4 2.8a2 2 0 0 1-1.8 1.2H5.2a2 2 0 0 1-1.8-1.2z" />,
+  smartphone: (
+    <>
+      <Rect x={5} y={2} width={14} height={20} rx={2.5} />
+      <Path d="M12 18h.01" />
+    </>
+  ),
+  qr: <Path d="M3 3h5v5H3zM16 3h5v5h-5zM3 16h5v5H3zM21 16h-3a2 2 0 0 0-2 2v3M21 21v.01M12 7v3a2 2 0 0 1-2 2H7M3 12h.01M12 3h.01M12 16v.01M16 12h1M21 12v.01M12 21v-1" />,
+  scan: <Path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 12h10" />,
+  unlink: <Path d="M18.84 12.25l1.72-1.71a5 5 0 0 0-7.07-7.07l-1.72 1.71M5.17 11.75l-1.71 1.71a5 5 0 0 0 7.07 7.07l1.71-1.71M8 2v3M2 8h3M16 22v-3M22 16h-3" />,
+  key: <Path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.78 7.78 5.5 5.5 0 0 1 7.78-7.78zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />,
 } as const;
 
 export type IconName = keyof typeof shapes;
@@ -114,6 +128,7 @@ export const COMMAND_ICONS: Partial<Record<CommandIcon, IconName>> = {
   command: "command",
   settings: "settings",
   layers: "layers",
+  cloud: "cloud",
 };
 
 interface Props {

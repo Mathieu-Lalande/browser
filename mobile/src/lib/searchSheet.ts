@@ -1,6 +1,6 @@
 import { getCommand, type CommandContext, type CommandId } from "@shared/commands";
 import { fuzzyMatch, type Range } from "@shared/fuzzy";
-import { buildPalette, type PaletteItem, type PaletteSection } from "@shared/palette";
+import { buildPalette, type PaletteItem, type PaletteSection, type RemoteTabInput } from "@shared/palette";
 import { mergeSuggestions, rankHistory } from "@shared/search";
 import type { Bookmark, HistoryEntry, TabState } from "@shared/types";
 import { normalizeInput, searchUrl, type SearchEngine } from "@shared/url";
@@ -27,6 +27,7 @@ export const MOBILE_COMMANDS: ReadonlySet<CommandId> = new Set<CommandId>([
   "new-space",
   "next-space",
   "previous-space",
+  "sync-now",
 ]);
 
 export type MobileActionId = "share" | "new-private-tab" | "show-tabs";
@@ -72,6 +73,8 @@ export interface SheetInput {
   engine: SearchEngine;
   context: CommandContext;
   now: number;
+  /** Other devices' tabs (sync, ADR-018); left out in private browsing. */
+  remoteTabs?: readonly RemoteTabInput[];
 }
 
 const MAX_SUGGESTIONS = 8;
@@ -105,6 +108,7 @@ export function buildSheet(input: SheetInput): SheetSection[] {
     activeTabId: input.activeTabId,
     suggestions,
     context: input.context,
+    remoteTabs: input.remoteTabs,
   }).map((section) => ({
     ...section,
     items: section.items.filter((item) => item.kind !== "command" || MOBILE_COMMANDS.has(item.command.id)),
