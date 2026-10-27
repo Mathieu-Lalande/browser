@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { COMMANDS, commandAccelerator, commandLabel, getCommand, isCommandAvailable, isCommandId, shortcutKeys } from "./commands";
+import { COMMANDS, commandAccelerator, commandLabel, commandShortcut, getCommand, isCommandAvailable, isCommandId, shortcutKeys, withShortcut } from "./commands";
 import type { TabState } from "./types";
 
 const tab = (overrides: Partial<TabState> = {}): TabState => ({
@@ -107,5 +107,18 @@ describe("shortcutKeys", () => {
     expect(shortcutKeys("CmdOrCtrl+=", "linux")).toEqual(["Ctrl", "+"]);
     expect(shortcutKeys("CmdOrCtrl+-", "linux")).toEqual(["Ctrl", "-"]);
     expect(shortcutKeys("CmdOrCtrl+Plus", "linux")).toEqual(["Ctrl", "+"]);
+  });
+});
+
+describe("displayed shortcuts", () => {
+  it("follow one convention per platform", () => {
+    expect(commandShortcut("toggle-zen", "linux")).toBe("Ctrl+Maj+B");
+    expect(commandShortcut("toggle-zen", "darwin")).toBe("⇧⌘B");
+    expect(commandShortcut("back", "win32")).toBe("Alt+←");
+    expect(commandShortcut("devtools", "darwin")).toBe("⌥⌘I");
+    expect(commandShortcut("picture-in-picture", "linux")).toBe("");
+    expect(withShortcut("Nouvel onglet", "new-tab", "linux")).toBe("Nouvel onglet (Ctrl+T)");
+    expect(withShortcut("Nouvel onglet", "new-tab", "darwin")).toBe("Nouvel onglet (⌘T)");
+    expect(withShortcut("Image dans l'image", "picture-in-picture", "linux")).toBe("Image dans l'image");
   });
 });

@@ -124,7 +124,7 @@ export const SpaceEditor = memo(function SpaceEditor({ space, onClose }: { space
             <Pressable
               accessibilityRole="button"
               onPress={() =>
-                Alert.alert(`Supprimer « ${current.name} » ?`, "Les onglets de cet espace seront fermés.", [
+                Alert.alert(`Supprimer « ${current.name} » ?`, "Les onglets de cet espace seront fermés.", [
                   { text: "Annuler", style: "cancel" },
                   {
                     text: "Supprimer",

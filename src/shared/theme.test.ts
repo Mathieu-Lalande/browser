@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ACCENT_PRESETS, DEFAULT_SETTINGS } from "./settings";
-import { CONTRAST, blend, contrastRatio, derivePalette, parseCssColor, parseHex, themeVariables, toHex, type Palette, type Rgb } from "./theme";
+import { CONTRAST, accentVariables, blend, clampAccentLightness, contrastRatio, derivePalette, parseCssColor, parseHex, themeVariables, toHex, type Palette, type Rgb } from "./theme";
 
 const ACCENTS = [
   "#8b7bff",
@@ -106,5 +106,34 @@ describe("themeVariables", () => {
     expect(vars["--viewport-shadow"]).not.toContain("30px");
     expect(vars["--backdrop"]).toBe("var(--bg)");
     expect(vars["color-scheme"]).toBe("light");
+  });
+});
+
+describe("accentVariables (space colors)", () => {
+  const EXTREMES = ["#fff200", "#ffffff", "#ffff00", "#101010", "#000000", "#00ffff", "#7f7f7f", "#e5484d"];
+  for (const mode of MODES) {
+    for (const color of EXTREMES) {
+      it(`keeps ${color} readable in ${mode} mode`, () => {
+        const vars = accentVariables(color, mode);
+        const palette = derivePalette(DEFAULT_SETTINGS.appearance.accent, DEFAULT_SETTINGS.appearance.accent2, mode);
+        const accent = solid(vars["--accent"]);
+        const accentText = solid(vars["--accent-text"]);
+        for (const ground of [solid(palette.bg), solid(palette.bgElevated)]) {
+          expect(contrastRatio(accentText, ground)).toBeGreaterThanOrEqual(CONTRAST.text - 0.05);
+        }
+        expect(contrastRatio(solid(vars["--on-accent"]), accent)).toBeGreaterThanOrEqual(CONTRAST.text);
+      });
+    }
+  }
+
+  it("clamps the lightness of user-picked colors, keeping mid colors as they are", () => {
+    expect(clampAccentLightness("#8b7bff")).toBe("#8b7bff");
+    const light = clampAccentLightness("#ffffff")!;
+    const dark = clampAccentLightness("#000000")!;
+    expect(light).not.toBe("#ffffff");
+    expect(dark).not.toBe("#000000");
+    expect(contrastRatio(solid(light), solid("#ffffff"))).toBeGreaterThan(1.3);
+    expect(contrastRatio(solid(dark), solid("#000000"))).toBeGreaterThan(1.3);
+    expect(clampAccentLightness("nope")).toBeNull();
   });
 });

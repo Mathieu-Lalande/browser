@@ -146,6 +146,7 @@ export const BottomBar = memo(function BottomBar(props: Props) {
           accessibilityRole="button"
           accessibilityLabel="Afficher la barre d'outils"
           onPress={props.onExpand}
+          hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
           style={styles.miniTap}
           pressScale={0.97}
         >
@@ -161,7 +162,7 @@ export const BottomBar = memo(function BottomBar(props: Props) {
           <Animated.View style={[styles.pillRow, pill]}>
             <Tap
               accessibilityRole="search"
-              accessibilityLabel={label ? `Adresse : ${label}. Toucher pour rechercher` : "Rechercher ou saisir une adresse"}
+              accessibilityLabel={label ? `Adresse : ${label}. Toucher pour rechercher` : "Rechercher ou saisir une adresse"}
               accessibilityHint="Balayer vers la gauche ou la droite pour changer d'onglet"
               onPress={props.onOpenSearch}
               onLongPress={() => {
@@ -257,7 +258,7 @@ const styles = StyleSheet.create({
   },
   pillIcon: { width: 20, alignItems: "center" },
   pillText: { flex: 1, textAlign: "center", fontSize: 16, fontWeight: "500", marginHorizontal: 4 },
-  pillAction: { width: 40, height: 40 },
+  pillAction: { width: 44, height: 44 },
   progressTrack: { position: "absolute", left: 0, right: 0, bottom: 0, height: 2.5 },
   progress: { height: 2.5, borderRadius: 2 },
   toolRow: { height: TOOL_ROW, flexDirection: "row", alignItems: "center", justifyContent: "space-around", paddingHorizontal: 8 },

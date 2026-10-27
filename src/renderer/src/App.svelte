@@ -1,9 +1,14 @@
 <script lang="ts">
   import { internalPageOf } from "@shared/internal";
+  import { accentVariables } from "@shared/theme";
+  import { cubicOut } from "svelte/easing";
   import { api, browser } from "./lib/browser.svelte";
   import DownloadsPage from "./components/downloads/DownloadsPage.svelte";
   import FindBar from "./components/FindBar.svelte";
   import HttpsOnlyPage from "./components/HttpsOnlyPage.svelte";
+  import LoadErrorPage from "./components/LoadErrorPage.svelte";
+  import { platform } from "./lib/platform.svelte";
+  import WindowControls from "./components/WindowControls.svelte";
   import { settings } from "./lib/settings.svelte";
   import { applyTheme } from "./lib/theme";
   import Icon from "./components/Icon.svelte";
@@ -38,12 +43,39 @@
   const internalPage = $derived(internalPageOf(browser.activeTab?.url ?? ""));
   /** Find bar of the active tab, over web pages only. */
   const findState = $derived(
-    browser.activeTab?.find?.open && !showStartPage && !internalPage && !browser.activeTab.interstitial ? browser.activeTab.find : null,
+    browser.activeTab?.find?.open && !showStartPage && !internalPage && !browser.activeTab.interstitial && !browser.activeTab.loadError ? browser.activeTab.find : null,
   );
   let findBar = $state<FindBar>();
   let findFocusPending = $state(false);
-  // macOS draws its traffic lights top-left: with the sidebar on the right, keep them off the page.
-  const trafficLights = $derived(window.platform === "darwin" && right && !zen);
+  /**
+   * The space color goes through the theme's contrast engine (clamped lightness, WCAG-adjusted
+   * accent text, readable ink on accent fills), like the theme accent itself.
+   */
+  const spaceAccent = $derived(spaceColor ? accentVariables(spaceColor, browser.isPrivate ? "dark" : settings.mode) : null);
+  /** The sidebar is hidden by the user (Ctrl+S), outside zen mode: its toggle moves to the window bar. */
+  const collapsed = $derived(!showSidebar && !zen);
+  /**
+   * Window buttons. macOS: native traffic lights at the top-left, kept clear of the UI by the
+   * sidebar's title bar (sidebar on the left), a 36px band (sidebar on the right) or the window
+   * bar's left padding (sidebar hidden); main hides them in zen mode. Windows/Linux (frameless):
+   * minimize/maximize/close drawn at the window's outer top-right corner: in the sidebar's title
+   * bar when it is on the right (or revealed in zen mode), else in a draggable bar above the page,
+   * which shrinks to a thin drag strip in zen mode.
+   */
+  const trafficLights = $derived(platform.isMac && !zen && right && showSidebar);
+  const controlsInSidebar = $derived(!platform.isMac && showSidebar && (right || zen));
+  const windowBar = $derived(collapsed || (!platform.isMac && (zen || !right)));
+  const barControls = $derived(!platform.isMac && !zen);
+
+  /** Zen and Ctrl+S: the sidebar grows/shrinks (the page view follows, one bounds update per frame). */
+  function slide(node: HTMLElement, { duration = 180 }: { duration?: number } = {}) {
+    const width = node.offsetWidth;
+    return {
+      duration,
+      easing: cubicOut,
+      css: (t: number) => `width: ${t * width}px; overflow: hidden;`,
+    };
+  }
 
   // Theme: every setting maps to CSS variables on :root, re-applied live.
   $effect(() => applyTheme(settings.current, settings.mode, browser.isPrivate));
@@ -85,15 +117,28 @@
 
   // Keep the native page view glued to the viewport element.
   $effect(() => {
-    const report = () => {
+    // At most one bounds update per frame: while the sidebar slides, the page follows it frame by
+    // frame instead of receiving a burst of IPC messages (or jumping once at the end).
+    let frame = 0;
+    let last = "";
+    const send = () => {
+      frame = 0;
       const rect = viewport.getBoundingClientRect();
-      api.layout.setContentBounds({ x: rect.x, y: rect.y, width: rect.width, height: rect.height });
+      const bounds = { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+      const key = JSON.stringify(bounds);
+      if (key === last) return;
+      last = key;
+      api.layout.setContentBounds(bounds);
+    };
+    const report = () => {
+      if (!frame) frame = requestAnimationFrame(send);
     };
     const observer = new ResizeObserver(report);
     observer.observe(viewport);
     window.addEventListener("resize", report);
-    report();
+    send();
     return () => {
+      cancelAnimationFrame(frame);
       observer.disconnect();
       window.removeEventListener("resize", report);
     };
@@ -126,33 +171,50 @@
   class:zen
   class:collapsed={!showSidebar}
   class:lights={trafficLights}
-  class:tinted={spaceColor}
-  style:--space-color={spaceColor}
-  style:--accent={spaceColor}
+  class:barred={windowBar}
+  class:tinted={spaceAccent}
+  style:--space-color={spaceAccent?.["--accent"]}
+  style:--accent={spaceAccent?.["--accent"]}
+  style:--accent-text={spaceAccent?.["--accent-text"]}
+  style:--on-accent={spaceAccent?.["--on-accent"]}
 >
-  {#if trafficLights}<div class="lights drag"></div>{/if}
+  {#if trafficLights}<div class="lights drag" data-testid="traffic-lights-band"></div>{/if}
   {#if showSidebar}
     <!-- Pointer tracking only (zen auto-hide); every control inside stays keyboard reachable. -->
     <div
       class="sidebar-frame"
+      transition:slide
       bind:this={sidebarFrame}
       role="presentation"
       onmouseenter={() => clearTimeout(hideTimer)}
       onmouseleave={() => scheduleHide()}
       onfocusout={() => scheduleHide()}
     >
-      <Sidebar bind:this={sidebar} onToggle={toggleSidebar} />
+      <Sidebar bind:this={sidebar} onToggle={toggleSidebar} windowControls={controlsInSidebar} />
       <SidebarResizer side={right ? "right" : "left"} />
     </div>
   {:else if zen}
     <!-- A thin strip left uncovered by the page view: the chrome UI cannot see the pointer over the page. -->
     <div class="edge" role="presentation" data-testid="zen-edge" onmouseenter={revealFromEdge}></div>
-  {:else}
-    <div class="reveal drag">
-      <button class="no-drag" aria-label="Afficher la barre latérale" onclick={toggleSidebar}><Icon name="sidebar" /></button>
-    </div>
   {/if}
   <div class="content">
+    {#if windowBar}
+      <!-- Draggable: the window can be moved whatever the sidebar's state. -->
+      <div class="window-bar drag" class:thin={zen} class:mac={platform.isMac} data-testid="window-bar">
+        {#if collapsed}
+          <button
+            class="reveal no-drag"
+            aria-label="Afficher la barre latérale"
+            title={platform.tip("Afficher la barre latérale", "toggle-sidebar")}
+            onclick={toggleSidebar}
+          >
+            <Icon name="sidebar" />
+          </button>
+        {/if}
+        <span class="bar-spacer"></span>
+        {#if barControls}<WindowControls />{/if}
+      </div>
+    {/if}
     <!-- The page view is native and cannot be drawn over: the bar shrinks the viewport instead. -->
     {#if browser.activeTab && permissionRequest}
       <PermissionBar tabId={browser.activeTab.id} prompt={permissionRequest} />
@@ -176,6 +238,8 @@
         <DownloadsPage />
       {:else if browser.activeTab?.interstitial}
         <HttpsOnlyPage tab={browser.activeTab} />
+      {:else if browser.activeTab?.loadError}
+        <LoadErrorPage tab={browser.activeTab} error={browser.activeTab.loadError} />
       {/if}
     </main>
   </div>
@@ -188,8 +252,9 @@
     height: 100%;
     padding: var(--gutter) var(--gutter) var(--gutter) 0;
   }
+  /* Sidebar hidden: the page keeps a gutter on both sides. */
   .shell.collapsed {
-    padding-left: 0;
+    padding-left: var(--gutter);
   }
   .shell.tinted {
     background: radial-gradient(120% 80% at 0% 0%, color-mix(in oklab, var(--space-color) 14%, transparent), transparent 60%);
@@ -200,10 +265,55 @@
     padding: var(--gutter) 0 var(--gutter) var(--gutter);
   }
   .shell.right.collapsed {
-    padding-right: 0;
+    padding-right: var(--gutter);
   }
   .shell.lights {
     padding-top: 36px;
+  }
+  /* The window bar replaces the top gutter of the page column. */
+  .shell.barred {
+    padding-top: 0;
+  }
+  .window-bar {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 4px;
+    height: 40px;
+    /* The buttons sit at the window's edge, not at the page's. */
+    margin-right: calc(4px - var(--gutter));
+  }
+  .shell.collapsed .window-bar {
+    margin-left: calc(4px - var(--gutter));
+  }
+  /* Sidebar on the right: its toggle sits on that side, next to the window buttons. */
+  .shell.right .reveal {
+    order: 2;
+  }
+  .shell.right .window-bar :global(.controls) {
+    order: 3;
+  }
+  /* macOS: room for the traffic lights (16px from the left edge, about 52px wide). */
+  .window-bar.mac {
+    padding-left: 72px;
+  }
+  .bar-spacer {
+    flex: 1;
+  }
+  .reveal {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    color: var(--text-muted);
+  }
+  .reveal:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+  }
+  .window-bar.thin {
+    height: 8px;
   }
   .lights {
     position: absolute;
@@ -214,23 +324,6 @@
     position: relative;
     display: flex;
     flex: none;
-  }
-  .reveal {
-    display: flex;
-    justify-content: center;
-    width: 40px;
-    padding-top: 6px;
-  }
-  .reveal button {
-    display: grid;
-    place-items: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    color: var(--text-muted);
-  }
-  .reveal button:hover {
-    background: var(--surface-hover);
   }
   .content {
     display: flex;

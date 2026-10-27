@@ -1,3 +1,4 @@
+import type { LoadError } from "./load-error";
 import type { SpaceIcon } from "./spaces";
 
 export type TabId = string;
@@ -22,6 +23,8 @@ export interface TabState {
   permissionRequest: PermissionPrompt | null;
   /** A built-in page the chrome UI renders instead of the web page (the view is detached). */
   interstitial: TabInterstitial | null;
+  /** The page failed to load (unreachable site…): the chrome UI shows an error page, the view is detached. */
+  loadError?: LoadError | null;
   /** Epoch milliseconds of the last activation (0: never active since the app started). */
   lastActiveAt: number;
   /**

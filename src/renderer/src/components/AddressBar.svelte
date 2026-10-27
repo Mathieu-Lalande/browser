@@ -4,6 +4,7 @@
   import type { Bookmark } from "@shared/types";
   import { displayUrl, normalizeInput, searchUrl } from "@shared/url";
   import { api, browser } from "../lib/browser.svelte";
+  import { platform } from "../lib/platform.svelte";
   import { settings } from "../lib/settings.svelte";
   import Favicon from "./Favicon.svelte";
   import Icon from "./Icon.svelte";
@@ -111,10 +112,11 @@
   <form class="address" class:focused onsubmit={submit}>
     <span
       class="status"
-      class:secure={isSecure || isInternal}
-      title={isInternal ? "Page du navigateur" : isSecure ? "Connexion sécurisée" : undefined}
+      class:secure={!open && (isSecure || isInternal)}
+      title={open ? undefined : isInternal ? "Page du navigateur" : isSecure ? "Connexion sécurisée" : tab?.url ? "Connexion non chiffrée" : undefined}
     >
-      <Icon name={!tab?.url ? "search" : isInternal ? "sparkle" : isSecure ? "lock" : "warning"} size={12} />
+      <!-- While typing, the icon says what Enter will do (search or go), not the current page's security. -->
+      <Icon name={open ? (isSearch ? "search" : "globe") : !tab?.url ? "search" : isInternal ? "sparkle" : isSecure ? "lock" : "warning"} size={12} />
     </span>
     <input
       bind:this={input}
@@ -137,11 +139,11 @@
       <button
         type="button"
         class="zoom"
-        title="Zoom de ce site : {tab.zoom} %. Cliquer pour revenir à {defaultZoom} % (Ctrl+0)."
+        title="Zoom de ce site : {tab.zoom} %. Cliquer pour revenir à {defaultZoom} % ({platform.shortcut('zoom-reset')})."
         aria-label="Zoom {tab.zoom} %, revenir à {defaultZoom} %"
         onclick={() => api.commands.run("zoom-reset")}
       >
-        {tab.zoom} %
+        {tab.zoom}&#8239;%
       </button>
     {/if}
     {#if tab?.url && !focused && !isInternal}
@@ -151,7 +153,7 @@
         class:on={tab.isBookmarked}
         aria-label={tab.isBookmarked ? "Retirer des favoris" : "Ajouter aux favoris"}
         aria-pressed={tab.isBookmarked}
-        title={tab.isBookmarked ? "Retirer des favoris (Ctrl+D)" : "Ajouter aux favoris (Ctrl+D)"}
+        title={platform.tip(tab.isBookmarked ? "Retirer des favoris" : "Ajouter aux favoris", "toggle-bookmark")}
         onclick={() => api.bookmarks.toggleActive()}
       >
         <Icon name="star" size={16} filled={tab.isBookmarked} />
@@ -188,7 +190,9 @@
       >
         <span class="icon"><Icon name={isSearch ? "search" : "globe"} size={16} /></span>
         <span class="text">
-          {#if isSearch}Rechercher « {query} »{:else}Aller à {displayUrl(normalizeInput(query, settings.engine))}{/if}
+          <span class="title"
+            >{#if isSearch}Rechercher « {query} »{:else}Aller à {displayUrl(normalizeInput(query, settings.engine))}{/if}</span
+          >
         </span>
       </li>
       {#each suggestions as suggestion, index (suggestion.url)}
@@ -240,7 +244,7 @@
     background: var(--surface-hover);
   }
   .address.focused {
-    border-color: color-mix(in oklab, var(--accent) 60%, transparent);
+    border-color: var(--accent-text);
     background: var(--bg-elevated);
     box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 20%, transparent);
   }
@@ -269,7 +273,7 @@
     margin-right: -4px;
     padding: 0 6px;
     border-radius: 7px;
-    color: var(--accent);
+    color: var(--accent-text);
     font-size: 11px;
     font-variant-numeric: tabular-nums;
   }
@@ -310,7 +314,7 @@
     color: var(--text);
   }
   .star.on {
-    color: var(--accent);
+    color: var(--accent-text);
   }
   .suggestions {
     margin: 0;
@@ -366,7 +370,7 @@
   }
   .kind {
     display: grid;
-    color: var(--accent);
+    color: var(--accent-text);
   }
   @keyframes drop {
     from {

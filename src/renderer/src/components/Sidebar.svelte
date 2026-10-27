@@ -2,11 +2,13 @@
   import { cubicOut } from "svelte/easing";
   import { fly } from "svelte/transition";
   import type { SpaceId, TabState } from "@shared/types";
+  import { displayUrl } from "@shared/url";
   import { api, browser } from "../lib/browser.svelte";
   import AddressBar from "./AddressBar.svelte";
   import DownloadsButton from "./downloads/DownloadsButton.svelte";
   import { settings } from "../lib/settings.svelte";
   import Icon from "./Icon.svelte";
+  import { platform } from "../lib/platform.svelte";
   import TabIcon from "./TabIcon.svelte";
   import TabItem from "./TabItem.svelte";
   import WindowControls from "./WindowControls.svelte";
@@ -14,13 +16,14 @@
   import SpaceSwitcher from "./spaces/SpaceSwitcher.svelte";
   import SplitGroup from "./split/SplitGroup.svelte";
 
-  let { onToggle }: { onToggle: () => void } = $props();
+  /** `windowControls`: draw the window buttons at the end of the title bar (Windows/Linux, see App). */
+  let { onToggle, windowControls = false }: { onToggle: () => void; windowControls?: boolean } = $props();
   let addressBar: AddressBar;
+  let tabList = $state<HTMLElement>();
 
   const tab = $derived(browser.activeTab);
-  const isMac = window.platform === "darwin";
   // macOS traffic lights sit at the window's top-left: only a left sidebar makes room for them.
-  const roomForTrafficLights = $derived(isMac && settings.current.layout.sidebarPosition === "left");
+  const roomForTrafficLights = $derived(platform.isMac && settings.current.layout.sidebarPosition === "left");
   const zen = $derived(settings.current.layout.zenMode);
 
   export function focusAddress(): void {
@@ -41,23 +44,92 @@
     previousIndex = index;
   });
 
-  /** Regular tabs, with the tabs of a split gathered in one entry at the place of its first tab. */
+  /** Regular tabs, with the tabs of a split gathered in one entry (in pane order) at the place of its first tab. */
   type Entry = { key: string; tab: TabState } | { key: string; split: TabState[] };
   const entries = $derived.by((): Entry[] => {
-    const splitIds = new Set(browser.state.split?.tabIds ?? []);
-    const members = browser.regularTabs.filter((item) => splitIds.has(item.id));
+    const splitIds = browser.state.split?.tabIds ?? [];
+    const members = splitIds.map((id) => browser.regularTabs.find((item) => item.id === id)).filter((item) => item !== undefined);
     const list: Entry[] = [];
+    let placed = false;
     for (const item of browser.regularTabs) {
-      if (!splitIds.has(item.id) || members.length < 2) list.push({ key: item.id, tab: item });
-      else if (item === members[0]) list.push({ key: `split-${item.id}`, split: members });
+      if (!splitIds.includes(item.id) || members.length < 2) list.push({ key: item.id, tab: item });
+      else if (!placed) {
+        placed = true;
+        list.push({ key: `split-${members[0].id}`, split: members });
+      }
     }
     return list;
   });
+
+  /** The tab list's single Tab stop (roving tabindex): the active tab, else the first one. */
+  const focusId = $derived(
+    browser.regularTabs.some((item) => item.id === browser.state.activeTabId) ? browser.state.activeTabId : (browser.regularTabs[0]?.id ?? null),
+  );
+
+  /** Bring the active tab into view (switching tabs from the palette, a shortcut, a new tab…). */
+  $effect(() => {
+    const id = browser.state.activeTabId;
+    if (!id || !tabList) return;
+    queueMicrotask(() => tabList?.querySelector<HTMLElement>(`[data-tab-id="${id}"]`)?.scrollIntoView({ block: "nearest" }));
+  });
+
+  /**
+   * Keyboard navigation of the tab list (WAI-ARIA tabs pattern, vertical): arrows and Home/End
+   * move the focus, Enter/Space activate, Delete/Backspace close the focused tab.
+   */
+  function onTabsKeydown(event: KeyboardEvent): void {
+    const items = [...(tabList?.querySelectorAll<HTMLElement>("[role=tab]") ?? [])];
+    const current = items.findIndex((item) => item === document.activeElement);
+    if (current === -1) return;
+    const id = items[current].dataset.tabId!;
+    const focus = (index: number) => {
+      const target = items[Math.max(0, Math.min(items.length - 1, index))];
+      for (const item of items) item.tabIndex = item === target ? 0 : -1;
+      target?.focus();
+      target?.scrollIntoView({ block: "nearest" });
+    };
+    switch (event.key) {
+      case "ArrowDown":
+        focus(current + 1);
+        break;
+      case "ArrowUp":
+        focus(current - 1);
+        break;
+      case "Home":
+        focus(0);
+        break;
+      case "End":
+        focus(items.length - 1);
+        break;
+      case "Enter":
+      case " ":
+        api.tabs.activate(id);
+        break;
+      case "Delete":
+      case "Backspace": {
+        // Focus moves to the neighbour that takes the closed tab's place.
+        const next = items[current + 1] ?? items[current - 1];
+        api.tabs.close(id);
+        if (next) {
+          const nextId = next.dataset.tabId;
+          setTimeout(() => tabList?.querySelector<HTMLElement>(`[data-tab-id="${nextId}"]`)?.focus(), 50);
+        }
+        break;
+      }
+      default:
+        return;
+    }
+    event.preventDefault();
+  }
+
+  function newTab(): void {
+    api.tabs.create();
+    focusAddress();
+  }
 </script>
 
 <aside class="sidebar">
   <header class="titlebar drag" class:mac={roomForTrafficLights}>
-    {#if !isMac}<WindowControls />{/if}
     {#if browser.isPrivate}
       <div class="private-badge" title="Navigation privée : ni historique, ni cookies conservés après la fermeture de la fenêtre">
         <Icon name="mask" size={16} />
@@ -65,25 +137,54 @@
       </div>
     {/if}
     <div class="spacer"></div>
-    <button class="icon no-drag" aria-label="Masquer la barre latérale" title="Masquer la barre latérale (Ctrl+S)" onclick={onToggle}>
+    <button
+      class="icon no-drag"
+      class:on={zen}
+      aria-label="Mode zen"
+      aria-pressed={zen}
+      title={platform.tip("Mode zen", "toggle-zen")}
+      onclick={() => settings.update({ layout: { zenMode: !zen } })}
+    >
+      <Icon name="zen" />
+    </button>
+    <button class="icon no-drag" aria-label="Masquer la barre latérale" title={platform.tip("Masquer la barre latérale", "toggle-sidebar")} onclick={onToggle}>
       <Icon name="sidebar" />
     </button>
+    {#if windowControls}<WindowControls />{/if}
   </header>
 
   <nav class="nav">
-    <button class="icon" aria-label="Précédent" disabled={!tab?.canGoBack} onclick={() => tab && api.tabs.back(tab.id)}>
+    <button class="icon" aria-label="Précédent" title={platform.tip("Précédent", "back")} disabled={!tab?.canGoBack} onclick={() => tab && api.tabs.back(tab.id)}>
       <Icon name="back" />
     </button>
-    <button class="icon" aria-label="Suivant" disabled={!tab?.canGoForward} onclick={() => tab && api.tabs.forward(tab.id)}>
+    <button class="icon" aria-label="Suivant" title={platform.tip("Suivant", "forward")} disabled={!tab?.canGoForward} onclick={() => tab && api.tabs.forward(tab.id)}>
       <Icon name="forward" />
     </button>
     {#if tab?.isLoading}
-      <button class="icon" aria-label="Arrêter" onclick={() => tab && api.tabs.stop(tab.id)}><Icon name="stop" /></button>
+      <button class="icon" aria-label="Arrêter" title="Arrêter le chargement" onclick={() => tab && api.tabs.stop(tab.id)}><Icon name="stop" /></button>
     {:else}
-      <button class="icon" aria-label="Actualiser" disabled={!tab?.url} onclick={() => tab && api.tabs.reload(tab.id)}>
+      <button class="icon" aria-label="Actualiser" title={platform.tip("Actualiser", "reload")} disabled={!tab?.url} onclick={() => tab && api.tabs.reload(tab.id)}>
         <Icon name="reload" />
       </button>
     {/if}
+    <div class="spacer"></div>
+    <button
+      class="icon"
+      class:on={browser.splitTabs.length > 1}
+      aria-label={browser.splitTabs.length > 1 ? "Quitter la vue scindée" : "Vue scindée"}
+      title={platform.tip(browser.splitTabs.length > 1 ? "Quitter la vue scindée" : "Vue scindée : afficher deux onglets côte à côte", "toggle-split")}
+      onclick={() => api.commands.run("toggle-split")}
+    >
+      <Icon name="split" />
+    </button>
+    <button
+      class="icon"
+      aria-label="Palette de commandes"
+      title={platform.tip("Palette de commandes : onglets, pages et actions", "command-palette")}
+      onclick={() => api.commands.run("command-palette")}
+    >
+      <Icon name="command" />
+    </button>
   </nav>
 
   <AddressBar bind:this={addressBar} />
@@ -111,7 +212,7 @@
                 class:asleep={pinned.isAsleep}
                 role="tab"
                 aria-selected={pinned.id === browser.state.activeTabId}
-                title={pinned.title}
+                title={pinned.url && pinned.url !== pinned.title ? `${pinned.title}\n${displayUrl(pinned.url)}` : pinned.title}
                 onclick={() => api.tabs.activate(pinned.id)}
                 ondblclick={() => api.tabs.togglePin(pinned.id)}
                 oncontextmenu={(event) => (event.preventDefault(), api.tabs.contextMenu(pinned.id))}
@@ -124,16 +225,24 @@
 
         <div class="divider"></div>
 
-        <button class="new-tab" onclick={() => (api.tabs.create(), focusAddress())}>
+        <button class="new-tab" title={platform.tip("Nouvel onglet", "new-tab")} onclick={newTab}>
           <Icon name="plus" size={16} /> Nouvel onglet
         </button>
 
-        <div class="tabs" role="tablist" aria-label="Onglets" aria-orientation="vertical">
+        <div
+          class="tabs"
+          role="tablist"
+          aria-label="Onglets"
+          aria-orientation="vertical"
+          tabindex="-1"
+          bind:this={tabList}
+          onkeydown={onTabsKeydown}
+        >
           {#each entries as entry (entry.key)}
             {#if "split" in entry}
-              <SplitGroup tabs={entry.split} />
+              <SplitGroup tabs={entry.split} {focusId} />
             {:else}
-              <TabItem tab={entry.tab} active={entry.tab.id === browser.state.activeTabId} />
+              <TabItem tab={entry.tab} active={entry.tab.id === browser.state.activeTabId} focusable={entry.tab.id === focusId} />
             {/if}
           {/each}
         </div>
@@ -154,18 +263,8 @@
       <SpaceSwitcher onEdit={(id) => (editing = editing === id ? null : id)} />
     {/if}
     <DownloadsButton />
-    <button class="icon" aria-label="Paramètres" title="Paramètres (Ctrl+,)" onclick={() => api.settings.open()}>
+    <button class="icon" aria-label="Paramètres" title={platform.tip("Paramètres", "open-settings")} onclick={() => api.settings.open()}>
       <Icon name="settings" />
-    </button>
-    <button
-      class="icon"
-      class:on={zen}
-      aria-label="Mode zen"
-      aria-pressed={zen}
-      title="Mode zen (Ctrl+Maj+B)"
-      onclick={() => settings.update({ layout: { zenMode: !zen } })}
-    >
-      <Icon name="zen" />
     </button>
   </footer>
 </aside>
@@ -176,15 +275,18 @@
     display: flex;
     flex-direction: column;
     gap: var(--sidebar-gap);
-    width: var(--sidebar-width);
+    /* Never more than 45% of the window, whatever the saved width. */
+    width: min(var(--sidebar-width), 45vw);
     height: 100%;
     padding: 0 8px 8px;
   }
   .titlebar {
     display: flex;
-    align-items: center;
-    height: 40px;
     flex: none;
+    align-items: center;
+    gap: 2px;
+    height: 40px;
+    margin-right: -4px;
   }
   .titlebar.mac {
     padding-left: 72px;
@@ -214,9 +316,10 @@
   .icon:disabled {
     opacity: 0.35;
   }
+  /* Tiles share the row: few pinned tabs fill it, many wrap onto more rows. */
   .pinned {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(44px, 1fr));
     gap: 6px;
     margin-top: 6px;
   }
@@ -334,12 +437,26 @@
     width: 26px;
     height: 26px;
   }
+  /*
+   * Rows keep their height and the list scrolls (never squeezes). The 2px padding keeps the
+   * active tab's ring and shadow inside the scroll box; the gutter stays reserved so the rows do
+   * not shift when the scrollbar appears.
+   */
   .tabs {
     display: flex;
     flex-direction: column;
     gap: 2px;
     min-height: 0;
+    margin: 0 -2px;
+    padding: 2px;
     overflow-y: auto;
+    scrollbar-gutter: stable;
+  }
+  .tabs > :global(*) {
+    flex: none;
+  }
+  .tabs:focus-visible {
+    outline-offset: -2px;
   }
   .footer {
     display: flex;

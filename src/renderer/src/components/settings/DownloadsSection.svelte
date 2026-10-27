@@ -25,7 +25,8 @@
   <Toggle label="Toujours demander où enregistrer" checked={s.askWhere} onchange={(askWhere) => settings.update({ downloads: { askWhere } })} />
 </Row>
 <Row label="Fichiers exécutables" hint="Programmes, installeurs et scripts (.exe, .dmg, .sh…) attendent votre confirmation avant d'arriver dans le dossier. Rien n'est jamais ouvert automatiquement.">
-  <span class="badge"><Icon name="shield" size={12} /> Toujours</span>
+  <!-- A fixed safeguard, not a setting: plain status text, nothing to click. -->
+  <span class="status">Toujours activé</span>
 </Row>
 
 <style>
@@ -53,11 +54,9 @@
   .secondary:hover {
     background: var(--surface-hover);
   }
-  .badge {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--text-muted);
+  .status {
+    color: var(--text-faint);
     font-size: 12px;
+    white-space: nowrap;
   }
 </style>

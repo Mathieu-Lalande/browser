@@ -1,5 +1,6 @@
 import { join } from "node:path";
-import { app, BrowserWindow, nativeTheme, type Session, type WebContents } from "electron";
+import { app, BrowserWindow, nativeTheme, session, type Session, type WebContents } from "electron";
+import { internalUrl, type InternalPage } from "@shared/internal";
 import { Channels } from "@shared/ipc";
 import { PRIVATE_SPACE, privateSettings } from "@shared/private";
 import { pageRadius, searchEngineOf, type Settings } from "@shared/settings";
@@ -103,6 +104,11 @@ export class BrowserController {
     return downloadViewerOf(this.privateSession);
   }
 
+  /** The session of the pages of the space on screen (a download retried from this window starts there). */
+  get tabSession(): Session {
+    return this.privateSession ?? spaces.sessionFor(this.spaces.activeSpaceId) ?? session.defaultSession;
+  }
+
   /** The tabs of the space on screen (what tab commands and shortcuts act on). */
   get tabs(): TabManager {
     return this.spaces.active;
@@ -169,6 +175,13 @@ export class BrowserController {
       },
     });
 
+    // The window controls show "restore" instead of "maximize" while maximized.
+    for (const event of ["maximize", "unmaximize", "enter-full-screen", "leave-full-screen"] as const) {
+      this.window.on(event as "maximize", () => {
+        if (!this.window.isDestroyed()) chrome.send(Channels.windowMaximized, this.window.isMaximized() || this.window.isFullScreen());
+      });
+    }
+
     this.window.once("ready-to-show", () => {
       this.window.show();
       // Pre-warm the overlay once the window is up, so the first Ctrl+K opens instantly.
@@ -217,8 +230,37 @@ export class BrowserController {
     if (notify) this.window.webContents.send(Channels.settingsChanged, current);
   }
 
+  /**
+   * "Nouvel onglet": shows the space's empty start-page tab if it has one, instead of piling up
+   * identical empty tabs; otherwise opens a new one.
+   */
+  newTab(): void {
+    const empty = this.emptyTab();
+    if (empty) this.tabs.activate(empty);
+    else this.tabs.create();
+  }
+
   openSettings(): void {
-    this.tabs.openInternal("settings");
+    this.openInternal("settings");
+  }
+
+  /** Shows an internal page: its open tab, else in the space's empty start-page tab, else a new tab. */
+  private openInternal(page: InternalPage): void {
+    const { tabs } = this.tabs.getState();
+    const empty = this.emptyTab();
+    if (!tabs.some((tab) => tab.url === internalUrl(page)) && empty) {
+      this.tabs.navigate(empty, internalUrl(page));
+      this.tabs.activate(empty);
+    } else {
+      this.tabs.openInternal(page);
+    }
+  }
+
+  /** An unpinned tab of the active space showing the start page (the active one first). */
+  private emptyTab(): string | undefined {
+    const { tabs, activeTabId } = this.tabs.getState();
+    const empty = tabs.filter((tab) => !tab.url && !tab.isPinned);
+    return (empty.find((tab) => tab.id === activeTabId) ?? empty[0])?.id;
   }
 
   /** Native background color behind the UI: the theme's, or the private theme's (always dark). */
@@ -227,7 +269,7 @@ export class BrowserController {
   }
 
   openDownloads(): void {
-    this.tabs.openInternal("downloads");
+    this.openInternal("downloads");
   }
 
   /** Pushes a message to this window's browser UIs (chrome and overlay). */

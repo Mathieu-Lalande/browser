@@ -24,7 +24,7 @@
     style:--fill="{percent}%"
     oninput={(event) => onchange(Number(event.currentTarget.value))}
   />
-  <output>{value}{unit}</output>
+  <output>{value}&#8239;{unit}</output>
 </div>
 
 <style>
@@ -68,7 +68,7 @@
     box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 45%, transparent);
   }
   output {
-    min-width: 44px;
+    min-width: 52px;
     padding: 3px 0;
     border-radius: 6px;
     background: var(--surface);

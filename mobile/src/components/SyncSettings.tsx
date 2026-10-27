@@ -50,7 +50,7 @@ export const SyncSettings = memo(function SyncSettings({ onScan }: { onScan: () 
           first
           icon="cloudOff"
           label="Synchroniser avec votre ordinateur"
-          detail="Favoris, historique récent, onglets ouverts, espaces et thème. Chiffré sur l'appareil : votre serveur ne voit que des données illisibles."
+          detail="Favoris, historique récent, onglets ouverts, espaces et thème. Chiffré sur l'appareil : votre serveur ne voit que des données illisibles."
         />
         <Action icon="scan" label="Scanner le code de jumelage" onPress={onScan} disabled={isPrivate} />
         <View style={[styles.block, { borderTopColor: colors.hairline }]}>
@@ -145,7 +145,7 @@ export const SyncSettings = memo(function SyncSettings({ onScan }: { onScan: () 
           disabled={isPrivate}
           onPress={() =>
             confirm(
-              "Afficher le code de jumelage ?",
+              "Afficher le code de jumelage ?",
               "Ce code donne un accès complet à vos données synchronisées à quiconque le voit. Ne le montrez à personne et ne l'envoyez pas.",
               "Afficher",
               () => setPairingCode(actions.sync.pairingCode()),
@@ -159,7 +159,7 @@ export const SyncSettings = memo(function SyncSettings({ onScan }: { onScan: () 
         destructive
         disabled={busy || isPrivate}
         onPress={() =>
-          confirm("Déconnecter cet appareil ?", "La synchronisation s'arrête ici. Les données restent sur le téléphone.", "Déconnecter", () => {
+          confirm("Déconnecter cet appareil ?", "La synchronisation s'arrête ici. Les données restent sur le téléphone.", "Déconnecter", () => {
             setPairingCode(null);
             void run(() => actions.sync.disconnect());
           })
@@ -172,7 +172,7 @@ export const SyncSettings = memo(function SyncSettings({ onScan }: { onScan: () 
         disabled={busy || isPrivate}
         onPress={() =>
           confirm(
-            "Réinitialiser la synchronisation ?",
+            "Réinitialiser la synchronisation ?",
             "Toutes les données du serveur sont effacées et une nouvelle clé est créée. Vos autres appareils devront être jumelés à nouveau.",
             "Réinitialiser",
             () => {

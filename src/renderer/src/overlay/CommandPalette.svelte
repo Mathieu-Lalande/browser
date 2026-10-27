@@ -58,9 +58,11 @@
     input?.focus();
   });
 
-  // Keep the keyboard selection visible.
+  // Keep the keyboard selection visible; on the first row, the list starts at the top so the first
+  // section's heading ("Onglets récents", "Actions") shows too.
   $effect(() => {
-    list?.querySelector(`#palette-item-${current}`)?.scrollIntoView({ block: "nearest" });
+    if (current <= 0 && list) list.scrollTop = 0;
+    else list?.querySelector(`#palette-item-${current}`)?.scrollIntoView({ block: "nearest" });
   });
 
   async function refreshSuggestions(text: string): Promise<void> {
@@ -174,9 +176,10 @@
       <h2 id="confirm-title">{confirming.confirm?.title}</h2>
       <p id="confirm-detail">{confirming.confirm?.detail}</p>
       <div class="buttons">
-        <button class="button" onclick={cancelConfirm}>Annuler</button>
+        <!-- The safe choice has the focus: Enter never destroys by accident. -->
         <!-- svelte-ignore a11y_autofocus -->
-        <button class="button danger" autofocus onclick={confirm}>{confirming.confirm?.action}</button>
+        <button class="button" autofocus onclick={cancelConfirm}>Annuler</button>
+        <button class="button danger" onclick={confirm}>{confirming.confirm?.action}</button>
       </div>
     </div>
   {:else}
@@ -196,7 +199,6 @@
         aria-autocomplete="list"
         aria-activedescendant={items.length ? `palette-item-${current}` : undefined}
       />
-      <kbd class="esc">Échap</kbd>
     </div>
 
     <div class="results" id="palette-results" role="listbox" aria-label="Résultats" bind:this={list}>
@@ -312,7 +314,7 @@
     height: 58px;
     padding: 0 16px 0 18px;
     border-bottom: 1px solid var(--border);
-    color: var(--accent);
+    color: var(--accent-text);
   }
   input {
     flex: 1;
@@ -377,7 +379,7 @@
   }
   .row.selected .icon.tile {
     background: color-mix(in oklab, var(--accent) 22%, transparent);
-    color: var(--accent);
+    color: var(--accent-text);
   }
   .text {
     display: flex;
@@ -401,7 +403,7 @@
   }
   .badge {
     display: grid;
-    color: var(--accent);
+    color: var(--accent-text);
   }
   .keys {
     display: flex;
@@ -428,9 +430,6 @@
     background: var(--surface);
     color: var(--text-muted);
     font: 500 11px/1 var(--font);
-  }
-  .esc {
-    color: var(--text-faint);
   }
   .empty {
     margin: 0;
@@ -485,7 +484,7 @@
     font-size: 16px;
     font-weight: 600;
   }
-  p {
+  .confirm p {
     max-width: 420px;
     margin: 0 0 20px;
     color: var(--text-muted);

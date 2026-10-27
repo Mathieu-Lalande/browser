@@ -58,6 +58,8 @@ const api: BrowserApi = {
     minimize: () => send(Channels.windowMinimize),
     toggleMaximize: () => send(Channels.windowToggleMaximize),
     close: () => send(Channels.windowClose),
+    isMaximized: () => ipcRenderer.invoke(Channels.windowIsMaximized),
+    onMaximizedChange: (listener) => subscribe<boolean>(Channels.windowMaximized, listener),
   },
   history: {
     search: (query, limit) => ipcRenderer.invoke(Channels.historySearch, query, limit),
@@ -101,6 +103,7 @@ const api: BrowserApi = {
     open: (id) => send(Channels.downloadsOpen, id),
     showInFolder: (id) => send(Channels.downloadsShowInFolder, id),
     remove: (id) => send(Channels.downloadsRemove, id),
+    retry: (id) => send(Channels.downloadsRetry, id),
     clear: () => send(Channels.downloadsClear),
     chooseFolder: () => ipcRenderer.invoke(Channels.downloadsChooseFolder),
     showPanel: (anchor) => send(Channels.downloadsShowPanel, anchor),

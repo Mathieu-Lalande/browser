@@ -169,6 +169,9 @@ test("clearing the history asks for confirmation inside the palette", async ({ a
   expect(await overlayAttached(app)).toBe(true);
 
   await input.press("Enter");
+  // The safe choice has the focus; the destructive one is a deliberate Tab + Enter.
+  await expect(dialog.getByRole("button", { name: "Annuler" })).toBeFocused();
+  await overlay.keyboard.press("Tab");
   await expect(dialog.getByRole("button", { name: "Effacer l'historique" })).toBeFocused();
   await overlay.keyboard.press("Enter");
   await expect.poll(() => overlayAttached(app)).toBe(false);

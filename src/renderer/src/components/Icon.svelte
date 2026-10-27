@@ -33,7 +33,6 @@
   import Film from "@lucide/svelte/icons/film";
   import FlaskConical from "@lucide/svelte/icons/flask-conical";
   import Folder from "@lucide/svelte/icons/folder";
-  import Fullscreen from "@lucide/svelte/icons/fullscreen";
   import Gamepad2 from "@lucide/svelte/icons/gamepad-2";
   import Globe from "@lucide/svelte/icons/globe";
   import GraduationCap from "@lucide/svelte/icons/graduation-cap";
@@ -91,6 +90,19 @@
   import Unlink from "@lucide/svelte/icons/unlink";
   import KeyRound from "@lucide/svelte/icons/key-round";
 
+  import GlobeOff from "@lucide/svelte/icons/globe-off";
+  import Hourglass from "@lucide/svelte/icons/hourglass";
+  import LayersPlus from "@lucide/svelte/icons/layers-plus";
+  import Leaf from "@lucide/svelte/icons/leaf";
+  import ListX from "@lucide/svelte/icons/list-x";
+  import Minus from "@lucide/svelte/icons/minus";
+  import Repeat from "@lucide/svelte/icons/repeat";
+  import ServerOff from "@lucide/svelte/icons/server-off";
+  import ShieldAlert from "@lucide/svelte/icons/shield-alert";
+  import Square from "@lucide/svelte/icons/square";
+  import Unplug from "@lucide/svelte/icons/unplug";
+  import WifiOff from "@lucide/svelte/icons/wifi-off";
+
   type LucideIcon = Component<Record<string, unknown>>;
 
   const ui = {
@@ -135,7 +147,19 @@
     database: Database,
     check: Check,
     reset: RotateCcw,
-    zen: Fullscreen,
+    zen: Leaf,
+    minimize: Minus,
+    maximize: Square,
+    restore: Copy,
+    "layers-plus": LayersPlus,
+    "list-x": ListX,
+    "globe-off": GlobeOff,
+    "wifi-off": WifiOff,
+    "server-off": ServerOff,
+    unplug: Unplug,
+    hourglass: Hourglass,
+    "shield-alert": ShieldAlert,
+    repeat: Repeat,
     mask: VenetianMask,
     download: Download,
     volume: Volume2,

@@ -28,7 +28,9 @@ async function visit(chrome: Page, url: string, title: string): Promise<void> {
 const attachedBounds = (app: ElectronApplication) =>
   app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].contentView.children[0]?.getBounds() ?? null);
 
-test("the gear opens the settings in a tab, and the accent color applies live", async ({ chrome }) => {
+test("the gear opens the settings in a tab, and the accent color applies live", async ({ chrome, server }) => {
+  // From a page (an empty start-page tab would be reused instead).
+  await visit(chrome, server.url("/page"), "Page page");
   await chrome.getByRole("button", { name: "Paramètres" }).click();
   await expect(chrome.getByRole("heading", { name: "Paramètres", level: 1 })).toBeVisible();
   await expect(chrome.locator(".tab.active .title")).toHaveText("Paramètres");
@@ -146,7 +148,8 @@ test("zen mode hides the sidebar, which reappears from the window edge", async (
   await expect(edge).toBeVisible();
   // Edge to edge, but for the thin strip that lets the chrome UI see the pointer.
   await expect.poll(async () => (await attachedBounds(app))?.x).toBe(6);
-  expect((await attachedBounds(app))!.y).toBe(0);
+  // A thin drag strip stays above the page (frameless window on Linux/Windows: it can still be moved).
+  expect((await attachedBounds(app))!.y).toBe(8);
 
   // Raw mouse moves: the strip is replaced by the sidebar as soon as it is entered.
   const strip = (await edge.boundingBox())!;

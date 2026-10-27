@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PermissionKind, PermissionPrompt, TabId } from "@shared/types";
   import { api, browser } from "../lib/browser.svelte";
+  import Checkbox from "./Checkbox.svelte";
   import Icon from "./Icon.svelte";
 
   let { tabId, prompt }: { tabId: TabId; prompt: PermissionPrompt } = $props();
@@ -49,7 +50,7 @@
   <p><strong>{host}</strong>{#if embedder}&nbsp;<span class="embedder">(intégré dans {embedder})</span>{/if} souhaite {request}.</p>
   <!-- Private window: decisions last as long as the window, nothing is remembered (ADR-014). -->
   {#if !browser.isPrivate}
-    <label><input type="checkbox" bind:checked={remember} /> Se souvenir pour ce site</label>
+    <span class="remember"><Checkbox checked={remember} onchange={(value) => (remember = value)}>Se souvenir pour ce site</Checkbox></span>
   {/if}
   <button class="secondary" onclick={() => answer(false)}>Bloquer</button>
   <button class="primary" onclick={() => answer(true)}>Autoriser</button>
@@ -67,7 +68,7 @@
     border-radius: var(--radius);
     background: var(--bg-elevated);
     box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 35%, transparent);
-    color: var(--accent);
+    color: var(--accent-text);
     animation: drop 0.18s var(--ease);
   }
   p {
@@ -79,16 +80,9 @@
   .embedder {
     color: var(--text-muted);
   }
-  label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
+  .remember {
     color: var(--text-muted);
     font-size: 12px;
-  }
-  input {
-    margin: 0;
-    accent-color: var(--accent);
   }
   button {
     height: 30px;
@@ -104,7 +98,7 @@
   }
   .primary {
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
   }
   .primary:hover {
     background: color-mix(in oklab, var(--accent) 85%, #fff);

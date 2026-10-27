@@ -325,3 +325,23 @@ export function shortcutKeys(accelerator: string, platform: string): string[] {
   const names = isMac(platform) ? MAC_SYMBOLS : OTHER_NAMES;
   return [...modifiers.map((modifier) => names[modifier]), KEY_NAMES[key] ?? key.toUpperCase()];
 }
+
+/**
+ * A shortcut as shown in tooltips and hints, one convention everywhere: "Ctrl+Maj+B" (French
+ * "Maj" for Shift) on Windows/Linux, "⇧⌘B" on macOS.
+ */
+export function shortcutText(accelerator: string, platform: string): string {
+  return shortcutKeys(accelerator, platform).join(isMac(platform) ? "" : "+");
+}
+
+/** The displayed shortcut of a registry command on `platform` ("" when it has none). */
+export function commandShortcut(id: CommandId, platform: string): string {
+  const accelerator = commandAccelerator(getCommand(id), platform);
+  return accelerator ? shortcutText(accelerator, platform) : "";
+}
+
+/** A tooltip naming a command's shortcut: "Nouvel onglet (Ctrl+T)", or the label alone. */
+export function withShortcut(label: string, id: CommandId, platform: string): string {
+  const shortcut = commandShortcut(id, platform);
+  return shortcut ? `${label} (${shortcut})` : label;
+}

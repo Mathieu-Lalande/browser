@@ -50,6 +50,8 @@ export const Channels = {
   windowMinimize: "window:minimize",
   windowToggleMaximize: "window:toggle-maximize",
   windowClose: "window:close",
+  windowIsMaximized: "window:is-maximized",
+  windowMaximized: "window:maximized",
   historySearch: "history:search",
   historyTopSites: "history:top-sites",
   historyClear: "history:clear",
@@ -80,6 +82,7 @@ export const Channels = {
   downloadsOpen: "downloads:open",
   downloadsShowInFolder: "downloads:show-in-folder",
   downloadsRemove: "downloads:remove",
+  downloadsRetry: "downloads:retry",
   downloadsClear: "downloads:clear",
   downloadsChooseFolder: "downloads:choose-folder",
   downloadsShowPanel: "downloads:show-panel",
@@ -153,6 +156,9 @@ export interface BrowserApi {
     minimize(): void;
     toggleMaximize(): void;
     close(): void;
+    /** Whether the window is maximized (the maximize button shows "restore" then). */
+    isMaximized(): Promise<boolean>;
+    onMaximizedChange(listener: (maximized: boolean) => void): () => void;
   };
   history: {
     /** Entries matching `query` (url + title), best first by match quality × frecency. */
@@ -224,6 +230,8 @@ export interface BrowserApi {
     showInFolder(id: string): void;
     /** Forgets a finished download (the file stays on disk). */
     remove(id: string): void;
+    /** Starts a failed or interrupted download again from its original URL (same session). */
+    retry(id: string): void;
     /** Forgets every finished download. */
     clear(): void;
     /** Folder picker (native dialog in main); resolves to the resulting settings. */

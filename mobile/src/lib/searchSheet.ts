@@ -1,7 +1,8 @@
 import { getCommand, type CommandContext, type CommandId } from "@shared/commands";
 import { fuzzyMatch, type Range } from "@shared/fuzzy";
 import { buildPalette, type PaletteItem, type PaletteSection, type RemoteTabInput } from "@shared/palette";
-import { mergeSuggestions, rankHistory } from "@shared/search";
+import { mergeSuggestions, rankHistory, topSites } from "@shared/search";
+import { displayUrl } from "@shared/url";
 import type { Bookmark, HistoryEntry, TabState } from "@shared/types";
 import { normalizeInput, searchUrl, type SearchEngine } from "@shared/url";
 
@@ -75,6 +76,24 @@ export interface SheetInput {
   now: number;
   /** Other devices' tabs (sync, ADR-019); left out in private browsing. */
   remoteTabs?: readonly RemoteTabInput[];
+  /** Number of spaces: switching spaces is not offered with a single one. */
+  spaceCount?: number;
+  /** Private tab: no spaces, sync, history clearing nor "new private tab" (already private). */
+  isPrivate?: boolean;
+}
+
+/** Commands never offered in private browsing (they concern the regular profile). */
+const NOT_PRIVATE: ReadonlySet<string> = new Set(["new-space", "next-space", "previous-space", "sync-now", "clear-history", "new-private-tab"]);
+/** Destructive commands: found by typing, not listed in the empty sheet. */
+const DESTRUCTIVE: ReadonlySet<CommandId> = new Set<CommandId>(["close-tab", "clear-history"]);
+const MAX_FREQUENT = 4;
+
+/** Whether a command or mobile action fits the context (spaces, private browsing, empty query). */
+function fits(id: string, input: SheetInput, empty: boolean): boolean {
+  if (input.isPrivate && NOT_PRIVATE.has(id)) return false;
+  if ((id === "next-space" || id === "previous-space") && (input.spaceCount ?? 1) < 2) return false;
+  if (empty && DESTRUCTIVE.has(id as CommandId)) return false;
+  return true;
 }
 
 const MAX_SUGGESTIONS = 8;
@@ -111,7 +130,7 @@ export function buildSheet(input: SheetInput): SheetSection[] {
     remoteTabs: input.remoteTabs,
   }).map((section) => ({
     ...section,
-    items: section.items.filter((item) => item.kind !== "command" || MOBILE_COMMANDS.has(item.command.id)),
+    items: section.items.filter((item) => item.kind !== "command" || (MOBILE_COMMANDS.has(item.command.id) && fits(item.command.id, input, !text))),
   }));
 
   // The shared palette searches with the default engine: use the one chosen in the settings.
@@ -125,7 +144,9 @@ export function buildSheet(input: SheetInput): SheetSection[] {
     if (go) go.items = go.items.map((item) => (item.kind === "navigate" ? { ...item, url } : item));
   }
 
-  const extra = mobileActionRows(text, input.context).sort((a, b) => b.score - a.score);
+  const extra = mobileActionRows(text, input.context)
+    .filter((row) => row.item.kind !== "action" || fits(row.item.action.id, input, !text))
+    .sort((a, b) => b.score - a.score);
   const commands = sections.find((section) => section.id === "commands");
   if (commands) {
     // Mobile actions first: they are the most useful ones on a phone.
@@ -135,6 +156,26 @@ export function buildSheet(input: SheetInput): SheetSection[] {
     const section: SheetSection = { id: "commands", title: "Actions", items: extra.map((row) => row.item) };
     if (index === -1) sections.push(section);
     else sections.splice(index, 0, section);
+  }
+  // Before typing: the most visited sites come first (never in private browsing).
+  if (!text && !input.isPrivate) {
+    const open = new Set(input.tabs.map((tab) => tab.url));
+    const frequent = topSites(input.history, MAX_FREQUENT * 2, input.now)
+      .filter((entry) => !open.has(entry.url))
+      .slice(0, MAX_FREQUENT)
+      .map(
+        (entry): SheetItem => ({
+          kind: "history",
+          key: `frequent:${entry.url}`,
+          url: entry.url,
+          favicon: entry.favicon,
+          title: entry.title || displayUrl(entry.url),
+          titleRanges: [],
+          detail: displayUrl(entry.url),
+          detailRanges: [],
+        }),
+      );
+    if (frequent.length) sections.unshift({ id: "suggestions", title: "Sites fréquents", items: frequent });
   }
   return sections.filter((section) => section.items.length > 0);
 }

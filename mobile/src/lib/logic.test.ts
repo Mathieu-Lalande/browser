@@ -9,6 +9,7 @@ import { sanitizeMobileSettings } from "./mobileSettings";
 import { decideNavigation, decideOpenWindow, initialLoad, isHttpsUpgradeFailure, privateModeNotice, schemeOf } from "./navigation";
 import { cardRect, gridLayout, scrollOffsetFor, zoomTransform } from "./overviewLayout";
 import { buildSheet, MOBILE_COMMANDS } from "./searchSheet";
+import { focusOnFirstLayout } from "./focus";
 import { faviconUrl, greeting, monogram, siteHue, siteLabel } from "./site";
 
 const none = new Set<string>();
@@ -312,5 +313,50 @@ describe("mobile settings", () => {
   it("sanitizes", () => {
     expect(sanitizeMobileSettings({ haptics: false, collapseToolbar: "yes", extra: 1 })).toEqual({ haptics: false, collapseToolbar: true });
     expect(sanitizeMobileSettings(null)).toEqual({ haptics: true, collapseToolbar: true });
+  });
+});
+
+describe("search sheet context", () => {
+  const page = { url: "https://example.org/", title: "Example", favicon: null, visitCount: 5, lastVisit: 0 };
+  const input = {
+    query: "",
+    tabs: [],
+    activeTabId: null,
+    history: [page],
+    bookmarks: [],
+    engine: SEARCH_ENGINES[0],
+    context: {},
+    now: 0,
+  };
+  const ids = (sections: ReturnType<typeof buildSheet>) =>
+    sections.flatMap((section) => section.items).map((item) => (item.kind === "command" ? item.command.id : item.kind === "action" ? item.action.id : item.key));
+
+  it("leads with frequent sites and hides destructive actions before typing", () => {
+    const sections = buildSheet({ ...input, spaceCount: 2 });
+    expect(sections[0]).toMatchObject({ title: "Sites fréquents", items: [{ kind: "history", url: page.url }] });
+    expect(ids(sections)).not.toContain("clear-history");
+    expect(ids(buildSheet({ ...input, query: "effacer", spaceCount: 2 }))).toContain("clear-history");
+  });
+
+  it("hides space navigation with a single space, and profile actions in private browsing", () => {
+    expect(ids(buildSheet({ ...input, spaceCount: 1 }))).not.toContain("next-space");
+    expect(ids(buildSheet({ ...input, spaceCount: 2 }))).toContain("next-space");
+    const privateIds = ids(buildSheet({ ...input, spaceCount: 2, isPrivate: true }));
+    for (const id of ["new-space", "next-space", "sync-now", "new-private-tab"]) expect(privateIds).not.toContain(id);
+    expect(buildSheet({ ...input, isPrivate: true }).some((section) => section.title === "Sites fréquents")).toBe(false);
+  });
+});
+
+describe("search field focus", () => {
+  it("focuses once, on the frame after the first layout", () => {
+    const focus = jest.fn();
+    const frames: (() => void)[] = [];
+    const onLayout = focusOnFirstLayout(focus, (run) => frames.push(run));
+    onLayout();
+    onLayout();
+    expect(focus).not.toHaveBeenCalled();
+    expect(frames).toHaveLength(1);
+    frames[0]();
+    expect(focus).toHaveBeenCalledTimes(1);
   });
 });

@@ -16,16 +16,19 @@ test("navigates from the address bar and updates the tab", async ({ app, chrome,
 });
 
 test("creates, switches and closes tabs", async ({ chrome, server }) => {
+  const address = chrome.getByLabel("Barre d'adresse");
+  await address.fill(server.url("/first"));
+  await address.press("Enter");
+  await expect(chrome.locator(".tab.active .title")).toHaveText("Page first");
   await chrome.getByRole("button", { name: "Nouvel onglet" }).click();
   await expect(chrome.locator(".tabs [role=tab]")).toHaveCount(2);
-  const address = chrome.getByLabel("Barre d'adresse");
   await expect(address).toBeFocused();
   await address.fill(server.url("/second"));
   await address.press("Enter");
   await expect(chrome.locator(".tab.active .title")).toHaveText("Page second");
 
   await chrome.locator(".tabs [role=tab]").first().click();
-  await expect(chrome.locator(".start")).toBeVisible();
+  await expect(chrome.locator(".tab.active .title")).toHaveText("Page first");
 
   await chrome.locator(".tab.active .close").click();
   await expect(chrome.locator(".tabs [role=tab]")).toHaveCount(1);

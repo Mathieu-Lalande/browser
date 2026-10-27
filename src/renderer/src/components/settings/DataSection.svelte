@@ -4,30 +4,20 @@
   import { api } from "../../lib/browser.svelte";
   import Favicon from "../Favicon.svelte";
   import Icon from "../Icon.svelte";
+  import { platform } from "../../lib/platform.svelte";
+  import ConfirmButton from "./ConfirmButton.svelte";
   import Row from "./Row.svelte";
 
   let bookmarks = $state<Bookmark[]>([]);
-  /** Clearing history asks for a second click. */
-  let confirming = $state(false);
   let cleared = $state(false);
-  let confirmTimer: ReturnType<typeof setTimeout> | undefined;
 
   const refresh = () => api.bookmarks.list().then((list) => (bookmarks = list), () => {});
 
   $effect(() => {
     void refresh();
-    return () => clearTimeout(confirmTimer);
   });
 
   async function clearHistory(): Promise<void> {
-    if (!confirming) {
-      confirming = true;
-      cleared = false;
-      confirmTimer = setTimeout(() => (confirming = false), 4000);
-      return;
-    }
-    clearTimeout(confirmTimer);
-    confirming = false;
     await api.history.clear().catch(() => {});
     cleared = true;
   }
@@ -40,13 +30,12 @@
 
 <Row label="Historique de navigation" hint="Efface toutes les pages visitées, et les suggestions qui en découlent.">
   {#if cleared}<span class="done"><Icon name="check" size={12} /> Historique effacé</span>{/if}
-  <button class="danger" class:confirming onclick={clearHistory}>
-    <Icon name="trash" size={12} />
-    {confirming ? "Confirmer l'effacement" : "Effacer l'historique"}
-  </button>
+  <ConfirmButton variant="outlined" question="Tout l'historique ?" confirmLabel="Effacer" onconfirm={clearHistory}>
+    <Icon name="trash" size={12} /> Effacer l'historique
+  </ConfirmButton>
 </Row>
 
-<Row label="Favoris" hint={bookmarks.length ? `${bookmarks.length} page${bookmarks.length > 1 ? "s" : ""} en favori.` : "Aucun favori pour l'instant : Ctrl+D ajoute la page affichée."} stacked={bookmarks.length > 0}>
+<Row label="Favoris" hint={bookmarks.length ? `${bookmarks.length} page${bookmarks.length > 1 ? "s" : ""} en favori.` : `Aucun favori pour l'instant : ${platform.shortcut("toggle-bookmark")} ajoute la page affichée.`} stacked={bookmarks.length > 0}>
   {#if bookmarks.length}
     <ul class="bookmarks" aria-label="Favoris">
       {#each bookmarks as bookmark (bookmark.id)}
@@ -66,25 +55,9 @@
 </Row>
 
 <style>
-  .danger {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    height: 32px;
-    padding: 0 12px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--surface);
-    color: var(--text);
-    transition: background 0.15s var(--ease);
-  }
-  .danger:hover {
-    background: var(--surface-hover);
-  }
-  .danger.confirming {
-    border-color: transparent;
-    background: #e5484d;
-    color: #fff;
+  /* In scrolling lists: an inset ring is never clipped. */
+  button:focus-visible {
+    outline-offset: -2px;
   }
   .done {
     display: flex;

@@ -24,6 +24,10 @@ const PUSH_INTERVAL_MS = 250;
 const sessions = new WeakSet<Session>();
 /** DownloadItems of this run, by entry id. */
 const items = new Map<string, DownloadItem>();
+/** The session each download of this run belongs to (a retry starts again in the same one). */
+const itemSessions = new Map<string, Session>();
+/** URLs a retry asked a session to download (`retryDownload`): the only downloads not started by a tab page. */
+const retries = new WeakMap<Session, Set<string>>();
 /** Paths promised to running downloads, so two of them never pick the same unique name. */
 const reserved = new Set<string>();
 const listeners = new Set<Listener>();
@@ -82,10 +86,14 @@ export function installDownloads(ses: Session, options: { ephemeral?: boolean } 
     rmSync(quarantineDir(), { recursive: true, force: true });
   }
   ses.on("will-download", (event, item, contents) => {
-    // Only tab pages download: never the browser UI, nor anything else in the session.
-    if (!contents || !isTabPage(contents)) return event.preventDefault();
+    // Only tab pages download: never the browser UI, nor anything else in the session, except a
+    // retry the user asked for in the downloads list (main's own record of the URL).
+    const retry = retries.get(ses);
+    const retried = retry?.delete(item.getURL()) ?? false;
+    if (!retried && (!contents || !isTabPage(contents))) return event.preventDefault();
     const ids = privateDownloads.get(ses);
-    start(item, ids && { ids, viewer: privateViewers.get(ses)! });
+    const id = start(item, ids && { ids, viewer: privateViewers.get(ses)! });
+    itemSessions.set(id, ses);
   });
 }
 
@@ -133,7 +141,7 @@ function reservePath(folder: string, filename: string): string {
   return path;
 }
 
-function start(item: DownloadItem, owner?: { ids: Set<string>; viewer: string }): void {
+function start(item: DownloadItem, owner?: { ids: Set<string>; viewer: string }): string {
   const id = randomUUID();
   owner?.ids.add(id);
   const { askWhere } = settings().downloads;
@@ -197,7 +205,7 @@ function start(item: DownloadItem, owner?: { ids: Set<string>; viewer: string })
     if (done.state === "cancelled" && !done.path && !done.dangerous) return forget(id);
     // A dangerous download that did not complete leaves nothing behind.
     if (done.dangerous && !done.awaitingConfirmation && done.state !== "completed") discardFile(item.getSavePath());
-  });
+  });  return id;
 }
 
 /** Applies the item's current state; state changes are saved and pushed immediately. */
@@ -340,6 +348,26 @@ export function showDownloadInFolder(id: string): void {
 
 export function removeDownload(id: string): void {
   forget(id);
+}
+
+/**
+ * "Réessayer": a failed or interrupted download starts again from its original URL, in the
+ * session it came from (`fallback`, the window's tab session, when it is from a previous run).
+ * The old entry gives way to the new one.
+ */
+export function retryDownload(id: string, fallback: Session): void {
+  const entry = profile().downloads.get(id);
+  if (!entry || (entry.state !== "interrupted" && entry.state !== "cancelled") || entry.awaitingConfirmation) return;
+  if (!/^https?:/i.test(entry.url)) return;
+  const ses = itemSessions.get(id) ?? fallback;
+  if (!sessions.has(ses)) return;
+  let pending = retries.get(ses);
+  if (!pending) retries.set(ses, (pending = new Set()));
+  pending.add(entry.url);
+  items.delete(id);
+  itemSessions.delete(id);
+  forget(id);
+  ses.downloadURL(entry.url);
 }
 
 /** Forgets the finished downloads `viewer` sees (other windows' entries stay). */

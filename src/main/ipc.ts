@@ -15,6 +15,7 @@ import {
   openDownload,
   pauseDownload,
   removeDownload,
+  retryDownload,
   resumeDownload,
   showDownloadInFolder,
 } from "./downloads";
@@ -82,8 +83,9 @@ const id = (args: unknown[]) => isString(args[0]);
 export function registerIpc(): void {
   ipcMain.handle(Channels.getState, (event) => BrowserController.fromUi(event.sender)?.spaces.getState() ?? null);
 
+  // No input: the "Nouvel onglet" button, which reuses an empty start-page tab (BrowserController.newTab).
   on(Channels.tabCreate, (args) => args[0] === undefined || isString(args[0]), (c, input) =>
-    c.tabs.create(input as string | undefined),
+    input === undefined ? c.newTab() : c.tabs.create(input as string),
   );
   on(Channels.tabClose, id, (c, tabId) => c.tabs.close(tabId as string));
   on(Channels.tabActivate, id, (c, tabId) => c.tabs.activate(tabId as string));
@@ -143,6 +145,7 @@ export function registerIpc(): void {
   on(Channels.windowMinimize, none, (c) => c.window.minimize());
   on(Channels.windowToggleMaximize, none, (c) => (c.window.isMaximized() ? c.window.unmaximize() : c.window.maximize()));
   on(Channels.windowClose, none, (c) => c.window.close());
+  ipcMain.handle(Channels.windowIsMaximized, (event) => BrowserController.fromChrome(event.sender)?.window.isMaximized() ?? false);
 
   // History and bookmarks: chrome UI only (pages have no preload, and other senders are refused).
   const query = (args: unknown[]) => isString(args[0]) && args[0].length <= MAX_QUERY_LENGTH && isLimit(args[1]);
@@ -225,6 +228,7 @@ export function registerIpc(): void {
   onDownload(Channels.downloadsOpen, openDownload);
   onDownload(Channels.downloadsShowInFolder, showDownloadInFolder);
   onDownload(Channels.downloadsRemove, removeDownload);
+  onDownload(Channels.downloadsRetry, (downloadId, c) => retryDownload(downloadId, c.tabSession));
   on(Channels.downloadsClear, none, (c) => clearDownloads(c.downloadViewer));
   ipcMain.handle(Channels.downloadsChooseFolder, (event) => {
     const controller = BrowserController.fromUi(event.sender);

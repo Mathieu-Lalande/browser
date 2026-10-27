@@ -37,7 +37,12 @@
         {#if swatch.color === value}<Icon name="check" size={12} />{/if}
       </button>
     {/each}
-    <label class="swatch custom" class:active={!isPreset} title="Couleur personnalisée" style:--swatch={isPreset ? undefined : value}>
+    <label
+      class="swatch custom"
+      class:active={!isPreset}
+      title="Couleur personnalisée"
+      style:--swatch={isPreset ? undefined : value}
+    >
       <input type="color" {value} aria-label="{label} : couleur personnalisée" oninput={(event) => onchange(event.currentTarget.value)} />
       {#if !isPreset}<Icon name="check" size={12} />{/if}
     </label>
@@ -57,6 +62,8 @@
 
 <style>
   .picker {
+    /* Selection ring: one solid, contrast-adjusted color (the swatch itself may be a gradient). */
+    --ring: var(--accent-text);
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -87,7 +94,7 @@
   .swatch.active {
     box-shadow:
       0 0 0 2px var(--bg-elevated),
-      0 0 0 4px var(--swatch, var(--accent));
+      0 0 0 4px var(--ring);
   }
   .swatch :global(svg) {
     filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.5));
@@ -121,6 +128,6 @@
     user-select: text;
   }
   .hex:focus {
-    border-color: color-mix(in oklab, var(--accent) 60%, transparent);
+    border-color: var(--accent-text);
   }
 </style>

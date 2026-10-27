@@ -27,7 +27,7 @@ import { tabSlot } from "./tab-order";
 import { onSiteZoomChange, rememberSiteZoom, siteZoomFactor } from "./zoom";
 import { nextZoomFactor, sameFactor } from "./zoom/levels";
 
-const START_TITLE = "Nouvel onglet";
+const START_TITLE = "Page d'accueil";
 
 interface Tab {
   id: TabId;
@@ -278,7 +278,7 @@ export class TabManager {
     const { view } = tab;
     if (!view) {
       tab.forwardTo = undefined;
-      Object.assign(tab.state, { isLoading: false, canGoBack: false, canGoForward: false, blockedCount: 0, permissionRequest: null, interstitial: null });
+      Object.assign(tab.state, { isLoading: false, canGoBack: false, canGoForward: false, blockedCount: 0, permissionRequest: null, interstitial: null, loadError: null });
     } else {
       view.setBorderRadius(this.options.pageRadius);
     }
@@ -370,6 +370,7 @@ export class TabManager {
     const wasWebPage = showsWebPage(tab.state.url);
     tab.state.url = url;
     tab.state.interstitial = null;
+    tab.state.loadError = null;
     tab.state.shieldsEnabled = shieldsEnabledFor(url, this.session);
     tab.forwardTo = undefined;
     if (!showsWebPage(url)) {
@@ -844,7 +845,7 @@ export class TabManager {
 
   /** One entry per pane on screen: the view to show there, or null when the chrome UI draws it. */
   private paneViews(): (WebContentsView | null)[] {
-    return this.shownTabs().map((tab) => (showsWebPage(tab.state.url) && !tab.state.interstitial ? tab.view : null));
+    return this.shownTabs().map((tab) => (showsWebPage(tab.state.url) && !tab.state.interstitial && !tab.state.loadError ? tab.view : null));
   }
 
   /** Bounds of the attached views: the whole viewport, or the split's panes. */
@@ -995,8 +996,9 @@ export class TabManager {
       // A new page: fresh blocked counter, no blocked popup, and any interstitial gives way to it.
       tab.state.blockedCount = 0;
       tab.state.blockedPopup = null;
-      if (tab.state.interstitial) {
+      if (tab.state.interstitial || tab.state.loadError) {
         tab.state.interstitial = null;
+        tab.state.loadError = null;
         this.syncAttachment();
       }
       this.emit();
@@ -1089,6 +1091,9 @@ export class TabManager {
       }
       tab.state.title = `Erreur : ${displayUrl(url) || description}`;
       tab.state.isLoading = false;
+      // The chrome UI explains the failure (LoadErrorPage) instead of Chromium's blank error page.
+      tab.state.loadError = { code, description, url };
+      this.syncAttachment();
       this.emit();
     });
   }

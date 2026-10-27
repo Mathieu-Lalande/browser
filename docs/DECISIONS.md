@@ -235,7 +235,8 @@ patchs partiels (`settings:update`), validés, sauvegardés puis diffusés à to
   `prefers-color-scheme`, et le fond natif de la fenêtre prend la couleur du thème (pas de flash blanc).
 - Mode zen : barre latérale masquée, page bord à bord. L'interface ne voyant pas la souris au-dessus
   de la page native, une bande de 6 px reste découverte au bord de la fenêtre ; la survoler fait
-  apparaître la barre, qui se masque peu après que la souris l'a quittée.
+  apparaître la barre, qui se masque peu après que la souris l'a quittée. Animation et bande de
+  déplacement : ADR-020.
 
 ## ADR-012 — Pages internes `browser://`
 
@@ -746,3 +747,47 @@ première synchronisation ; pas de rotation de clé sans réinitialisation, ni d
 appareil (il faut réinitialiser) ; pas de favicons ; l'historique n'est qu'une ligne par URL ;
 `expo-camera` et le chiffrement n'ont été exécutés que dans les tests (Node/Jest) et dans le bundle
 Hermes compilé, pas encore sur un vrai téléphone.
+
+## ADR-020 — Ergonomie de l'interface : fenêtre, clavier, erreurs, contraste
+
+**Contexte.** Un audit UX/UI a relevé des défauts d'ergonomie : onglets écrasés au lieu de défiler,
+pas de boutons de fenêtre ni de zone de déplacement une fois la barre latérale masquée (fenêtre sans
+cadre sous Linux/Windows), page blanche pour un site injoignable, couleurs d'espace qui contournaient
+le moteur de contraste, raccourcis affichés de trois façons différentes.
+
+**Décisions.**
+- **Boutons de fenêtre** (Windows/Linux, `frame: false`) : réduire / agrandir-restaurer / fermer,
+  icônes Lucide (`minus`, `square`, `copy`), 36×30 px, fermer rouge au survol, au **coin extérieur
+  haut-droit** de la fenêtre : dans une barre déplaçable au-dessus de la page (barre latérale à gauche
+  ou masquée, qui y place aussi son bouton « Afficher »), dans l'en-tête de la barre latérale quand elle
+  est à droite ou révélée en mode zen. L'état agrandi vient de main (`window:maximized`). macOS garde
+  ses feux tricolores : une marge de 72 px (en-tête de la barre latérale à gauche, barre de fenêtre
+  quand elle est masquée) ou une bande de 36 px (barre à droite) les isole ; main les masque en mode zen.
+  `<html data-platform>` pilote cette disposition (une e2e simule macOS en le changeant).
+- **Mode zen** : une bande de déplacement de 8 px reste en haut de la page. La barre révélée glisse
+  (largeur animée, 180 ms) au lieu d'apparaître d'un coup ; l'interface envoie au plus **une mise à jour
+  des limites de la page par image** (`requestAnimationFrame`, valeurs identiques ignorées), si bien que
+  la vue native suit l'animation sans rafale d'IPC. *Compromis* : la page native ne peut pas passer
+  sous la barre (ADR-010) ; elle est donc redimensionnée pendant ~11 images, ce qui coûte quelques mises
+  en page à une page lourde, mais évite le saut brutal. « Réduire les animations » supprime l'animation.
+- **Erreurs de chargement** : `did-fail-load` (cadre principal, hors `-3` et hors codes déjà traités
+  par HTTPS-Only) pose `TabState.loadError = { code, description, url }` ; la vue est détachée et
+  l'interface affiche `LoadErrorPage` (même mécanisme que l'interstitiel HTTPS-Only), avec un message
+  par famille d'erreur (`src/shared/load-error.ts`, pur et testé : DNS, hors ligne, refus, coupure,
+  délai, certificat, redirections, port bloqué…), « Actualiser » et les détails. Effacé à la navigation suivante.
+- **Couleurs d'espace** : `accentVariables(color, mode)` (`src/shared/theme.ts`) borne la luminosité
+  OKLCH de la couleur choisie (0,38–0,82) et dérive `--accent`, `--accent-text` (≥ 4,5:1) et
+  `--on-accent` comme pour l'accent du thème ; testé avec des couleurs extrêmes (#fff200, #101010…).
+  Partout où le contraste compte (focus, bordures sélectionnées, textes et icônes d'accent), l'interface
+  utilise `--accent-text`, jamais l'accent brut.
+- **Clavier** : la liste des onglets est un `tablist` vertical à un seul arrêt de tabulation
+  (`tabindex` itinérant) : flèches, Début/Fin, Entrée/Espace, Suppr/Retour arrière. Les confirmations
+  destructives (palette, données, réinitialisations des paramètres, suppression d'espace) donnent le
+  focus à « Annuler ».
+- **Raccourcis affichés** : construits depuis le registre (`shortcutText`, `commandShortcut`,
+  `withShortcut`), une seule notation (« Ctrl+Maj+B », « ⇧⌘B »).
+- **Onglets vides** : « Nouvel onglet », les paramètres et les téléchargements réutilisent un onglet
+  « Page d'accueil » vide de l'espace au lieu d'en empiler (`BrowserController.newTab`).
+- **Téléchargements** : « Réessayer » relance un téléchargement échoué ou interrompu depuis son URL
+  d'origine, dans sa session (`session.downloadURL` ; seule exception à « seules les pages
+  d'onglets téléchargent », pour une URL http(s) tirée de l'historique de main, jamais du renderer).

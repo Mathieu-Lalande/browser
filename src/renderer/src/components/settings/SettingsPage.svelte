@@ -19,6 +19,8 @@
   import { settings } from "../../lib/settings.svelte";
   import Icon, { type IconName } from "../Icon.svelte";
   import ColorPicker from "./ColorPicker.svelte";
+  import ConfirmButton from "./ConfirmButton.svelte";
+  import { platform } from "../../lib/platform.svelte";
   import DataSection from "./DataSection.svelte";
   import DownloadsSection from "./DownloadsSection.svelte";
   import MiniBrowser from "./MiniBrowser.svelte";
@@ -48,7 +50,7 @@
   ];
   const BACKGROUNDS: { value: BackgroundStyle; label: string }[] = [
     { value: "gradient", label: "Dégradé" },
-    { value: "mesh", label: "Mesh" },
+    { value: "mesh", label: "Nuances" },
     { value: "solid", label: "Uni" },
   ];
   const FONTS: { value: UiFont; label: string }[] = [
@@ -109,7 +111,8 @@
     const margin = parseFloat(getComputedStyle(section).scrollMarginTop) || 0;
     const top = section.getBoundingClientRect().top - content.getBoundingClientRect().top + content.scrollTop - margin;
     // Only the settings column scrolls: scrollIntoView would also nudge its scrollable ancestors.
-    content.scrollTo({ top, behavior: s.appearance.reduceMotion ? "auto" : "smooth" });
+    const reduceMotion = s.appearance.reduceMotion || matchMedia("(prefers-reduced-motion: reduce)").matches;
+    content.scrollTo({ top, behavior: reduceMotion ? "auto" : "smooth" });
   }
 
   $effect(() => {
@@ -147,9 +150,11 @@
         {item.label}
       </button>
     {/each}
-    <button class="reset-all" onclick={() => settings.reset()}>
-      <Icon name="reset" size={12} /> Tout réinitialiser
-    </button>
+    <div class="reset-all">
+      <ConfirmButton question="Tous les réglages par défaut ?" confirmLabel="Tout réinitialiser" onconfirm={() => settings.reset()}>
+        <Icon name="reset" size={12} /> Tout réinitialiser
+      </ConfirmButton>
+    </div>
   </nav>
 
   <div class="content" bind:this={content} onscroll={onScroll}>
@@ -268,7 +273,11 @@
             onchange={(pointerCursor) => update({ appearance: { pointerCursor } })}
           />
         </Row>
-        <Row label="Zoom par défaut" hint="Taille des pages web. Le zoom choisi sur un site (Ctrl+ / Ctrl−) est mémorisé pour ce site." id="page-zoom">
+        <Row
+          label="Zoom par défaut"
+          hint="Taille des pages web. Le zoom choisi sur un site ({platform.shortcut('zoom-in')} / {platform.shortcut('zoom-out')}) est mémorisé pour ce site."
+          id="page-zoom"
+        >
           <select
             id="page-zoom"
             class="field select"
@@ -276,7 +285,7 @@
             onchange={(event) => update({ appearance: { pageZoom: Number(event.currentTarget.value) } })}
           >
             {#each PAGE_ZOOM_LEVELS as level (level)}
-              <option value={level}>{level} %</option>
+              <option value={level}>{level}&#8239;%</option>
             {/each}
           </select>
         </Row>
@@ -321,7 +330,7 @@
         </Row>
         <Row
           label="Mode zen"
-          hint="Masque la barre latérale et affiche la page bord à bord. Survolez le bord de la fenêtre pour la faire apparaître. Raccourci : Ctrl+Maj+B."
+          hint="Masque la barre latérale et affiche la page bord à bord. Survolez le bord de la fenêtre pour la faire apparaître. Raccourci : {platform.shortcut('toggle-zen')}."
         >
           <Toggle label="Mode zen" checked={s.layout.zenMode} onchange={(zenMode) => update({ layout: { zenMode } })} />
         </Row>
@@ -552,27 +561,19 @@
   .toc button.current :global(svg) {
     color: var(--accent-text);
   }
-  .toc .reset-all {
+  .reset-all {
+    display: flex;
     margin-top: auto;
-    font-size: 12px;
+    padding-top: 12px;
   }
   .content {
     flex: 1;
     min-width: 0;
     overflow-y: auto;
-  }
-  .content::-webkit-scrollbar {
-    width: 10px;
-  }
-  .content::-webkit-scrollbar-thumb {
-    border: 3px solid transparent;
-    border-radius: 5px;
-    background: var(--surface-active) padding-box;
-  }
-  .content::-webkit-scrollbar-thumb:hover {
-    background-color: var(--text-faint);
+    scrollbar-gutter: stable;
   }
   .inner {
+    container: settings / inline-size;
     display: flex;
     flex-direction: column;
     gap: 36px;
@@ -615,7 +616,7 @@
   }
   .mode[aria-checked="true"] .frame {
     box-shadow:
-      0 0 0 2px var(--accent),
+      0 0 0 2px var(--accent-text),
       0 8px 24px -10px color-mix(in oklab, var(--accent) 60%, transparent);
   }
   .mode[aria-checked="true"] {
@@ -660,7 +661,7 @@
   .tile[aria-checked="true"] {
     background: color-mix(in oklab, var(--accent) 10%, transparent);
     color: var(--text);
-    box-shadow: inset 0 0 0 2px var(--accent);
+    box-shadow: inset 0 0 0 2px var(--accent-text);
   }
   .sample {
     width: 100%;
@@ -699,7 +700,7 @@
   }
   .engine[aria-checked="true"] {
     background: color-mix(in oklab, var(--accent) 10%, transparent);
-    box-shadow: inset 0 0 0 2px var(--accent);
+    box-shadow: inset 0 0 0 2px var(--accent-text);
   }
   .radio {
     grid-row: span 2;
@@ -710,7 +711,7 @@
   }
   .engine[aria-checked="true"] .radio {
     background: #fff;
-    box-shadow: inset 0 0 0 5px var(--accent);
+    box-shadow: inset 0 0 0 5px var(--accent-text);
   }
   .engine-name {
     font-weight: 500;

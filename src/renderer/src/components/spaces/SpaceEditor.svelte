@@ -2,6 +2,7 @@
   import { SPACE_COLORS, SPACE_ICON_LABELS, SPACE_ICONS } from "@shared/spaces";
   import type { SpaceInfo, SpaceInput } from "@shared/types";
   import { api, browser } from "../../lib/browser.svelte";
+  import Checkbox from "../Checkbox.svelte";
   import Icon from "../Icon.svelte";
 
   /** Edit popover of a space, inside the sidebar (above the space switcher). */
@@ -10,6 +11,12 @@
   let name = $state("");
   let confirming = $state(false);
   let nameInput = $state<HTMLInputElement>();
+  let cancelButton = $state<HTMLButtonElement>();
+
+  // A destructive confirmation focuses the safe choice.
+  $effect(() => {
+    if (confirming) cancelButton?.focus();
+  });
 
   // Reset local fields when another space is edited.
   $effect.pre(() => {
@@ -55,7 +62,7 @@
           ? ", et ses cookies et données effacés"
           : ""}.</p>
       <div class="actions">
-        <button class="secondary" onclick={() => (confirming = false)}>Annuler</button>
+        <button class="secondary" bind:this={cancelButton} onclick={() => (confirming = false)}>Annuler</button>
         <button class="danger" onclick={remove}>Supprimer</button>
       </div>
     </div>
@@ -110,13 +117,12 @@
       {/each}
     </div>
 
-    <label class="isolated">
-      <input type="checkbox" checked={space.isolated} onchange={(event) => update({ isolated: event.currentTarget.checked })} />
-      <span>
+    <div class="isolated">
+      <Checkbox checked={space.isolated} onchange={(isolated) => update({ isolated })}>
         <strong>Espace isolé</strong>
         <small>Cookies, connexions et stockage séparés des autres espaces. Les onglets se rechargent.</small>
-      </span>
-    </label>
+      </Checkbox>
+    </div>
 
     <div class="actions">
       <button class="delete" disabled={!canDelete} onclick={() => (confirming = true)}>
@@ -202,8 +208,8 @@
   }
   .icons button.selected {
     background: color-mix(in oklab, var(--accent) 16%, transparent);
-    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 55%, transparent);
-    color: var(--accent);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent-text) 55%, transparent);
+    color: var(--accent-text);
   }
   .colors {
     display: flex;
@@ -237,15 +243,6 @@
     border-radius: 9px;
     background: var(--surface);
   }
-  .isolated input {
-    margin: 2px 0 0;
-    accent-color: var(--accent);
-  }
-  .isolated span {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
   .isolated small {
     color: var(--text-muted);
     font-size: 11.5px;
@@ -267,7 +264,7 @@
   }
   .primary {
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
   }
   .secondary {
     background: var(--surface-hover);

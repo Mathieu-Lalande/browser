@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import Icon, { type IconName } from "../Icon.svelte";
+  import ConfirmButton from "./ConfirmButton.svelte";
 
   let {
     id,
@@ -20,9 +21,14 @@
       <p>{description}</p>
     </div>
     {#if onReset}
-      <button class="reset" onclick={onReset} title="Revenir aux réglages par défaut de cette section">
+      <ConfirmButton
+        question="Réglages par défaut ?"
+        confirmLabel="Réinitialiser"
+        title="Revenir aux réglages par défaut de cette section"
+        onconfirm={onReset}
+      >
         <Icon name="reset" size={12} /> Réinitialiser
-      </button>
+      </ConfirmButton>
     {/if}
   </header>
   <div class="card">
@@ -65,21 +71,6 @@
     margin: 1px 0 0;
     color: var(--text-muted);
     font-size: 12px;
-  }
-  .reset {
-    display: flex;
-    flex: none;
-    align-items: center;
-    gap: 6px;
-    height: 28px;
-    padding: 0 10px;
-    border-radius: 8px;
-    color: var(--text-muted);
-    font-size: 12px;
-  }
-  .reset:hover {
-    background: var(--surface-hover);
-    color: var(--text);
   }
   .card {
     overflow: hidden;

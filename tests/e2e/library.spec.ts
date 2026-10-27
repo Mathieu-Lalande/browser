@@ -36,7 +36,8 @@ test("restores tabs, pins and the active tab after a restart, loading them lazil
   try {
     chrome = await chromeOf(app);
     await expect(chrome.locator(".pinned-tab")).toHaveCount(1);
-    await expect(chrome.locator(".pinned-tab")).toHaveAttribute("title", "Page one");
+    // Title, then the address (tooltip).
+    await expect(chrome.locator(".pinned-tab")).toHaveAttribute("title", /^Page one\n/);
     await expect(chrome.locator(".tabs [role=tab]")).toHaveCount(1);
     await expect(chrome.locator(".tab.active .title")).toHaveText("Page two");
     // Only the active tab loads at startup; the pinned one waits until it is activated.

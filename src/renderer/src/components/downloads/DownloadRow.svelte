@@ -77,14 +77,25 @@
           <Icon name="folder" size={16} />
         </button>
       {/if}
+      {#if failed && /^https?:/i.test(entry.url)}
+        <!-- Starts over from the original address, in the same session. -->
+        <button aria-label="Réessayer {entry.filename}" title="Réessayer" onclick={() => api.downloads.retry(entry.id)}>
+          <Icon name="reload" size={16} />
+        </button>
+      {/if}
+      <!-- Only forgets the entry: the file stays on disk (hence no trash can). -->
       <button aria-label="Retirer {entry.filename} de la liste" title="Retirer de la liste" onclick={() => api.downloads.remove(entry.id)}>
-        <Icon name="trash" size={16} />
+        <Icon name="list-x" size={16} />
       </button>
     {/if}
   </div>
 </div>
 
 <style>
+  /* In scrolling lists: an inset ring is never clipped. */
+  button:focus-visible {
+    outline-offset: -2px;
+  }
   .download {
     --warn: #e8a317;
     display: flex;

@@ -1,26 +1,38 @@
 <script lang="ts">
   import type { TabState } from "@shared/types";
+  import { displayUrl } from "@shared/url";
   import { api } from "../lib/browser.svelte";
+  import { platform } from "../lib/platform.svelte";
   import Icon from "./Icon.svelte";
   import TabIcon from "./TabIcon.svelte";
 
-  let { tab, active }: { tab: TabState; active: boolean } = $props();
+  /**
+   * One tab of the vertical tab list. Keyboard: a single Tab stop for the whole list (roving
+   * `tabindex`, handled by the list in Sidebar.svelte); its buttons are for the pointer, the
+   * keyboard closes a tab with Delete and mutes it with the registry shortcut.
+   */
+  let { tab, active, focusable = active }: { tab: TabState; active: boolean; focusable?: boolean } = $props();
+
+  /** Title, then the address on a second line. */
+  const tooltip = $derived(tab.url && tab.url !== tab.title ? `${tab.title}\n${displayUrl(tab.url)}` : tab.title);
 
   function onAuxClick(event: MouseEvent): void {
     if (event.button === 1) api.tabs.close(tab.id);
   }
 </script>
 
+<!-- Keyboard: handled by the tab list (arrows, Enter/Space, Delete), see Sidebar.svelte. -->
+<!-- svelte-ignore a11y_click_events_have_key_events -->
 <div
   class="tab"
   class:active
   class:asleep={tab.isAsleep}
   role="tab"
-  tabindex="0"
+  tabindex={focusable ? 0 : -1}
   aria-selected={active}
-  title={tab.url || tab.title}
+  data-tab-id={tab.id}
+  title={tooltip}
   onclick={() => api.tabs.activate(tab.id)}
-  onkeydown={(event) => event.key === "Enter" && api.tabs.activate(tab.id)}
   onauxclick={onAuxClick}
   ondblclick={() => api.tabs.togglePin(tab.id)}
   oncontextmenu={(event) => (event.preventDefault(), api.tabs.contextMenu(tab.id))}
@@ -31,22 +43,31 @@
     <button
       class="audio"
       class:muted={tab.isMuted}
+      tabindex="-1"
       aria-label={tab.isMuted ? "Réactiver le son de l'onglet" : "Couper le son de l'onglet"}
       aria-pressed={tab.isMuted}
-      title={tab.isMuted ? "Réactiver le son (Ctrl+M)" : "Couper le son (Ctrl+M)"}
+      title={platform.tip(tab.isMuted ? "Réactiver le son" : "Couper le son", "toggle-mute")}
       onclick={(event) => (event.stopPropagation(), api.tabs.toggleMute(tab.id))}
     >
       <Icon name={tab.isMuted ? "volume-off" : "volume"} size={12} />
     </button>
   {/if}
-  <button class="close" aria-label="Fermer l'onglet" onclick={(event) => (event.stopPropagation(), api.tabs.close(tab.id))}>
+  <button
+    class="close"
+    tabindex="-1"
+    aria-label="Fermer l'onglet"
+    title={platform.tip("Fermer l'onglet", "close-tab")}
+    onclick={(event) => (event.stopPropagation(), api.tabs.close(tab.id))}
+  >
     <Icon name="close" size={12} />
   </button>
 </div>
 
 <style>
   .tab {
+    position: relative;
     display: flex;
+    flex: none;
     align-items: center;
     gap: 10px;
     height: var(--tab-height);
@@ -59,12 +80,28 @@
     background: var(--surface-hover);
     color: var(--text);
   }
+  /* Inside the scrolling list: an inset ring is never clipped. */
+  .tab:focus-visible {
+    outline-offset: -2px;
+  }
   .tab.active {
-    background: var(--bg-elevated);
+    background: var(--tab-active-bg, var(--bg-elevated));
     color: var(--text);
     box-shadow:
       var(--elevation),
       inset 0 0 0 1px var(--border);
+  }
+  /* A small accent bar: the active tab never reads as a hovered one, in either theme. */
+  .tab.active::before {
+    position: absolute;
+    top: 50%;
+    left: 3px;
+    width: 3px;
+    height: 14px;
+    border-radius: 2px;
+    background: var(--accent-text);
+    transform: translateY(-50%);
+    content: "";
   }
   /* Asleep (page unloaded, reloads when activated, ADR-014): dimmed. */
   .tab.asleep:not(.active) .title {

@@ -82,8 +82,8 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
               {ACCENT_PRESETS.map((preset) => {
                 const selected = preset.accent === appearance.accent;
                 return (
+                  <View key={preset.name} style={styles.swatchCell}>
                   <Tap
-                    key={preset.name}
                     accessibilityRole="radio"
                     accessibilityLabel={preset.name}
                     accessibilityState={{ selected }}
@@ -98,6 +98,7 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
                       <View style={[styles.swatchHalf, { backgroundColor: preset.accent2 }]} />
                     </View>
                   </Tap>
+                  </View>
                 );
               })}
             </View>
@@ -180,18 +181,20 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
             icon="lock"
             label="Mode HTTPS uniquement"
             detail="Les adresses http:// sont ouvertes en https:// ; si le site ne le permet pas, vous choisissez."
+            status="Toujours activé"
           />
           <Info
             icon="shield"
             label="Bloqueur de pubs et traqueurs"
-            detail="Bientôt : il demande une version compilée de l'app (le blocage est impossible dans Expo Go)."
+            detail="Bloquera les publicités et les traqueurs sur toutes les pages."
+            status="Bientôt disponible"
           />
           <Action
             icon="clock"
             label="Effacer l'historique"
             destructive
             onPress={() =>
-              confirm("Effacer tout l'historique ?", "Toutes les pages visitées seront oubliées. Les favoris et les onglets ouverts sont conservés.", "Effacer", () =>
+              confirm("Effacer tout l'historique ?", "Toutes les pages visitées seront oubliées. Les favoris et les onglets ouverts sont conservés.", "Effacer", () =>
                 actions.clearHistory(),
               )
             }
@@ -202,7 +205,7 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
             destructive
             onPress={() =>
               confirm(
-                "Tout effacer ?",
+                "Tout effacer ?",
                 sync?.configured
                   ? "Historique, favoris et onglets ouverts seront supprimés, aussi sur vos appareils synchronisés. Les cookies des sites restent gérés par le système."
                   : "Historique, favoris et onglets ouverts seront supprimés. Les cookies des sites restent gérés par le système.",
@@ -236,7 +239,7 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
           <Info
             first
             icon="globe"
-            label={`Browser ${APP_VERSION} (Expo SDK 58)`}
+            label={`Browser ${APP_VERSION}`}
             detail={
               Platform.OS === "ios"
                 ? "Moteur WebKit (imposé par iOS). Code partagé avec la version de bureau."
@@ -244,6 +247,10 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
             }
           />
         </Group>
+        {/* Within thumb reach, unlike the header's "OK". */}
+        <Tap accessibilityRole="button" onPress={onClose} pressScale={0.97} style={[styles.doneBottom, { backgroundColor: colors.accent }]} testID="settings-done">
+          <Text style={[styles.doneBottomText, { color: colors.onAccent }]}>Terminé</Text>
+        </Tap>
       </ScrollView>
       {scanning && (
         <PairingScanner
@@ -319,13 +326,20 @@ function Choice({ label, detail, selected, first, onPress }: { label: string; de
   );
 }
 
-function Info({ icon, label, detail, first }: { icon: IconName; label: string; detail: string; first?: boolean }) {
+/** Read-only information (a fixed safeguard, a version): muted, with its state as plain text, nothing to tap. */
+function Info({ icon, label, detail, status, first }: { icon: IconName; label: string; detail: string; status?: string; first?: boolean }) {
   const { colors } = useTheme();
   return (
-    <View style={[styles.row, !first && { borderTopColor: colors.hairline, borderTopWidth: StyleSheet.hairlineWidth }]}>
-      <Icon name={icon} size={20} color={colors.accentText} />
+    <View
+      style={[styles.row, !first && { borderTopColor: colors.hairline, borderTopWidth: StyleSheet.hairlineWidth }]}
+      accessible
+      accessibilityRole="text"
+      accessibilityLabel={[label, status, detail].filter(Boolean).join(". ")}
+    >
+      <Icon name={icon} size={20} color={colors.textMuted} />
       <View style={styles.rowText}>
         <Text style={[styles.rowLabel, { color: colors.text }]}>{label}</Text>
+        {status ? <Text style={[styles.status, { color: colors.textFaint }]}>{status}</Text> : null}
         <Text style={[styles.rowDetail, { color: colors.textMuted }]}>{detail}</Text>
       </View>
     </View>
@@ -378,6 +392,8 @@ const styles = StyleSheet.create({
   title: { flex: 1, fontSize: 28, fontWeight: "800", letterSpacing: -0.4 },
   done: { minWidth: 56, height: 44, alignItems: "center", justifyContent: "center" },
   doneText: { fontSize: 17, fontWeight: "700" },
+  doneBottom: { height: 52, borderRadius: 16, alignItems: "center", justifyContent: "center", marginTop: 4 },
+  doneBottomText: { fontSize: 17, fontWeight: "700" },
   content: { padding: 16, gap: 22 },
   group: { gap: 8 },
   groupHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginLeft: 6 },
@@ -388,9 +404,12 @@ const styles = StyleSheet.create({
   rowText: { flex: 1, gap: 2 },
   rowLabel: { fontSize: 16 },
   rowDetail: { fontSize: 13, lineHeight: 18 },
+  status: { fontSize: 12, fontWeight: "600", letterSpacing: 0.2 },
   input: { minWidth: 140, fontSize: 16, textAlign: "right", paddingVertical: 6 },
   swatchRow: { paddingHorizontal: 16, paddingVertical: 12, gap: 12, borderTopWidth: StyleSheet.hairlineWidth },
-  swatches: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  /* Four per row: the 8 presets make two even rows (never 6 + 2). */
+  swatches: { flexDirection: "row", flexWrap: "wrap", rowGap: 10 },
+  swatchCell: { width: "25%", alignItems: "center" },
   swatch: { width: 40, height: 40, borderRadius: 20, borderWidth: 2.5, alignItems: "center", justifyContent: "center" },
   swatchInner: { width: 30, height: 30, borderRadius: 15, overflow: "hidden" },
   swatchHalf: { position: "absolute", right: 0, bottom: 0, width: 15, height: 30, transform: [{ skewX: "0deg" }] },

@@ -9,8 +9,11 @@
   let drag: { pointerX: number; width: number } | null = null;
   let width = $state(0);
   let dragging = $state(false);
+  let windowWidth = $state(window.innerWidth);
 
-  const clamp = (value: number) => Math.round(Math.min(LIMITS.sidebarWidth.max, Math.max(LIMITS.sidebarWidth.min, value)));
+  /** The sidebar never takes more than 45% of the window (the CSS width says the same: min(setting, 45vw)). */
+  const maxWidth = () => Math.max(LIMITS.sidebarWidth.min, Math.min(LIMITS.sidebarWidth.max, Math.floor(window.innerWidth * 0.45)));
+  const clamp = (value: number) => Math.round(Math.min(maxWidth(), Math.max(LIMITS.sidebarWidth.min, value)));
 
   // While dragging, only the CSS variable moves (no IPC per pixel); the value is saved on release.
   function preview(value: number): void {
@@ -26,7 +29,7 @@
     if (event.button !== 0) return;
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
-    drag = { pointerX: event.clientX, width: settings.current.layout.sidebarWidth };
+    drag = { pointerX: event.clientX, width: clamp(settings.current.layout.sidebarWidth) };
     width = drag.width;
     dragging = true;
   }
@@ -48,9 +51,11 @@
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
     event.preventDefault();
     const grow = (event.key === "ArrowRight") === (side === "left");
-    commit(settings.current.layout.sidebarWidth + (grow ? KEY_STEP : -KEY_STEP));
+    commit(clamp(settings.current.layout.sidebarWidth) + (grow ? KEY_STEP : -KEY_STEP));
   }
 </script>
+
+<svelte:window bind:innerWidth={windowWidth} />
 
 <!-- A focusable separator is the standard pattern for a resizable splitter (arrow keys resize it). -->
 <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
@@ -62,7 +67,7 @@
   aria-label="Largeur de la barre latérale"
   aria-valuemin={LIMITS.sidebarWidth.min}
   aria-valuemax={LIMITS.sidebarWidth.max}
-  aria-valuenow={settings.current.layout.sidebarWidth}
+  aria-valuenow={Math.min(settings.current.layout.sidebarWidth, windowWidth * 0.45) | 0}
   tabindex="0"
   title="Glisser pour redimensionner · double-clic pour la largeur par défaut"
   onpointerdown={onPointerDown}

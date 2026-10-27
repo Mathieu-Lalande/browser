@@ -26,7 +26,13 @@
     modifiées par des tiers sur le réseau.
   </p>
   <div class="actions">
-    <button class="secondary" disabled={!tab.canGoBack} onclick={() => api.tabs.back(tab.id)}>Revenir en arrière</button>
+    {#if tab.canGoBack}
+      <button class="secondary" onclick={() => api.tabs.back(tab.id)}>Revenir en arrière</button>
+    {:else}
+      <!-- Nothing to go back to (address typed in a new tab): offer a way out instead. -->
+      <button class="secondary" onclick={() => api.tabs.navigate(tab.id, "")}>Page d'accueil</button>
+      <button class="secondary" onclick={() => api.tabs.close(tab.id)}>Fermer l'onglet</button>
+    {/if}
     <button class="primary" onclick={() => api.tabs.proceedHttp(tab.id)}>Continuer en HTTP</button>
   </div>
 </section>
@@ -90,6 +96,6 @@
   }
   .primary {
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
   }
 </style>

@@ -200,6 +200,32 @@ export function derivePalette(accentHex: string, accent2Hex: string, mode: Resol
   };
 }
 
+/** OKLCH lightness range kept for user-picked space colors: never near-white nor near-black. */
+export const SPACE_COLOR_LIGHTNESS = { min: 0.38, max: 0.82 } as const;
+
+/**
+ * A user-picked accent with its OKLCH lightness clamped to `SPACE_COLOR_LIGHTNESS` (hue and
+ * chroma kept), so a space color always reads as a color on both themes. Invalid input: null.
+ */
+export function clampAccentLightness(hex: string, range: { min: number; max: number } = SPACE_COLOR_LIGHTNESS): string | null {
+  const rgb = parseHex(hex);
+  if (!rgb) return null;
+  const color = toOklch(rgb);
+  const l = Math.min(range.max, Math.max(range.min, color.l));
+  return Math.abs(l - color.l) < 1e-6 ? toHex(rgb) : toHex(fromOklch({ ...color, l }));
+}
+
+/**
+ * Accent variables for a color that overrides the theme accent (a space color), through the same
+ * contrast engine as the theme: `--accent-text` reaches WCAG AA on the backgrounds of `mode`, and
+ * `--on-accent` is the most readable ink on the (clamped) accent fill.
+ */
+export function accentVariables(color: string, mode: ResolvedMode): Record<"--accent" | "--accent-text" | "--on-accent", string> {
+  const accent = clampAccentLightness(color) ?? FALLBACK_ACCENT;
+  const palette = derivePalette(accent, accent, mode);
+  return { "--accent": palette.accent, "--accent-text": palette.accentText, "--on-accent": palette.onAccent };
+}
+
 // --- Settings → CSS variables -----------------------------------------------------------------
 
 export const DENSITY: Record<Density, { fontSize: number; tabHeight: number; controlHeight: number; iconButton: number; gap: number }> = {

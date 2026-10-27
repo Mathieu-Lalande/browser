@@ -167,7 +167,7 @@ test("Back from the start page shown over a page re-attaches the page", async ({
   await expect(back).toBeDisabled();
 
   await visit(chrome, server.url("/one"), "Page one");
-  await visit(chrome, "", "Nouvel onglet");
+  await visit(chrome, "", "Page d'accueil");
   await expect(chrome.locator(".start")).toBeVisible();
   await expect.poll(() => attachedViews(app)).toEqual([]);
   await back.click();

@@ -22,10 +22,16 @@
 </div>
 
 <style>
+  /*
+   * Label and control share the row while there is room; the control wraps below (right-aligned)
+   * before the label gets narrower than ~160px, and on a narrow settings column (container query
+   * on `.inner`, SettingsPage) everything stacks.
+   */
   .row {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 24px;
+    gap: 10px 24px;
     min-height: 58px;
     padding: 12px 18px;
   }
@@ -39,10 +45,10 @@
   }
   .text {
     display: flex;
-    flex: 1;
+    flex: 1 1 220px;
     flex-direction: column;
     gap: 2px;
-    min-width: 0;
+    min-width: 160px;
   }
   .label {
     color: var(--text);
@@ -55,11 +61,29 @@
   }
   .control {
     display: flex;
-    flex: none;
+    flex: 0 1 auto;
+    flex-wrap: wrap;
     align-items: center;
+    justify-content: flex-end;
     gap: 10px;
+    max-width: 100%;
+    margin-left: auto;
   }
   .stacked .control {
     flex: auto;
+    margin-left: 0;
+  }
+  @container settings (max-width: 520px) {
+    .row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .text {
+      flex-basis: auto;
+    }
+    .control {
+      justify-content: flex-start;
+      margin-left: 0;
+    }
   }
 </style>

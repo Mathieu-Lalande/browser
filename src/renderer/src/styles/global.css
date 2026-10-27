@@ -108,8 +108,28 @@ button {
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
+  /* The contrast-adjusted accent: visible on every background, whatever the accent. */
+  outline: 2px solid var(--accent-text);
   outline-offset: 1px;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--accent) 32%, transparent);
+  color: var(--text);
+}
+
+/*
+ * Thin, themed scrollbars everywhere (tab list, palette, settings, downloads…), instead of the
+ * platform's (Linux draws wide grey ones).
+ */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-active) transparent;
+}
+
+/* Dark theme: the active tab is a brighter, elevated surface, unlike a merely hovered one. */
+:root[data-theme="dark"] {
+  --tab-active-bg: color-mix(in oklab, var(--bg-elevated), white 7%);
 }
 
 .drag {
@@ -125,7 +145,9 @@ button {
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -134,5 +156,7 @@ button {
 :root[data-reduce-motion] *::before,
 :root[data-reduce-motion] *::after {
   animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
   transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
 }

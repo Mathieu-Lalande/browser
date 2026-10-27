@@ -7,6 +7,7 @@ import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import Animated, { FadeIn, FadeOut, SlideInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { isBookmarked } from "../lib/bookmarks";
+import { focusOnFirstLayout } from "../lib/focus";
 import { buildSheet, type SheetItem } from "../lib/searchSheet";
 import { activeTab, orderedTabs, toTabState } from "../lib/tabs";
 import { useBrowserState, useHistoryEntries } from "../state/BrowserProvider";
@@ -36,6 +37,8 @@ export const SearchSheet = memo(function SearchSheet({ initialText, onSubmit, on
   const query = useDeferredValue(text);
   const input = useRef<ComponentRef<typeof TextInput> | null>(null);
   const engine = searchEngineOf(settings);
+  // Focused after the first layout (not autoFocus while mounting): see focusOnFirstLayout.
+  const [onFieldLayout] = useState(() => focusOnFirstLayout(() => input.current?.focus()));
 
   const sections = useMemo(() => {
     const current = activeTab(model);
@@ -54,6 +57,8 @@ export const SearchSheet = memo(function SearchSheet({ initialText, onSubmit, on
       context: { activeTab: activeState },
       now: Date.now(),
       remoteTabs: isPrivate ? [] : (sync?.devices ?? []).flatMap((device) => device.tabs.map((tab) => ({ device: device.name, url: tab.url, title: tab.title }))),
+      spaceCount: model.spaces.length,
+      isPrivate,
     });
   }, [model, bookmarks, history, query, initialText, engine, isPrivate, sync]);
 
@@ -107,15 +112,14 @@ export const SearchSheet = memo(function SearchSheet({ initialText, onSubmit, on
           entering={reduceMotion ? undefined : SlideInDown.springify().damping(24).stiffness(280)}
           style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 10), borderTopColor: colors.hairline, backgroundColor: colors.bgElevated }]}
         >
-          <View style={[styles.field, { backgroundColor: dark ? "rgba(255,255,255,0.08)" : "rgba(20,16,40,0.06)" }]}>
+          <View style={[styles.field, { backgroundColor: dark ? "rgba(255,255,255,0.08)" : "rgba(20,16,40,0.06)" }]} onLayout={onFieldLayout}>
             <Icon name={isPrivate ? "mask" : "search"} size={20} color={colors.accentText} />
             <TextInput
               ref={input}
               value={text}
               onChangeText={setText}
-              autoFocus
               selectTextOnFocus
-              placeholder={`Rechercher avec ${engine.name} ou saisir une adresse`}
+              placeholder="Rechercher ou saisir une adresse"
               placeholderTextColor={colors.textFaint}
               style={[styles.input, { color: colors.text }]}
               autoCapitalize="none"
@@ -140,7 +144,7 @@ export const SearchSheet = memo(function SearchSheet({ initialText, onSubmit, on
               </Tap>
             )}
           </View>
-          <Tap accessibilityRole="button" onPress={onClose} style={styles.cancel} pressScale={0.92}>
+          <Tap accessibilityRole="button" onPress={onClose} style={styles.cancel} pressScale={0.92} hitSlop={8}>
             <Text style={[styles.cancelText, { color: colors.accentText }]}>Annuler</Text>
           </Tap>
         </Animated.View>
@@ -258,7 +262,8 @@ const styles = StyleSheet.create({
   fill: { width: 40, height: 44, alignItems: "center", justifyContent: "center" },
   bar: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth },
   field: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", height: 48, borderRadius: 16, paddingLeft: 14, gap: 8 },
-  input: { flex: 1, minWidth: 0, fontSize: 17, height: 48, paddingVertical: 0, ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as object) : {}) },
+  // A placeholder too long for a narrow phone ends with an ellipsis (native fields truncate on their own).
+  input: { flex: 1, minWidth: 0, fontSize: 17, height: 48, paddingVertical: 0, ...(Platform.OS === "web" ? ({ outlineStyle: "none", textOverflow: "ellipsis" } as object) : {}) },
   clear: { width: 40, height: 44, alignItems: "center", justifyContent: "center" },
   clearDot: { width: 18, height: 18, borderRadius: 9, alignItems: "center", justifyContent: "center" },
   cancel: { height: 44, paddingHorizontal: 8, justifyContent: "center" },

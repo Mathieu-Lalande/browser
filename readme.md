@@ -8,12 +8,12 @@ Un navigateur desktop **rapide, privé et entièrement personnalisable**, dans l
   (2 à 4 pages côte à côte).
 - Session restaurée au démarrage (onglets chargés à la demande), historique, favoris, suggestions
   dans la barre d'adresse et sites les plus visités sur la page d'accueil.
-- Palette de commandes (`Ctrl/Cmd+K`) : onglets ouverts, favoris, historique et actions, recherche floue.
+- Palette de commandes (`Ctrl+K`, `⌘K` sous macOS) : onglets ouverts, favoris, historique et actions, recherche floue.
 - Recherche privée par défaut (DuckDuckGo), protections de sécurité strictes (voir `docs/DECISIONS.md`).
 - Boucliers intégrés : bloqueur de pubs & traqueurs (listes EasyList/uBlock via Ghostery), mode HTTPS uniquement,
   Global Privacy Control, invite de permissions par site, user agent et client hints sans trace d'Electron,
   `Accept-Language` uniformisable.
-- Fenêtres privées (`Ctrl/Cmd+Maj+N`) : session en mémoire propre à la fenêtre, effacée à sa fermeture ;
+- Fenêtres privées (`Ctrl+Maj+N`, `⇧⌘N`) : session en mémoire propre à la fenêtre, effacée à sa fermeture ;
   ni historique, ni session, ni autorisations mémorisées.
 - Mise en veille des onglets inactifs (mémoire libérée, page rechargée au retour ; jamais pour un onglet
   qui joue du son ou un formulaire en cours).
@@ -88,30 +88,35 @@ paquets non signés pour Linux, Windows et macOS sur `master` (ADR-015).
 
 ## Raccourcis
 
-| Raccourci | Action |
-| --- | --- |
-| `Ctrl/Cmd+K` | Palette de commandes (`Ctrl/Cmd+Entrée` : ouvrir dans un nouvel onglet) |
-| `Ctrl/Cmd+L` | Barre d'adresse |
-| `Ctrl/Cmd+T` / `W` | Nouvel onglet / fermer l'onglet |
-| `Ctrl/Cmd+N` / `Ctrl/Cmd+Maj+N` | Nouvelle fenêtre / nouvelle fenêtre privée |
-| `Ctrl/Cmd+Shift+K` | Dupliquer l'onglet (avec son historique) |
-| `Ctrl/Cmd+Shift+C` | Copier l'URL de la page |
-| `Ctrl/Cmd+=` / `-` / `0` | Zoom avant / arrière / zoom par défaut (mémorisé par site) |
-| `Ctrl/Cmd+F` | Rechercher dans la page (`Entrée` / `Maj+Entrée`, `F3` / `Maj+F3` : suivante / précédente) |
-| `Ctrl+Maj+J` (`⌥⌘L` sous macOS) | Téléchargements |
-| `Ctrl+M` | Couper / réactiver le son de l'onglet |
-| `Ctrl+Tab` / `Ctrl+Shift+Tab` | Onglet suivant / précédent |
-| `Ctrl/Cmd+1…9` | Aller à l'onglet n |
-| `Ctrl/Cmd+S` | Afficher/masquer la barre latérale |
-| `Ctrl/Cmd+Maj+B` | Mode zen (barre latérale masquée, page bord à bord) |
-| `Ctrl/Cmd+Alt+1…9`, `Ctrl/Cmd+Alt+←/→` | Aller à l'espace n / espace précédent, suivant |
-| `Ctrl/Cmd+Maj+\` | Vue scindée (l'onglet actif et le suivant côte à côte) / la quitter |
-| Clic droit sur un onglet | Épingler, dupliquer, vue scindée, déplacer vers un espace, mettre en veille, fermer… |
-| Palette : « veille » | Mettre l'onglet / les autres onglets en veille |
-| `Ctrl/Cmd+,` | Paramètres |
-| `Ctrl/Cmd+D` | Ajouter/retirer la page des favoris |
-| `Ctrl/Cmd+R`, `F5` | Actualiser |
-| Double-clic sur un onglet | Épingler / désépingler |
+Une seule notation, celle de l'interface (infobulles, palette, page d'accueil), tirée du registre des
+commandes (`src/shared/commands.ts`) : « Maj » pour Shift sous Windows/Linux, symboles sous macOS.
+
+| Windows / Linux | macOS | Action |
+| --- | --- | --- |
+| `Ctrl+K` | `⌘K` | Palette de commandes (`Ctrl+↵` / `⌘↵` : ouvrir dans un nouvel onglet) |
+| `Ctrl+L` | `⌘L` | Barre d'adresse |
+| `Ctrl+T` / `Ctrl+W` | `⌘T` / `⌘W` | Nouvel onglet / fermer l'onglet |
+| `Ctrl+N` / `Ctrl+Maj+N` | `⌘N` / `⇧⌘N` | Nouvelle fenêtre / nouvelle fenêtre privée |
+| `Ctrl+Maj+K` | `⇧⌘K` | Dupliquer l'onglet (avec son historique) |
+| `Ctrl+Maj+C` | `⇧⌘C` | Copier l'URL de la page |
+| `Ctrl++` / `Ctrl+-` / `Ctrl+0` | `⌘+` / `⌘-` / `⌘0` | Zoom avant / arrière / zoom par défaut (mémorisé par site) |
+| `Ctrl+F` | `⌘F` | Rechercher dans la page (`↵` / `Maj+↵`, `F3` / `Maj+F3` (`⌘G` / `⇧⌘G`) : suivante / précédente) |
+| `Ctrl+Maj+J` | `⌥⌘L` | Téléchargements |
+| `Ctrl+M` | `⌃M` | Couper / réactiver le son de l'onglet |
+| `Ctrl+Tab` / `Ctrl+Maj+Tab` | `⌃Tab` / `⌃⇧Tab` | Onglet suivant / précédent |
+| `Ctrl+1…9` | `⌘1…9` | Aller à l'onglet n |
+| `Ctrl+S` | `⌘S` | Afficher/masquer la barre latérale |
+| `Ctrl+Maj+B` | `⇧⌘B` | Mode zen (barre latérale masquée, page bord à bord) |
+| `Ctrl+Alt+1…9`, `Ctrl+Alt+←/→` | `⌥⌘1…9`, `⌥⌘←/→` | Aller à l'espace n / espace précédent, suivant |
+| `Ctrl+Maj+\` | `⇧⌘\` | Vue scindée (l'onglet actif et le suivant côte à côte) / la quitter |
+| `Ctrl+,` | `⌘,` | Paramètres |
+| `Ctrl+D` | `⌘D` | Ajouter/retirer la page des favoris |
+| `Ctrl+R`, `F5` | `⌘R` | Actualiser |
+| `Alt+←` / `Alt+→` | `⌘[` / `⌘]` | Page précédente / suivante |
+
+Liste des onglets au clavier : un seul arrêt de tabulation, `↑`/`↓`, `Début`/`Fin` pour se déplacer,
+`↵`/`Espace` pour afficher l'onglet, `Suppr`/`⌫` pour le fermer. Clic droit sur un onglet : épingler,
+dupliquer, vue scindée, déplacer vers un espace, mettre en veille, fermer… Double-clic : épingler / désépingler.
 
 ## Structure
 

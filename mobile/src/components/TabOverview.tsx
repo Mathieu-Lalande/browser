@@ -35,12 +35,18 @@ export interface OverviewGeometry {
   gridTop: number;
   gridHeight: number;
   pinnedTop: number;
+  /** Screen y of the space chips, right above the bottom bar (thumb zone). */
+  chipsTop: number;
 }
 
+/** Top margin above the pinned tiles / grid, now that the space chips live at the bottom. */
+const TOP_MARGIN = 8;
+
 export function overviewGeometry(width: number, height: number, top: number, bottom: number, hasPinned: boolean): OverviewGeometry {
-  const pinnedTop = top + CHIPS_HEIGHT;
+  const pinnedTop = top + TOP_MARGIN;
   const gridTop = pinnedTop + (hasPinned ? PINNED_HEIGHT : 0);
-  return { layout: gridLayout(width, 8), gridTop, gridHeight: height - gridTop - OVERVIEW_BAR - bottom, pinnedTop };
+  const chipsTop = height - bottom - OVERVIEW_BAR - CHIPS_HEIGHT;
+  return { layout: gridLayout(width, 8), gridTop, gridHeight: Math.max(0, chipsTop - gridTop), pinnedTop, chipsTop };
 }
 
 /** Where the given tab sits on screen in the overview (zoom transition target). */
@@ -106,13 +112,15 @@ export const TabOverview = memo(function TabOverview(props: Props) {
   }));
   const backdrop = useAnimatedStyle(() => ({ opacity: interpolate(progress.value, [0, 0.6], [0, 1], "clamp") }));
 
-  const spaceName = isPrivate ? "Navigation privée" : (model.spaces.find((space) => space.id === model.activeSpaceId)?.name ?? "");
+  // Short: it sits beside the + button.
+  const spaceName = isPrivate ? "Privé" : (model.spaces.find((space) => space.id === model.activeSpaceId)?.name ?? "");
 
   return (
     <View style={StyleSheet.absoluteFill} testID="tab-overview">
       <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: colors.bg }, backdrop]} />
 
-      <Animated.View style={[styles.chipsRow, { top: insets.top }, chrome]}>
+      {/* Spaces right above the bottom bar: within thumb reach. */}
+      <Animated.View style={[styles.chipsRow, { top: geometry.chipsTop, borderTopColor: colors.hairline, backgroundColor: colors.bg }, bottomChrome]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
           <Chip
             label={privateCount ? `Privé · ${privateCount}` : "Privé"}
@@ -238,6 +246,7 @@ function Chip({
         })
       }
       pressScale={0.92}
+      hitSlop={{ top: 6, bottom: 6, left: 2, right: 2 }}
       style={[
         styles.chip,
         { backgroundColor: selected ? tint : colors.surface, borderColor: selected ? tint : colors.hairline },
@@ -270,7 +279,7 @@ const PinnedTile = memo(function PinnedTile({
     <Animated.View style={style}>
       <Tap
         accessibilityRole="button"
-        accessibilityLabel={`Onglet épinglé : ${tab.title || siteLabel(tab.url)}`}
+        accessibilityLabel={`Onglet épinglé : ${tab.title || siteLabel(tab.url)}`}
         onPress={() => onPress(tab.id)}
         onLongPress={() => onLongPress(tab)}
         pressScale={0.9}
@@ -402,7 +411,7 @@ const TabCard = memo(function TabCard({
 });
 
 const styles = StyleSheet.create({
-  chipsRow: { position: "absolute", left: 0, right: 0, height: CHIPS_HEIGHT, justifyContent: "center" },
+  chipsRow: { position: "absolute", left: 0, right: 0, height: CHIPS_HEIGHT, justifyContent: "center", borderTopWidth: StyleSheet.hairlineWidth },
   chips: { paddingHorizontal: 14, gap: 8, alignItems: "center" },
   chipDivider: { width: StyleSheet.hairlineWidth * 2, height: 22, marginHorizontal: 2 },
   chip: { flexDirection: "row", alignItems: "center", gap: 6, height: 38, paddingHorizontal: 14, borderRadius: 19, borderWidth: StyleSheet.hairlineWidth },

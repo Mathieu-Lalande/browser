@@ -46,7 +46,7 @@
       <span class="badge"><Icon name="download" size={20} /></span>
       <h1>Téléchargements</h1>
       <button class="clear" disabled={!clearable} onclick={() => api.downloads.clear()}>
-        <Icon name="trash" size={12} /> Effacer la liste
+        <Icon name="list-x" size={12} /> Effacer la liste
       </button>
     </header>
 
@@ -89,10 +89,12 @@
     margin: 0 auto;
     padding: 36px 32px 64px;
   }
+  /* On a narrow page the button moves under the title rather than squeezing it. */
   header {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 12px;
+    gap: 10px 12px;
   }
   .badge {
     display: grid;
@@ -104,15 +106,20 @@
     color: var(--accent-text);
   }
   h1 {
-    flex: 1;
+    flex: 1 1 auto;
+    min-width: 0;
     margin: 0;
+    white-space: nowrap;
     font-size: 22px;
     font-weight: 650;
     letter-spacing: -0.03em;
   }
   .clear {
     display: flex;
+    flex: none;
     align-items: center;
+    margin-left: auto;
+    white-space: nowrap;
     gap: 7px;
     height: 32px;
     padding: 0 12px;

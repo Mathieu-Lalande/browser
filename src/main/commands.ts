@@ -33,7 +33,7 @@ const findStep = (forward: boolean): Runner =>
 /** What each registry command does. Menu items and the command palette both run these. */
 const RUNNERS: Record<CommandId, Runner> = {
   "new-tab": (c) => {
-    c.tabs.create();
+    c.newTab();
     c.sendUiCommand("focus-address");
   },
   "new-window": () => new BrowserController(),

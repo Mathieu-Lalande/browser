@@ -3,6 +3,7 @@
   import type { SplitState, TabState } from "@shared/types";
   import { api, browser } from "../../lib/browser.svelte";
   import HttpsOnlyPage from "../HttpsOnlyPage.svelte";
+  import LoadErrorPage from "../LoadErrorPage.svelte";
   import StartPage from "../StartPage.svelte";
 
   /**
@@ -81,7 +82,7 @@
         data-tab-id={tab.id}
         onpointerdown={() => tab.id !== browser.state.activeTabId && api.tabs.activate(tab.id)}
       >
-        {#if !tab.url}<StartPage />{:else if tab.interstitial}<HttpsOnlyPage {tab} />{/if}
+        {#if !tab.url}<StartPage />{:else if tab.interstitial}<HttpsOnlyPage {tab} />{:else if tab.loadError}<LoadErrorPage {tab} error={tab.loadError} />{/if}
       </div>
     {/if}
   {/each}
@@ -123,7 +124,7 @@
   /* Drawn in the gap around the native page view, which covers the pane itself. */
   .pane.focused {
     box-shadow:
-      0 0 0 2px var(--accent),
+      0 0 0 2px var(--accent-text),
       0 0 0 5px color-mix(in oklab, var(--accent) 22%, transparent),
       0 10px 30px -12px rgb(0 0 0 / 0.5);
   }

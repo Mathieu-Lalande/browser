@@ -2,6 +2,8 @@
   import type { HistoryEntry } from "@shared/types";
   import { displayUrl } from "@shared/url";
   import { api, browser } from "../lib/browser.svelte";
+  import { commandShortcut, shortcutKeys, commandAccelerator, getCommand, type CommandId } from "@shared/commands";
+  import { platform } from "../lib/platform.svelte";
   import { settings } from "../lib/settings.svelte";
   import Favicon from "./Favicon.svelte";
   import Icon from "./Icon.svelte";
@@ -43,6 +45,19 @@
       () => {},
     );
   });
+
+  /** Shortcut hints, from the command registry (keys as on the keyboard of this platform). */
+  const HINTS: { id: CommandId; label: string }[] = [
+    { id: "command-palette", label: "palette de commandes" },
+    { id: "focus-address", label: "barre d'adresse" },
+    { id: "new-tab", label: "nouvel onglet" },
+    { id: "toggle-sidebar", label: "barre latérale" },
+  ];
+  const hints = $derived(
+    HINTS.map((hint) => ({ ...hint, keys: shortcutKeys(commandAccelerator(getCommand(hint.id), platform.name) ?? "", platform.name) })).filter(
+      (hint) => commandShortcut(hint.id, platform.name),
+    ),
+  );
 
   function submit(event: SubmitEvent): void {
     event.preventDefault();
@@ -91,7 +106,14 @@
       {/each}
     </nav>
   {/if}
-  <p class="hint"><kbd>Ctrl</kbd> <kbd>L</kbd> barre d'adresse · <kbd>Ctrl</kbd> <kbd>T</kbd> nouvel onglet · <kbd>Ctrl</kbd> <kbd>S</kbd> barre latérale</p>
+  <ul class="hints" aria-label="Raccourcis clavier">
+    {#each hints as hint (hint.id)}
+      <li>
+        <span class="keys">{#each hint.keys as key, index (index)}<kbd>{key}</kbd>{/each}</span>
+        {hint.label}
+      </li>
+    {/each}
+  </ul>
 </section>
 
 <style>
@@ -140,7 +162,7 @@
     font-size: clamp(32px, 5vw, 52px);
     font-weight: 600;
     letter-spacing: -0.04em;
-    background: linear-gradient(120deg, var(--text) 30%, var(--accent) 70%, var(--accent-2));
+    background: linear-gradient(120deg, var(--text) 30%, var(--accent-text) 85%);
     background-clip: text;
     color: transparent;
   }
@@ -169,9 +191,10 @@
     font-size: 16px;
     user-select: text;
   }
+  /* Few sites stay centered; many wrap onto centered rows. */
   .sites {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, 88px);
+    display: flex;
+    flex-wrap: wrap;
     justify-content: center;
     gap: 10px;
     width: min(620px, 100%);
@@ -179,6 +202,7 @@
   }
   .site {
     display: flex;
+    width: 88px;
     flex-direction: column;
     align-items: center;
     gap: 8px;
@@ -248,17 +272,35 @@
   .private li.kept > :global(svg) {
     color: var(--text-faint);
   }
-  .hint {
-    margin-top: 18px;
+  .hints {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px 18px;
+    margin: 22px 0 0;
+    padding: 0;
     color: var(--text-faint);
     font-size: 12px;
+    list-style: none;
+  }
+  .hints li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .keys {
+    display: flex;
+    gap: 3px;
   }
   kbd {
+    min-width: 20px;
     padding: 1px 5px;
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: 5px;
+    background: var(--surface);
     font: inherit;
     font-size: 11px;
+    text-align: center;
   }
   @keyframes drift {
     to {
