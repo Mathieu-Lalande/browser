@@ -340,54 +340,58 @@ const TabCard = memo(function TabCard({
 
   return (
     <GestureDetector gesture={swipe}>
+      {/* Layout animations on the wrapper, animated opacity/transform on the child: Reanimated
+          warns (and the layout animation wins) when both target the same view. */}
       <Animated.View
         layout={reduceMotion ? undefined : LinearTransition.springify().damping(20).stiffness(200)}
         exiting={FadeOut.duration(120)}
-        style={[{ width, height: layout.cardHeight }, style]}
+        style={{ width, height: layout.cardHeight }}
       >
-        <Tap
-          accessibilityRole="button"
-          accessibilityLabel={`${title}${active ? ", onglet actif" : ""}`}
-          accessibilityHint="Balayer sur le côté pour fermer, maintenir pour plus d'options"
-          accessibilityActions={[{ name: "close", label: "Fermer l'onglet" }]}
-          onAccessibilityAction={(event) => event.nativeEvent.actionName === "close" && close()}
-          onPress={() => onPress(tab.id)}
-          onLongPress={() => {
-            haptic("medium");
-            onLongPress(tab);
-          }}
-          pressScale={0.96}
-          style={[
-            styles.card,
-            {
-              backgroundColor: colors.bgElevated,
-              borderColor: active ? colors.accent : colors.hairline,
-              borderWidth: active ? 2.5 : StyleSheet.hairlineWidth,
-              shadowColor: "#000",
-            },
-          ]}
-        >
-          <View style={styles.cardHeader}>
-            <SiteIcon url={tab.url} title={tab.title} size={18} offline={privateTab} radius={5} />
-            <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
-              {title}
-            </Text>
-            <Tap accessibilityRole="button" accessibilityLabel="Fermer l'onglet" onPress={close} hitSlop={8} pressScale={0.8} style={styles.cardClose}>
-              <View style={[styles.cardCloseDot, { backgroundColor: colors.surfaceActive }]}>
-                <Icon name="close" size={12} color={colors.textMuted} strokeWidth={2} />
-              </View>
-            </Tap>
-          </View>
-          <View style={[styles.preview, { backgroundColor: colors.surface, borderTopColor: colors.hairline }]}>
-            <View style={[styles.previewIcon, { backgroundColor: colors.bgElevated, borderColor: colors.hairline }]}>
-              <SiteIcon url={tab.url} title={tab.title} size={32} offline={privateTab} plain />
+        <Animated.View style={[{ flex: 1 }, style]}>
+          <Tap
+            accessibilityRole="button"
+            accessibilityLabel={`${title}${active ? ", onglet actif" : ""}`}
+            accessibilityHint="Balayer sur le côté pour fermer, maintenir pour plus d'options"
+            accessibilityActions={[{ name: "close", label: "Fermer l'onglet" }]}
+            onAccessibilityAction={(event) => event.nativeEvent.actionName === "close" && close()}
+            onPress={() => onPress(tab.id)}
+            onLongPress={() => {
+              haptic("medium");
+              onLongPress(tab);
+            }}
+            pressScale={0.96}
+            style={[
+              styles.card,
+              {
+                backgroundColor: colors.bgElevated,
+                borderColor: active ? colors.accent : colors.hairline,
+                borderWidth: active ? 2.5 : StyleSheet.hairlineWidth,
+                shadowColor: "#000",
+              },
+            ]}
+          >
+            <View style={styles.cardHeader}>
+              <SiteIcon url={tab.url} title={tab.title} size={18} offline={privateTab} radius={5} />
+              <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
+                {title}
+              </Text>
+              <Tap accessibilityRole="button" accessibilityLabel="Fermer l'onglet" onPress={close} hitSlop={8} pressScale={0.8} style={styles.cardClose}>
+                <View style={[styles.cardCloseDot, { backgroundColor: colors.surfaceActive }]}>
+                  <Icon name="close" size={12} color={colors.textMuted} strokeWidth={2} />
+                </View>
+              </Tap>
             </View>
-            <Text style={[styles.previewLabel, { color: colors.text }]} numberOfLines={1}>
-              {label}
-            </Text>
-            {tab.isLoading && <View style={[styles.loadingDot, { backgroundColor: colors.accent }]} />}
-          </View>
-        </Tap>
+            <View style={[styles.preview, { backgroundColor: colors.surface, borderTopColor: colors.hairline }]}>
+              <View style={[styles.previewIcon, { backgroundColor: colors.bgElevated, borderColor: colors.hairline }]}>
+                <SiteIcon url={tab.url} title={tab.title} size={32} offline={privateTab} plain />
+              </View>
+              <Text style={[styles.previewLabel, { color: colors.text }]} numberOfLines={1}>
+                {label}
+              </Text>
+              {tab.isLoading && <View style={[styles.loadingDot, { backgroundColor: colors.accent }]} />}
+            </View>
+          </Tap>
+        </Animated.View>
       </Animated.View>
     </GestureDetector>
   );
