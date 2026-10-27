@@ -63,9 +63,27 @@
    * which shrinks to a thin drag strip in zen mode.
    */
   const trafficLights = $derived(platform.isMac && !zen && right && showSidebar);
-  const controlsInSidebar = $derived(!platform.isMac && showSidebar && (right || zen));
-  const windowBar = $derived(collapsed || (!platform.isMac && (zen || !right)));
-  const barControls = $derived(!platform.isMac && !zen);
+  const controlsInSidebar = $derived(!platform.isMac && showSidebar);
+  /**
+   * Windows/Linux with the sidebar hidden (Ctrl+S or zen): the page keeps the full height, and the
+   * window bar only unfolds while the pointer is at the very top of the window (a thin strip the
+   * page view does not cover), then folds back once the pointer leaves it.
+   */
+  let topReveal = $state(false);
+  let topTimer: ReturnType<typeof setTimeout> | undefined;
+  const topEdge = $derived(!platform.isMac && !showSidebar && !topReveal);
+  const windowBar = $derived(platform.isMac ? collapsed : !showSidebar && topReveal);
+  const barControls = $derived(!platform.isMac);
+
+  function revealTop(): void {
+    clearTimeout(topTimer);
+    topReveal = true;
+  }
+
+  function hideTop(): void {
+    clearTimeout(topTimer);
+    topTimer = setTimeout(() => (topReveal = false), 350);
+  }
 
   /** Zen and Ctrl+S: the sidebar grows/shrinks (the page view follows, one bounds update per frame). */
   function slide(node: HTMLElement, { duration = 180 }: { duration?: number } = {}) {
@@ -171,7 +189,7 @@
   class:zen
   class:collapsed={!showSidebar}
   class:lights={trafficLights}
-  class:barred={windowBar}
+  class:barred={windowBar || topEdge}
   class:tinted={spaceAccent}
   style:--space-color={spaceAccent?.["--accent"]}
   style:--accent={spaceAccent?.["--accent"]}
@@ -198,9 +216,22 @@
     <div class="edge" role="presentation" data-testid="zen-edge" onmouseenter={revealFromEdge}></div>
   {/if}
   <div class="content">
+    {#if topEdge}
+      <!-- Not covered by the page view: hovering it unfolds the window bar. Not a drag region:
+           those swallow mouse events, so hovering would never be seen. -->
+      <div class="top-edge" role="presentation" data-testid="top-edge" onmouseenter={revealTop}></div>
+    {/if}
     {#if windowBar}
-      <!-- Draggable: the window can be moved whatever the sidebar's state. -->
-      <div class="window-bar drag" class:thin={zen} class:mac={platform.isMac} data-testid="window-bar">
+      <!-- Its empty middle moves the window (macOS: the whole bar), whatever the sidebar's state. -->
+      <div
+        class="window-bar"
+        class:drag={platform.isMac}
+        class:mac={platform.isMac}
+        role="presentation"
+        data-testid="window-bar"
+        onmouseenter={revealTop}
+        onmouseleave={() => !platform.isMac && hideTop()}
+      >
         {#if collapsed}
           <button
             class="reveal no-drag"
@@ -211,7 +242,7 @@
             <Icon name="sidebar" />
           </button>
         {/if}
-        <span class="bar-spacer"></span>
+        <span class="bar-spacer drag"></span>
         {#if barControls}<WindowControls />{/if}
       </div>
     {/if}
@@ -312,8 +343,11 @@
     background: var(--surface-hover);
     color: var(--text);
   }
-  .window-bar.thin {
-    height: 8px;
+  /* Replaces the top gutter (the column's gap is cancelled): the page starts where it did. */
+  .top-edge {
+    flex: none;
+    height: max(var(--gutter), 8px);
+    margin-bottom: calc(-1 * var(--gutter));
   }
   .lights {
     position: absolute;

@@ -125,27 +125,43 @@ test("settings rows keep readable labels at medium and small sizes", async ({ ap
   }
 });
 
-test("window controls sit at the window's top-right corner, with the sidebar shown or hidden", async ({ chrome }) => {
+test("window controls sit in the sidebar, and unfold at the top of the window when it is hidden", async ({ chrome }) => {
   const contentWidth = () => chrome.evaluate(() => (globalThis as unknown as { innerWidth: number }).innerWidth);
-  const check = async () => {
-    const close = chrome.getByRole("button", { name: "Fermer la fenêtre" });
+  const close = chrome.getByRole("button", { name: "Fermer la fenêtre" });
+  const checkButtons = async () => {
     await expect(close).toBeVisible();
-    const box = (await close.boundingBox())!;
-    expect(box.width).toBeGreaterThanOrEqual(28);
-    expect(box.y).toBeLessThan(16);
-    expect(box.x + box.width).toBeGreaterThan((await contentWidth()) - 12);
-    for (const name of ["Réduire", "Agrandir"]) expect((await chrome.getByRole("button", { name }).boundingBox())!.width).toBeGreaterThanOrEqual(28);
+    expect((await close.boundingBox())!.y).toBeLessThan(16);
+    for (const name of ["Réduire", "Agrandir", "Fermer la fenêtre"])
+      expect((await chrome.getByRole("button", { name }).boundingBox())!.width).toBeGreaterThanOrEqual(28);
   };
-  await check();
+  // Sidebar on the left: buttons at the start of its title bar, the page takes the full height.
+  await checkButtons();
+  const sidebar = (await chrome.locator(".sidebar").boundingBox())!;
+  expect((await close.boundingBox())!.x + 36).toBeLessThan(sidebar.x + sidebar.width);
+  expect((await chrome.locator(".viewport").boundingBox())!.y).toBeLessThanOrEqual(10);
 
+  // Sidebar hidden: no bar above the page until the pointer reaches the top edge.
   await chrome.getByRole("button", { name: "Masquer la barre latérale" }).click();
   await expect(chrome.locator(".sidebar")).toHaveCount(0);
-  await check();
+  await expect(close).toHaveCount(0);
+  expect((await chrome.locator(".viewport").boundingBox())!.y).toBeLessThanOrEqual(10);
+  // Move the pointer there (the strip is replaced by the bar as soon as it is hovered).
+  const edge = (await chrome.getByTestId("top-edge").boundingBox())!;
+  await chrome.mouse.move(edge.x + edge.width / 2, edge.y + 2);
+  await checkButtons();
+  expect((await close.boundingBox())!.x + 36).toBeGreaterThan((await contentWidth()) - 12);
+  // Back down on the page: the bar folds away and the page gets its height back.
+  await chrome.mouse.move(edge.x + edge.width / 2, 400);
+  await expect(close).toHaveCount(0);
+  await chrome.mouse.move(edge.x + edge.width / 2, edge.y + 2);
   await expect(chrome.getByRole("button", { name: "Afficher la barre latérale" })).toBeVisible();
   await chrome.getByRole("button", { name: "Afficher la barre latérale" }).click();
+  await chrome.mouse.move(600, 500);
 
+  // Sidebar on the right: buttons at the window's right edge, in its title bar.
   await api(chrome).update({ layout: { sidebarPosition: "right" } });
-  await check();
+  await checkButtons();
+  expect((await close.boundingBox())!.x + 36).toBeGreaterThan((await contentWidth()) - 12);
   await api(chrome).update({ layout: { sidebarPosition: "left" } });
 
   // macOS layout (simulated): no drawn controls, and the traffic lights' corner stays empty.
