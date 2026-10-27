@@ -4,21 +4,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ElectronApplication, Page } from "@playwright/test";
 import type { BrowserApi } from "@shared/ipc";
-import type { BrowserState } from "@shared/types";
 import { createSyncServer } from "../../server/src/server";
-import { chromeOf, expect, launch, test } from "./fixtures";
+import { chromeOf, expect, launch, openPrivateWindow, test, visit } from "./fixtures";
 
 /** Fast sync rounds for the test (5 s debounce and 5 min period in real use). */
 const SYNC_ENV = { BROWSER_TEST_SYNC_DEBOUNCE_MS: "200", BROWSER_TEST_SYNC_INTERVAL_MS: "800" };
 
 type Window = typeof globalThis & { browser: BrowserApi };
-
-async function visit(chrome: Page, url: string, title: string): Promise<void> {
-  const address = chrome.getByLabel("Barre d'adresse");
-  await address.fill(url);
-  await address.press("Enter");
-  await expect(chrome.locator(".tab.active .title")).toHaveText(title);
-}
 
 async function openSyncSettings(chrome: Page): Promise<void> {
   await chrome.evaluate(() => (globalThis as Window).browser.settings.open());
@@ -76,20 +68,8 @@ test("two desktops pair through the relay, sync bookmarks and tabs, and the serv
 
     // A's normal tab is listed on B; a private window's tab never is.
     await visit(a, server.url("/visible-tab"), "Page visible-tab");
-    await a.evaluate(() => (globalThis as Window).browser.commands.run("new-private-window"));
-    await expect.poll(() => apps[0].windows().filter((page) => page.url().endsWith("/renderer/index.html")).length).toBe(2);
-    let priv: Page | undefined;
-    await expect
-      .poll(async () => {
-        for (const page of apps[0].windows().filter((candidate) => candidate.url().endsWith("/renderer/index.html"))) {
-          const state = (await page.evaluate(() => (globalThis as Window).browser.getState()).catch(() => null)) as BrowserState | null;
-          if (state?.isPrivate) priv = page;
-        }
-        return Boolean(priv);
-      })
-      .toBe(true);
-    await priv!.waitForSelector(".sidebar");
-    await visit(priv!, server.url("/private-secret-tab"), "Page private-secret-tab");
+    const priv = await openPrivateWindow(apps[0], a);
+    await visit(priv, server.url("/private-secret-tab"), "Page private-secret-tab");
 
     const remoteUrls = async () => {
       const status = await b.evaluate(() => (globalThis as Window).browser.sync.status());

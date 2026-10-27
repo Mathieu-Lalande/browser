@@ -73,7 +73,7 @@ export interface SheetInput {
   engine: SearchEngine;
   context: CommandContext;
   now: number;
-  /** Other devices' tabs (sync, ADR-018); left out in private browsing. */
+  /** Other devices' tabs (sync, ADR-019); left out in private browsing. */
   remoteTabs?: readonly RemoteTabInput[];
 }
 

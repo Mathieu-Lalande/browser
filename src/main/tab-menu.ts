@@ -45,7 +45,7 @@ export function buildTabMenu(c: BrowserController, tabId: TabId): Menu | null {
       enabled: others.length > 0,
       submenu: others.map((space) => ({
         id: `move-${space.id}`,
-        label: `${space.icon}  ${space.name}`,
+        label: space.name,
         click: () => c.spaces.moveTab(tabId, space.id),
       })),
     },

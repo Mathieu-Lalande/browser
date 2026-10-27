@@ -3,7 +3,7 @@ import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "n
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { JsonFile, type FileSystem } from "./json-file";
+import { JsonFile, flushAll, type FileSystem } from "./json-file";
 
 interface Data {
   items: string[];
@@ -111,5 +111,40 @@ describe("JsonFile", () => {
     expect(onError).toHaveBeenCalled();
     expect(make().load()).toEqual({ items: ["safe"] });
     expect(readdirSync(join(dir, "nested"))).toEqual(["store.json"]);
+  });
+
+  it("reports data that cannot be serialized instead of throwing (audit MEDIUM-4)", () => {
+    make().save({ items: ["safe"] });
+    const onError = vi.fn();
+    const store = make({ onError });
+    expect(store.save({ items: [10n as unknown as string] })).toBe(false);
+    expect(onError).toHaveBeenCalledOnce();
+    expect(make().load()).toEqual({ items: ["safe"] });
+  });
+
+  it("reports a snapshot that throws at flush time instead of throwing", () => {
+    const onError = vi.fn();
+    const store = make({ onError });
+    store.scheduleSave(() => {
+      throw new Error("broken snapshot");
+    });
+    expect(() => store.flush()).not.toThrow();
+    expect(onError).toHaveBeenCalledOnce();
+  });
+});
+
+describe("flushAll", () => {
+  it("flushes every store even when one of them throws (audit MEDIUM-4)", () => {
+    const flushed: string[] = [];
+    const onError = vi.fn();
+    const store = (name: string, fails = false) => ({
+      flush: () => {
+        if (fails) throw new Error(`${name} failed`);
+        flushed.push(name);
+      },
+    });
+    flushAll([store("history"), store("bookmarks", true), store("session"), store("settings", true), store("zoom")], onError);
+    expect(flushed).toEqual(["history", "session", "zoom"]);
+    expect(onError).toHaveBeenCalledTimes(2);
   });
 });

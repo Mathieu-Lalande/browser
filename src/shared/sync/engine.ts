@@ -9,7 +9,7 @@ import { MAX_BATCH_RECORDS, MAX_BODY_BYTES, type PushRecord } from "./protocol";
 import type { CollectionName, RemoteDevice } from "./records";
 
 /**
- * The sync engine (ADR-018): per-record last-writer-wins with hybrid logical clock timestamps,
+ * The sync engine (ADR-019): per-record last-writer-wins with hybrid logical clock timestamps,
  * tombstones for deletions, incremental pull since the last server version, then push of local
  * changes with optimistic concurrency. Pure: storage, HTTP and randomness are injected, and the
  * same code runs on the desktop (Electron main) and the phone (Hermes).

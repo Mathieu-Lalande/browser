@@ -1,4 +1,5 @@
 import type { Settings } from "./settings";
+import { PRIVATE_SPACE_ICON } from "./spaces";
 import type { SpaceInfo } from "./types";
 
 /**
@@ -8,7 +9,7 @@ import type { SpaceInfo } from "./types";
 export const PRIVATE_SPACE: SpaceInfo = {
   id: "private",
   name: "Navigation privée",
-  icon: "🕶️",
+  icon: PRIVATE_SPACE_ICON,
   color: null,
   isolated: true,
 };

@@ -2,13 +2,13 @@ import { randomUUID } from "node:crypto";
 import { copyFileSync, existsSync, mkdirSync, renameSync, rmSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { app, dialog, shell, type BaseWindow, type DownloadItem, type Session } from "electron";
-import { isOpenable, type DownloadEntry, type DownloadsChange } from "@shared/downloads";
+import { canOpenFile, isOpenable, type DownloadEntry, type DownloadsChange } from "@shared/downloads";
 import type { Settings } from "@shared/settings";
 import { isTabPage } from "../privacy";
 import { profile } from "../profile";
 import { settings, updateSettings } from "../settings";
 import { isDangerousFile, sanitizeFilename, uniqueFilename } from "./files";
-import { applySnapshot, type ItemSnapshot } from "./list";
+import { applySnapshot, type DownloadViewer, type ItemSnapshot } from "./list";
 
 /**
  * Downloads (ADR-013): saved straight to the downloads folder without a dialog (unless the user
@@ -43,12 +43,25 @@ export function onDownloadsChanged(listener: Listener): () => void {
   return () => listeners.delete(listener);
 }
 
-export function listDownloads(): DownloadEntry[] {
-  return profile().downloads.list();
+/** The downloads a window sees (`downloadViewerOf` its private session, or null for a normal window). */
+export function listDownloads(viewer: DownloadViewer): DownloadEntry[] {
+  return profile().downloads.list(viewer);
+}
+
+/** Whether a window may see (and act on) a download: private windows' ones stay theirs (audit LOW-3). */
+export function isDownloadVisible(id: string, viewer: DownloadViewer): boolean {
+  return profile().downloads.isVisibleTo(id, viewer);
 }
 
 /** Private sessions (ADR-014) → ids of their downloads, kept out of downloads.json. */
 const privateDownloads = new WeakMap<Session, Set<string>>();
+/** Private sessions → the opaque key their downloads are listed under (see `DownloadViewer`). */
+const privateViewers = new WeakMap<Session, string>();
+
+/** Who a window's downloads belong to: null for normal windows, a private session's own key otherwise. */
+export function downloadViewerOf(ses: Session | null): DownloadViewer {
+  return (ses && privateViewers.get(ses)) ?? null;
+}
 
 /**
  * Handles downloads of a session. Idempotent: safe to call for every session (one per space).
@@ -56,7 +69,10 @@ const privateDownloads = new WeakMap<Session, Set<string>>();
  * where the user asked, but its entries are never written to the downloads history.
  */
 export function installDownloads(ses: Session, options: { ephemeral?: boolean } = {}): void {
-  if (options.ephemeral && !privateDownloads.has(ses)) privateDownloads.set(ses, new Set());
+  if (options.ephemeral && !privateDownloads.has(ses)) {
+    privateDownloads.set(ses, new Set());
+    privateViewers.set(ses, randomUUID());
+  }
   if (sessions.has(ses)) return;
   sessions.add(ses);
   if (!quarantineSwept) {
@@ -68,7 +84,8 @@ export function installDownloads(ses: Session, options: { ephemeral?: boolean } 
   ses.on("will-download", (event, item, contents) => {
     // Only tab pages download: never the browser UI, nor anything else in the session.
     if (!contents || !isTabPage(contents)) return event.preventDefault();
-    start(item, privateDownloads.get(ses));
+    const ids = privateDownloads.get(ses);
+    start(item, ids && { ids, viewer: privateViewers.get(ses)! });
   });
 }
 
@@ -91,6 +108,7 @@ export function forgetPrivateDownloads(ses: Session): void {
     }
   }
   privateDownloads.delete(ses);
+  privateViewers.delete(ses);
 }
 
 /** Entries to drop once their item settles (a private window closed while they ran). */
@@ -115,9 +133,9 @@ function reservePath(folder: string, filename: string): string {
   return path;
 }
 
-function start(item: DownloadItem, privateIds?: Set<string>): void {
+function start(item: DownloadItem, owner?: { ids: Set<string>; viewer: string }): void {
   const id = randomUUID();
-  privateIds?.add(id);
+  owner?.ids.add(id);
   const { askWhere } = settings().downloads;
   const filename = sanitizeFilename(item.getFilename());
   const dangerous = isDangerousFile(filename);
@@ -161,7 +179,7 @@ function start(item: DownloadItem, privateIds?: Set<string>): void {
 
   items.set(id, item);
   const { downloads, saveDownloads } = profile();
-  const dropped = downloads.add(entry, { ephemeral: !!privateIds });
+  const dropped = downloads.add(entry, { owner: owner?.viewer });
   saveDownloads();
   push(id, true, dropped);
 
@@ -273,36 +291,44 @@ export async function keepDownload(id: string, window?: BaseWindow): Promise<voi
   const entry = downloads.get(id);
   if (!entry?.awaitingConfirmation || entry.state !== "completed") return;
   const source = join(quarantineDir(), `${id}.download`);
-  let target: string;
-  if (settings().downloads.askWhere) {
-    const options = { defaultPath: join(downloadsFolder(), entry.filename) };
-    const result = await (window ? dialog.showSaveDialog(window, options) : dialog.showSaveDialog(options));
-    if (result.canceled || !result.filePath) return;
-    target = result.filePath;
-  } else {
-    const folder = downloadsFolder();
-    mkdirSync(folder, { recursive: true });
-    target = reservePath(folder, entry.filename);
-    reserved.delete(target);
-  }
-  // The entry may have been discarded while the dialog was open.
-  if (!downloads.get(id)?.awaitingConfirmation) return;
+  let target = "";
+  let reservedTarget = "";
   try {
+    if (settings().downloads.askWhere) {
+      const options = { defaultPath: join(downloadsFolder(), entry.filename) };
+      const result = await (window ? dialog.showSaveDialog(window, options) : dialog.showSaveDialog(options));
+      if (result.canceled || !result.filePath) return;
+      target = result.filePath;
+    } else {
+      const folder = downloadsFolder();
+      mkdirSync(folder, { recursive: true });
+      target = reservedTarget = reservePath(folder, entry.filename);
+    }
+    // The entry may have been discarded while the dialog was open.
+    if (!downloads.get(id)?.awaitingConfirmation) return;
     mkdirSync(dirname(target), { recursive: true });
     moveFile(source, target);
   } catch (error) {
+    // Folder missing and not creatable, no permission, disk full…: the file stays aside, still
+    // waiting for confirmation, and the UI gets the entry back as it is (it can try again).
     console.error("[downloads] cannot keep", entry.filename, error);
+    push(id, true);
     return;
+  } finally {
+    if (reservedTarget) reserved.delete(reservedTarget);
   }
   downloads.update(id, (current) => ({ ...current, awaitingConfirmation: false, path: target, filename: basename(target) }));
   saveDownloads();
   push(id, true);
 }
 
-/** Opens a completed download with its default app: only ever on the user's request. */
+/**
+ * Opens a completed download with its default app: only ever on the user's request, and only for
+ * types whose default app does not run code (`canOpenFile`, ADR-018); the others are shown in their folder.
+ */
 export function openDownload(id: string): void {
   const entry = profile().downloads.get(id);
-  if (entry && isOpenable(entry) && existsSync(entry.path)) void shell.openPath(entry.path);
+  if (entry && canOpenFile(entry) && existsSync(entry.path)) void shell.openPath(entry.path);
 }
 
 export function showDownloadInFolder(id: string): void {
@@ -316,8 +342,9 @@ export function removeDownload(id: string): void {
   forget(id);
 }
 
-export function clearDownloads(): void {
-  const removed = profile().downloads.clearFinished();
+/** Forgets the finished downloads `viewer` sees (other windows' entries stay). */
+export function clearDownloads(viewer: DownloadViewer): void {
+  const removed = profile().downloads.clearFinished(viewer);
   if (!removed.length) return;
   profile().saveDownloads();
   for (const id of removed) pending.delete(id);

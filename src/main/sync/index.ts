@@ -14,7 +14,7 @@ import { credentialsStore } from "./credentials";
 import { nodeRandomBytes } from "./random";
 
 /**
- * Desktop sync service (ADR-018): the shared `SyncController` wired to the profile, Electron's
+ * Desktop sync service (ADR-019): the shared `SyncController` wired to the profile, Electron's
  * network stack (system proxy and certificates) and the OS keychain. Off until the user sets up
  * an account or pairs this device: no server is ever contacted before that.
  */

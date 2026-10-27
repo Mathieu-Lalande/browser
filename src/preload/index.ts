@@ -34,6 +34,8 @@ const api: BrowserApi = {
     toggleMute: (id) => send(Channels.tabToggleMute, id),
     contextMenu: (id) => send(Channels.tabContextMenu, id),
     moveToSpace: (id, spaceId) => send(Channels.tabMoveToSpace, id, spaceId),
+    openBlockedPopup: (id) => send(Channels.tabOpenBlockedPopup, id),
+    dismissBlockedPopup: (id) => send(Channels.tabDismissBlockedPopup, id),
   },
   spaces: {
     create: (input) => ipcRenderer.invoke(Channels.spaceCreate, input),
@@ -82,6 +84,7 @@ const api: BrowserApi = {
     reset: (section) => ipcRenderer.invoke(Channels.settingsReset, section),
     onChanged: (listener) => subscribe<Settings>(Channels.settingsChanged, listener),
     open: () => send(Channels.settingsOpen),
+    startImage: () => ipcRenderer.invoke(Channels.startImage),
   },
   find: {
     query: (tabId, query, matchCase) => send(Channels.findQuery, tabId, query, matchCase),

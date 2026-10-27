@@ -26,6 +26,12 @@
 - Application mobile : `mobile/` (Expo SDK 58 / React Native, ADR-016), importe `src/shared` via `@shared/*`
   (jamais de copie) : `src/shared` doit rester pur (ni Electron, ni Node, ni DOM). Vérifications dans `mobile/` :
   `npx tsc --noEmit && npx jest && npx expo export --platform android`.
-- Synchronisation chiffrée (ADR-018) : moteur pur `src/shared/sync/` (crypto `@noble/*`, HLC, LWW), adaptateurs
+- Icônes (ADR-017) : uniquement Lucide, via les composants `Icon` (bureau et mobile), importées une par une ;
+  couleur via le thème/`currentColor`. Aucun emoji dans l'interface ; les icônes d'espace sont des noms Lucide
+  de `SPACE_ICONS` (`src/shared/spaces.ts`), migrés depuis les anciens emojis par `migrateSpaceIcon`.
+- Durcissement post-audit (ADR-018) : interface servie sur `app://browser/` (plus `file://`), favicons et image d'accueil
+  récupérés par main puis passés en `data:` (CSP `img-src 'self' data:`), bloqueur de fenêtres surgissantes
+  (`src/main/activation.ts`), fusibles Electron (`build.electronFuses`) ; crochets `BROWSER_*` ignorés une fois empaqueté.
+- Synchronisation chiffrée (ADR-019) : moteur pur `src/shared/sync/` (crypto `@noble/*`, HLC, LWW), adaptateurs
   `src/main/sync/` et `mobile/src/lib/sync/`, relais `server/` (`cd server && npm test`). Le serveur ne doit
   jamais voir de clair ; rien de privé n'est synchronisé.

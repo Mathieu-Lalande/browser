@@ -9,7 +9,7 @@ import { Platform } from "react-native";
 import { mobileAdapters, mobileTabs, type MobileSyncStore } from "./adapters";
 
 /**
- * Phone wiring of the shared sync controller (ADR-018): `fetch` for HTTP, `expo-crypto` for
+ * Phone wiring of the shared sync controller (ADR-019): `fetch` for HTTP, `expo-crypto` for
  * randomness (Expo Go has no WebCrypto `subtle`; the ciphers are pure JS), the iOS Keychain /
  * Android Keystore (`expo-secure-store`) for the token and key, AsyncStorage for the engine state.
  */

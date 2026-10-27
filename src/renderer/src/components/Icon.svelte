@@ -1,94 +1,215 @@
 <script lang="ts" module>
-  // Stroke icons (24×24 grid, Lucide-style paths).
-  const paths = {
-    back: "M15 18l-6-6 6-6",
-    forward: "M9 18l6-6-6-6",
-    reload: "M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6",
-    stop: "M18 6L6 18M6 6l12 12",
-    plus: "M12 5v14M5 12h14",
-    close: "M18 6L6 18M6 6l12 12",
-    pin: "M12 17v5M9 10.76V6h6v4.76l2 3.24H7z M8 2h8",
-    split: "M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM12 3v18",
-    more: "M5 12h.01M12 12h.01M19 12h.01",
-    layers: "M12 2l10 5-10 5L2 7zM2 17l10 5 10-5M2 12l10 5 10-5",
-    sidebar: "M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM9 3v18",
-    search: "M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35",
-    lock: "M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4",
-    globe: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20",
-    warning: "M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z",
-    sparkle: "M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2z",
-    star: "M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5-4.8-4.6 6.6-.9z",
-    clock: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 7v5l3 2",
-    shield: "M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z",
-    "shield-off":
-      "M2 2l20 20M5 5a1 1 0 0 0-1 1v7c0 5 3.5 7.5 7.67 8.94a1 1 0 0 0 .67.01c2.35-.82 4.48-1.97 5.9-3.71M9.31 3.65a12.25 12.25 0 0 0 1.93-1.37 1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1v7a9.78 9.78 0 0 1-.08 1.26",
-    // Command palette (see CommandIcon in src/shared/commands.ts).
-    window: "M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 9h18",
-    duplicate: "M8 10a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2zM16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3",
-    copy: "M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71",
-    "zoom-in": "M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35M11 8v6M8 11h6",
-    "zoom-out": "M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35M8 11h6",
-    "zoom-reset": "M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3",
-    code: "M16 18l6-6-6-6M8 6l-6 6 6 6",
-    trash: "M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6",
-    command:
-      "M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3",
-    enter: "M9 10l-5 5 5 5M20 4v7a4 4 0 0 1-4 4H4",
-    arrow: "M5 12h14M12 5l7 7-7 7",
-    settings:
-      "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z",
-    sun: "M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42",
-    moon: "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z",
-    monitor: "M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM8 21h8M12 17v4",
-    palette:
-      "M12 22a10 10 0 1 1 10-10c0 2.2-1.8 3.5-4 3.5h-1.6a1.9 1.9 0 0 0-1.4 3.2A1.9 1.9 0 0 1 12 22zM7.5 11.5h.01M9.5 7.5h.01M14.5 7.5h.01M16.5 11.5h.01",
-    home: "M3 10l9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM9 22V12h6v10",
-    sliders: "M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6",
-    database:
-      "M12 8c4.97 0 9-1.34 9-3s-4.03-3-9-3-9 1.34-9 3 4.03 3 9 3zM21 12c0 1.66-4 3-9 3s-9-1.34-9-3M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5",
-    check: "M20 6L9 17l-5-5",
-    reset: "M3 12a9 9 0 1 0 2.64-6.36M3 3v6h6",
-    zen: "M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3",
-    // Private windows (venetian mask).
-    mask: "M2 12a5 5 0 0 0 5 5 8 8 0 0 1 5 2 8 8 0 0 1 5-2 5 5 0 0 0 5-5V7h-5a8 8 0 0 0-5 2 8 8 0 0 0-5-2H2zM6 11c1.5 0 3 .5 3 2-2 0-3 0-3-2zM18 11c-1.5 0-3 .5-3 2 2 0 3 0 3-2z",
-    // Downloads, find in page and media.
-    download: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3",
-    volume: "M11 5L6 9H2v6h4l5 4zM15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14",
-    "volume-off": "M11 5L6 9H2v6h4l5 4zM22 9l-6 6M16 9l6 6",
-    pip: "M21 10V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5M14 14h8v6h-8z",
-    folder: "M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2z",
-    file: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6",
-    open: "M15 3h6v6M10 14L21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6",
-    pause: "M7 4h3v16H7zM14 4h3v16h-3z",
-    play: "M7 4l13 8-13 8z",
-    "chevron-up": "M18 15l-6-6-6 6",
-    "chevron-down": "M6 9l6 6 6-6",
-    // Sync (ADR-018).
-    cloud: "M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z",
-    "cloud-off": "M2 2l20 20M5.78 5.78A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.31-.2M21.53 16.82A4.5 4.5 0 0 0 17.5 10h-1.79A7 7 0 0 0 10.21 5.2",
-    laptop: "M20 16V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9M2 16h20l-1.4 2.8a2 2 0 0 1-1.8 1.2H5.2a2 2 0 0 1-1.8-1.2z",
-    smartphone: "M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM12 18h.01",
-    qr: "M3 3h5v5H3zM16 3h5v5h-5zM3 16h5v5H3zM21 16h-3a2 2 0 0 0-2 2v3M21 21v.01M12 7v3a2 2 0 0 1-2 2H7M3 12h.01M12 3h.01M12 16v.01M16 12h1M21 12v.01M12 21v-1",
-    unlink: "M18.84 12.25l1.72-1.71a5 5 0 0 0-7.07-7.07l-1.72 1.71M5.17 11.75l-1.71 1.71a5 5 0 0 0 7.07 7.07l1.71-1.71M8 2v3M2 8h3M16 22v-3M22 16h-3",
-    key: "M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.78 7.78 5.5 5.5 0 0 1 7.78-7.78zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4",
-  } as const;
-  export type IconName = keyof typeof paths;
+  // Lucide icons (https://lucide.dev), imported one by one so the bundle only holds the ones used.
+  // The names below are the UI's own (and CommandIcon's, in src/shared/commands.ts, plus the
+  // space icons of src/shared/spaces.ts): call sites never import Lucide directly.
+  import type { CommandIcon } from "@shared/commands";
+  import type { SpaceIcon } from "@shared/spaces";
+  import type { Component } from "svelte";
+  import AppWindow from "@lucide/svelte/icons/app-window";
+  import ArrowLeft from "@lucide/svelte/icons/arrow-left";
+  import ArrowRight from "@lucide/svelte/icons/arrow-right";
+  import BookOpen from "@lucide/svelte/icons/book-open";
+  import Briefcase from "@lucide/svelte/icons/briefcase";
+  import Calendar from "@lucide/svelte/icons/calendar";
+  import Camera from "@lucide/svelte/icons/camera";
+  import Check from "@lucide/svelte/icons/check";
+  import ChefHat from "@lucide/svelte/icons/chef-hat";
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
+  import ChevronUp from "@lucide/svelte/icons/chevron-up";
+  import CircleUser from "@lucide/svelte/icons/circle-user";
+  import Clock from "@lucide/svelte/icons/clock";
+  import CodeXml from "@lucide/svelte/icons/code-xml";
+  import Coffee from "@lucide/svelte/icons/coffee";
+  import Columns2 from "@lucide/svelte/icons/columns-2";
+  import Command from "@lucide/svelte/icons/command";
+  import Copy from "@lucide/svelte/icons/copy";
+  import CornerDownLeft from "@lucide/svelte/icons/corner-down-left";
+  import Database from "@lucide/svelte/icons/database";
+  import Download from "@lucide/svelte/icons/download";
+  import Dumbbell from "@lucide/svelte/icons/dumbbell";
+  import Ellipsis from "@lucide/svelte/icons/ellipsis";
+  import ExternalLink from "@lucide/svelte/icons/external-link";
+  import File from "@lucide/svelte/icons/file";
+  import Film from "@lucide/svelte/icons/film";
+  import FlaskConical from "@lucide/svelte/icons/flask-conical";
+  import Folder from "@lucide/svelte/icons/folder";
+  import Fullscreen from "@lucide/svelte/icons/fullscreen";
+  import Gamepad2 from "@lucide/svelte/icons/gamepad-2";
+  import Globe from "@lucide/svelte/icons/globe";
+  import GraduationCap from "@lucide/svelte/icons/graduation-cap";
+  import Heart from "@lucide/svelte/icons/heart";
+  import House from "@lucide/svelte/icons/house";
+  import Landmark from "@lucide/svelte/icons/landmark";
+  import Layers from "@lucide/svelte/icons/layers";
+  import Lightbulb from "@lucide/svelte/icons/lightbulb";
+  import Link from "@lucide/svelte/icons/link";
+  import Lock from "@lucide/svelte/icons/lock";
+  import Mail from "@lucide/svelte/icons/mail";
+  import Monitor from "@lucide/svelte/icons/monitor";
+  import Moon from "@lucide/svelte/icons/moon";
+  import Music from "@lucide/svelte/icons/music";
+  import Newspaper from "@lucide/svelte/icons/newspaper";
+  import Palette from "@lucide/svelte/icons/palette";
+  import PanelLeft from "@lucide/svelte/icons/panel-left";
+  import Pause from "@lucide/svelte/icons/pause";
+  import PictureInPicture2 from "@lucide/svelte/icons/picture-in-picture-2";
+  import Pin from "@lucide/svelte/icons/pin";
+  import Plane from "@lucide/svelte/icons/plane";
+  import Play from "@lucide/svelte/icons/play";
+  import Plus from "@lucide/svelte/icons/plus";
+  import Rocket from "@lucide/svelte/icons/rocket";
+  import RotateCcw from "@lucide/svelte/icons/rotate-ccw";
+  import RotateCw from "@lucide/svelte/icons/rotate-cw";
+  import Scan from "@lucide/svelte/icons/scan";
+  import Search from "@lucide/svelte/icons/search";
+  import Settings from "@lucide/svelte/icons/settings";
+  import Shield from "@lucide/svelte/icons/shield";
+  import ShieldOff from "@lucide/svelte/icons/shield-off";
+  import ShoppingBag from "@lucide/svelte/icons/shopping-bag";
+  import SlidersVertical from "@lucide/svelte/icons/sliders-vertical";
+  import Sparkle from "@lucide/svelte/icons/sparkle";
+  import Sprout from "@lucide/svelte/icons/sprout";
+  import Star from "@lucide/svelte/icons/star";
+  import Sun from "@lucide/svelte/icons/sun";
+  import Trash from "@lucide/svelte/icons/trash";
+  import TriangleAlert from "@lucide/svelte/icons/triangle-alert";
+  import Users from "@lucide/svelte/icons/users";
+  import VenetianMask from "@lucide/svelte/icons/venetian-mask";
+  import Volume2 from "@lucide/svelte/icons/volume-2";
+  import VolumeX from "@lucide/svelte/icons/volume-x";
+  import Wallet from "@lucide/svelte/icons/wallet";
+  import X from "@lucide/svelte/icons/x";
+  import Zap from "@lucide/svelte/icons/zap";
+  import ZoomIn from "@lucide/svelte/icons/zoom-in";
+  import ZoomOut from "@lucide/svelte/icons/zoom-out";
+
+  import Cloud from "@lucide/svelte/icons/cloud";
+  import CloudOff from "@lucide/svelte/icons/cloud-off";
+  import Laptop from "@lucide/svelte/icons/laptop";
+  import Smartphone from "@lucide/svelte/icons/smartphone";
+  import QrCode from "@lucide/svelte/icons/qr-code";
+  import Unlink from "@lucide/svelte/icons/unlink";
+  import KeyRound from "@lucide/svelte/icons/key-round";
+
+  type LucideIcon = Component<Record<string, unknown>>;
+
+  const ui = {
+    back: ArrowLeft,
+    forward: ArrowRight,
+    reload: RotateCw,
+    stop: X,
+    plus: Plus,
+    close: X,
+    pin: Pin,
+    split: Columns2,
+    more: Ellipsis,
+    layers: Layers,
+    sidebar: PanelLeft,
+    search: Search,
+    lock: Lock,
+    globe: Globe,
+    warning: TriangleAlert,
+    sparkle: Sparkle,
+    star: Star,
+    clock: Clock,
+    shield: Shield,
+    "shield-off": ShieldOff,
+    window: AppWindow,
+    duplicate: Copy,
+    copy: Link,
+    "zoom-in": ZoomIn,
+    "zoom-out": ZoomOut,
+    "zoom-reset": Scan,
+    code: CodeXml,
+    trash: Trash,
+    command: Command,
+    enter: CornerDownLeft,
+    arrow: ArrowRight,
+    settings: Settings,
+    sun: Sun,
+    moon: Moon,
+    monitor: Monitor,
+    palette: Palette,
+    home: House,
+    sliders: SlidersVertical,
+    database: Database,
+    check: Check,
+    reset: RotateCcw,
+    zen: Fullscreen,
+    mask: VenetianMask,
+    download: Download,
+    volume: Volume2,
+    "volume-off": VolumeX,
+    pip: PictureInPicture2,
+    folder: Folder,
+    file: File,
+    open: ExternalLink,
+    pause: Pause,
+    play: Play,
+    "chevron-up": ChevronUp,
+    "chevron-down": ChevronDown,
+    // Sync (ADR-019).
+    cloud: Cloud,
+    "cloud-off": CloudOff,
+    laptop: Laptop,
+    smartphone: Smartphone,
+    qr: QrCode,
+    unlink: Unlink,
+    key: KeyRound,
+  } satisfies Record<string, LucideIcon> & Record<CommandIcon, LucideIcon>;
+
+  /** Space icons: their stored names are Lucide's own. */
+  const spaces = {
+    "circle-user": CircleUser,
+    briefcase: Briefcase,
+    palette: Palette,
+    "book-open": BookOpen,
+    "gamepad-2": Gamepad2,
+    "shopping-bag": ShoppingBag,
+    plane: Plane,
+    music: Music,
+    lightbulb: Lightbulb,
+    "flask-conical": FlaskConical,
+    sprout: Sprout,
+    star: Star,
+    lock: Lock,
+    newspaper: Newspaper,
+    "chef-hat": ChefHat,
+    heart: Heart,
+    code: CodeXml,
+    "graduation-cap": GraduationCap,
+    dumbbell: Dumbbell,
+    camera: Camera,
+    film: Film,
+    globe: Globe,
+    rocket: Rocket,
+    landmark: Landmark,
+    wallet: Wallet,
+    calendar: Calendar,
+    mail: Mail,
+    folder: Folder,
+    layers: Layers,
+    zap: Zap,
+    coffee: Coffee,
+    users: Users,
+    "venetian-mask": VenetianMask,
+  } satisfies Record<SpaceIcon, LucideIcon>;
+
+  const icons: Record<string, LucideIcon> = { ...ui, ...spaces };
+
+  export type IconName = keyof typeof ui | SpaceIcon;
 </script>
 
 <script lang="ts">
-  let { name, size = 16, filled = false }: { name: IconName; size?: number; filled?: boolean } = $props();
+  let {
+    name,
+    size = 16,
+    filled = false,
+    strokeWidth = 2,
+  }: { name: IconName; size?: number; filled?: boolean; strokeWidth?: number } = $props();
+
+  const Glyph = $derived(icons[name] ?? icons.star);
 </script>
 
-<svg
-  width={size}
-  height={size}
-  viewBox="0 0 24 24"
-  fill={filled ? "currentColor" : "none"}
-  stroke="currentColor"
-  stroke-width="2"
-  stroke-linecap="round"
-  stroke-linejoin="round"
-  aria-hidden="true"
->
-  <path d={paths[name]} />
-</svg>
+<!-- Color comes from CSS (`currentColor`); never set one here. -->
+<Glyph {size} {strokeWidth} fill={filled ? "currentColor" : "none"} />

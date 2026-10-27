@@ -21,7 +21,7 @@ export type PaletteItem = Row &
     | { kind: "tab"; tab: TabState }
     | { kind: "command"; command: CommandDefinition }
     | { kind: "bookmark" | "history"; url: string; favicon: string | null }
-    /** A tab open on another synced device (ADR-018). */
+    /** A tab open on another synced device (ADR-019). */
     | { kind: "remote"; url: string; device: string }
     /** "Aller à …" (the input is an address) or "Rechercher sur le web « … »". */
     | { kind: "navigate" | "search"; url: string }

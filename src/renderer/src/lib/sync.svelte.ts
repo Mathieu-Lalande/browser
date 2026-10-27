@@ -1,7 +1,7 @@
 import type { RemoteTabInput } from "@shared/palette";
 import type { SyncStatus } from "@shared/sync/controller";
 
-/** Reactive mirror of the sync status (ADR-018), pushed by main on every change. */
+/** Reactive mirror of the sync status (ADR-019), pushed by main on every change. */
 class SyncStore {
   status = $state<SyncStatus | null>(null);
 

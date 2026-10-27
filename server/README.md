@@ -4,7 +4,7 @@ Petit relais à héberger soi-même pour synchroniser Browser entre le PC et le 
 historique récent (90 jours, 5 000 pages au plus), onglets ouverts, espaces et thème.
 
 **Il ne peut rien lire.** Tout est chiffré sur les appareils (XChaCha20-Poly1305, clé de 256 bits
-qui ne quitte jamais vos appareils, voir l'ADR-018 dans `docs/DECISIONS.md`). Le serveur stocke des
+qui ne quitte jamais vos appareils, voir l'ADR-019 dans `docs/DECISIONS.md`). Le serveur stocke des
 blocs illisibles, des identifiants hachés avec une clé qu'il n'a pas, des numéros de version et des
 dates. Il ne voit ni adresse, ni titre, ni nom d'appareil.
 

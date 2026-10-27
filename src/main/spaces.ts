@@ -65,7 +65,7 @@ class SpaceRegistry {
   }
 
   /**
-   * Replaces the list with one merged from another device (sync, ADR-018): removed spaces close
+   * Replaces the list with one merged from another device (sync, ADR-019): removed spaces close
    * their tabs, spaces whose isolation changed move to their new session. Never empty.
    */
   applySynced(next: readonly SpaceInfo[]): void {

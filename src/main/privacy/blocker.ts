@@ -37,14 +37,15 @@ export class ContentBlocker {
   constructor(
     private readonly cacheFile: string,
     private readonly fetchText: FetchText,
+    /** Test hook: a local filter list replacing the downloaded ones (never set in a packaged app). */
+    private readonly testFilters?: string,
   ) {}
 
   /** Never blocks the caller: the cache is read and the lists refreshed asynchronously. */
   start(): void {
     // Test hook: a local filter list replaces the downloaded ones (e2e tests stay offline).
-    const testFilters = process.env.BROWSER_TEST_FILTERS;
-    if (testFilters) {
-      this.engine = FiltersEngine.parse(readFileSync(testFilters, "utf8"), ENGINE_CONFIG);
+    if (this.testFilters) {
+      this.engine = FiltersEngine.parse(readFileSync(this.testFilters, "utf8"), ENGINE_CONFIG);
       return;
     }
     void this.loadCache().then((updatedAt) => this.schedule(updatedAt + REFRESH_INTERVAL - Date.now()));

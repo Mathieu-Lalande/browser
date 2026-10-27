@@ -7,7 +7,7 @@
   import Row from "./Row.svelte";
 
   /**
-   * Sync settings (ADR-018): set up an account on a self-hosted relay or pair with a code, then
+   * Sync settings (ADR-019): set up an account on a self-hosted relay or pair with a code, then
    * status, devices and their tabs, pairing code (on request, behind a warning), disconnect, reset.
    */
 

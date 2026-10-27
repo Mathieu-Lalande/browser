@@ -108,7 +108,7 @@ export const SearchSheet = memo(function SearchSheet({ initialText, onSubmit, on
           style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 10), borderTopColor: colors.hairline, backgroundColor: colors.bgElevated }]}
         >
           <View style={[styles.field, { backgroundColor: dark ? "rgba(255,255,255,0.08)" : "rgba(20,16,40,0.06)" }]}>
-            <Icon name={isPrivate ? "mask" : "search"} size={18} color={colors.accentText} />
+            <Icon name={isPrivate ? "mask" : "search"} size={20} color={colors.accentText} />
             <TextInput
               ref={input}
               value={text}
@@ -135,7 +135,7 @@ export const SearchSheet = memo(function SearchSheet({ initialText, onSubmit, on
             {text.length > 0 && (
               <Tap accessibilityRole="button" accessibilityLabel="Effacer" onPress={() => setText("")} style={styles.clear} pressScale={0.85}>
                 <View style={[styles.clearDot, { backgroundColor: colors.textFaint }]}>
-                  <Icon name="close" size={11} color={colors.bg} strokeWidth={3} />
+                  <Icon name="close" size={12} color={colors.bg} strokeWidth={2} />
                 </View>
               </Tap>
             )}
@@ -196,7 +196,7 @@ const Row = memo(function Row({
           <SiteIcon url={siteUrl} title={item.title} size={28} />
         ) : (
           <View style={[styles.glyph, { backgroundColor: item.kind === "navigate" || item.kind === "search" ? colors.accentSoft : colors.surface }]}>
-            <Icon name={iconFor(item)} size={17} color={item.kind === "navigate" || item.kind === "search" ? colors.accentText : colors.text} />
+            <Icon name={iconFor(item)} size={20} color={item.kind === "navigate" || item.kind === "search" ? colors.accentText : colors.text} />
           </View>
         )}
       </View>
@@ -211,7 +211,7 @@ const Row = memo(function Row({
       )}
       {fillValue && (
         <Tap accessibilityRole="button" accessibilityLabel="Modifier cette adresse" onPress={() => onFill(fillValue)} style={styles.fill} pressScale={0.85}>
-          <Icon name="fill" size={18} color={colors.textFaint} />
+          <Icon name="fill" size={20} color={colors.textFaint} />
         </Tap>
       )}
     </Tap>

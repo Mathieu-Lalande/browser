@@ -5,7 +5,7 @@ import { sha256 } from "@noble/hashes/sha2.js";
 import { concatBytes, fromBase64Url, randomBytesChecked, toBase64Url, toHex, utf8Decode, utf8Encode, type RandomBytes } from "./bytes";
 
 /**
- * End-to-end encryption of sync records (ADR-018). Everything here runs on the devices; the server
+ * End-to-end encryption of sync records (ADR-019). Everything here runs on the devices; the server
  * only ever stores the opaque envelopes and record ids produced below.
  *
  * - One random 256-bit sync key per account, shared by pairing (QR code / pairing code).

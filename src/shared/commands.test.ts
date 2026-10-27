@@ -21,6 +21,7 @@ const tab = (overrides: Partial<TabState> = {}): TabState => ({
   isMuted: false,
   zoom: 100,
   find: null,
+  blockedPopup: null,
   ...overrides,
 });
 

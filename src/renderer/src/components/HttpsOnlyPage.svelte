@@ -15,7 +15,7 @@
 </script>
 
 <section class="interstitial">
-  <span class="badge"><Icon name="warning" size={22} /></span>
+  <span class="badge"><Icon name="warning" size={24} /></span>
   <h1>Connexion sécurisée indisponible</h1>
   <p>
     Le mode HTTPS uniquement a tenté une connexion chiffrée à <strong>{host}</strong>, sans succès. Le site ne

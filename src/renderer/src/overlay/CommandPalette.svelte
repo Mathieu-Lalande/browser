@@ -65,10 +65,9 @@
 
   async function refreshSuggestions(text: string): Promise<void> {
     const id = ++request;
-    if (!text.trim()) {
-      suggestions = [];
-      return;
-    }
+    // Suggestions for older text go right away: Arrow/Enter must never run one while the new ones load.
+    suggestions = [];
+    if (!text.trim()) return;
     const history = await api.history.search(text, MAX_SUGGESTIONS + 4).catch(() => []);
     // A newer keystroke already asked for fresher results.
     if (id === request) suggestions = mergeSuggestions(text, history, bookmarks, MAX_SUGGESTIONS + 4);
@@ -182,7 +181,7 @@
     </div>
   {:else}
     <div class="search">
-      <Icon name="search" size={18} />
+      <Icon name="search" size={20} />
       <input
         bind:this={input}
         value={query}
@@ -225,13 +224,13 @@
             >
               <span class="icon" class:tile={item.kind === "command" || item.kind === "search" || item.kind === "navigate" || item.kind === "remote"}>
                 {#if item.kind === "command"}
-                  <Icon name={item.command.icon} size={15} />
+                  <Icon name={item.command.icon} size={16} />
                 {:else if item.kind === "search"}
-                  <Icon name="search" size={15} />
+                  <Icon name="search" size={16} />
                 {:else if item.kind === "navigate"}
-                  <Icon name="arrow" size={15} />
+                  <Icon name="arrow" size={16} />
                 {:else if item.kind === "remote"}
-                  <Icon name="cloud" size={15} />
+                  <Icon name="cloud" size={16} />
                 {:else if item.kind === "tab"}
                   <Favicon src={item.tab.favicon} loading={item.tab.isLoading} />
                 {:else if item.kind === "bookmark" || item.kind === "history"}

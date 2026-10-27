@@ -31,6 +31,67 @@ describe("isDangerousFile", () => {
     },
   );
 
+  it.each([
+    "help.chm",
+    "disk.iso",
+    "disk.img",
+    "disk.vhd",
+    "disk.vhdx",
+    "x.settingcontent-ms",
+    "x.library-ms",
+    "x.search-ms",
+    "link.webloc",
+    "link.fileloc",
+    "link.inetloc",
+    "profile.mobileconfig",
+    "addin.xll",
+    "macro.docm",
+    "macro.xlsm",
+    "macro.pptm",
+    "x.wsc",
+    "x.sct",
+    "x.ws",
+    "x.wsf",
+    "archive.mht",
+    "archive.mhtml",
+    "page.html",
+    "page.htm",
+    "image.svg",
+    "page.xht",
+    "page.xhtml",
+    "x.diagcab",
+    "x.appinstaller",
+    "x.appx",
+    "x.appxbundle",
+    "x.msix",
+    "x.msixbundle",
+    "x.website",
+    "x.msh",
+    "x.ps1xml",
+    "x.psm1",
+    "module.mjs",
+    "x.vb",
+    "x.vbe",
+    "x.shb",
+    "x.xbap",
+    "x.hta",
+    "x.cpl",
+    "x.inf",
+    "x.reg",
+    "x.scr",
+    "x.lnk",
+    "x.url",
+    "x.desktop",
+    "x.command",
+    "x.terminal",
+    "x.workflow",
+    "x.action",
+    "x.kext",
+    "Thing.prefPane",
+  ])("flags %s (Chromium's dangerous and allow-on-user-gesture types, audit MEDIUM-3)", (name) => {
+    expect(isDangerousFile(name)).toBe(true);
+  });
+
   it("looks at the last extension only (double extensions are a classic trick)", () => {
     expect(isDangerousFile("invoice.pdf.exe")).toBe(true);
     expect(isDangerousFile("invoice.exe.pdf")).toBe(false);
@@ -56,6 +117,15 @@ describe("sanitizeFilename", () => {
     expect(sanitizeFilename("bad\u0000name\n.txt")).toBe("bad_name_.txt");
   });
 
+  it("strips bidi overrides and other invisible format characters (audit MEDIUM-3)", () => {
+    // "invoice<RLO>fdp.exe" displays as "invoiceexe.pdf".
+    const spoofed = sanitizeFilename("invoice‮fdp.exe");
+    expect(spoofed).toBe("invoicefdp.exe");
+    expect(isDangerousFile(spoofed)).toBe(true);
+    expect(sanitizeFilename("a​b⁦c⁩﻿.pdf")).toBe("abc.pdf");
+    expect(sanitizeFilename("‮‮")).toBe(FALLBACK_FILENAME);
+  });
+
   it("never yields hidden files, trailing dots or empty names", () => {
     expect(sanitizeFilename(".htaccess")).toBe("htaccess");
     expect(sanitizeFilename("file.txt. . ")).toBe("file.txt");
@@ -67,12 +137,25 @@ describe("sanitizeFilename", () => {
     expect(sanitizeFilename("CON")).toBe("_CON");
     expect(sanitizeFilename("nul.txt")).toBe("_nul.txt");
     expect(sanitizeFilename("console.txt")).toBe("console.txt");
+    // Whatever the case.
+    expect(sanitizeFilename("Con.TXT")).toBe("_Con.TXT");
+    expect(sanitizeFilename("lPt1")).toBe("_lPt1");
+    expect(sanitizeFilename("cOm9.tar.gz")).toBe("_cOm9.tar.gz");
   });
 
   it("bounds the length but keeps the extension", () => {
     const name = sanitizeFilename(`${"x".repeat(500)}.pdf`);
     expect(name.length).toBe(200);
     expect(name.endsWith(".pdf")).toBe(true);
+  });
+
+  it("bounds the length even with a very long extension", () => {
+    for (const name of [`a.${"x".repeat(500)}`, `${"b".repeat(300)}.${"y".repeat(300)}`, `c.${"z ".repeat(200)}`]) {
+      const clean = sanitizeFilename(name);
+      expect(clean.length).toBeLessThanOrEqual(200);
+      expect(clean).not.toMatch(/[.\s]$/);
+    }
+    expect(sanitizeFilename(`a.${"x".repeat(500)}`).startsWith("a.")).toBe(true);
   });
 });
 

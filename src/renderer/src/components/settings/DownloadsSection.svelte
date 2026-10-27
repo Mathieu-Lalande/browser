@@ -19,13 +19,13 @@
   {#if s.folder}
     <button class="secondary" onclick={() => settings.update({ downloads: { folder: "" } })}>Par défaut</button>
   {/if}
-  <button class="secondary" onclick={choose}><Icon name="folder" size={13} /> Modifier…</button>
+  <button class="secondary" onclick={choose}><Icon name="folder" size={12} /> Modifier…</button>
 </Row>
 <Row label="Toujours demander où enregistrer" hint="Sinon, les fichiers sont enregistrés directement, sans boîte de dialogue.">
   <Toggle label="Toujours demander où enregistrer" checked={s.askWhere} onchange={(askWhere) => settings.update({ downloads: { askWhere } })} />
 </Row>
 <Row label="Fichiers exécutables" hint="Programmes, installeurs et scripts (.exe, .dmg, .sh…) attendent votre confirmation avant d'arriver dans le dossier. Rien n'est jamais ouvert automatiquement.">
-  <span class="badge"><Icon name="shield" size={13} /> Toujours</span>
+  <span class="badge"><Icon name="shield" size={12} /> Toujours</span>
 </Row>
 
 <style>

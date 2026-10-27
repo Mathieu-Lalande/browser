@@ -12,7 +12,7 @@
 </script>
 
 {#if internal}
-  <span class="internal"><Icon name={INTERNAL_ICONS[internal]} size={15} /></span>
+  <span class="internal"><Icon name={INTERNAL_ICONS[internal]} size={16} /></span>
 {:else}
   <Favicon src={tab.favicon} loading={tab.isLoading} />
 {/if}
@@ -24,6 +24,6 @@
     place-items: center;
     width: 16px;
     height: 16px;
-    color: var(--accent-text);
+    color: var(--text-muted);
   }
 </style>

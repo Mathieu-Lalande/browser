@@ -5,7 +5,7 @@ import { BrowserController } from "../window";
 import { onSyncStatus, syncController } from "./index";
 
 /**
- * IPC of the sync settings (ADR-018), same rules as `src/main/ipc.ts`: only the browser's own UI
+ * IPC of the sync settings (ADR-019), same rules as `src/main/ipc.ts`: only the browser's own UI
  * may call, arguments are checked. Private windows can read the status and the other devices'
  * tabs, but not touch the account nor reveal the pairing code.
  */

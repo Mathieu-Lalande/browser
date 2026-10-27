@@ -42,7 +42,7 @@ describe("synced records", () => {
   });
 
   it("merges space definitions, keeping the icon as an opaque string and never emptying the list", () => {
-    const local = [{ ...DEFAULT_SPACE }, { id: "work", name: "Travail", icon: "briefcase", color: null, isolated: false }];
+    const local = [{ ...DEFAULT_SPACE }, { id: "work", name: "Travail", icon: "briefcase" as const, color: null, isolated: false }];
     const merged = mergeSpaces(
       local,
       [

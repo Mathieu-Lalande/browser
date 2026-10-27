@@ -143,12 +143,12 @@
     <h1>Paramètres</h1>
     {#each NAV as item (item.id)}
       <button class:current={current === item.id} aria-current={current === item.id ? "true" : undefined} onclick={() => jump(item.id)}>
-        <Icon name={item.icon} size={15} />
+        <Icon name={item.icon} size={16} />
         {item.label}
       </button>
     {/each}
     <button class="reset-all" onclick={() => settings.reset()}>
-      <Icon name="reset" size={13} /> Tout réinitialiser
+      <Icon name="reset" size={12} /> Tout réinitialiser
     </button>
   </nav>
 
@@ -177,7 +177,7 @@
                   <MiniBrowser settings={s} mode={mode.value} />
                 {/if}
               </span>
-              <span class="caption"><Icon name={mode.icon} size={13} /> {mode.label}</span>
+              <span class="caption"><Icon name={mode.icon} size={12} /> {mode.label}</span>
             </button>
           {/each}
         </div>

@@ -1,3 +1,5 @@
+import type { SpaceIcon } from "./spaces";
+
 export type TabId = string;
 
 export interface TabState {
@@ -34,6 +36,11 @@ export interface TabState {
   zoom: number;
   /** Find in page: null until the find bar was first opened in this tab (the query is kept per tab). */
   find: FindState | null;
+  /**
+   * The last popup the page tried to open without a user gesture (popup blocker, ADR-018), with
+   * how many were blocked since the page loaded; null when none.
+   */
+  blockedPopup: { url: string; count: number } | null;
 }
 
 export interface FindState {
@@ -66,6 +73,11 @@ export interface PermissionPrompt {
   id: string;
   /** Origin asking, e.g. `https://meet.example.com`. */
   origin: string;
+  /**
+   * The tab's top-level origin, when the request comes from a frame of another origin: the bar
+   * says "X (intégré dans Y)", and the decision only holds for X inside Y (ADR-018).
+   */
+  topOrigin?: string;
   kinds: PermissionKind[];
 }
 
@@ -97,8 +109,8 @@ export type SpaceId = string;
 export interface SpaceInfo {
   id: SpaceId;
   name: string;
-  /** An emoji (or a short symbol). */
-  icon: string;
+  /** A Lucide icon name from `SPACE_ICONS` (see spaces.ts). */
+  icon: SpaceIcon;
   /** `#rrggbb` accent used while the space is shown; null keeps the theme accent. */
   color: string | null;
   /** Own session partition (separate logins, like containers) instead of the shared default one. */

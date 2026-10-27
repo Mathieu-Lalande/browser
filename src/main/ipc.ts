@@ -9,6 +9,7 @@ import {
   cancelDownload,
   chooseDownloadsFolder,
   clearDownloads,
+  isDownloadVisible,
   keepDownload,
   listDownloads,
   openDownload,
@@ -20,6 +21,7 @@ import {
 import { profile } from "./profile";
 import { resetSettingsSection, settings, updateSettings } from "./settings";
 import { spaces } from "./spaces";
+import { startImage } from "./start-image";
 import { registerSyncIpc } from "./sync/ipc";
 import { showTabMenu } from "./tab-menu";
 import { BrowserController } from "./window";
@@ -105,6 +107,9 @@ export function registerIpc(): void {
       c.tabs.respondPermission(tabId as string, promptId as string, allow as boolean, remember as boolean),
   );
   on(Channels.tabContextMenu, id, (c, tabId) => showTabMenu(c, tabId as string));
+  // Popup blocker notice: the renderer names the tab only, main keeps the blocked URL.
+  on(Channels.tabOpenBlockedPopup, id, (c, tabId) => c.tabs.openBlockedPopup(tabId as string));
+  on(Channels.tabDismissBlockedPopup, id, (c, tabId) => c.tabs.dismissBlockedPopup(tabId as string));
   on(Channels.tabMoveToSpace, (args) => isString(args[0]) && isSpaceId(args[1]), (c, tabId, spaceId) =>
     c.spaces.moveTab(tabId as string, spaceId as string),
   );
@@ -181,6 +186,13 @@ export function registerIpc(): void {
     resetSettingsSection(section as Parameters<typeof resetSettingsSection>[0]),
   );
   on(Channels.settingsOpen, none, (c) => c.openSettings());
+  // The URL comes from the settings, never from the renderer; private windows get nothing (ADR-018).
+  ipcMain.handle(Channels.startImage, (event) => {
+    const controller = BrowserController.fromUi(event.sender);
+    if (!controller) throw new Error(`Rejected ${Channels.startImage}`);
+    const { background, backgroundImage } = settings().startPage;
+    return controller.isPrivate || background !== "image" ? null : startImage(backgroundImage);
+  });
 
   // Tab media and find in page (the find bar sends the query typed by the user).
   on(Channels.tabToggleMute, id, (c, tabId) => c.tabs.toggleMute(tabId as string));
@@ -195,16 +207,25 @@ export function registerIpc(): void {
   on(Channels.findClose, id, (c, tabId) => c.tabs.closeFind(tabId as string));
 
   // Downloads: the UI only names downloads by id; paths never come from the renderer.
+  // A window only lists and acts on the downloads it may see (a private window's stay its own).
   const downloadId = (args: unknown[]) => isString(args[0]) && args[0].length <= 64;
-  handle(Channels.downloadsList, none, () => listDownloads());
-  on(Channels.downloadsPause, downloadId, (_c, downloadId) => pauseDownload(downloadId as string));
-  on(Channels.downloadsResume, downloadId, (_c, downloadId) => resumeDownload(downloadId as string));
-  on(Channels.downloadsCancel, downloadId, (_c, downloadId) => cancelDownload(downloadId as string));
-  on(Channels.downloadsKeep, downloadId, (c, downloadId) => void keepDownload(downloadId as string, c.window));
-  on(Channels.downloadsOpen, downloadId, (_c, downloadId) => openDownload(downloadId as string));
-  on(Channels.downloadsShowInFolder, downloadId, (_c, downloadId) => showDownloadInFolder(downloadId as string));
-  on(Channels.downloadsRemove, downloadId, (_c, downloadId) => removeDownload(downloadId as string));
-  on(Channels.downloadsClear, none, () => clearDownloads());
+  const onDownload = (channel: string, action: (id: string, c: BrowserController) => void) =>
+    on(channel, downloadId, (c, downloadId) => {
+      if (isDownloadVisible(downloadId as string, c.downloadViewer)) action(downloadId as string, c);
+    });
+  ipcMain.handle(Channels.downloadsList, (event) => {
+    const controller = BrowserController.fromUi(event.sender);
+    if (!controller) throw new Error(`Rejected ${Channels.downloadsList}`);
+    return listDownloads(controller.downloadViewer);
+  });
+  onDownload(Channels.downloadsPause, pauseDownload);
+  onDownload(Channels.downloadsResume, resumeDownload);
+  onDownload(Channels.downloadsCancel, cancelDownload);
+  onDownload(Channels.downloadsKeep, (downloadId, c) => void keepDownload(downloadId, c.window));
+  onDownload(Channels.downloadsOpen, openDownload);
+  onDownload(Channels.downloadsShowInFolder, showDownloadInFolder);
+  onDownload(Channels.downloadsRemove, removeDownload);
+  on(Channels.downloadsClear, none, (c) => clearDownloads(c.downloadViewer));
   ipcMain.handle(Channels.downloadsChooseFolder, (event) => {
     const controller = BrowserController.fromUi(event.sender);
     if (!controller) throw new Error(`Rejected ${Channels.downloadsChooseFolder}`);

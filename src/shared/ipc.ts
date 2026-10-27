@@ -36,6 +36,8 @@ export const Channels = {
   tabProceedHttp: "tab:proceed-http",
   tabContextMenu: "tab:context-menu",
   tabMoveToSpace: "tab:move-to-space",
+  tabOpenBlockedPopup: "tab:open-blocked-popup",
+  tabDismissBlockedPopup: "tab:dismiss-blocked-popup",
   spaceCreate: "space:create",
   spaceUpdate: "space:update",
   spaceRemove: "space:remove",
@@ -64,6 +66,7 @@ export const Channels = {
   settingsReset: "settings:reset",
   settingsChanged: "settings:changed",
   settingsOpen: "settings:open",
+  startImage: "settings:start-image",
   tabToggleMute: "tab:toggle-mute",
   findQuery: "find:query",
   findStep: "find:step",
@@ -120,6 +123,10 @@ export interface BrowserApi {
     contextMenu(id: TabId): void;
     /** Moves the tab to another space of this window (reloads it if the spaces' sessions differ). */
     moveToSpace(id: TabId, spaceId: SpaceId): void;
+    /** Popup blocker notice: opens the popup the page was refused (main knows its URL). */
+    openBlockedPopup(id: TabId): void;
+    /** Popup blocker notice: hides it. */
+    dismissBlockedPopup(id: TabId): void;
   };
   spaces: {
     /** Creates a space (defaults for missing fields) and shows it in this window; null at the limit. */
@@ -187,6 +194,11 @@ export interface BrowserApi {
     onChanged(listener: (settings: Settings) => void): () => void;
     /** Shows `browser://settings` in this window (existing tab, or a new one). */
     open(): void;
+    /**
+     * The start page's background image as a data: URL, fetched by main (the UI loads no remote
+     * image); null when there is none, it failed, or in a private window.
+     */
+    startImage(): Promise<string | null>;
   };
   find: {
     /** Searches the tab's page for `query` (new search: the first match from the top is highlighted). */
@@ -221,7 +233,7 @@ export interface BrowserApi {
     /** Shows `browser://downloads` in this window. */
     openPage(): void;
   };
-  /** End-to-end encrypted sync (ADR-018). Account actions are refused from private windows. */
+  /** End-to-end encrypted sync (ADR-019). Account actions are refused from private windows. */
   sync: {
     status(): Promise<SyncStatus>;
     onChanged(listener: (status: SyncStatus) => void): () => void;

@@ -5,6 +5,7 @@ import { memo, useEffect, useMemo, useState } from "react";
 import { Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { withAlpha } from "../lib/colors";
+import { privateModeNotice } from "../lib/navigation";
 import { greeting } from "../lib/site";
 import { useBrowserState, useHistoryEntries } from "../state/BrowserProvider";
 import { useTheme } from "../state/theme";
@@ -58,15 +59,13 @@ export const StartPage = memo(function StartPage({ bottomInset, onSearch, onOpen
         {isPrivate ? (
           <Animated.View entering={entering(0)} style={styles.hero}>
             <View style={[styles.privateBadge, { backgroundColor: colors.accentSoft }]}>
-              <Icon name="mask" size={30} color={colors.accentText} />
+              <Icon name="mask" size={32} color={colors.accentText} />
             </View>
             <Text style={[styles.greeting, { color: colors.text }]} accessibilityRole="header">
               Navigation privée
             </Text>
             <Text style={[styles.privateText, { color: colors.textMuted }]}>
-              {Platform.OS === "ios"
-                ? "Les pages ne sont pas enregistrées dans l'historique. Cookies et données de chaque onglet privé sont effacés à sa fermeture."
-                : "Les pages ne sont pas enregistrées dans l'historique ni dans le cache. Sur Android, les onglets privés partagent encore les cookies des autres onglets."}
+              {privateModeNotice(Platform.OS)}
             </Text>
           </Animated.View>
         ) : (
@@ -89,10 +88,10 @@ export const StartPage = memo(function StartPage({ bottomInset, onSearch, onOpen
             accessibilityLabel="Rechercher ou saisir une adresse"
             onPress={onSearch}
             pressScale={0.97}
-            style={[styles.search, { backgroundColor: colors.bgElevated, borderColor: colors.border, shadowColor: dark ? "#000" : "#3c2d78" }]}
+            style={[styles.search, { backgroundColor: colors.bgElevated, borderColor: colors.border, shadowColor: "#000" }]}
             testID="start-search"
           >
-            <Icon name="search" size={20} color={colors.accentText} />
+            <Icon name="search" size={20} color={colors.textMuted} />
             <Text style={[styles.searchText, { color: colors.textMuted }]}>Rechercher ou saisir une adresse</Text>
           </Tap>
         </Animated.View>
@@ -153,8 +152,8 @@ function Tip({ icon, text }: { icon: "tabs" | "layers" | "link"; text: string })
   const { colors } = useTheme();
   return (
     <View style={styles.tip}>
-      <View style={[styles.tipIcon, { backgroundColor: colors.accentSoft }]}>
-        <Icon name={icon} size={17} color={colors.accentText} />
+      <View style={[styles.tipIcon, { backgroundColor: colors.bgElevated, borderColor: colors.hairline }]}>
+        <Icon name={icon} size={20} color={colors.textMuted} />
       </View>
       <Text style={[styles.tipText, { color: colors.textMuted }]}>{text}</Text>
     </View>
@@ -185,7 +184,7 @@ const SiteTile = memo(function SiteTile({
       pressScale={0.92}
     >
       <View style={[styles.tileIcon, { width: size - 16, height: size - 16, backgroundColor: colors.bgElevated, borderColor: colors.hairline }]}>
-        <SiteIcon url={url} title={title} size={Math.round(size * 0.42)} />
+        <SiteIcon url={url} title={title} size={Math.round((size * 0.42) / 4) * 4} plain />
       </View>
       <Text style={[styles.tileLabel, { color: colors.text }]} numberOfLines={1}>
         {title}
@@ -226,6 +225,6 @@ const styles = StyleSheet.create({
   tileLabel: { fontSize: 12, fontWeight: "500", maxWidth: "100%" },
   tips: { width: "100%", maxWidth: 560, borderRadius: 22, padding: 16, gap: 14, borderWidth: StyleSheet.hairlineWidth },
   tip: { flexDirection: "row", alignItems: "center", gap: 12 },
-  tipIcon: { width: 34, height: 34, borderRadius: 11, alignItems: "center", justifyContent: "center" },
+  tipIcon: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center", borderWidth: StyleSheet.hairlineWidth },
   tipText: { flex: 1, fontSize: 14, lineHeight: 19 },
 });

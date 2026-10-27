@@ -4,7 +4,7 @@ import { RateLimiter } from "./rate-limit.js";
 import { FileStore, type Account, type StoredRecord } from "./store.js";
 
 /**
- * The sync relay (ADR-018). It stores opaque, end-to-end encrypted records for accounts and
+ * The sync relay (ADR-019). It stores opaque, end-to-end encrypted records for accounts and
  * never sees keys or plaintext. Protocol (also in `src/shared/sync/protocol.ts`):
  *
  *   POST   /v1/accounts                         → 201 { accountId, token }

@@ -1,45 +1,45 @@
 # Roadmap
 
-## Sprint 0 — Fondations ✅
+## Sprint 0 — Fondations (terminé)
 Migration Tauri → Electron + Svelte 5, onglets réels (`WebContentsView`), barre latérale verticale,
 barre d'adresse, page d'accueil, raccourcis, durcissement sécurité, tests unitaires + e2e.
 
 ## Sprint 1 — Le cœur d'un vrai navigateur
-- ✅ Persistance : session (onglets restaurés à la demande), historique, favoris, suggestions
+- (fait) Persistance : session (onglets restaurés à la demande), historique, favoris, suggestions
   dans la barre d'adresse, sites fréquents sur la page d'accueil. Reste : paramètres.
-- ✅ Palette de commandes (Ctrl+K) façon Arc : onglets ouverts, historique, favoris, actions,
+- (fait) Palette de commandes (Ctrl+K) façon Arc : onglets ouverts, historique, favoris, actions,
   recherche floue ; calque flottant (« overlay ») au-dessus des pages, réutilisable pour menus et popovers.
-- Bloqueur de pubs & traqueurs intégré, mode HTTPS uniquement, compteur et désactivation par site ✅
-- Invite de permissions (caméra, micro, notifications…) par site ✅
+- Bloqueur de pubs & traqueurs intégré, mode HTTPS uniquement, compteur et désactivation par site (fait)
+- Invite de permissions (caméra, micro, notifications…) par site (fait)
 
 ## Sprint 2 — Personnalisation poussée
-- ✅ Paramètres (`browser://settings`) appliqués à chaud : thème clair/sombre/auto, couleur d'accent
+- (fait) Paramètres (`browser://settings`) appliqués à chaud : thème clair/sombre/auto, couleur d'accent
   et dégradé (palette dérivée, contraste WCAG AA), arrière-plan, densité, coins, police, ombres,
   animations réduites ; barre latérale à gauche/droite et redimensionnable, marge de page ;
   moteur de recherche ; page d'accueil (prénom, horloge, sites, fond) ; session, position des
   nouveaux onglets, onglet affiché après fermeture ; effacement de l'historique, gestion des favoris.
-- ✅ Mode zen (Ctrl+Maj+B).
-- ✅ Espaces (workspaces) : onglets propres, emoji et couleur d'accent, sessions isolées optionnelles
+- (fait) Mode zen (Ctrl+Maj+B).
+- (fait) Espaces (workspaces) : onglets propres, icône (Lucide) et couleur d'accent, sessions isolées optionnelles
   (conteneurs), déplacement d'onglets, Ctrl+Alt+1…9 (ADR-009).
-- ✅ Vue scindée : 2 à 4 pages côte à côte, séparateurs déplaçables, Ctrl+Maj+\\ (ADR-009).
+- (fait) Vue scindée : 2 à 4 pages côte à côte, séparateurs déplaçables, Ctrl+Maj+\\ (ADR-009).
   Reste : glisser-déposer d'un onglet sur un volet pour l'ajouter.
 - Raccourcis clavier configurables, CSS par site (« boosts »).
 
 ## Sprint 3 — Confort & vitesse
-- ✅ Téléchargements (sans boîte de dialogue, noms uniques, pause/reprise/annulation, exécutables
+- (fait) Téléchargements (sans boîte de dialogue, noms uniques, pause/reprise/annulation, exécutables
   à confirmer, rien n'est ouvert automatiquement), popover dans l'overlay, `browser://downloads`,
   historique ; recherche dans la page (Ctrl+F, compteur, casse, requête gardée par onglet) ; zoom
   mémorisé par site et zoom par défaut ; image dans l'image ; indicateur de son et coupure par onglet.
   Reste : reprise des téléchargements interrompus après un redémarrage, vidéos dans des iframes
   pour l'image dans l'image.
-- ✅ Mise en veille des onglets inactifs (délai réglable, jamais pour le son, les autorisations en
+- (fait) Mise en veille des onglets inactifs (délai réglable, jamais pour le son, les autorisations en
   attente ni les formulaires en cours ; onglets estompés ; commandes « Mettre en veille ») (ADR-014).
   Reste : préchargement intelligent, indicateur de mémoire libérée.
-- ✅ Fenêtres privées (Ctrl/Cmd+Maj+N) : partition en mémoire par fenêtre, effacée à la fermeture,
+- (fait) Fenêtres privées (Ctrl/Cmd+Maj+N) : partition en mémoire par fenêtre, effacée à la fermeture,
   rien d'écrit sur le disque, thème privé (ADR-014).
-- ✅ Anti-fingerprinting modeste : UA réduit, client hints cohérents, `Accept-Language` uniformisable.
+- (fait) Anti-fingerprinting modeste : UA réduit, client hints cohérents, `Accept-Language` uniformisable.
   Hors périmètre (scripts injectés) : canvas, WebGL, polices (ADR-014).
-- ✅ Packaging electron-builder (AppImage/deb, NSIS, dmg ; asar vérifié avec le worker du bloqueur)
+- (fait) Packaging electron-builder (AppImage/deb, NSIS, dmg ; asar vérifié avec le worker du bloqueur)
   et CI GitHub Actions (vérifications + e2e, paquets non signés sur `master`) (ADR-015).
 - Mises à jour automatiques — **plan**, non implémenté :
   1. Signature : certificat Apple Developer ID + notarisation (`notarize` d'electron-builder) et
@@ -53,7 +53,7 @@ barre d'adresse, page d'accueil, raccourcis, durcissement sécurité, tests unit
   4. Linux : AppImage via electron-updater ; les paquets deb passent par un dépôt apt plus tard.
   5. Canal bêta (`allowPrerelease`) pour tester avant diffusion.
 
-## Synchronisation — voir ADR-018 et `server/README.md`
+## Synchronisation — voir ADR-019 et `server/README.md`
 - ✅ Synchronisation chiffrée de bout en bout entre le bureau et le téléphone : favoris (et
   dossiers), historique des 90 derniers jours, onglets ouverts par appareil (« Onglets de mes autres
   appareils » dans la palette, la vue des onglets et la recherche mobile), espaces, thème, moteur de
@@ -69,7 +69,7 @@ barre d'adresse, page d'accueil, raccourcis, durcissement sécurité, tests unit
 
 ## Mobile (iOS et Android) — voir ADR-016 et `mobile/README.md`
 
-### Phase 1 — Expo Go ✅
+### Phase 1 — Expo Go (terminée)
 Application Expo / React Native dans `mobile/`, lancée sur téléphone avec Expo Go, logique
 partagée avec le bureau (`src/shared`) : barre d'adresse en bas repliable au défilement, balayage
 pour changer d'onglet, recherche plein écran (historique, favoris, onglets, actions), vue des
@@ -87,7 +87,7 @@ retours haptiques.
 - Miniatures des onglets (`react-native-view-shot`), recherche dans la page, téléchargements,
   mode lecture, « version ordinateur » du site.
 - ✅ Synchronisation chiffrée avec le bureau (favoris, onglets ouverts, historique, espaces) :
-  faite dès Expo Go (ADR-018), voir ci-dessus.
+  faite dès Expo Go (ADR-019), voir ci-dessus.
 - Widgets et raccourcis de l'écran d'accueil, extension de partage (« Ouvrir dans Browser »),
   navigateur par défaut.
 - Publication sur l'App Store et le Play Store.

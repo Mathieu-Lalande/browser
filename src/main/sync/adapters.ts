@@ -28,7 +28,7 @@ import { spaces } from "../spaces";
 import { BrowserController } from "../window";
 
 /**
- * Desktop side of the synced collections (ADR-018): each adapter reads the profile and applies
+ * Desktop side of the synced collections (ADR-019): each adapter reads the profile and applies
  * changes from other devices through the same code paths as the UI. Private windows never feed
  * anything in: they write no history, are not in the session, and their tabs are not listed.
  */

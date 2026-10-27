@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { WebContentsView, type BaseWindow, type WebContents } from "electron";
 import { Channels } from "@shared/ipc";
+import { uiUrl } from "./app-protocol";
 import { isPopover, type Bounds, type OverlayRequest } from "@shared/types";
 
 interface OverlayHooks {
@@ -154,8 +155,7 @@ export class Overlay {
       if (this.pending && this.attached) contents.send(Channels.overlayShow, this.pending);
       this.pending = null;
     });
-    if (process.env.ELECTRON_RENDERER_URL) void contents.loadURL(`${process.env.ELECTRON_RENDERER_URL}/overlay.html`);
-    else void contents.loadFile(join(import.meta.dirname, "../renderer/overlay.html"));
+    void contents.loadURL(uiUrl("overlay"));
     this.view = view;
     return view;
   }

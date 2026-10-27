@@ -1,4 +1,4 @@
-# Relais de synchronisation de Browser (ADR-018). Aucune dépendance d'exécution : Node 22 seul.
+# Relais de synchronisation de Browser (ADR-019). Aucune dépendance d'exécution : Node 22 seul.
 FROM node:22-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json .npmrc tsconfig.json ./

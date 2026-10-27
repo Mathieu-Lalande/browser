@@ -27,13 +27,16 @@
     remember = false;
   });
 
-  const host = $derived.by(() => {
+  const hostOf = (origin: string) => {
     try {
-      return new URL(prompt.origin).host;
+      return new URL(origin).host;
     } catch {
-      return prompt.origin;
+      return origin;
     }
-  });
+  };
+  const host = $derived(hostOf(prompt.origin));
+  /** The site embedding the asking frame, when it is another one: the decision only holds there. */
+  const embedder = $derived(prompt.topOrigin ? hostOf(prompt.topOrigin) : null);
   const request = $derived(new Intl.ListFormat("fr", { type: "conjunction" }).format(prompt.kinds.map((kind) => LABELS[kind])));
 
   function answer(allow: boolean): void {
@@ -42,8 +45,8 @@
 </script>
 
 <div class="permission-bar" role="alertdialog" aria-label="Demande d'autorisation">
-  <Icon name="shield" size={15} />
-  <p><strong>{host}</strong> souhaite {request}.</p>
+  <Icon name="shield" size={16} />
+  <p><strong>{host}</strong>{#if embedder}&nbsp;<span class="embedder">(intégré dans {embedder})</span>{/if} souhaite {request}.</p>
   <!-- Private window: decisions last as long as the window, nothing is remembered (ADR-014). -->
   {#if !browser.isPrivate}
     <label><input type="checkbox" bind:checked={remember} /> Se souvenir pour ce site</label>
@@ -72,6 +75,9 @@
     min-width: 200px;
     margin: 0;
     color: var(--text);
+  }
+  .embedder {
+    color: var(--text-muted);
   }
   label {
     display: flex;

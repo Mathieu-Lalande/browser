@@ -4,7 +4,9 @@ import { Channels } from "@shared/ipc";
 import { PRIVATE_SPACE, privateSettings } from "@shared/private";
 import { pageRadius, searchEngineOf, type Settings } from "@shared/settings";
 import type { UiCommand } from "@shared/types";
-import { onDownloadsChanged } from "./downloads";
+import { uiUrl } from "./app-protocol";
+import { downloadViewerOf, isDownloadVisible, onDownloadsChanged } from "./downloads";
+import type { DownloadViewer } from "./downloads/list";
 import { Overlay } from "./overlay";
 import { createPrivateSession, wipePrivateSession } from "./private";
 import { persistentWindows, sessionOnClose, tabHooksFor } from "./private-guards";
@@ -58,9 +60,13 @@ const tabOptions = (current: Settings) => ({
   defaultZoom: current.appearance.pageZoom / 100,
 });
 
-// Downloads progress and history changes reach every browser UI (sidebar button, panel, page).
+// Downloads progress and history changes reach the browser UIs (sidebar button, panel, page) of
+// the windows that may see them: a private window's downloads stay its own (ADR-018, audit LOW-3).
 onDownloadsChanged((change) => {
-  for (const controller of controllers.values()) controller.send(Channels.downloadsChanged, change);
+  for (const controller of controllers.values()) {
+    const updated = change.updated.filter((entry) => isDownloadVisible(entry.id, controller.downloadViewer));
+    if (updated.length || change.removed.length) controller.send(Channels.downloadsChanged, { ...change, updated });
+  }
 });
 
 // Settings apply live: every window re-themes itself and its chrome UI gets the new values.
@@ -91,6 +97,11 @@ export class BrowserController {
   readonly isPrivate: boolean;
   /** The in-memory session of a private window's pages, wiped when it closes. */
   private readonly privateSession: Session | null;
+
+  /** Whose downloads this window lists and may act on (its own only, for a private window). */
+  get downloadViewer(): DownloadViewer {
+    return downloadViewerOf(this.privateSession);
+  }
 
   /** The tabs of the space on screen (what tab commands and shortcuts act on). */
   get tabs(): TabManager {
@@ -170,14 +181,18 @@ export class BrowserController {
       if (outcome === "keep") BrowserController.saveSession(true);
       controllers.delete(chrome.id);
       if (outcome === "forget") BrowserController.saveSession();
-      this.spaces.destroy();
-      this.overlay.destroy();
-      // A private window takes its cookies, storage and cache with it.
-      if (this.privateSession) void wipePrivateSession(this.privateSession);
+      try {
+        this.spaces.destroy();
+      } finally {
+        // Whatever happened to the pages, the overlay goes and a private window takes its
+        // cookies, storage and cache with it.
+        this.overlay.destroy();
+        if (this.privateSession) void wipePrivateSession(this.privateSession);
+      }
     });
 
-    if (process.env.ELECTRON_RENDERER_URL) void this.window.loadURL(process.env.ELECTRON_RENDERER_URL);
-    else void this.window.loadFile(join(import.meta.dirname, "../renderer/index.html"));
+    // app://browser/index.html (or the dev server, unpackaged only).
+    void this.window.loadURL(uiUrl("index"));
   }
 
   /** Toggles the bookmark of the active tab's page, then refreshes `isBookmarked` everywhere. */
@@ -185,7 +200,8 @@ export class BrowserController {
     const tab = this.tabs.getState().tabs.find((item) => item.id === this.tabs.activeTabId);
     if (!tab?.url) return;
     const { bookmarks, saveBookmarks } = profile();
-    bookmarks.toggle({ url: tab.url, title: tab.title, favicon: tab.favicon }, Date.now());
+    // A private window writes no favicon anywhere (ADR-014, ADR-018).
+    bookmarks.toggle({ url: tab.url, title: tab.title, favicon: this.isPrivate ? null : tab.favicon }, Date.now());
     saveBookmarks();
     BrowserController.refreshAll();
   }

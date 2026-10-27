@@ -85,7 +85,7 @@ export interface BrowserActions {
   updateMobileSettings(patch: Partial<MobileSettings>): void;
   registerWebView(id: TabId, ref: WebViewHandle | null): void;
   httpExceptions(): ReadonlySet<string>;
-  /** End-to-end encrypted sync (ADR-018). */
+  /** End-to-end encrypted sync (ADR-019). */
   sync: {
     createAccount(serverUrl: string, registrationSecret?: string): Promise<SyncResult>;
     pair(code: string): Promise<SyncResult>;
@@ -219,7 +219,7 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
     return () => subscription.remove();
   }, []);
 
-  // --- Sync (ADR-018) -----------------------------------------------------------------------
+  // --- Sync (ADR-019) -----------------------------------------------------------------------
   useEffect(() => {
     if (!ready) return;
     // Writes go to `latest` at once: the engine reads the data back right after applying it.

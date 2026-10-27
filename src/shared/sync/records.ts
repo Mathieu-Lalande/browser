@@ -4,7 +4,7 @@ import type { Bookmark, HistoryEntry, SpaceInfo } from "../types";
 import { isNavigableUrl } from "../url";
 
 /**
- * What is synced, as plain data shared by the desktop and mobile adapters (ADR-018). Each
+ * What is synced, as plain data shared by the desktop and mobile adapters (ADR-019). Each
  * collection maps a *local id* (never sent in clear) to a JSON value; validators run on every
  * value decrypted from another device.
  */

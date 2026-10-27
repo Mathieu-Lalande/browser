@@ -16,7 +16,7 @@
   {:else if src && !broken}
     <img {src} alt="" onerror={() => (broken = true)} />
   {:else}
-    <Icon name="globe" size={14} />
+    <Icon name="globe" size={16} />
   {/if}
 </span>
 

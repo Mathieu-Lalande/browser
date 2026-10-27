@@ -29,7 +29,7 @@ import { MAX_BOOKMARKS } from "../bookmarks";
 import { isPrivateTab, type TabsAction, type TabsModel } from "../tabs";
 
 /**
- * Phone side of the synced collections (ADR-018). Pure: they read and write through a store
+ * Phone side of the synced collections (ADR-019). Pure: they read and write through a store
  * interface (the BrowserProvider in the app, plain objects in tests). Writes must be visible to the
  * next read at once (the engine re-reads right after applying remote changes).
  */

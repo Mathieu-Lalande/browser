@@ -8,7 +8,7 @@ import { useTheme } from "../state/theme";
 import { Icon, type IconName } from "./Icon";
 
 /**
- * Sync settings on the phone (ADR-018), mirroring the desktop: pair by scanning the desktop's QR
+ * Sync settings on the phone (ADR-019), mirroring the desktop: pair by scanning the desktop's QR
  * code (or pasting the code), or create the account here; then status, other devices, pairing
  * code on request (behind a warning), disconnect and reset.
  */

@@ -1,7 +1,7 @@
 import { isRecordId } from "./crypto";
 
 /**
- * Wire protocol of the sync relay (`server/`, ADR-018). The server stores opaque records:
+ * Wire protocol of the sync relay (`server/`, ADR-019). The server stores opaque records:
  *
  * - `POST /v1/accounts` → 201 `{ accountId, token }` (optional `X-Registration-Secret` header).
  * - `GET /v1/collections/:name?since=<version>&limit=<n>` → `{ records, version, more }`.

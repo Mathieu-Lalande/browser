@@ -77,11 +77,20 @@ export function sanitizeEntry(value: unknown): DownloadEntry | null {
   };
 }
 
+/**
+ * Who may see a download: null for normal windows (the profile's downloads), or the opaque key of
+ * one private window's session (ADR-014, audit LOW-3).
+ */
+export type DownloadViewer = string | null;
+
 /** Download history, newest first. */
 export class DownloadList {
   private entries: DownloadEntry[];
-  /** Downloads of private windows (ADR-014): listed during the run, never written to disk. */
-  private readonly ephemeral = new Set<string>();
+  /**
+   * Downloads of private windows (ADR-014) → their window's key: listed to that window only during
+   * the run, never written to disk.
+   */
+  private readonly owners = new Map<string, string>();
 
   constructor(entries: DownloadEntry[] = []) {
     this.entries = entries.slice(0, MAX_DOWNLOADS);
@@ -100,8 +109,15 @@ export class DownloadList {
     return entries.sort((a, b) => b.startedAt - a.startedAt).slice(0, MAX_DOWNLOADS);
   }
 
-  list(): DownloadEntry[] {
-    return this.entries.map((entry) => ({ ...entry }));
+  /** The entries `viewer` may see (every entry without a viewer: main's own bookkeeping). */
+  list(viewer?: DownloadViewer): DownloadEntry[] {
+    const visible = viewer === undefined ? this.entries : this.entries.filter((entry) => this.isVisibleTo(entry.id, viewer));
+    return visible.map((entry) => ({ ...entry }));
+  }
+
+  /** Normal windows see the profile's downloads, a private window only its own ones. */
+  isVisibleTo(id: string, viewer: DownloadViewer): boolean {
+    return !!this.get(id) && (this.owners.get(id) ?? null) === viewer;
   }
 
   get(id: string): DownloadEntry | undefined {
@@ -109,14 +125,15 @@ export class DownloadList {
   }
 
   /** Adds a new download on top. Returns the ids of old entries dropped to stay within the cap. */
-  add(entry: DownloadEntry, options: { ephemeral?: boolean } = {}): string[] {
+  add(entry: DownloadEntry, options: { owner?: string } = {}): string[] {
     this.entries.unshift(entry);
-    if (options.ephemeral) this.ephemeral.add(entry.id);
+    if (options.owner) this.owners.set(entry.id, options.owner);
     const removed: string[] = [];
     // Running downloads are never dropped, however many there are.
     for (let index = this.entries.length - 1; this.entries.length > MAX_DOWNLOADS && index >= 0; index--) {
       if (isActiveDownload(this.entries[index])) continue;
       removed.push(this.entries[index].id);
+      this.owners.delete(this.entries[index].id);
       this.entries.splice(index, 1);
     }
     return removed;
@@ -135,25 +152,32 @@ export class DownloadList {
     const entry = this.get(id);
     if (!entry || isActiveDownload(entry) || entry.awaitingConfirmation) return false;
     this.entries = this.entries.filter((item) => item !== entry);
-    this.ephemeral.delete(id);
+    this.owners.delete(id);
     return true;
   }
 
-  /** Forgets every finished entry; returns their ids. Running and unconfirmed downloads stay. */
-  clearFinished(): string[] {
-    const removed = this.entries.filter((entry) => !isActiveDownload(entry) && !entry.awaitingConfirmation).map((entry) => entry.id);
+  /**
+   * Forgets every finished entry `viewer` sees (all of them without a viewer); returns their ids.
+   * Running and unconfirmed downloads stay.
+   */
+  clearFinished(viewer?: DownloadViewer): string[] {
+    const removed = this.entries
+      .filter((entry) => !isActiveDownload(entry) && !entry.awaitingConfirmation)
+      .filter((entry) => viewer === undefined || this.isVisibleTo(entry.id, viewer))
+      .map((entry) => entry.id);
     const gone = new Set(removed);
     this.entries = this.entries.filter((entry) => !gone.has(entry.id));
+    for (const id of removed) this.owners.delete(id);
     return removed;
   }
 
   /** Whether an entry comes from a private window (kept in memory only). */
   isEphemeral(id: string): boolean {
-    return this.ephemeral.has(id);
+    return this.owners.has(id);
   }
 
   /** What is saved to downloads.json: private windows' downloads are left out. */
   toJSON(): DownloadEntry[] {
-    return this.ephemeral.size ? this.entries.filter((entry) => !this.ephemeral.has(entry.id)) : this.entries;
+    return this.owners.size ? this.entries.filter((entry) => !this.owners.has(entry.id)) : this.entries;
   }
 }

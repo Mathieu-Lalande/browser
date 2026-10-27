@@ -44,6 +44,36 @@ export const isActiveDownload = (entry: DownloadEntry) => entry.state === "progr
 /** "Ouvrir" / "Afficher dans le dossier" make sense: the file is complete and in its final place. */
 export const isOpenable = (entry: DownloadEntry) => entry.state === "completed" && !entry.awaitingConfirmation && entry.path !== "";
 
+/**
+ * The extension that decides how the OS treats the file, lowercase, without the dot. Windows
+ * ignores trailing dots and spaces ("setup.exe. " is an .exe), so they are ignored here too.
+ */
+export function fileExtension(filename: string): string {
+  const name = filename.replace(/[.\s]+$/, "");
+  const dot = name.lastIndexOf(".");
+  return dot > 0 ? name.slice(dot + 1).toLowerCase() : "";
+}
+
+/**
+ * Types the browser offers to open with their default app (ADR-013, ADR-018): documents, images and
+ * media whose usual viewers do not run code. Everything else — archives (opening one can lead to
+ * running what is inside), HTML/SVG (opened by a browser with file:// rights), macro-capable office
+ * formats, disk images, executables… — only gets "Afficher dans le dossier".
+ */
+const SAFE_TO_OPEN = new Set([
+  // Documents and text.
+  "pdf", "txt", "text", "csv", "tsv", "md", "markdown", "log", "rtf", "epub",
+  // Office documents without macros (OOXML without the "m" variants, OpenDocument).
+  "docx", "xlsx", "pptx", "odt", "ods", "odp",
+  // Images.
+  "png", "jpg", "jpeg", "gif", "webp", "avif", "bmp", "tif", "tiff", "heic", "heif",
+  // Audio and video.
+  "mp3", "m4a", "aac", "wav", "flac", "ogg", "oga", "opus", "mp4", "m4v", "webm", "mkv", "mov", "avi", "ogv",
+]);
+
+/** "Ouvrir" is offered: the file is in place and of a type whose default app does not run code. */
+export const canOpenFile = (entry: DownloadEntry) => isOpenable(entry) && SAFE_TO_OPEN.has(fileExtension(entry.path));
+
 const UNITS = ["o", "Ko", "Mo", "Go", "To"];
 const decimal = (value: number, digits: number) =>
   value.toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: digits });

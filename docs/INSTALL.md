@@ -129,7 +129,7 @@ bureau, elle, fonctionne déjà dans Expo Go (section 3).
 ## 3. Synchroniser le PC et l'iPhone
 
 La synchronisation (favoris, historique récent, onglets ouverts, espaces, thème) passe par **votre
-propre serveur**, qui ne voit que des données chiffrées (ADR-018). Aucun serveur n'est fourni :
+propre serveur**, qui ne voit que des données chiffrées (ADR-019). Aucun serveur n'est fourni :
 tant que vous n'en avez pas déployé un, elle reste simplement désactivée.
 
 1. **Déployer le serveur** : dossier `server/`, guide pas à pas dans [`server/README.md`](../server/README.md)

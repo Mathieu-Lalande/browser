@@ -7,12 +7,17 @@ import { test as base, expect, _electron as electron, type ElectronApplication, 
 
 export type { ElectronApplication };
 
+/** What the local server saw: favicon requests (with their headers), in order. */
+export interface ServerLog {
+  icons: { url: string; cookie?: string; gpc?: string }[];
+}
+
 type Fixtures = {
   /** Fresh profile directory, removed after the test. */
   profile: string;
   app: ElectronApplication;
   chrome: Page;
-  server: { url: (path: string) => string };
+  server: { url: (path: string) => string; log: ServerLog };
 };
 
 /** Tiny filter list replacing the downloaded ones (BROWSER_TEST_FILTERS), so the blocker stays offline. */
@@ -21,12 +26,57 @@ const TEST_FILTERS = fileURLToPath(new URL("./filters.txt", import.meta.url));
 /** Body of the files served under /files/ (except the slow one). */
 export const DOWNLOAD_CONTENT = "%PDF-1.4 test download\n";
 
+/** A 1×1 PNG, served as a favicon. */
+export const ICON_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+const query = (path: string, name: string) => new URL(path, "http://x").searchParams.get(name);
+
 /** Tiny local site so tests never touch the network. */
-function startServer(): Promise<{ server: Server; origin: string }> {
+function startServer(): Promise<{ server: Server; origin: string; log: ServerLog }> {
+  const log: ServerLog = { icons: [] };
   const server = createServer((req, res) => {
     const path = req.url ?? "/";
     res.setHeader("content-type", "text/html; charset=utf-8");
-    if (path.startsWith("/ads/")) {
+    if (path.startsWith("/icon")) {
+      log.icons.push({ url: path, cookie: req.headers.cookie, gpc: req.headers["sec-gpc"] as string | undefined });
+      if (path.startsWith("/icon.svg")) {
+        res.setHeader("content-type", "image/svg+xml");
+        return res.end(`<svg xmlns="http://www.w3.org/2000/svg"/>`);
+      }
+      if (path.startsWith("/icon-html")) return res.end("<h1>not an image</h1>");
+      if (path.startsWith("/icon-huge")) {
+        res.setHeader("content-type", "image/png");
+        return res.end(Buffer.alloc(200 * 1024, 1));
+      }
+      res.setHeader("content-type", "image/png");
+      res.setHeader("cache-control", "max-age=3600");
+      res.end(ICON_PNG);
+    } else if (path.startsWith("/favicon-page")) {
+      // A page that sets a cookie and declares a favicon (the tab's session must fetch it).
+      res.setHeader("set-cookie", `tabcookie=${query(path, "cookie") ?? "normal"}; path=/`);
+      res.end(`<title>Favicon</title><link rel="icon" href="${query(path, "icon") ?? "/icon.png"}"><p>icon</p>`);
+    } else if (path.startsWith("/auto-popup")) {
+      // Opens a popup as soon as it loads: no user gesture at all.
+      res.end(`<title>Auto popup</title><script>window.open(${JSON.stringify(query(path, "to") ?? "/popped")});</script>`);
+    } else if (path.startsWith("/auto-mailto")) {
+      res.end(`<title>Auto mailto</title><script>location.href = "mailto:spam@example.com";</script>`);
+    } else if (path.startsWith("/opener")) {
+      res.end(
+        `<title>Opener</title><style>button,a{display:block;width:200px;height:40px;margin:8px}</style>` +
+          `<button id="two" onclick="window.open('/popped?a'); window.open('/popped?b')">two</button>` +
+          `<button id="data" onclick="window.open('data:text/html,<title>phish</title>')">data</button>` +
+          `<button id="app" onclick="window.open('app://browser/index.html')">app</button>` +
+          `<a id="mail" href="mailto:hello@example.com">mail</a>`,
+      );
+    } else if (path.startsWith("/push-storm")) {
+      res.end(`<title>Storm</title><script>for (let i = 0; i < 200; i++) history.pushState(null, "", "/push-storm/" + i);</script>`);
+    } else if (path.startsWith("/embedder")) {
+      // A page embedding a frame of another origin (localhost vs 127.0.0.1) that asks for a permission.
+      res.end(`<title>Embedder</title><iframe id="frame" src="${query(path, "frame") ?? ""}" allow="geolocation"></iframe>`);
+    } else if (path.startsWith("/ads/")) {
       // Matches the test filter list: only reachable when shields are off.
       res.setHeader("content-type", path.endsWith(".js") ? "text/javascript" : "image/svg+xml");
       res.end(path.endsWith(".js") ? "window.adLoaded = true;" : `<svg xmlns="http://www.w3.org/2000/svg"/>`);
@@ -93,7 +143,7 @@ function startServer(): Promise<{ server: Server; origin: string }> {
     server.listen(0, "127.0.0.1", () => {
       const address = server.address();
       const port = typeof address === "object" && address ? address.port : 0;
-      resolve({ server, origin: `http://127.0.0.1:${port}` });
+      resolve({ server, origin: `http://127.0.0.1:${port}`, log });
     }),
   );
 }
@@ -110,7 +160,11 @@ export function launch(profile: string, env: Record<string, string> = {}): Promi
   });
 }
 
-const isChrome = (page: Page) => page.url().endsWith("/renderer/index.html");
+/** The chrome UI and the overlay are served from the app's own privileged scheme (ADR-018). */
+export const CHROME_URL = "app://browser/index.html";
+export const OVERLAY_URL = "app://browser/overlay.html";
+
+export const isChrome = (page: Page) => page.url() === CHROME_URL;
 
 /**
  * The chrome UI page of a launched app, once the sidebar is rendered. Not simply `firstWindow()`:
@@ -123,7 +177,7 @@ export async function chromeOf(app: ElectronApplication): Promise<Page> {
   return page;
 }
 
-const isOverlay = (page: Page) => page.url().endsWith("/renderer/overlay.html");
+const isOverlay = (page: Page) => page.url() === OVERLAY_URL;
 
 /**
  * The overlay layer's page (palette, popovers). It is pre-warmed shortly after the window shows,
@@ -136,8 +190,8 @@ export async function overlayOf(app: ElectronApplication): Promise<Page> {
 
 export const test = base.extend<Fixtures>({
   server: async ({}, use) => {
-    const { server, origin } = await startServer();
-    await use({ url: (path) => `${origin}${path}` });
+    const { server, origin, log } = await startServer();
+    await use({ url: (path) => `${origin}${path}`, log });
     server.close();
   },
   profile: async ({}, use) => {
@@ -165,7 +219,7 @@ export async function tabUrls(app: ElectronApplication): Promise<string[]> {
     return webContents
       .getAllWebContents()
       .map((contents) => ({ id: contents.id, url: contents.getURL() }))
-      .filter(({ id, url }) => !chromeIds.has(id) && !url.startsWith("devtools:") && !url.endsWith("/renderer/overlay.html"))
+      .filter(({ id, url }) => !chromeIds.has(id) && !url.startsWith("devtools:") && !url.startsWith("app://browser/"))
       .map(({ url }) => url);
   });
 }
@@ -180,4 +234,63 @@ export async function evalInTab<T>(app: ElectronApplication, urlPrefix: string, 
     },
     [urlPrefix, script] as const,
   ) as Promise<T>;
+}
+
+/**
+ * A real click (trusted mouse input through the main process, as a user would) on `selector` in
+ * the tab page whose URL starts with `urlPrefix`. Unlike `evalInTab`'s scripted click, it counts as
+ * a user gesture for the popup blocker.
+ */
+export async function clickInTab(app: ElectronApplication, urlPrefix: string, selector: string): Promise<void> {
+  await app.evaluate(
+    async ({ webContents }, [prefix, target]) => {
+      const page = webContents.getAllWebContents().find((contents) => contents.getURL().startsWith(prefix));
+      if (!page) throw new Error(`no tab at ${prefix}`);
+      const point: { x: number; y: number } = await page.executeJavaScript(
+        `(() => { const r = document.querySelector(${JSON.stringify(target)}).getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`,
+      );
+      const x = Math.round(point.x);
+      const y = Math.round(point.y);
+      page.sendInputEvent({ type: "mouseMove", x, y });
+      page.sendInputEvent({ type: "mouseDown", x, y, button: "left", clickCount: 1 });
+      page.sendInputEvent({ type: "mouseUp", x, y, button: "left", clickCount: 1 });
+    },
+    [urlPrefix, selector] as const,
+  );
+}
+
+/** Opens a private window by running the registry command from `chrome`; resolves to its chrome UI. */
+export async function openPrivateWindow(app: ElectronApplication, chrome: Page): Promise<Page> {
+  type Api = { browser: { commands: { run(id: string): void }; getState(): Promise<{ isPrivate?: boolean }> } };
+  const chromes = () => app.windows().filter(isChrome);
+  const before = chromes().length;
+  await chrome.evaluate(() => (globalThis as unknown as Api).browser.commands.run("new-private-window"));
+  await expect.poll(() => chromes().length).toBe(before + 1);
+  let found: Page | undefined;
+  await expect
+    .poll(async () => {
+      for (const page of chromes()) if ((await page.evaluate(() => (globalThis as unknown as Api).browser.getState()).catch(() => null))?.isPrivate) found = page;
+      return !!found;
+    })
+    .toBe(true);
+  await found!.waitForSelector(".sidebar");
+  return found!;
+}
+
+/** Types `url` in the address bar of `chrome` and waits for the active tab's title. */
+export async function visit(chrome: Page, url: string, title: string): Promise<void> {
+  const address = chrome.getByLabel("Barre d'adresse");
+  await address.fill(url);
+  await address.press("Enter");
+  await expect(chrome.locator(".tab.active .title")).toHaveText(title);
+}
+
+/** Tab page views attached to the window, with their bounds (the overlay layer excluded). */
+export function attachedViews(app: ElectronApplication): Promise<{ url: string; x: number; y: number; width: number; height: number }[]> {
+  return app.evaluate(({ BrowserWindow, WebContentsView }) =>
+    BrowserWindow.getAllWindows()[0]
+      .contentView.children.filter((view) => view instanceof WebContentsView)
+      .map((view) => ({ url: (view as InstanceType<typeof WebContentsView>).webContents.getURL(), ...view.getBounds() }))
+      .filter((view) => view.url !== "app://browser/overlay.html"),
+  );
 }

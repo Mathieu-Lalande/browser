@@ -226,7 +226,7 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
                     {displayUrl(bookmark.url)}
                   </Text>
                 </View>
-                <IconButton icon="trash" label="Retirer des favoris" size={18} color={colors.textMuted} onPress={() => actions.removeBookmark(bookmark.id)} />
+                <IconButton icon="trash" label="Retirer des favoris" size={20} color={colors.textMuted} onPress={() => actions.removeBookmark(bookmark.id)} />
               </View>
             ))}
           </Group>
@@ -265,7 +265,7 @@ function Group({ title, icon, children }: { title: string; icon: IconName; child
   return (
     <View style={styles.group}>
       <View style={styles.groupHeader}>
-        <Icon name={icon} size={14} color={colors.textMuted} strokeWidth={2.4} />
+        <Icon name={icon} size={16} color={colors.textMuted} strokeWidth={2} />
         <Text style={[styles.groupTitle, { color: colors.textMuted }]} accessibilityRole="header">
           {title}
         </Text>
@@ -314,7 +314,7 @@ function Choice({ label, detail, selected, first, onPress }: { label: string; de
         <Text style={[styles.rowLabel, { color: colors.text }]}>{label}</Text>
         {detail && <Text style={[styles.rowDetail, { color: colors.textMuted }]}>{detail}</Text>}
       </View>
-      {selected && <Icon name="check" size={20} color={colors.accentText} strokeWidth={2.6} />}
+      {selected && <Icon name="check" size={20} color={colors.accentText} strokeWidth={2} />}
     </Pressable>
   );
 }

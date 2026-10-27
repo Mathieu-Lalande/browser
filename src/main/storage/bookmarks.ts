@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { storableFavicon } from "@shared/favicon";
 import { displayUrl, isNavigableUrl } from "@shared/url";
 import type { Bookmark, BookmarkInput } from "@shared/types";
 
@@ -26,7 +27,8 @@ function sanitizeBookmark(value: unknown): Bookmark | null {
     id: b.id,
     url: b.url,
     title: isText(b.title) ? b.title.slice(0, MAX_TEXT) : displayUrl(b.url),
-    favicon: isText(b.favicon) ? b.favicon : null,
+    // Migration (ADR-018): remote favicon URLs are dropped, only small data: URLs are kept.
+    favicon: storableFavicon(b.favicon),
     createdAt: typeof b.createdAt === "number" && Number.isFinite(b.createdAt) ? b.createdAt : 0,
     ...(isText(b.folderId) ? { folderId: b.folderId } : {}),
   };
@@ -84,7 +86,7 @@ export class Bookmarks {
       id: randomUUID(),
       url: input.url,
       title: (input.title?.trim() || displayUrl(input.url)).slice(0, MAX_TEXT),
-      favicon: input.favicon ?? null,
+      favicon: storableFavicon(input.favicon),
       createdAt: now,
       ...(folderId ? { folderId } : {}),
     };
@@ -111,7 +113,7 @@ export class Bookmarks {
     return this.add(input, now) !== null;
   }
 
-  // --- Sync (ADR-018): bookmarks are identified by URL across devices ------------------------
+  // --- Sync (ADR-019): bookmarks are identified by URL across devices ------------------------
 
   folderList(): BookmarkFolder[] {
     return this.folders.map((folder) => ({ ...folder }));

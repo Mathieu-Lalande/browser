@@ -21,6 +21,7 @@ const tab = (id: string, title: string, url: string, lastActiveAt = 0): TabState
   isMuted: false,
   zoom: 100,
   find: null,
+  blockedPopup: null,
 });
 
 const tabs = [

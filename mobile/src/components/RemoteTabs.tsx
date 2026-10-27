@@ -6,7 +6,7 @@ import { useTheme } from "../state/theme";
 import { Icon } from "./Icon";
 import { SiteIcon, Tap } from "./ui";
 
-/** "Autres appareils": tabs open on the user's other synced devices (ADR-018), in the tab overview. */
+/** "Autres appareils": tabs open on the user's other synced devices (ADR-019), in the tab overview. */
 export const RemoteTabs = memo(function RemoteTabs({ onOpen }: { onOpen: (url: string) => void }) {
   const { colors } = useTheme();
   const { sync } = useBrowserState();
