@@ -40,6 +40,27 @@ npm install
 npm run dev        # lance le navigateur en mode développement (HMR sur l'interface)
 ```
 
+## Version mobile (iOS et Android)
+
+Le dossier [`mobile/`](mobile/README.md) contient l'application pour téléphone (Expo / React Native),
+pensée pour une utilisation à une main : barre d'adresse en bas qui se replie au défilement,
+balayage de la barre pour changer d'onglet, recherche plein écran, vue des onglets avec espaces,
+navigation privée. Elle réutilise directement `src/shared` (URL, historique, recherche floue,
+commandes, paramètres, thème, HTTPS uniquement) ; voir l'ADR-016.
+
+Pour l'essayer sur votre téléphone (Windows, macOS ou Linux) : installez **Expo Go** depuis
+l'App Store ou le Play Store, puis
+
+```bash
+cd mobile
+npm install
+npx expo start     # scannez le QR code ; même Wi-Fi, ou `npx expo start --tunnel`
+```
+
+| Accueil | Onglets | Recherche |
+| --- | --- | --- |
+| ![Accueil mobile](docs/screenshots/mobile-start-light.png) | ![Onglets mobile](docs/screenshots/mobile-tabs-dark.png) | ![Recherche mobile](docs/screenshots/mobile-search-light.png) |
+
 ## Scripts
 
 | Commande | Rôle |
@@ -92,7 +113,9 @@ src/
     storage/  persistance JSON (session, historique, favoris, paramètres), logique pure et testée
   preload/    pont sécurisé exposant window.browser à l'interface
   renderer/   interface du navigateur (Svelte 5)
-  shared/     types, contrat IPC, URL et recherche, paramètres, moteur de thème (testés)
+  shared/     logique pure partagée bureau + mobile : types, contrat IPC, URL et recherche,
+              historique, HTTPS uniquement, paramètres, moteur de thème (testés)
+mobile/       application iOS/Android (Expo / React Native), voir mobile/README.md
 tests/e2e/    tests Playwright + Electron
 docs/         décisions d'architecture et roadmap
 ```

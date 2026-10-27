@@ -1,5 +1,5 @@
-import { rankHistory, topSites } from "@shared/search";
-import type { HistoryEntry } from "@shared/types";
+import { rankHistory, topSites } from "./search";
+import type { HistoryEntry } from "./types";
 
 export const HISTORY_VERSION = 1;
 export const MAX_HISTORY_ENTRIES = 10_000;

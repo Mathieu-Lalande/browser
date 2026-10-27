@@ -107,7 +107,8 @@ par le main au début du chargement, toujours sans preload.
   n'affiche pas la page d'erreur de Chromium : la vue est détachée et l'interface affiche une page
   « Connexion sécurisée indisponible » avec « Continuer en HTTP », qui ajoute une exception pour l'hôte
   jusqu'à la fermeture du navigateur. Les erreurs DNS ou hors ligne restent des erreurs normales.
-- La décision « faut-il mettre à niveau ? » est une fonction pure testée (`src/main/privacy/https-only.ts`).
+- La décision « faut-il mettre à niveau ? » est une fonction pure testée (`src/shared/https-only.ts`,
+  partagée avec l'application mobile, ADR-016).
 
 ## ADR-008 — Permissions et durcissements complémentaires
 
@@ -399,3 +400,87 @@ de bureau quelconque (`src/main/fingerprint.ts`, fonctions pures testées) :
   artefacts (l'archive d'artefacts ne conserve pas les liens symboliques du bundle macOS : à zipper si
   l'on veut le distribuer). Actions épinglées en v4, Node 22, cache npm.
 - **Mises à jour automatiques : non implémentées** (ni signature ni infrastructure) ; plan dans la roadmap.
+
+## ADR-016 — Application mobile : Expo / React Native, code partagé avec le bureau
+
+**Contexte.** Le navigateur doit exister sur iPhone et Android, avec une ergonomie pensée pour le
+téléphone (« ultra mobile friendly ») et sans dupliquer la logique du bureau. Le développeur
+travaille sous Windows et teste sur son téléphone.
+
+**Contrainte iOS.** Sur iOS, tout navigateur doit afficher les pages avec WebKit (`WKWebView`) ;
+les moteurs alternatifs ne sont autorisés que dans l'Union européenne, avec un programme dédié
+d'Apple. Chromium/Electron n'est donc pas transposable : sur mobile, le moteur est la webview du
+système (WebKit sur iOS, Android System WebView/Chromium sur Android), comme Safari, Arc Search,
+DuckDuckGo ou Firefox iOS.
+
+**Décision.** Une application **Expo / React Native** dans `mobile/` (SDK 58, React Native 0.88,
+versions épinglées), un onglet = une `react-native-webview`.
+
+- **Code partagé, jamais copié.** Metro (`watchFolders` + `resolveRequest`), TypeScript (`paths`)
+  et Jest (`moduleNameMapper`) résolvent `@shared/*` vers `../src/shared`. Les dépendances
+  importées depuis `src/shared` (assistants Babel) sont résolues dans `mobile/node_modules`, jamais
+  dans celui du bureau. Les modules purs utiles aux deux ont été déplacés dans `src/shared` :
+  `hosts.ts`, `https-only.ts` (ADR-007) et `history.ts` (ADR-005). Le mobile réutilise ainsi
+  `normalizeInput`/`isNavigableUrl`/`SEARCH_ENGINES`, le classement de l'historique
+  (`rankHistory`, `topSites`, `mergeSuggestions`) et la classe `History`, la recherche floue et
+  `buildPalette` (feuille de recherche), le registre `commands.ts` (filtré aux commandes qui ont un
+  sens sur téléphone), `sanitizeSettings` et le moteur de thème OKLCH (`derivePalette`, couleurs
+  translucides converties en `rgba()` pour React Native), `spaces.ts`. `src/shared` doit rester pur.
+- **Phase 1 : Expo Go.** Uniquement des modules inclus dans Expo Go (webview, gesture-handler 3,
+  reanimated 4/worklets, safe-area, keyboard-controller, expo-haptics/blur/linear-gradient/clipboard/
+  system-ui, AsyncStorage, svg) : l'application se lance sur un téléphone avec `npx expo start` et
+  un QR code, sans Mac ni Android Studio.
+- **Persistance.** AsyncStorage, documents versionnés `{ version, data }` comme sur le bureau
+  (session sans les onglets privés, historique plafonné à 3 000 URL, favoris, paramètres),
+  écritures regroupées et forcées au passage en arrière-plan. Restauration paresseuse : seuls
+  l'onglet actif et les 4 derniers utilisés gardent une WebView montée ; les autres gardent
+  URL/titre et se rechargent quand on y revient (les onglets privés iOS restent montés, leurs
+  cookies vivant dans la WebView).
+- **Sécurité des WebViews.** Navigation limitée à `http(s)`, `about:`, `data:` (`isNavigableUrl`
+  dans `onShouldStartLoadWithRequest`) ; `mailto:`/`tel:`/`sms:` (cadre principal seulement)
+  confiés au système ; HTTPS uniquement avec la même fonction pure que le bureau, appliquée aussi
+  aux chargements explicites (la WebView ne consulte pas `onShouldStartLoadWithRequest` pour sa
+  source initiale) et page « Connexion sécurisée indisponible » si la version https échoue
+  (codes d'erreur propres à iOS et Android) ; `allowFileAccess`, `allowFileAccessFromFileURLs`,
+  `allowUniversalAccessFromFileURLs` désactivés, `mixedContentMode="never"`,
+  `javaScriptCanOpenWindowsAutomatically` désactivé, nouvelles fenêtres ouvertes en onglet
+  (`setSupportMultipleWindows` + `onOpenWindow`, URL revalidée), géolocalisation désactivée,
+  cookies tiers refusés (Android).
+- **Seul pont page → application : l'appui long sur un lien.** Aucune webview n'offre de menu de
+  lien commun aux deux plateformes ; un script injecté (cadre principal, lecture seule) détecte un
+  appui long sur un `<a href>` et poste son URL. Le message est traité comme une entrée hostile
+  (n'importe quelle page peut appeler `ReactNativeWebView.postMessage`) : forme stricte, URL http(s)
+  uniquement, tailles bornées, onglet actif seulement, une fois par 800 ms ; il ne peut
+  qu'**afficher** un menu, chaque action demande un toucher de l'utilisateur. Rien n'est renvoyé
+  à la page. Limite : la présence de `window.ReactNativeWebView` est détectable par les pages.
+- **Navigation privée.** iOS : `incognito` donne à chaque onglet privé un `WKWebsiteDataStore`
+  non persistant (cookies isolés, effacés à la fermeture). Android : `incognito` de
+  react-native-webview appelle `CookieManager.removeAllCookies` (global), ce qui déconnecterait
+  l'utilisateur de tous ses sites ; il n'est donc pas utilisé. Les onglets privés Android n'ont ni
+  historique, ni session, ni cache, ni formulaires, mais partagent les cookies (dit dans
+  l'interface). Isolation réelle en phase 2 (profils `WebViewCompat`/`ProfileStore`).
+- **Ergonomie.** Barre d'adresse et outils en bas (zone du pouce), repli en nom de domaine au
+  défilement (logique pure `nextCollapse`), balayage horizontal de la barre pour changer d'onglet
+  et vers le haut pour la vue des onglets, transition zoom page ↔ carte calculée (géométrie de la
+  grille pure et testée, pas de mesure), retours haptiques, respect de « réduire les animations »
+  et des zones sûres. Retour arrière : geste de bord natif sur iOS
+  (`allowsBackForwardNavigationGestures`), bouton/geste retour du système sur Android
+  (`BackHandler`, qui ferme d'abord feuilles et vues). Pas de miniatures (pas de
+  `react-native-view-shot` dans Expo Go) : cartes à l'icône et aux couleurs du site. Les favicons
+  viennent du site lui-même (`/favicon.ico`), jamais d'un service tiers, et pas du tout pour les
+  onglets privés.
+- **Bloqueur de contenu : phase 2, pas de simulacre.** Un vrai blocage demande du natif :
+  `WKContentRuleList` (règles compilées par WebKit, format Safari Content Blocker) sur iOS,
+  `shouldInterceptRequest` sur Android. Plan : *development build* (`expo-dev-client`, EAS Build) et
+  un module Expo local (`modules/content-blocker`) avec plugin de configuration : conversion des
+  listes EasyList/EasyPrivacy (moteur `@ghostery/adblocker`, déjà utilisé sur le bureau) en
+  `WKContentRuleList` compilées et mises en cache, et sur Android un `WebViewClient` qui interroge
+  le moteur sérialisé pour chaque requête. Le même module servira à isoler les onglets privés
+  Android, à effacer les cookies et, plus tard, aux extensions (Safari Web Extensions n'étant pas
+  disponibles dans une `WKWebView`, il s'agira d'un sous-ensemble maison). Les paramètres
+  l'annoncent comme « bientôt » ; rien n'est simulé.
+
+**Conséquences.** Deux moteurs selon la plateforme (inévitable sur iOS), mais une seule logique
+métier testée. Toute fonction utile aux deux doit vivre, pure, dans `src/shared` ; le bureau ne
+compile pas `mobile/` (tsconfig/vitest inchangés) et la CI mobile (`.github/workflows/mobile.yml`)
+vérifie types, tests Jest et bundle Android dès que `mobile/` ou `src/shared` change.

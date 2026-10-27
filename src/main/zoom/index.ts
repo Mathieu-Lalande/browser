@@ -1,5 +1,5 @@
 import type { Session } from "electron";
-import { webHostname } from "../privacy/hosts";
+import { webHostname } from "@shared/hosts";
 import { isPrivateSession } from "../private";
 import { profile } from "../profile";
 import { sameFactor } from "./levels";

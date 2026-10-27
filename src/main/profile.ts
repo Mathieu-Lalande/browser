@@ -4,7 +4,7 @@ import { sanitizeSettings, type Settings } from "@shared/settings";
 import type { DownloadEntry } from "@shared/downloads";
 import { DOWNLOADS_VERSION, DownloadList } from "./downloads/list";
 import { BOOKMARKS_VERSION, Bookmarks, type BookmarksData } from "./storage/bookmarks";
-import { HISTORY_VERSION, History } from "./storage/history";
+import { HISTORY_VERSION, History } from "@shared/history";
 import { JsonFile } from "./storage/json-file";
 import { SESSION_VERSION, parseSession, type Session } from "./storage/session";
 import { SiteZoom, ZOOM_VERSION } from "./zoom/levels";

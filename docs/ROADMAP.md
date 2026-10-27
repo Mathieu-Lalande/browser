@@ -52,3 +52,27 @@ barre d'adresse, page d'accueil, raccourcis, durcissement sécurité, tests unit
      (jamais forcée) ; option « Mises à jour automatiques » dans les paramètres.
   4. Linux : AppImage via electron-updater ; les paquets deb passent par un dépôt apt plus tard.
   5. Canal bêta (`allowPrerelease`) pour tester avant diffusion.
+
+## Mobile (iOS et Android) — voir ADR-016 et `mobile/README.md`
+
+### Phase 1 — Expo Go ✅
+Application Expo / React Native dans `mobile/`, lancée sur téléphone avec Expo Go, logique
+partagée avec le bureau (`src/shared`) : barre d'adresse en bas repliable au défilement, balayage
+pour changer d'onglet, recherche plein écran (historique, favoris, onglets, actions), vue des
+onglets en grille avec espaces, onglets épinglés et transition zoom, navigation privée, appui long
+sur les liens, page d'accueil, paramètres et thèmes (palette partagée), HTTPS uniquement, partage,
+retours haptiques.
+
+### Phase 2 — Version compilée (development build)
+- `expo-dev-client` + EAS Build ; module Expo local avec plugin de configuration.
+- Bloqueur de pubs et traqueurs : `WKContentRuleList` (iOS) et interception des requêtes
+  (Android), listes EasyList/EasyPrivacy via le moteur `@ghostery/adblocker` ; compteur et
+  désactivation par site comme sur le bureau.
+- Onglets privés vraiment isolés sur Android (profils WebView) ; effacement des cookies et des
+  données de site ; espaces isolés (conteneurs) sur les deux plateformes.
+- Miniatures des onglets (`react-native-view-shot`), recherche dans la page, téléchargements,
+  mode lecture, « version ordinateur » du site.
+- Synchronisation chiffrée avec le bureau (favoris, onglets ouverts, historique, espaces).
+- Widgets et raccourcis de l'écran d'accueil, extension de partage (« Ouvrir dans Browser »),
+  navigateur par défaut.
+- Publication sur l'App Store et le Play Store.
