@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { chromeOf, evalInTab, expect, launch, test } from "./fixtures";
+import { chromeOf, evalInTab, expect, launch, overlayOf, test } from "./fixtures";
 
 /**
  * Documentation screenshots, only with SCREENSHOTS=1 (under xvfb-run, needs ImageMagick).
@@ -42,8 +42,7 @@ test("command palette over a page", async ({ app, chrome, server }) => {
   await address.press("Enter");
   await expect(chrome.locator(".tab.active .title")).toHaveText("Le guide des navigateurs rapides");
 
-  await expect.poll(() => app.windows().some((page) => page.url().endsWith("/renderer/overlay.html"))).toBe(true);
-  const overlay = app.windows().find((page) => page.url().endsWith("/renderer/overlay.html"))!;
+  const overlay = await overlayOf(app);
   await overlay.emulateMedia({ colorScheme });
   await app.evaluate(({ BrowserWindow }) => {
     const contents = BrowserWindow.getAllWindows()[0].webContents;
@@ -101,7 +100,7 @@ test("downloads popover", async ({ profile, server }) => {
     await new Promise((resolve) => setTimeout(resolve, 2500));
 
     await chrome.getByRole("button", { name: /^Téléchargements/ }).click();
-    const overlay = app.windows().find((page) => page.url().endsWith("/renderer/overlay.html"))!;
+    const overlay = await overlayOf(app);
     await expect(overlay.getByRole("dialog", { name: "Téléchargements" })).toBeVisible();
     await new Promise((resolve) => setTimeout(resolve, 400));
     await captureWindow(app, "downloads");
