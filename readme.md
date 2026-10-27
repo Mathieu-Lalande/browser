@@ -24,6 +24,9 @@ Un navigateur desktop **rapide, privé et entièrement personnalisable**, dans l
   les programmes et scripts attendent une confirmation et rien n'est jamais ouvert automatiquement.
 - Recherche dans la page, zoom mémorisé par site, image dans l'image, son coupé onglet par onglet.
 
+![Espaces et leur éditeur (icônes Lucide)](docs/screenshots/spaces.png)
+![Page d'accueil](docs/screenshots/start-light.png)
+
 ![Paramètres](docs/screenshots/settings.png)
 
 ![Fenêtre privée](docs/screenshots/private.png)

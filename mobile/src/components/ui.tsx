@@ -81,22 +81,24 @@ interface SiteIconProps {
   /** No network request (private tabs). */
   offline?: boolean;
   radius?: number;
+  /** Already inside a tile: no background or border of its own around the initial. */
+  plain?: boolean;
 }
 
 /**
  * The site's favicon (its own logo, shown as is), or a neutral themed tile when there is none (or
  * offline): surface background, hairline border and the site's initial in the muted text color.
  */
-export const SiteIcon = memo(function SiteIcon({ url, title = "", size = 20, offline = false, radius }: SiteIconProps) {
+export const SiteIcon = memo(function SiteIcon({ url, title = "", size = 20, offline = false, radius, plain = false }: SiteIconProps) {
   const { colors } = useTheme();
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const source = offline || failed ? null : faviconUrl(url);
   const corner = radius ?? Math.round(size * 0.28);
   if (!url) {
-    return <SiteGlyph size={size} radius={corner} />;
+    return <SiteGlyph size={size} radius={corner} plain={plain} />;
   }
-  const tile = !loaded;
+  const tile = !loaded && !plain;
   return (
     <View
       style={[
@@ -106,7 +108,7 @@ export const SiteIcon = memo(function SiteIcon({ url, title = "", size = 20, off
       ]}
       testID="site-icon"
     >
-      {tile && (
+      {!loaded && (
         <Text style={[styles.monogram, { color: colors.textMuted, fontSize: size * 0.5, lineHeight: size * 0.66 }]} allowFontScaling={false} testID="site-monogram">
           {monogram(url, title)}
         </Text>
@@ -125,13 +127,14 @@ export const SiteIcon = memo(function SiteIcon({ url, title = "", size = 20, off
 });
 
 /** The start page has no site: a neutral tile with a Lucide glyph. */
-function SiteGlyph({ size, radius }: { size: number; radius: number }) {
+function SiteGlyph({ size, radius, plain }: { size: number; radius: number; plain: boolean }) {
   const { colors } = useTheme();
   return (
     <View
       style={[
         styles.siteIcon,
-        { width: size, height: size, borderRadius: radius, backgroundColor: colors.surface, borderColor: colors.border, borderWidth: StyleSheet.hairlineWidth },
+        { width: size, height: size, borderRadius: radius },
+        !plain && { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: StyleSheet.hairlineWidth },
       ]}
     >
       <Icon name="sparkles" size={Math.max(12, Math.round((size * 0.6) / 4) * 4)} color={colors.textMuted} strokeWidth={size < 24 ? 2 : 1.75} />

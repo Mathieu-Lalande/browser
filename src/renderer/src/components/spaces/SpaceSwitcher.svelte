@@ -68,9 +68,9 @@
     display: grid;
     flex: none;
     place-items: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 9px;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
     color: var(--text-muted);
     transition:
       background 0.12s var(--ease),
@@ -91,9 +91,9 @@
   }
   .space.active::after {
     position: absolute;
-    bottom: 2px;
+    bottom: 1px;
     width: 12px;
-    height: 3px;
+    height: 2px;
     border-radius: 2px;
     background: var(--dot);
     content: "";

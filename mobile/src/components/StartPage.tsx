@@ -185,7 +185,7 @@ const SiteTile = memo(function SiteTile({
       pressScale={0.92}
     >
       <View style={[styles.tileIcon, { width: size - 16, height: size - 16, backgroundColor: colors.bgElevated, borderColor: colors.hairline }]}>
-        <SiteIcon url={url} title={title} size={Math.round((size * 0.42) / 4) * 4} />
+        <SiteIcon url={url} title={title} size={Math.round((size * 0.42) / 4) * 4} plain />
       </View>
       <Text style={[styles.tileLabel, { color: colors.text }]} numberOfLines={1}>
         {title}

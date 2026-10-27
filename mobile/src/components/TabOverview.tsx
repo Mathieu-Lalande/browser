@@ -380,7 +380,7 @@ const TabCard = memo(function TabCard({
           </View>
           <View style={[styles.preview, { backgroundColor: colors.surface, borderTopColor: colors.hairline }]}>
             <View style={[styles.previewIcon, { backgroundColor: colors.bgElevated, borderColor: colors.hairline }]}>
-              <SiteIcon url={tab.url} title={tab.title} size={34} offline={privateTab} />
+              <SiteIcon url={tab.url} title={tab.title} size={32} offline={privateTab} plain />
             </View>
             <Text style={[styles.previewLabel, { color: colors.text }]} numberOfLines={1}>
               {label}

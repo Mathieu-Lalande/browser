@@ -226,7 +226,7 @@ export const BottomBar = memo(function BottomBar(props: Props) {
           >
             <View style={[styles.tabsCount, { borderColor: colors.text }]}>
               <Text style={[styles.tabsCountText, { color: colors.text }]} allowFontScaling={false}>
-                {tabCount > 99 ? ":)" : tabCount}
+                {tabCount > 99 ? "99+" : tabCount}
               </Text>
             </View>
           </Tap>

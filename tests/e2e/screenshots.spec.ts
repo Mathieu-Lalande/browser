@@ -185,7 +185,6 @@ test("sidebar with spaces", async ({ app, chrome }) => {
     { name: "Travail", icon: "briefcase", color: "#4fc3a1", isolated: true },
     { name: "Études", icon: "graduation-cap", color: "#5aa9ff" },
     { name: "Voyages", icon: "plane", color: "#ffb454" },
-    { name: "Cuisine", icon: "chef-hat", color: null },
   ] as const) {
     await chrome.evaluate((input) => (globalThis as unknown as { browser: Api }).browser.spaces.create(input), input);
   }
@@ -205,18 +204,39 @@ test("sidebar with spaces", async ({ app, chrome }) => {
   await captureWindow(app, `spaces${suffix}`);
 });
 
-test("start page", async ({ app, chrome, server }) => {
-  await chrome.emulateMedia({ colorScheme: theme });
-  // A few visited sites for the "most visited" tiles: some with a favicon, some without.
-  await open(chrome, server.url("/docs"), "Page docs", false);
-  await open(chrome, page("Notes de voyage", "#e8536b", "Lisbonne, Porto et la côte."), "Notes de voyage", false);
-  await open(chrome, server.url("/notes"), "Page notes", false);
-  await open(chrome, server.url("/projets"), "Page projets", false);
-  await chrome.getByRole("button", { name: "Nouvel onglet" }).click();
-  await expect(chrome.locator(".start h1")).toBeVisible();
-  await chrome.locator(".start input").blur();
-  await new Promise((resolve) => setTimeout(resolve, 600));
-  await captureWindow(app, `start${suffix}`);
+test("start page", async ({ profile }) => {
+  const folder = prepareProfile(profile);
+  // Visited sites for the "most visited" tiles: two with their own favicon (shown as is), the
+  // others without one (neutral themed tile).
+  const icon = (fill: string) =>
+    `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" rx="4" fill="${fill}"/></svg>`)}`;
+  const now = Date.now();
+  const sites = [
+    ["https://journal.example/", "Le Journal du Web", icon("#e8536b")],
+    ["https://docs.example/", "Documentation", null],
+    ["https://recettes.example/", "Recettes", null],
+    ["https://agenda.example/", "Agenda", icon("#5aa9ff")],
+    ["https://notes.example/", "Notes", null],
+    ["https://meteo.example/", "Météo", null],
+  ];
+  writeFileSync(
+    join(profile, "history.json"),
+    JSON.stringify({
+      version: 1,
+      data: sites.map(([url, title, favicon], index) => ({ url, title, favicon, visitCount: 20 - index, lastVisit: now - index * 60_000 })),
+    }),
+  );
+  const app = await launch(profile);
+  try {
+    const chrome = await chromeOf(app);
+    await expect(chrome.locator(".start .site")).toHaveCount(sites.length);
+    await chrome.locator(".start input").blur();
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    await captureWindow(app, `start${suffix}`);
+  } finally {
+    await app.close();
+    rmSync(folder, { recursive: true, force: true });
+  }
 });
 
 test("private window", async ({ app, chrome }) => {
