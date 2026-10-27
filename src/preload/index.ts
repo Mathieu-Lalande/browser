@@ -119,6 +119,18 @@ const api: BrowserApi = {
     disconnect: () => ipcRenderer.invoke(Channels.syncDisconnect),
     reset: () => ipcRenderer.invoke(Channels.syncReset),
   },
+  siteInfo: {
+    show: (anchor) => send(Channels.siteInfoShow, anchor),
+    get: (tabId) => ipcRenderer.invoke(Channels.siteInfoGet, tabId),
+    resetPermission: (tabId, origin, kind) => ipcRenderer.invoke(Channels.siteInfoResetPermission, tabId, origin, kind),
+    clearData: (tabId) => ipcRenderer.invoke(Channels.siteInfoClearData, tabId),
+    allowThirdPartyCookies: (tabId, allow) => ipcRenderer.invoke(Channels.siteInfoAllowThirdPartyCookies, tabId, allow),
+  },
+  siteData: {
+    list: () => ipcRenderer.invoke(Channels.siteDataList),
+    remove: (site) => ipcRenderer.invoke(Channels.siteDataRemove, site),
+    clearAll: () => ipcRenderer.invoke(Channels.siteDataClearAll),
+  },
 };
 
 contextBridge.exposeInMainWorld("browser", api);

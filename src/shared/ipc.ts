@@ -1,6 +1,7 @@
 import type { CommandId } from "./commands";
 import type { DownloadEntry, DownloadsChange } from "./downloads";
 import type { Settings, SettingsPatch, SettingsSection } from "./settings";
+import type { SiteDataEntry, SiteInfo } from "./site-info";
 import type { SyncStatus } from "./sync/controller";
 import type {
   Bookmark,
@@ -10,6 +11,7 @@ import type {
   HistoryEntry,
   OverlayBackdrop,
   OverlayRequest,
+  PermissionKind,
   SpaceId,
   SpaceInfo,
   SpaceInput,
@@ -95,6 +97,14 @@ export const Channels = {
   syncNow: "sync:now",
   syncDisconnect: "sync:disconnect",
   syncReset: "sync:reset",
+  siteInfoShow: "site-info:show",
+  siteInfoGet: "site-info:get",
+  siteInfoResetPermission: "site-info:reset-permission",
+  siteInfoClearData: "site-info:clear-data",
+  siteInfoAllowThirdPartyCookies: "site-info:allow-third-party-cookies",
+  siteDataList: "site-data:list",
+  siteDataRemove: "site-data:remove",
+  siteDataClearAll: "site-data:clear-all",
 } as const;
 
 /** Outcome of a sync action (errors are messages for the user: they do not cross IPC as exceptions). */
@@ -256,5 +266,30 @@ export interface BrowserApi {
     disconnect(): Promise<SyncActionResult>;
     /** Erases the account on the server and starts over with a new key (other devices must pair again). */
     reset(): Promise<SyncActionResult>;
+  };
+  /**
+   * Site info popover (ADR-021). The UI only names the tab: main reads its URL and session (a
+   * private window's own), so nothing here can reach another site or the profile from a private window.
+   */
+  siteInfo: {
+    /** Chrome UI: opens the popover for the active tab, hanging from `anchor` (the address bar's lock). */
+    show(anchor: Bounds): void;
+    get(tabId: TabId): Promise<SiteInfo | null>;
+    /** Forgets one permission decision taken on the tab's site; resolves to the updated info. */
+    resetPermission(tabId: TabId, origin: string, kind: PermissionKind): Promise<SiteInfo | null>;
+    /** Clears the site's cookies and storage in the tab's session, then reloads the tab. */
+    clearData(tabId: TabId): Promise<SiteInfo | null>;
+    /** Third-party cookie blocking: makes the tab's site an exception (refused in private windows). */
+    allowThirdPartyCookies(tabId: TabId, allow: boolean): Promise<SiteInfo | null>;
+  };
+  /**
+   * Cookies and site data of the profile (default session and isolated spaces), for the settings.
+   * Null in a private window, which never manages the profile's data.
+   */
+  siteData: {
+    list(): Promise<SiteDataEntry[] | null>;
+    /** Clears a site's cookies and storage everywhere in the profile; resolves to the new list. */
+    remove(site: string): Promise<SiteDataEntry[] | null>;
+    clearAll(): Promise<SiteDataEntry[] | null>;
   };
 }

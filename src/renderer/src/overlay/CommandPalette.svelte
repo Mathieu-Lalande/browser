@@ -99,6 +99,8 @@
           return;
         }
         api.commands.run(item.command.id);
+        // Its popover replaces the palette in the overlay layer, which must stay attached.
+        if (item.command.opensOverlay) return;
         break;
       default:
         openUrl(item.url, newTab);

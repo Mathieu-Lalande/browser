@@ -3,7 +3,8 @@ import { isCommandId, type CommandId } from "@shared/commands";
 import { Channels } from "@shared/ipc";
 import { isSettingsSection } from "@shared/settings";
 import { isSpaceId, isSpaceInput } from "@shared/spaces";
-import type { BookmarkInput, Bounds, SpaceInput } from "@shared/types";
+import { isSiteName } from "@shared/site-info";
+import type { BookmarkInput, Bounds, PermissionKind, SpaceInput } from "@shared/types";
 import { runCommand } from "./commands";
 import {
   cancelDownload,
@@ -22,6 +23,16 @@ import {
 import { profile } from "./profile";
 import { resetSettingsSection, settings, updateSettings } from "./settings";
 import { spaces } from "./spaces";
+import {
+  allowThirdPartyCookies,
+  clearAllSiteData,
+  clearTabSiteData,
+  isPermissionKind,
+  listSiteData,
+  removeSiteData,
+  resetSitePermission,
+  siteInfoFor,
+} from "./site-info";
 import { startImage } from "./start-image";
 import { registerSyncIpc } from "./sync/ipc";
 import { showTabMenu } from "./tab-menu";
@@ -239,6 +250,30 @@ export function registerIpc(): void {
     c.overlay.open({ kind: "downloads", anchor: anchor as Bounds }),
   );
   on(Channels.downloadsOpenPage, none, (c) => c.openDownloads());
+
+  // Site info popover (ADR-021): the UI names a tab of its own window; main reads its URL and
+  // session. Origins are only used as lookup keys in the tab's permission store.
+  on(Channels.siteInfoShow, (args) => isBounds(args[0]), (c, anchor) => c.showSiteInfo(anchor as Bounds));
+  const withController = (channel: string, guard: (args: unknown[]) => boolean, handler: (c: BrowserController, ...args: unknown[]) => unknown) =>
+    ipcMain.handle(channel, (event, ...args: unknown[]) => {
+      const controller = BrowserController.fromUi(event.sender);
+      if (!controller || !guard(args)) throw new Error(`Rejected ${channel}`);
+      return handler(controller, ...args);
+    });
+  withController(Channels.siteInfoGet, id, (c, tabId) => siteInfoFor(c, tabId as string));
+  withController(
+    Channels.siteInfoResetPermission,
+    (args) => isString(args[0]) && isString(args[1]) && args[1].length <= MAX_URL_LENGTH && isPermissionKind(args[2]),
+    (c, tabId, origin, kind) => resetSitePermission(c, tabId as string, origin as string, kind as PermissionKind),
+  );
+  withController(Channels.siteInfoClearData, id, (c, tabId) => clearTabSiteData(c, tabId as string));
+  withController(Channels.siteInfoAllowThirdPartyCookies, (args) => isString(args[0]) && isBoolean(args[1]), (c, tabId, allow) =>
+    allowThirdPartyCookies(c, tabId as string, allow as boolean),
+  );
+  // The profile's site data: never listed nor cleared from a private window.
+  withController(Channels.siteDataList, none, (c) => (c.isPrivate ? null : listSiteData()));
+  withController(Channels.siteDataRemove, (args) => isSiteName(args[0]), (c, site) => (c.isPrivate ? null : removeSiteData(site as string)));
+  withController(Channels.siteDataClearAll, none, (c) => (c.isPrivate ? null : clearAllSiteData()));
 
   registerSyncIpc();
 }

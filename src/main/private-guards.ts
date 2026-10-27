@@ -12,11 +12,12 @@ export interface MaybePrivate {
 }
 
 /**
- * Tab integrations for a window: a private window keeps the bookmark star (reading) but neither
+ * Tab integrations for a window: a private window keeps the bookmark star (reading) and the page
+ * context menu (which checks `isPrivate` itself), but neither
  * records visits nor updates titles/favicons in the history (so no top sites either).
  */
 export function tabHooksFor(hooks: TabManagerHooks, isPrivate: boolean): TabManagerHooks {
-  return isPrivate ? { isBookmarked: hooks.isBookmarked } : hooks;
+  return isPrivate ? { isBookmarked: hooks.isBookmarked, contextMenu: hooks.contextMenu } : hooks;
 }
 
 /** The windows that belong in session.json: never a private one. */

@@ -69,6 +69,10 @@
     max-width: 100%;
     margin-left: auto;
   }
+  /* In a column, a 220px basis would be a height: the label keeps its own. */
+  .stacked .text {
+    flex-basis: auto;
+  }
   .stacked .control {
     flex: auto;
     margin-left: 0;

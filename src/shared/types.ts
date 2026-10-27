@@ -144,16 +144,18 @@ export interface Bounds {
 export type UiCommand = "focus-address" | "toggle-sidebar" | "focus-find";
 
 /** Floating UI shown in the overlay layer, above the page (see `src/main/overlay.ts`). */
-export type OverlayKind = "palette" | "downloads";
+export type OverlayKind = "palette" | "downloads" | "site-info";
 
 export interface OverlayRequest {
   kind: OverlayKind;
   /** Popovers: the chrome UI element they hang from, in window coordinates. */
   anchor?: Bounds;
+  /** Site info: the tab it describes (set by main). */
+  tabId?: TabId;
 }
 
 /** Popovers stay light: no dimmed, blurred backdrop behind them (the palette has one). */
-export const isPopover = (kind: OverlayKind) => kind === "downloads";
+export const isPopover = (kind: OverlayKind) => kind === "downloads" || kind === "site-info";
 
 /**
  * A downscaled snapshot of what is below the overlay (chrome UI, then the active page at its

@@ -1,6 +1,7 @@
 import { clipboard, type MenuItemConstructorOptions } from "electron";
 import { commandAccelerator, getCommand, type CommandId } from "@shared/commands";
 import { profile } from "./profile";
+import { clearTabSiteData } from "./site-info";
 import { sleepTabNow, sleepTabs } from "./sleep";
 import { spaces } from "./spaces";
 import { toggleSplit } from "./split";
@@ -83,6 +84,9 @@ const RUNNERS: Record<CommandId, Runner> = {
     for (const manager of c.spaces.tabManagers()) void sleepTabs(manager, null, null);
   },
   "sync-now": () => void syncController().syncNow(),
+  "site-info": (c) => c.showSiteInfo(),
+  // The tab's own session: a private window clears its in-memory data only.
+  "clear-site-data": onActiveTab((c, id) => void clearTabSiteData(c, id)),
 };
 
 /** Commands that make sense without any window (macOS keeps the app running windowless). */

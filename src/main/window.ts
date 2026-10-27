@@ -4,7 +4,7 @@ import { internalUrl, type InternalPage } from "@shared/internal";
 import { Channels } from "@shared/ipc";
 import { PRIVATE_SPACE, privateSettings } from "@shared/private";
 import { pageRadius, searchEngineOf, type Settings } from "@shared/settings";
-import type { UiCommand } from "@shared/types";
+import type { Bounds, UiCommand } from "@shared/types";
 import { uiUrl } from "./app-protocol";
 import { downloadViewerOf, isDownloadVisible, onDownloadsChanged } from "./downloads";
 import type { DownloadViewer } from "./downloads/list";
@@ -51,6 +51,13 @@ const tabHooks: TabManagerHooks = {
   },
   isBookmarked: (url) => profile().bookmarks.has(url),
 };
+
+type PageMenu = (controller: BrowserController, tabId: string, params: Electron.ContextMenuParams) => void;
+/** The page context menu (`./page-menu`), plugged in at startup: it creates windows itself. */
+let pageMenu: PageMenu | null = null;
+export function setPageMenu(menu: PageMenu): void {
+  pageMenu = menu;
+}
 
 /** What each TabManager takes from the settings. */
 const tabOptions = (current: Settings) => ({
@@ -149,7 +156,7 @@ export class BrowserController {
         if (this.overlay.isOpen) this.overlay.raise();
         if (!this.isPrivate) BrowserController.saveSession();
       },
-      tabHooksFor(tabHooks, this.isPrivate),
+      tabHooksFor({ ...tabHooks, contextMenu: (tabId, params) => pageMenu?.(this, tabId, params) }, this.isPrivate),
       this.isPrivate ? undefined : restore,
       this.privateSession ? { space: PRIVATE_SPACE, session: this.privateSession } : undefined,
     );
@@ -270,6 +277,17 @@ export class BrowserController {
 
   openDownloads(): void {
     this.openInternal("downloads");
+  }
+
+  /**
+   * Site info popover of a tab (the active one by default), hanging from `anchor` (the address
+   * bar's lock), else from the top-left corner of the page.
+   */
+  showSiteInfo(anchor?: Bounds, tabId = this.tabs.activeTabId): void {
+    const tab = this.tabs.getState().tabs.find((item) => item.id === tabId);
+    if (!tab || !/^https?:/.test(tab.url)) return;
+    const { x, y } = this.tabs.viewBounds;
+    this.overlay.open({ kind: "site-info", tabId: tab.id, anchor: anchor ?? { x: x + 8, y, width: 0, height: 0 } });
   }
 
   /** Pushes a message to this window's browser UIs (chrome and overlay). */

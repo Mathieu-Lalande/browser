@@ -29,6 +29,7 @@ export const MOBILE_COMMANDS: ReadonlySet<CommandId> = new Set<CommandId>([
   "next-space",
   "previous-space",
   "sync-now",
+  "site-info",
 ]);
 
 export type MobileActionId = "share" | "new-private-tab" | "show-tabs";

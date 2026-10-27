@@ -33,6 +33,8 @@ interface Props {
   onOpenSearch: () => void;
   onExpand: () => void;
   onLongPressAddress: () => void;
+  /** Tap on the lock: site info sheet (ADR-021). */
+  onSiteInfo: () => void;
   onBack: () => void;
   onForward: () => void;
   onShare: () => void;
@@ -176,14 +178,27 @@ export const BottomBar = memo(function BottomBar(props: Props) {
               ]}
               testID="address-pill"
             >
-              <View style={styles.pillIcon}>
-                <Icon
-                  name={isPrivate ? "mask" : label ? (secure ? "lock" : "unlock") : "search"}
-                  size={16}
-                  color={isPrivate ? colors.accentText : colors.textMuted}
-                  strokeWidth={2}
-                />
-              </View>
+              {label && /^https?:/i.test(tab?.url ?? "") ? (
+                <Tap
+                  accessibilityRole="button"
+                  accessibilityLabel={`Infos sur le site (${secure ? "connexion sécurisée" : "connexion non sécurisée"})`}
+                  onPress={props.onSiteInfo}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 4 }}
+                  style={styles.pillIcon}
+                  testID="site-info"
+                >
+                  <Icon name={isPrivate ? "mask" : secure ? "lock" : "unlock"} size={16} color={isPrivate ? colors.accentText : colors.textMuted} strokeWidth={2} />
+                </Tap>
+              ) : (
+                <View style={styles.pillIcon}>
+                  <Icon
+                    name={isPrivate ? "mask" : label ? (secure ? "lock" : "unlock") : "search"}
+                    size={16}
+                    color={isPrivate ? colors.accentText : colors.textMuted}
+                    strokeWidth={2}
+                  />
+                </View>
+              )}
               <Text style={[styles.pillText, { color: label ? colors.text : colors.textMuted }]} numberOfLines={1}>
                 {label || (isPrivate ? "Recherche privée" : "Rechercher ou saisir une adresse")}
               </Text>

@@ -9,7 +9,8 @@ import { applyNativeTheme, settings as currentSettings } from "./settings";
 import { startTabSleeper } from "./sleep";
 import { startSync } from "./sync";
 import { spaces } from "./spaces";
-import { BrowserController } from "./window";
+import { showPageMenu } from "./page-menu";
+import { BrowserController, setPageMenu } from "./window";
 
 /**
  * Test hook: `BROWSER_TEST_SLEEP_MS` replaces the sleep delay (unless sleeping is off). Test and dev
@@ -50,6 +51,7 @@ if (!app.requestSingleInstanceLock()) {
     hardenSession();
     registerIpc();
     installMenu();
+    setPageMenu(showPageMenu);
     applyNativeTheme(settings);
     startTabSleeper({
       targets: () => BrowserController.all().flatMap((controller) => controller.spaces.tabManagers()),

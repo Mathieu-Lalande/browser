@@ -219,7 +219,7 @@ test("the side navigation brings each section to the top, the last ones included
     ["Apparence", "appearance"],
   ] as const;
   for (const [label, id] of sections) {
-    await nav.getByRole("button", { name: label }).click();
+    await nav.getByRole("button", { name: label, exact: true }).click();
     await chrome.waitForTimeout(200);
     // Lands just under the top (its 24px scroll margin), never further down the screen.
     expect(await landing(id)).toBe(24);

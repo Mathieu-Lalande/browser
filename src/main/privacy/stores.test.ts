@@ -118,6 +118,26 @@ describe("PermissionStore", () => {
     expect(store.get("https://a.com", "camera")).toBeUndefined();
     expect(store.get("https://a.com", "microphone")).toBe("allow");
   });
+
+  it("lists a site's decisions and forgets one (site info, ADR-021)", async () => {
+    const file = join(dir, "permissions.json");
+    const store = new PermissionStore(file);
+    await store.set("https://news.com", "notifications", "deny", true);
+    await store.set("https://widget.com", "camera", "allow", false, "https://news.com");
+    await store.set("https://other.com", "camera", "allow", true);
+    expect(store.entriesFor("https://news.com")).toEqual(
+      expect.arrayContaining([
+        { origin: "https://news.com", kind: "notifications", decision: "deny", remembered: true },
+        { origin: "https://widget.com", kind: "camera", decision: "allow", remembered: false },
+      ]),
+    );
+    expect(store.entriesFor("https://news.com")).toHaveLength(2);
+    await store.forget("https://news.com", "notifications", "https://news.com");
+    expect(store.get("https://news.com", "notifications")).toBeUndefined();
+    expect(readJson(file)).toEqual({ "https://other.com": { camera: "allow" } });
+    await store.forget("https://widget.com", "camera", "https://news.com");
+    expect(store.entriesFor("https://news.com")).toEqual([]);
+  });
 });
 
 describe("permissionKinds", () => {

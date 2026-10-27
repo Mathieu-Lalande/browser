@@ -40,7 +40,9 @@ export type CommandId =
   | "new-private-window"
   | "sleep-tab"
   | "sleep-other-tabs"
-  | "sync-now";
+  | "sync-now"
+  | "site-info"
+  | "clear-site-data";
 
 /** Icon names used by commands; the UI's Icon component must know each of them. */
 export type CommandIcon =
@@ -71,7 +73,9 @@ export type CommandIcon =
   | "layers"
   | "mask"
   | "moon"
-  | "cloud";
+  | "cloud"
+  | "info"
+  | "cookie";
 
 /** What a command's label and availability may depend on. */
 export interface CommandContext {
@@ -98,6 +102,8 @@ export interface CommandDefinition {
   palette?: boolean;
   /** Destructive commands ask for confirmation in the palette first. */
   confirm?: { title: string; detail: string; action: string };
+  /** Opens a popover in the overlay layer: the palette lets it take its place instead of closing the layer. */
+  opensOverlay?: boolean;
 }
 
 const isMac = (platform: string) => platform === "darwin";
@@ -255,6 +261,24 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
     label: "Synchroniser maintenant",
     keywords: ["sync", "synchronisation", "appareils", "téléphone", "devices"],
     icon: "cloud",
+  },
+  "site-info": {
+    label: "Infos sur le site",
+    keywords: ["site info", "cadenas", "certificat", "sécurité", "cookies", "autorisations", "permissions"],
+    icon: "info",
+    needsPage: true,
+    opensOverlay: true,
+  },
+  "clear-site-data": {
+    label: "Effacer les données du site",
+    keywords: ["cookies", "stockage", "clear site data", "déconnecter", "supprimer"],
+    icon: "cookie",
+    needsPage: true,
+    confirm: {
+      title: "Effacer les cookies et données de ce site ?",
+      detail: "Vous serez déconnecté de ce site, et la page sera rechargée. Les autres sites ne sont pas touchés.",
+      action: "Effacer les données",
+    },
   },
 };
 

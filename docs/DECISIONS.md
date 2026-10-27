@@ -135,7 +135,7 @@ par le main au début du chargement, toujours sans preload.
   n'est pas exposé : il faudrait injecter du code dans la page avant ses scripts (preload).
 - **Cookies tiers.** Electron n'offre pas de réglage de session pour les bloquer ; filtrer les en-têtes
   `Cookie`/`Set-Cookie` à la main serait partiel (`document.cookie` des iframes) et casserait des
-  connexions (SSO). Non fait pour l'instant ; à reprendre avec les sessions partitionnées (espaces).
+  connexions (SSO). Fait depuis en option, désactivée par défaut, avec exceptions par site (ADR-021).
 - **WebRTC.** Politique `default_public_interface_only` sur chaque onglet : les pages ne voient pas les
   adresses IP locales.
 
@@ -791,3 +791,83 @@ le moteur de contraste, raccourcis affichés de trois façons différentes.
 - **Téléchargements** : « Réessayer » relance un téléchargement échoué ou interrompu depuis son URL
   d'origine, dans sa session (`session.downloadURL` ; seule exception à « seules les pages
   d'onglets téléchargent », pour une URL http(s) tirée de l'historique de main, jamais du renderer).
+
+## ADR-021 — Essentiels : menu contextuel des pages, infos sur le site, données des sites
+
+**Menu contextuel des pages** (`src/main/page-menu.ts`, modèle pur et testé `page-menu-model.ts`).
+`webContents.on("context-menu")` (branché par `TabManager`, hook `contextMenu`) ouvre un menu natif
+(`Menu.popup`, comme le menu des onglets : il passe au-dessus de la vue de la page). Les entrées
+dépendent du clic : lien (nouvel onglet, arrière-plan, vue scindée, espace…, fenêtre privée, copier le
+lien / son texte), image (ouvrir, copier, copier l'adresse, enregistrer), média (lecture/pause, muet,
+boucle, image dans l'image), sélection (copier, rechercher avec le moteur choisi, « Ouvrir comme
+adresse »), champ éditable (annuler… coller sans mise en forme, tout sélectionner, suggestions
+orthographiques et « Ajouter au dictionnaire »), page (précédent, suivant, actualiser, enregistrer,
+copier l'adresse, infos sur le site), et toujours « Inspecter ».
+- Toute URL venue de la page repasse par `isPageOpenableUrl` (http, https, about:blank) avant d'être
+  ouverte, et encore dans `page-menu.ts` au clic : jamais `file:`, `javascript:`, `data:` ni `browser:`.
+  Un lien `javascript:` n'est pas proposé à la copie.
+- « Enregistrer l'image / la page » : `webContents.downloadURL` dans la session de l'onglet, donc par
+  `will-download` et les règles des fichiers dangereux (ADR-013) ; une page HTML enregistrée est
+  « à confirmer ». Le libellé garde « sous… » ; la boîte de dialogue suit le réglage « Toujours demander ».
+- Lecture/muet/boucle : court script dans un monde isolé (1003), sur l'élément sous le clic
+  (coordonnées divisées par le zoom). Limite : médias dans des iframes non atteints.
+- Fenêtres privées : pas d'« Ouvrir dans l'espace », pas d'« Ajouter au dictionnaire » (le
+  dictionnaire est dans le profil). « Ouvrir dans une fenêtre privée » ouvre une **nouvelle** fenêtre
+  privée ; rien ne va d'une fenêtre privée vers une fenêtre normale (seul le presse-papiers, sur
+  action explicite).
+- « Afficher le code source » n'est **pas** proposé : `view-source:` devrait devenir navigable, ce que
+  `isNavigableUrl` refuse à dessein (ADR-003) ; « Inspecter » ouvre les DevTools sur l'élément.
+
+**Infos sur le site** : popover du calque overlay (`OverlayKind` « site-info », `isPopover`), ouvert par
+le cadenas de la barre d'adresse, la commande « Infos sur le site » (palette : `opensOverlay`, le
+popover remplace la palette sans fermer le calque) ou le menu contextuel. L'interface ne désigne qu'un
+onglet : main lit son URL et **sa** session (`src/main/site-info/`).
+- Certificat : `session.setCertificateVerifyProc` (posé par `hardenSession`) répond toujours `-3`
+  (« verdict de Chromium ») : il ne change jamais la confiance, il note le certificat (sujet, émetteur,
+  validité, empreinte SHA-256) de chaque hôte vérifié avec succès, en mémoire, par session, 500 hôtes au
+  plus. C'est la seule API d'Electron 44 qui donne le certificat d'une connexion réussie
+  (`certificate-error` ne voit que les échecs). Une connexion reprise sans nouvelle vérification avant
+  l'enregistrement affiche « Détails indisponibles ». http : « Connexion non sécurisée ».
+- Cookies : nombre de cookies du site (domaine enregistrable, sous-domaines compris) dans la session de
+  l'onglet. « Effacer les cookies et données du site » (confirmation) : chaque cookie retiré
+  (`cookies.remove`), puis `clearStorageData({ origin })` pour l'origine de la page et, en http et https,
+  le site, `www.` et chaque hôte des cookies ; puis l'onglet est rechargé. Limite : le stockage d'un
+  sous-domaine sans cookie n'est pas atteint.
+- Autorisations : décisions du magasin existant où le site est le site de premier niveau (les siennes et
+  celles des cadres intégrés), réinitialisables une par une (`PermissionStore.forget`).
+- Protections (compteur, interrupteur : `toggleShields`) et zoom (réinitialisation : `zoom-reset`)
+  suivent l'état vivant de l'onglet.
+- Fenêtre privée : sa session en mémoire, son magasin d'autorisations et ses boucliers éphémères ;
+  l'exception aux cookies tiers (un réglage) n'y est pas modifiable.
+- Domaine enregistrable : la liste des suffixes publics déjà embarquée par le bloqueur (tldts, via
+  `Request` de `@ghostery/adblocker`), pas de seconde copie.
+
+**Données des sites** (Paramètres, section « Données des sites ») : sites ayant des cookies dans la
+session par défaut et les partitions des espaces isolés, groupés par domaine enregistrable, avec
+recherche, effacement par site (mêmes règles que ci-dessus, dans chaque session) et « Tout effacer »
+(`clearStorageData()` de chaque session ; historique et favoris conservés), avec confirmation.
+Indisponible en fenêtre privée (IPC refusée : `null`), qui ne gère pas les données du profil.
+
+**Bloquer les cookies tiers** (`privacy.blockThirdPartyCookies`, **désactivé** par défaut ; exceptions
+par site `privacy.thirdPartyCookieExceptions`, validées et bornées à 500). Electron n'a pas de réglage de
+session : les requêtes des onglets vers un autre site que celui de la page (domaines enregistrables
+différents ; jamais le document principal) perdent leur en-tête `Cookie` (`onBeforeSendHeaders`) et
+leurs `Set-Cookie` (`onHeadersReceived`). `webRequest` n'acceptant qu'un écouteur par événement et par
+session, c'est fait dans les écouteurs du pipeline de confidentialité (`src/main/privacy/index.ts`).
+Limites (raison du « désactivé par défaut » et de la réserve d'ADR-008) : `document.cookie` d'une
+iframe tierce reste lisible et modifiable (rien n'est injecté dans les pages), et des connexions
+unifiées (SSO) ou contenus intégrés peuvent casser : l'exception s'ajoute depuis les infos du site.
+
+**Bouton « Copier le lien »** dans la barre d'adresse et dans le popover : commande `copy-url`,
+confirmation « Lien copié » (coche animée, annonce `role="status"`).
+
+**Commandes** : « Infos sur le site » et « Effacer les données du site » (confirmation dans la palette)
+rejoignent le registre ; la première est aussi dans le menu Affichage et sur mobile.
+
+**Mobile.** « Copier le lien » dans l'appui long sur la barre d'adresse (était « Copier l'adresse »), le
+menu de la page et l'appui long sur un lien (avec « Ouvrir dans un nouvel onglet », déjà là). Toucher
+le cadenas ouvre une feuille : hôte, HTTPS ou non, copier le lien, « Effacer les données du site ».
+react-native-webview n'a pas d'API de cookies par site et `@react-native-cookies/cookies` (natif)
+n'est pas dans Expo Go : l'effacement passe par un script injecté dans la page, qui vide ce que la page
+atteint elle-même (localStorage, sessionStorage, IndexedDB, Cache Storage, cookies visibles des
+scripts) puis la recharge. Les cookies `HttpOnly` restent ; la feuille le dit.

@@ -219,6 +219,13 @@ export class SpaceManager {
     if (released) target.adopt(released);
   }
 
+  /** Opens `url` in a new tab of another space of this window, and shows that space. */
+  openInSpace(spaceId: SpaceId, url: string): void {
+    if (!this.has(spaceId)) return;
+    this.managerFor(spaceId, false).create(url);
+    this.switchTo(spaceId);
+  }
+
   /** Preferences for every space's tabs (settings), including spaces opened later. */
   configure(options: Partial<TabOptions>): void {
     this.options = { ...this.options, ...options };

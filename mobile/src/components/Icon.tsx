@@ -172,6 +172,7 @@ export const COMMAND_ICONS: Partial<Record<CommandIcon, IconName>> = {
   command: "command",
   settings: "settings",
   layers: "layers",
+  info: "info",
 };
 
 interface Props {

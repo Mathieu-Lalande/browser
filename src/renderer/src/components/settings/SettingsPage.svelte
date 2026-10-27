@@ -27,6 +27,7 @@
   import Row from "./Row.svelte";
   import Section from "./Section.svelte";
   import Segmented from "./Segmented.svelte";
+  import SiteDataSection from "./SiteDataSection.svelte";
   import Slider from "./Slider.svelte";
   import SyncSection from "./SyncSection.svelte";
   import Toggle from "./Toggle.svelte";
@@ -38,6 +39,7 @@
     { id: "startPage", label: "Page d'accueil", icon: "home" },
     { id: "behavior", label: "Comportement", icon: "sliders" },
     { id: "privacy", label: "Confidentialité", icon: "shield" },
+    { id: "siteData", label: "Données des sites", icon: "cookie" },
     { id: "downloads", label: "Téléchargements", icon: "download" },
     { id: "data", label: "Données", icon: "database" },
     { id: "sync", label: "Synchronisation", icon: "cloud" },
@@ -490,6 +492,10 @@
             onchange={(normalizeAcceptLanguage) => update({ privacy: { normalizeAcceptLanguage } })}
           />
         </Row>
+      </Section>
+
+      <Section id="siteData" icon="cookie" title="Données des sites" description="Cookies et stockage laissés par les sites, et cookies tiers.">
+        <SiteDataSection />
       </Section>
 
       <Section

@@ -82,6 +82,7 @@ export function installMenu(): void {
         commandMenuItem("reload"),
         commandMenuItem("reload", { accelerator: "F5", visible: false }),
         commandMenuItem("devtools"),
+        commandMenuItem("site-info"),
         { type: "separator" },
         commandMenuItem("toggle-split", { id: "toggle-split" }),
         { type: "separator" },

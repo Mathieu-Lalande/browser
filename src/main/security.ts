@@ -5,6 +5,7 @@ import { installDownloads } from "./downloads";
 import { acceptLanguages, reduceUserAgent } from "./fingerprint";
 import { installPrivacy, type PrivacyOptions } from "./privacy";
 import { onSettingsChanged, settings } from "./settings";
+import { trackCertificates } from "./site-info/certificates";
 
 /**
  * Permissions granted without asking. Sensitive ones (camera, location…) are asked per site through
@@ -47,6 +48,8 @@ export function hardenSession(ses: Session = session.defaultSession, options: Pr
   // Downloads: tab pages only, no automatic opening, dangerous types confirmed first (ADR-013).
   // A private session's downloads are not recorded in the downloads history (ADR-014).
   installDownloads(ses, { ephemeral: options.ephemeral });
+  // Certificates of verified hosts, for the site info popover (records only, never changes trust: ADR-021).
+  trackCertificates(ses);
   // A desktop-Chrome-like user agent: the default one advertises Electron and the app name,
   // which both breaks sites and makes users easier to fingerprint (ADR-014).
   const userAgent = reduceUserAgent(ses.getUserAgent(), app.getName());

@@ -20,6 +20,8 @@ export interface MenuSpec {
   subtitle?: string;
   /** Shows the site's icon next to the title. */
   siteUrl?: string;
+  /** An explanation shown above the actions (site info). */
+  note?: string;
   items: MenuItem[];
 }
 
@@ -64,6 +66,7 @@ export const ActionSheet = memo(function ActionSheet({ menu, onClose, onReplace 
             </View>
           </View>
         )}
+        {menu.note ? <Text style={[styles.note, { color: colors.textMuted }]}>{menu.note}</Text> : null}
         <ScrollView bounces={false} contentContainerStyle={styles.items}>
           {menu.items.map((item) => (
             <Pressable
@@ -109,6 +112,7 @@ const styles = StyleSheet.create({
   headerText: { flex: 1, gap: 2 },
   title: { fontSize: 16, fontWeight: "600" },
   subtitle: { fontSize: 13 },
+  note: { fontSize: 13, lineHeight: 18, paddingHorizontal: 20, paddingTop: 10 },
   items: { paddingVertical: 6, paddingHorizontal: 8 },
   item: { flexDirection: "row", alignItems: "center", gap: 14, minHeight: 52, paddingHorizontal: 12, borderRadius: 16 },
   itemIcon: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },

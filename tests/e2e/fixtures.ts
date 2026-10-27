@@ -132,6 +132,22 @@ function startServer(): Promise<{ server: Server; origin: string; log: ServerLog
       // What the browser sent (user agent, client hints, languages…), as JSON.
       res.setHeader("content-type", "application/json");
       res.end(JSON.stringify(req.headers));
+    } else if (path.startsWith("/context")) {
+      // Right-click targets for the page context menu (ADR-021); sets a first-party cookie too.
+      res.setHeader("set-cookie", "ctx=1; path=/");
+      res.end(
+        `<title>Context</title><style>a,img,p,input{display:block;margin:12px;width:200px;height:40px}</style>` +
+          `<a id="link" href="/second">Second</a><a id="file" href="file:///etc/hostname">file</a>` +
+          `<img id="img" src="/icon.png"><p id="text">un renard brun</p><input id="field" value="bonjour">`,
+      );
+    } else if (path.startsWith("/tp-cookie")) {
+      // An image that sets a cookie: third-party when embedded by another site.
+      // SameSite=None (Secure, allowed on localhost): otherwise Chromium refuses it cross-site anyway.
+      res.setHeader("set-cookie", "tp=1; Path=/; SameSite=None; Secure");
+      res.setHeader("content-type", "image/png");
+      res.end(ICON_PNG);
+    } else if (path.startsWith("/embeds-third-party")) {
+      res.end(`<title>Third party</title><img id="tp" src="${query(path, "src") ?? ""}">`);
     } else if (path.startsWith("/form")) {
       res.end(`<title>Form</title><form><input id="field" name="field" value=""><textarea id="notes"></textarea></form>`);
     } else {

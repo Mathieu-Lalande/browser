@@ -35,3 +35,5 @@
 - Synchronisation chiffrée (ADR-019) : moteur pur `src/shared/sync/` (crypto `@noble/*`, HLC, LWW), adaptateurs
   `src/main/sync/` et `mobile/src/lib/sync/`, relais `server/` (`cd server && npm test`). Le serveur ne doit
   jamais voir de clair ; rien de privé n'est synchronisé.
+- Menu contextuel des pages, infos sur le site, données des sites, cookies tiers : ADR-021
+  (`src/main/page-menu*.ts`, `src/main/site-info/`). Toute URL venue d'une page repasse par `isPageOpenableUrl`.

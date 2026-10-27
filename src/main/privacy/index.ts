@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { app, session, type Session, type WebContents } from "electron";
-import type { PermissionPrompt } from "@shared/types";
+import type { PermissionKind, PermissionPrompt } from "@shared/types";
 import { normalizeClientHints } from "../fingerprint";
 import { ContentBlocker } from "./blocker";
 import { TabCosmetics } from "./cosmetics";
@@ -11,6 +11,8 @@ import { flushJsonWriters } from "./json-file";
 import { PermissionStore } from "./permission-store";
 import { PermissionPrompts, permissionKinds } from "./permissions";
 import { ShieldsAllowList } from "./shields";
+import { settings } from "../settings";
+import { stripsCookies, withoutHeaders } from "../site-info/domains";
 
 /** What a tab wants to hear about from the privacy layer. */
 export interface TabPrivacyHooks {
@@ -141,11 +143,25 @@ export function installPrivacy(ses: Session, alwaysAllowed: ReadonlySet<string>,
     callback(verdict.redirectUrl ? { redirectURL: verdict.redirectUrl } : { cancel: true });
   });
 
+  /** The page a tab's request belongs to (see `tabs`), for third-party checks. */
+  const pageOf = (tab: { contents: WebContents; documentUrl?: string }) => tab.documentUrl || tab.contents.getURL();
+
+  // `webRequest` takes one listener per event and session: third-party cookie blocking (ADR-021)
+  // lives in the same listeners as the rest of the pipeline.
   ses.webRequest.onBeforeSendHeaders((details, callback) => {
-    if (details.webContentsId === undefined || !tabs.has(details.webContentsId)) return callback({});
+    const tab = details.webContentsId === undefined ? undefined : tabs.get(details.webContentsId);
+    if (!tab) return callback({});
     // Global Privacy Control: a legally meaningful "do not sell/share" signal in several jurisdictions.
     // Client hints (Sec-CH-UA*) are made consistent with the reduced user agent (ADR-014).
-    callback({ requestHeaders: { ...normalizeClientHints(details.requestHeaders, app.getName()), "Sec-GPC": "1" } });
+    let headers: Record<string, string> = { ...normalizeClientHints(details.requestHeaders, app.getName()), "Sec-GPC": "1" };
+    if (stripsCookies(details.url, pageOf(tab), details.resourceType, settings().privacy)) headers = withoutHeaders(headers, ["cookie"]);
+    callback({ requestHeaders: headers });
+  });
+
+  ses.webRequest.onHeadersReceived((details, callback) => {
+    const tab = details.webContentsId === undefined ? undefined : tabs.get(details.webContentsId);
+    if (!tab || !details.responseHeaders || !stripsCookies(details.url, pageOf(tab), details.resourceType, settings().privacy)) return callback({});
+    callback({ responseHeaders: withoutHeaders(details.responseHeaders, ["set-cookie"]) });
   });
 
   ses.setPermissionRequestHandler((contents, permission, callback, details) => {
@@ -257,6 +273,16 @@ export function httpsFallbackFor(contentsId: number, failedUrl: string, code: nu
 /** HTTPS-Only exception for the URL's host, until the browser quits. */
 export function allowHttp(url: string): void {
   privacy?.https.allowHttp(url);
+}
+
+/** Permission decisions on the top-level site `topOrigin`, in `ses` (a private window's own). */
+export function sitePermissions(ses: Session, topOrigin: string): ReturnType<PermissionStore["entriesFor"]> {
+  return promptsOf(ses).store.entriesFor(topOrigin);
+}
+
+/** Forgets one decision: the site (or the frame embedded in it) will ask again. */
+export function forgetSitePermission(ses: Session, origin: string, kind: PermissionKind, topOrigin: string): void {
+  void promptsOf(ses).store.forget(origin, kind, topOrigin);
 }
 
 export function respondPermission(contentsId: number, promptId: string, allow: boolean, remember: boolean): void {

@@ -1,3 +1,4 @@
+import { sanitizeSiteList } from "./site-info";
 import { DEFAULT_SEARCH_ENGINE, SEARCH_ENGINES, type SearchEngine } from "./url";
 
 /** User preferences, persisted as `settings.json` and applied live in every window. */
@@ -69,6 +70,13 @@ export interface BehaviorSettings {
 export interface PrivacySettings {
   /** Send the most common `Accept-Language` ("en-US,en") instead of the browser's own languages (ADR-014). */
   normalizeAcceptLanguage: boolean;
+  /**
+   * Strip cookies from requests to other sites than the page's, and the cookies they set
+   * (ADR-021). Off by default: it breaks some sign-ins and embedded content.
+   */
+  blockThirdPartyCookies: boolean;
+  /** Sites (registrable domains) where third-party cookies stay allowed. */
+  thirdPartyCookieExceptions: string[];
 }
 
 export interface DownloadSettings {
@@ -133,7 +141,7 @@ export const DEFAULT_SETTINGS: Settings = {
   search: { engine: DEFAULT_SEARCH_ENGINE.id },
   startPage: { showClock: true, showTopSites: true, greetingName: "", background: "theme", backgroundImage: "" },
   behavior: { restoreSession: true, newTabPosition: "end", closeTabActivates: "next", sleepTabsAfter: "30m" },
-  privacy: { normalizeAcceptLanguage: false },
+  privacy: { normalizeAcceptLanguage: false, blockThirdPartyCookies: false, thirdPartyCookieExceptions: [] },
   downloads: { folder: "", askWhere: false },
 };
 
@@ -234,7 +242,7 @@ const schema: Schema = {
     closeTabActivates: oneOf("next", "previous", "recent"),
     sleepTabsAfter: oneOf("never", "15m", "30m", "1h", "2h"),
   },
-  privacy: { normalizeAcceptLanguage: bool },
+  privacy: { normalizeAcceptLanguage: bool, blockThirdPartyCookies: bool, thirdPartyCookieExceptions: sanitizeSiteList },
   downloads: { folder: folderPath, askWhere: bool },
 };
 

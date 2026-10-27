@@ -15,6 +15,7 @@ import { initialCollapse, nextCollapse } from "../lib/gestures";
 import type { LinkMenuRequest } from "../lib/linkMenu";
 import type { Rect } from "../lib/overviewLayout";
 import type { SheetItem } from "../lib/searchSheet";
+import { connectionLabel, mobileSiteInfo, SITE_DATA_NOTE } from "../lib/siteInfo";
 import { activeTab, isPrivateTab, liveTabIds, mountUrl, orderedTabs, swipeTarget, type MobileTab } from "../lib/tabs";
 import { useBrowserActions, useBrowserState, useEvent } from "../state/BrowserProvider";
 import { useTheme } from "../state/theme";
@@ -227,6 +228,9 @@ export function BrowserScreen() {
       case "sync-now":
         actions.sync.syncNow();
         break;
+      case "site-info":
+        showSiteInfo();
+        break;
       case "new-space": {
         const spaceId = actions.addSpace();
         setEditingSpace({ id: spaceId, name: "", icon: FALLBACK_SPACE_ICON, color: null, isolated: false });
@@ -305,6 +309,50 @@ export function BrowserScreen() {
     setMenu({ title: request.text || displayUrl(request.url), subtitle: request.url, siteUrl: request.url, items });
   });
 
+  /** Site info sheet (tap on the lock, ADR-021): connection, host, copy link, clear the site's data. */
+  const siteInfoMenu = useEvent((): MenuSpec | null => {
+    const info = tab ? mobileSiteInfo(tab.url) : null;
+    if (!tab || !info) return null;
+    const url = tab.url;
+    return {
+      title: info.host,
+      subtitle: connectionLabel(info),
+      siteUrl: url,
+      note: SITE_DATA_NOTE,
+      items: [
+        { key: "copy", label: "Copier le lien", icon: "link", onPress: () => copy(url) },
+        {
+          key: "clear",
+          label: "Effacer les données du site",
+          icon: "trash",
+          destructive: true,
+          onPress: () => ({
+            title: `Effacer les données de ${info.host} ?`,
+            subtitle: "Vous pourriez être déconnecté de ce site. La page sera rechargée.",
+            items: [
+              {
+                key: "confirm",
+                label: "Effacer et recharger",
+                icon: "trash",
+                destructive: true,
+                onPress: () => {
+                  actions.clearSiteData();
+                  haptic("success");
+                },
+              },
+              { key: "cancel", label: "Annuler", icon: "close", onPress: () => {} },
+            ],
+          }),
+        },
+      ],
+    };
+  });
+
+  const showSiteInfo = useEvent(() => {
+    const spec = siteInfoMenu();
+    if (spec) setMenu(spec);
+  });
+
   const pageMenu = useEvent(() => {
     const items: MenuItem[] = [];
     if (tab?.url) {
@@ -319,6 +367,7 @@ export function BrowserScreen() {
           },
         },
         { key: "copy", label: "Copier le lien", icon: "link", onPress: () => copy(tab.url) },
+        ...(mobileSiteInfo(tab.url) ? [{ key: "site-info", label: "Infos sur le site", icon: "info" as const, onPress: () => siteInfoMenu() ?? undefined }] : []),
         { key: "pin", label: tab.isPinned ? "Désépingler l'onglet" : "Épingler l'onglet", icon: "pin", onPress: () => actions.setPinned(tab.id, !tab.isPinned) },
         { key: "duplicate", label: "Dupliquer l'onglet", icon: "copy", onPress: () => void actions.duplicate(tab.id) },
       );
@@ -343,8 +392,9 @@ export function BrowserScreen() {
       },
     ];
     if (tab?.url) {
-      items.unshift({ key: "copy", label: "Copier l'adresse", icon: "link", onPress: () => copy(tab.url) });
+      items.unshift({ key: "copy", label: "Copier le lien", icon: "link", onPress: () => copy(tab.url) });
       items.push({ key: "share", label: "Partager", icon: "share", onPress: () => share(tab.url, tab.title) });
+      if (mobileSiteInfo(tab.url)) items.push({ key: "site-info", label: "Infos sur le site", icon: "info", onPress: () => siteInfoMenu() ?? undefined });
     }
     setMenu({ items });
   });
@@ -501,6 +551,7 @@ export function BrowserScreen() {
           onOpenSearch={openSearch}
           onExpand={expand}
           onLongPressAddress={addressMenu}
+          onSiteInfo={showSiteInfo}
           onBack={goBack}
           onForward={goForward}
           onShare={shareActive}

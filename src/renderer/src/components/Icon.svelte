@@ -90,6 +90,11 @@
   import Unlink from "@lucide/svelte/icons/unlink";
   import KeyRound from "@lucide/svelte/icons/key-round";
 
+  import BadgeCheck from "@lucide/svelte/icons/badge-check";
+  import Cookie from "@lucide/svelte/icons/cookie";
+  import Info from "@lucide/svelte/icons/info";
+  import LockOpen from "@lucide/svelte/icons/lock-open";
+
   import GlobeOff from "@lucide/svelte/icons/globe-off";
   import Hourglass from "@lucide/svelte/icons/hourglass";
   import LayersPlus from "@lucide/svelte/icons/layers-plus";
@@ -180,6 +185,12 @@
     qr: QrCode,
     unlink: Unlink,
     key: KeyRound,
+    // Site info (ADR-021).
+    info: Info,
+    cookie: Cookie,
+    certificate: BadgeCheck,
+    "lock-open": LockOpen,
+    link: Link,
   } satisfies Record<string, LucideIcon> & Record<CommandIcon, LucideIcon>;
 
   /** Space icons: their stored names are Lucide's own. */

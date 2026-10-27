@@ -5,6 +5,7 @@
   import { applyTheme } from "../lib/theme";
   import CommandPalette from "./CommandPalette.svelte";
   import DownloadsPanel from "./DownloadsPanel.svelte";
+  import SiteInfoPanel from "./SiteInfoPanel.svelte";
 
   // Root of the overlay layer (src/main/overlay.ts): a transparent page above the tab views,
   // attached only while a floating UI is open.
@@ -21,14 +22,15 @@
 
   $effect(() =>
     api.overlay.onShow((request) => {
-      if (!current) backdrop = null;
+      // A popover replacing the palette (site info from the palette) has no blurred backdrop.
+      if (!current || isPopover(request.kind)) backdrop = null;
       current = { request, id: ++opened };
     }),
   );
 
   $effect(() =>
     api.overlay.onBackdrop((next) => {
-      if (current) backdrop = next;
+      if (current && !isPopover(current.request.kind)) backdrop = next;
     }),
   );
 
@@ -83,6 +85,8 @@
         <CommandPalette onClose={close} />
       {:else if current.request.kind === "downloads"}
         <DownloadsPanel anchor={current.request.anchor} onClose={close} />
+      {:else if current.request.kind === "site-info" && current.request.tabId}
+        <SiteInfoPanel anchor={current.request.anchor} tabId={current.request.tabId} onClose={close} />
       {/if}
     </div>
   {/key}

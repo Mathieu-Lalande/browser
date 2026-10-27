@@ -51,7 +51,8 @@ export class PermissionPrompts {
   private readonly queues = new Map<number, Pending[]>();
 
   constructor(
-    private readonly store: PermissionStore,
+    /** The decisions, also listed and reset from the site info popover. */
+    readonly store: PermissionStore,
     /** Called when a tab's head prompt changes. */
     private readonly onChange: (contentsId: number) => void,
   ) {}

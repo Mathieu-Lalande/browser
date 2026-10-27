@@ -51,6 +51,31 @@
       : "Protections désactivées sur ce site. Cliquer pour les réactiver.",
   );
 
+  /** Web pages get the site info popover and the copy-link button. */
+  const isWebPage = $derived(!!tab && /^https?:/.test(tab.url) && !tab.interstitial);
+
+  /** "Lien copié" confirmation, shown for a moment after copying. */
+  let copied = $state(false);
+  let copiedTimer: ReturnType<typeof setTimeout> | undefined;
+
+  function copyLink(): void {
+    api.commands.run("copy-url");
+    copied = true;
+    clearTimeout(copiedTimer);
+    copiedTimer = setTimeout(() => (copied = false), 1600);
+  }
+
+  function showSiteInfo(event: MouseEvent & { currentTarget: HTMLElement }): void {
+    const rect = event.currentTarget.getBoundingClientRect();
+    api.siteInfo.show({ x: rect.x, y: rect.y, width: rect.width, height: rect.height });
+  }
+
+  // Another page: the confirmation was about the previous one.
+  $effect(() => {
+    void tab?.url;
+    copied = false;
+  });
+
   export function focus(): void {
     input.focus();
     input.select();
@@ -110,14 +135,29 @@
 
 <div class="omnibox no-drag">
   <form class="address" class:focused onsubmit={submit}>
-    <span
-      class="status"
-      class:secure={!open && (isSecure || isInternal)}
-      title={open ? undefined : isInternal ? "Page du navigateur" : isSecure ? "Connexion sécurisée" : tab?.url ? "Connexion non chiffrée" : undefined}
-    >
-      <!-- While typing, the icon says what Enter will do (search or go), not the current page's security. -->
-      <Icon name={open ? (isSearch ? "search" : "globe") : !tab?.url ? "search" : isInternal ? "sparkle" : isSecure ? "lock" : "warning"} size={12} />
-    </span>
+    {#if !open && isWebPage}
+      <!-- The lock opens the site info popover (connection, cookies, permissions, shields, zoom). -->
+      <button
+        type="button"
+        class="status site-info"
+        class:secure={isSecure}
+        title="{isSecure ? 'Connexion sécurisée' : 'Connexion non sécurisée'} : infos sur le site"
+        aria-label="Infos sur le site ({isSecure ? 'connexion sécurisée' : 'connexion non sécurisée'})"
+        onmousedown={(event) => event.preventDefault()}
+        onclick={showSiteInfo}
+      >
+        <Icon name={isSecure ? "lock" : "warning"} size={12} />
+      </button>
+    {:else}
+      <span
+        class="status"
+        class:secure={!open && isInternal}
+        title={open ? undefined : isInternal ? "Page du navigateur" : tab?.url ? "Connexion non chiffrée" : undefined}
+      >
+        <!-- While typing, the icon says what Enter will do (search or go), not the current page's security. -->
+        <Icon name={open ? (isSearch ? "search" : "globe") : !tab?.url ? "search" : isInternal ? "sparkle" : "warning"} size={12} />
+      </span>
+    {/if}
     <input
       bind:this={input}
       value={focused ? draft : label}
@@ -149,6 +189,18 @@
     {#if tab?.url && !focused && !isInternal}
       <button
         type="button"
+        class="star copy"
+        class:done={copied}
+        aria-label={copied ? "Lien copié" : "Copier le lien"}
+        title={copied ? "Lien copié" : platform.tip("Copier le lien", "copy-url")}
+        onclick={copyLink}
+      >
+        {#key copied}
+          <span class="glyph"><Icon name={copied ? "check" : "link"} size={14} /></span>
+        {/key}
+      </button>
+      <button
+        type="button"
         class="star"
         class:on={tab.isBookmarked}
         aria-label={tab.isBookmarked ? "Retirer des favoris" : "Ajouter aux favoris"}
@@ -174,6 +226,8 @@
       </button>
     {/if}
   </form>
+  <!-- Announced to screen readers; shown as a small note under the address bar (never over the page). -->
+  <div class="copied" class:visible={copied} role="status" aria-live="polite">{copied ? "Lien copié" : ""}</div>
 
   {#if open}
     <!-- Rendered in the sidebar flow (not as an overlay): nothing can be drawn above the page view. -->
@@ -254,6 +308,60 @@
   }
   .status.secure {
     color: var(--text-muted);
+  }
+  .site-info {
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    margin-left: -5px;
+    border-radius: 6px;
+  }
+  .site-info:hover {
+    background: var(--surface-active);
+    color: var(--text);
+  }
+  .omnibox {
+    position: relative;
+  }
+  .copy.done {
+    color: var(--accent-text);
+  }
+  .copy .glyph {
+    display: grid;
+  }
+  .copy.done .glyph {
+    animation: check-pop 0.32s var(--ease);
+  }
+  .copied {
+    position: absolute;
+    top: calc(var(--control-height) + 4px);
+    right: 4px;
+    z-index: 2;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: var(--bg-elevated);
+    box-shadow: 0 0 0 1px var(--border);
+    color: var(--text);
+    font-size: 11px;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-3px);
+    transition:
+      opacity 0.15s var(--ease),
+      transform 0.15s var(--ease);
+  }
+  .copied.visible {
+    opacity: 1;
+    transform: none;
+  }
+  @keyframes check-pop {
+    from {
+      opacity: 0;
+      transform: scale(0.4) rotate(-20deg);
+    }
+    60% {
+      transform: scale(1.2);
+    }
   }
   input {
     flex: 1;

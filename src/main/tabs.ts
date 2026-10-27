@@ -90,6 +90,8 @@ export interface TabManagerHooks {
   /** The committed page reported its title or favicon. */
   onPageInfo?(url: string, info: { title?: string; favicon?: string | null }): void;
   isBookmarked?(url: string): boolean;
+  /** The user right-clicked the tab's page (native context menu, ADR-021). */
+  contextMenu?(tabId: TabId, params: Electron.ContextMenuParams): void;
 }
 
 /** User preferences TabManager follows (see `configure`). */
@@ -1032,6 +1034,10 @@ export class TabManager {
     });
     // Ctrl+wheel and pinch: same steps as the zoom commands, remembered per site.
     on("zoom-changed", (_event, direction) => this.zoom(tab.id, direction === "in" ? 1 : -1));
+    on("context-menu", (_event, params) => {
+      // A parked page (below the start page or an internal page) is not on screen.
+      if (showsWebPage(tab.state.url) && !tab.state.interstitial && !tab.state.loadError) this.hooks.contextMenu?.(tab.id, params);
+    });
     on("audio-state-changed", (event) => {
       tab.state.isAudible = event.audible;
       this.emit();

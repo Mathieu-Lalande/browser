@@ -13,6 +13,7 @@ import type { WebViewHandle } from "../components/webViewHandle";
 import { parseBookmarks, parseFolders, toggleBookmark } from "../lib/bookmarks";
 import { DEFAULT_MOBILE_SETTINGS, sanitizeMobileSettings, type MobileSettings } from "../lib/mobileSettings";
 import { initialLoad } from "../lib/navigation";
+import { CLEAR_SITE_DATA_SCRIPT, mobileSiteInfo } from "../lib/siteInfo";
 import type { BookmarkFolder, MobileSyncStore } from "../lib/sync/adapters";
 import { createMobileSync } from "../lib/sync/platform";
 import { flushDocuments, KEYS, loadDocument, removeDocuments, saveDocument } from "../lib/storage";
@@ -67,6 +68,8 @@ export interface BrowserActions {
   goBack(): void;
   goForward(): void;
   reload(): void;
+  /** Clears what the active page can reach of its own data, then reloads it (ADR-021). */
+  clearSiteData(): void;
   stop(): void;
   /** From the WebView (`onNavigationStateChange`). */
   reportNavigation(id: TabId, report: NavigationReport): void;
@@ -364,6 +367,10 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
         if (!tab) return;
         if (tab.interstitial) loadInTab(tab.id, tab.interstitial.url);
         else webView(tab.id)?.reload();
+      },
+      clearSiteData() {
+        const tab = active();
+        if (tab && !tab.interstitial && mobileSiteInfo(tab.url)) webView(tab.id)?.injectJavaScript(CLEAR_SITE_DATA_SCRIPT);
       },
       stop() {
         webView(active()?.id)?.stopLoading();
