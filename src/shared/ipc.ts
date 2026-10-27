@@ -1,6 +1,7 @@
 import type { CommandId } from "./commands";
 import type { DownloadEntry, DownloadsChange } from "./downloads";
 import type { Settings, SettingsPatch, SettingsSection } from "./settings";
+import type { SyncStatus } from "./sync/controller";
 import type {
   Bookmark,
   BookmarkInput,
@@ -80,7 +81,18 @@ export const Channels = {
   downloadsChooseFolder: "downloads:choose-folder",
   downloadsShowPanel: "downloads:show-panel",
   downloadsOpenPage: "downloads:open-page",
+  syncStatus: "sync:status",
+  syncChanged: "sync:changed",
+  syncCreate: "sync:create",
+  syncPair: "sync:pair",
+  syncPairingCode: "sync:pairing-code",
+  syncNow: "sync:now",
+  syncDisconnect: "sync:disconnect",
+  syncReset: "sync:reset",
 } as const;
+
+/** Outcome of a sync action (errors are messages for the user: they do not cross IPC as exceptions). */
+export type SyncActionResult = { ok: true } | { ok: false; message: string };
 
 /** API exposed to the chrome UI on `window.browser` by the preload script. */
 export interface BrowserApi {
@@ -208,5 +220,21 @@ export interface BrowserApi {
     showPanel(anchor: Bounds): void;
     /** Shows `browser://downloads` in this window. */
     openPage(): void;
+  };
+  /** End-to-end encrypted sync (ADR-018). Account actions are refused from private windows. */
+  sync: {
+    status(): Promise<SyncStatus>;
+    onChanged(listener: (status: SyncStatus) => void): () => void;
+    /** First device: creates an account on a self-hosted relay. */
+    createAccount(serverUrl: string, registrationSecret?: string): Promise<SyncActionResult>;
+    /** Joins an account with a pairing code (text form of the QR code). */
+    pair(code: string): Promise<SyncActionResult>;
+    /** The pairing code (full access to the synced data): only after an explicit user action. */
+    pairingCode(): Promise<string | null>;
+    syncNow(): void;
+    /** Forgets the account on this device and removes it from the devices list. */
+    disconnect(): Promise<SyncActionResult>;
+    /** Erases the account on the server and starts over with a new key (other devices must pair again). */
+    reset(): Promise<SyncActionResult>;
   };
 }

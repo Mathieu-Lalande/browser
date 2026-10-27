@@ -21,12 +21,14 @@ export type PaletteItem = Row &
     | { kind: "tab"; tab: TabState }
     | { kind: "command"; command: CommandDefinition }
     | { kind: "bookmark" | "history"; url: string; favicon: string | null }
+    /** A tab open on another synced device (ADR-018). */
+    | { kind: "remote"; url: string; device: string }
     /** "Aller à …" (the input is an address) or "Rechercher sur le web « … »". */
     | { kind: "navigate" | "search"; url: string }
   );
 
 export interface PaletteSection {
-  id: "go" | "tabs" | "commands" | "suggestions" | "web";
+  id: "go" | "tabs" | "commands" | "suggestions" | "remote" | "web";
   /** Null for sections without a header. */
   title: string | null;
   items: PaletteItem[];
@@ -39,9 +41,20 @@ export interface PaletteInput {
   /** Bookmarks and history matching the query, best first (`mergeSuggestions`). */
   suggestions: readonly Suggestion[];
   context: CommandContext;
+  /** Tabs of the user's other devices (sync), most recently updated device first. */
+  remoteTabs?: readonly RemoteTabInput[];
 }
 
+export interface RemoteTabInput {
+  device: string;
+  url: string;
+  title: string;
+}
+
+export const REMOTE_TABS_TITLE = "Onglets de mes autres appareils";
+
 const MAX_TABS = 6;
+const MAX_REMOTE = 6;
 const MAX_COMMANDS = 6;
 const MAX_SUGGESTIONS = 6;
 /** Keyword matches rank below label matches. */
@@ -115,9 +128,30 @@ function commandRows(query: string, context: CommandContext): { item: PaletteIte
 
 const byScore = (a: { score: number }, b: { score: number }) => b.score - a.score;
 
+/** Other devices' tabs: not those already open here; ranked by match when there is a query. */
+function remoteRows(query: string, remote: readonly RemoteTabInput[], open: ReadonlySet<string>): { item: PaletteItem; score: number }[] {
+  const seen = new Set<string>();
+  const rows: { item: PaletteItem; score: number }[] = [];
+  for (const tab of remote) {
+    if (open.has(tab.url) || seen.has(tab.url)) continue;
+    seen.add(tab.url);
+    const title = tab.title || displayUrl(tab.url);
+    const detail = `${tab.device} · ${shortUrl(tab.url)}`;
+    const base = { kind: "remote" as const, key: `remote:${tab.url}`, url: tab.url, device: tab.device, title, detail };
+    if (!query) {
+      rows.push({ item: { ...base, titleRanges: noRanges, detailRanges: noRanges }, score: 0 });
+      continue;
+    }
+    const match = matchRow(query, title, detail);
+    if (match) rows.push({ item: { ...base, titleRanges: match.titleRanges, detailRanges: match.detailRanges }, score: match.score * DETAIL_WEIGHT });
+  }
+  return rows;
+}
+
 /** Sections to show: recent tabs and every action before typing, ranked matches after. */
-export function buildPalette({ query, tabs, activeTabId, suggestions, context }: PaletteInput): PaletteSection[] {
+export function buildPalette({ query, tabs, activeTabId, suggestions, context, remoteTabs = [] }: PaletteInput): PaletteSection[] {
   const text = query.trim();
+  const openUrls = new Set(tabs.map((tab) => tab.url));
   if (!text) {
     const recent = tabs
       .filter((tab) => tab.id !== activeTabId)
@@ -126,6 +160,7 @@ export function buildPalette({ query, tabs, activeTabId, suggestions, context }:
       .map((tab): PaletteItem => ({ ...tabRow(tab), titleRanges: noRanges, detailRanges: noRanges }));
     const sections: PaletteSection[] = [
       { id: "tabs", title: "Onglets récents", items: recent },
+      { id: "remote", title: REMOTE_TABS_TITLE, items: remoteRows("", remoteTabs, openUrls).slice(0, MAX_REMOTE).map(({ item }) => item) },
       { id: "commands", title: "Actions", items: commandRows("", context).map(({ item }) => item) },
     ];
     return sections.filter((section) => section.items.length > 0);
@@ -170,6 +205,7 @@ export function buildPalette({ query, tabs, activeTabId, suggestions, context }:
     { id: "tabs" as const, title: "Onglets", rows: tabRows },
     { id: "commands" as const, title: "Actions", rows: commands },
     { id: "suggestions" as const, title: "Favoris et historique", rows: pages },
+    { id: "remote" as const, title: REMOTE_TABS_TITLE, rows: remoteRows(text, remoteTabs, openUrls).sort(byScore).slice(0, MAX_REMOTE) },
   ]
     .filter((section) => section.rows.length > 0)
     .map((section) => ({ ...section, best: Math.max(...section.rows.map((row) => row.score)) }))

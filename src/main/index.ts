@@ -6,6 +6,7 @@ import { flushProfile, openProfile } from "./profile";
 import { hardenApp, hardenSession } from "./security";
 import { applyNativeTheme, settings as currentSettings } from "./settings";
 import { startTabSleeper } from "./sleep";
+import { startSync } from "./sync";
 import { spaces } from "./spaces";
 import { BrowserController } from "./window";
 
@@ -51,6 +52,8 @@ if (!app.requestSingleInstanceLock()) {
     const restore = settings.behavior.restoreSession ? (previousSession?.windows ?? []) : [];
     if (restore.length) for (const saved of restore) new BrowserController(saved);
     else new BrowserController();
+    // End-to-end encrypted sync (ADR-018): off unless an account was set up on this device.
+    startSync();
 
     app.on("activate", () => {
       if (BrowserController.count() === 0) new BrowserController();

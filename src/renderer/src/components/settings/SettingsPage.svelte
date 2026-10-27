@@ -26,6 +26,7 @@
   import Section from "./Section.svelte";
   import Segmented from "./Segmented.svelte";
   import Slider from "./Slider.svelte";
+  import SyncSection from "./SyncSection.svelte";
   import Toggle from "./Toggle.svelte";
 
   const NAV: { id: string; label: string; icon: IconName }[] = [
@@ -37,6 +38,7 @@
     { id: "privacy", label: "Confidentialité", icon: "shield" },
     { id: "downloads", label: "Téléchargements", icon: "download" },
     { id: "data", label: "Données", icon: "database" },
+    { id: "sync", label: "Synchronisation", icon: "cloud" },
   ];
 
   const MODES: { value: ThemeMode; label: string; icon: IconName }[] = [
@@ -493,6 +495,15 @@
 
       <Section id="data" icon="database" title="Données" description="Historique et favoris, stockés uniquement sur cet appareil.">
         <DataSection />
+      </Section>
+
+      <Section
+        id="sync"
+        icon="cloud"
+        title="Synchronisation"
+        description="Vos appareils synchronisés, chiffrés de bout en bout : le serveur ne peut rien lire."
+      >
+        <SyncSection />
       </Section>
     </div>
     <div class="tail" style:height="{tail}px" aria-hidden="true"></div>

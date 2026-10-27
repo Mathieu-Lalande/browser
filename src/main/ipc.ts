@@ -20,6 +20,7 @@ import {
 import { profile } from "./profile";
 import { resetSettingsSection, settings, updateSettings } from "./settings";
 import { spaces } from "./spaces";
+import { registerSyncIpc } from "./sync/ipc";
 import { showTabMenu } from "./tab-menu";
 import { BrowserController } from "./window";
 
@@ -213,4 +214,6 @@ export function registerIpc(): void {
     c.overlay.open({ kind: "downloads", anchor: anchor as Bounds }),
   );
   on(Channels.downloadsOpenPage, none, (c) => c.openDownloads());
+
+  registerSyncIpc();
 }

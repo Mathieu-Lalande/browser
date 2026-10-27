@@ -4,6 +4,7 @@
   import { mergeSuggestions, type Suggestion } from "@shared/search";
   import type { Bookmark } from "@shared/types";
   import { api, browser } from "../lib/browser.svelte";
+  import { sync } from "../lib/sync.svelte";
   import Favicon from "../components/Favicon.svelte";
   import Icon from "../components/Icon.svelte";
   import Highlight from "./Highlight.svelte";
@@ -32,6 +33,8 @@
       activeTabId: browser.state.activeTabId,
       suggestions,
       context: { activeTab },
+      // Private windows open them like any link, but the list itself is the account's.
+      remoteTabs: sync.remoteTabs,
     }),
   );
   /** Sections with the flat index of their first row (keyboard selection is flat). */
@@ -158,6 +161,7 @@
     bookmark: "Ouvrir",
     history: "Ouvrir",
     navigate: "Ouvrir",
+    remote: "Ouvrir",
     search: "Rechercher",
   };
 </script>
@@ -219,13 +223,15 @@
               onmousedown={(event) => event.preventDefault()}
               onclick={(event) => perform(item, event.ctrlKey || event.metaKey)}
             >
-              <span class="icon" class:tile={item.kind === "command" || item.kind === "search" || item.kind === "navigate"}>
+              <span class="icon" class:tile={item.kind === "command" || item.kind === "search" || item.kind === "navigate" || item.kind === "remote"}>
                 {#if item.kind === "command"}
                   <Icon name={item.command.icon} size={15} />
                 {:else if item.kind === "search"}
                   <Icon name="search" size={15} />
                 {:else if item.kind === "navigate"}
                   <Icon name="arrow" size={15} />
+                {:else if item.kind === "remote"}
+                  <Icon name="cloud" size={15} />
                 {:else if item.kind === "tab"}
                   <Favicon src={item.tab.favicon} loading={item.tab.isLoading} />
                 {:else if item.kind === "bookmark" || item.kind === "history"}

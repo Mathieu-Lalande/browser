@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
 import type { DownloadsChange } from "@shared/downloads";
 import { Channels, type BrowserApi } from "@shared/ipc";
 import type { Settings } from "@shared/settings";
+import type { SyncStatus } from "@shared/sync/controller";
 import type { BrowserState, OverlayBackdrop, OverlayRequest, UiCommand } from "@shared/types";
 
 function subscribe<T>(channel: string, listener: (payload: T) => void): () => void {
@@ -101,6 +102,16 @@ const api: BrowserApi = {
     chooseFolder: () => ipcRenderer.invoke(Channels.downloadsChooseFolder),
     showPanel: (anchor) => send(Channels.downloadsShowPanel, anchor),
     openPage: () => send(Channels.downloadsOpenPage),
+  },
+  sync: {
+    status: () => ipcRenderer.invoke(Channels.syncStatus),
+    onChanged: (listener) => subscribe<SyncStatus>(Channels.syncChanged, listener),
+    createAccount: (serverUrl, registrationSecret) => ipcRenderer.invoke(Channels.syncCreate, serverUrl, registrationSecret),
+    pair: (code) => ipcRenderer.invoke(Channels.syncPair, code),
+    pairingCode: () => ipcRenderer.invoke(Channels.syncPairingCode),
+    syncNow: () => send(Channels.syncNow),
+    disconnect: () => ipcRenderer.invoke(Channels.syncDisconnect),
+    reset: () => ipcRenderer.invoke(Channels.syncReset),
   },
 };
 

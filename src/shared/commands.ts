@@ -39,7 +39,8 @@ export type CommandId =
   | "previous-space"
   | "new-private-window"
   | "sleep-tab"
-  | "sleep-other-tabs";
+  | "sleep-other-tabs"
+  | "sync-now";
 
 /** Icon names used by commands; the UI's Icon component must know each of them. */
 export type CommandIcon =
@@ -69,7 +70,8 @@ export type CommandIcon =
   | "split"
   | "layers"
   | "mask"
-  | "moon";
+  | "moon"
+  | "cloud";
 
 /** What a command's label and availability may depend on. */
 export interface CommandContext {
@@ -248,6 +250,11 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
     label: "Mettre les autres onglets en veille",
     keywords: ["sleep", "discard", "veille", "mémoire", "libérer"],
     icon: "moon",
+  },
+  "sync-now": {
+    label: "Synchroniser maintenant",
+    keywords: ["sync", "synchronisation", "appareils", "téléphone", "devices"],
+    icon: "cloud",
   },
 };
 

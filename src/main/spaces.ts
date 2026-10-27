@@ -65,6 +65,31 @@ class SpaceRegistry {
   }
 
   /**
+   * Replaces the list with one merged from another device (sync, ADR-018): removed spaces close
+   * their tabs, spaces whose isolation changed move to their new session. Never empty.
+   */
+  applySynced(next: readonly SpaceInfo[]): void {
+    if (next.length === 0) return;
+    const before = this.spaces;
+    this.spaces = next.map((space) => ({ ...space }));
+    const changes: SpaceChange[] = [];
+    for (const space of before) {
+      const after = this.get(space.id);
+      if (!after) changes.push({ removed: { id: space.id, fallback: this.spaces[0].id } });
+      else if (after.isolated !== space.isolated) changes.push({ sessionChanged: space.id });
+    }
+    if (changes.length === 0) changes.push({});
+    for (const change of changes) this.notify(change);
+    for (const space of before) {
+      if (space.isolated && !this.get(space.id)) {
+        const partition = session.fromPartition(spacePartition(space.id));
+        void partition.clearStorageData().catch(() => {});
+        void partition.clearCache().catch(() => {});
+      }
+    }
+  }
+
+  /**
    * Session of a space's pages: undefined (the default session) unless the space is isolated, in
    * which case its own persistent partition, hardened like the default one before any page uses it.
    */

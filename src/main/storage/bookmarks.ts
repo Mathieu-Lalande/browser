@@ -111,6 +111,50 @@ export class Bookmarks {
     return this.add(input, now) !== null;
   }
 
+  // --- Sync (ADR-018): bookmarks are identified by URL across devices ------------------------
+
+  folderList(): BookmarkFolder[] {
+    return this.folders.map((folder) => ({ ...folder }));
+  }
+
+  /** Creates or updates the bookmark of `input.url` (the first one, when there are several). */
+  upsertByUrl(input: { url: string; title: string; createdAt: number; folderId?: string }): void {
+    if (!isNavigableUrl(input.url)) return;
+    const folderId = input.folderId && this.folders.some((folder) => folder.id === input.folderId) ? input.folderId : undefined;
+    const existing = this.bookmarks.find((bookmark) => bookmark.url === input.url);
+    if (existing) {
+      existing.title = input.title.slice(0, MAX_TEXT);
+      existing.createdAt = input.createdAt;
+      if (folderId) existing.folderId = folderId;
+      else delete existing.folderId;
+      return;
+    }
+    this.bookmarks.push({ id: randomUUID(), url: input.url, title: input.title.slice(0, MAX_TEXT), favicon: null, createdAt: input.createdAt, ...(folderId ? { folderId } : {}) });
+    this.index(input.url, 1);
+  }
+
+  removeByUrl(url: string): boolean {
+    if (!this.has(url)) return false;
+    this.bookmarks = this.bookmarks.filter((bookmark) => bookmark.url !== url);
+    this.urls.delete(url);
+    return true;
+  }
+
+  upsertFolder(folder: BookmarkFolder): void {
+    const existing = this.folders.find((candidate) => candidate.id === folder.id);
+    if (existing) Object.assign(existing, { name: folder.name.slice(0, MAX_TEXT), createdAt: folder.createdAt });
+    else this.folders.push({ id: folder.id, name: folder.name.slice(0, MAX_TEXT), createdAt: folder.createdAt });
+  }
+
+  /** Deletes a folder; its bookmarks move to the root. */
+  removeFolder(id: string): boolean {
+    const index = this.folders.findIndex((folder) => folder.id === id);
+    if (index === -1) return false;
+    this.folders.splice(index, 1);
+    for (const bookmark of this.bookmarks) if (bookmark.folderId === id) delete bookmark.folderId;
+    return true;
+  }
+
   toJSON(): BookmarksData {
     return { bookmarks: this.bookmarks, folders: this.folders };
   }

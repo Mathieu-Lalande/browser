@@ -4,6 +4,7 @@ import { profile } from "./profile";
 import { sleepTabNow, sleepTabs } from "./sleep";
 import { spaces } from "./spaces";
 import { toggleSplit } from "./split";
+import { syncController } from "./sync";
 import { BrowserController } from "./window";
 
 type Runner = (controller: BrowserController) => void;
@@ -81,6 +82,7 @@ const RUNNERS: Record<CommandId, Runner> = {
   "sleep-other-tabs": (c) => {
     for (const manager of c.spaces.tabManagers()) void sleepTabs(manager, null, null);
   },
+  "sync-now": () => void syncController().syncNow(),
 };
 
 /** Commands that make sense without any window (macOS keeps the app running windowless). */

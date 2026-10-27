@@ -31,7 +31,11 @@ export interface Profile {
   saveSession(snapshot: () => Session): void;
   /** Writes every pending change now (on quit). */
   flush(): void;
+  /** Listens to changes of what is synced (history, bookmarks, session, settings): sync, ADR-018. */
+  onChange(listener: (what: ProfileChange) => void): () => void;
 }
+
+export type ProfileChange = "history" | "bookmarks" | "session" | "settings";
 
 let current: Profile | null = null;
 
@@ -83,6 +87,10 @@ export function openProfile(dir = app.getPath("userData")): Profile {
   const downloads = new DownloadList(downloadsFile.load() ?? []);
   const zoom = new SiteZoom(zoomFile.load() ?? {});
   let settings = settingsFile.load() ?? sanitizeSettings(undefined);
+  const listeners = new Set<(what: ProfileChange) => void>();
+  const changed = (what: ProfileChange) => {
+    for (const listener of listeners) listener(what);
+  };
 
   current = {
     history,
@@ -93,14 +101,28 @@ export function openProfile(dir = app.getPath("userData")): Profile {
     get settings() {
       return settings;
     },
-    saveHistory: () => historyFile.scheduleSave(() => history.toJSON()),
-    saveBookmarks: () => bookmarksFile.scheduleSave(() => bookmarks.toJSON()),
+    saveHistory: () => {
+      historyFile.scheduleSave(() => history.toJSON());
+      changed("history");
+    },
+    saveBookmarks: () => {
+      bookmarksFile.scheduleSave(() => bookmarks.toJSON());
+      changed("bookmarks");
+    },
     saveDownloads: () => downloadsFile.scheduleSave(() => downloads.toJSON()),
     saveZoom: () => zoomFile.scheduleSave(() => zoom.toJSON()),
-    saveSession: (snapshot) => sessionFile.scheduleSave(snapshot),
+    saveSession: (snapshot) => {
+      sessionFile.scheduleSave(snapshot);
+      changed("session");
+    },
     saveSettings: (next) => {
       settings = next;
       settingsFile.scheduleSave(() => settings);
+      changed("settings");
+    },
+    onChange: (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
     },
     flush: () => {
       historyFile.flush();

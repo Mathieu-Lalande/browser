@@ -38,6 +38,7 @@
     "svelte": "^5.57.2",
     "svelte-check": "^4.7.7",
     "typescript": "^5.9.3",
+    "uqr": "0.1.3",
     "vite": "^8.3.5",
     "vitest": "^4.1.12"
   },
@@ -77,6 +78,8 @@
     }
   },
   "dependencies": {
-    "@ghostery/adblocker": "2.20.1"
+    "@ghostery/adblocker": "2.20.1",
+    "@noble/ciphers": "2.4.0",
+    "@noble/hashes": "2.4.0"
   }
 }

@@ -80,6 +80,23 @@ export class History {
     return changed;
   }
 
+  /** Stores entries as given (sync from another device), keeping the order by last visit. */
+  upsertMany(entries: readonly HistoryEntry[]): boolean {
+    const valid = entries.filter((entry) => isRecordable(entry.url));
+    if (valid.length === 0) return false;
+    for (const entry of valid) this.entries.set(entry.url, { ...entry });
+    const sorted = [...this.entries.values()].sort((a, b) => a.lastVisit - b.lastVisit);
+    this.entries.clear();
+    for (const entry of sorted) this.entries.set(entry.url, entry);
+    this.prune();
+    return true;
+  }
+
+  /** Forgets one page (deleted on another device). */
+  remove(url: string): boolean {
+    return this.entries.delete(url);
+  }
+
   get(url: string): HistoryEntry | undefined {
     const entry = this.entries.get(url);
     return entry && { ...entry };
