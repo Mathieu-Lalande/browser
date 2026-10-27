@@ -133,4 +133,21 @@ describe("parseSession v2", () => {
     });
     expect(lists?.[0].tabs.map((t) => t.url)).toEqual(["browser://settings"]);
   });
+
+  it("keeps small data: favicons only (audit HIGH-1)", () => {
+    const png = "data:image/png;base64,iVBORw0KGgo=";
+    const lists = v1Lists({
+      windows: [
+        {
+          tabs: [
+            { url: "https://a.com/", title: "A", favicon: "https://a.com/favicon.ico", pinned: false },
+            { url: "https://b.com/", title: "B", favicon: png, pinned: false },
+            { url: "https://c.com/", title: "C", favicon: `data:image/png;base64,${"A".repeat(20_000)}`, pinned: false },
+          ],
+          activeIndex: 0,
+        },
+      ],
+    });
+    expect(lists?.[0].tabs.map((t) => t.favicon)).toEqual([null, png, null]);
+  });
 });

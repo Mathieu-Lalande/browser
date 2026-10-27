@@ -128,12 +128,33 @@ describe("DownloadList", () => {
     expect(list.update("nope", (e) => e)).toBeUndefined();
   });
 
-  it("lists private windows' downloads but never saves them (ADR-014)", () => {
+  it("never saves private windows' downloads (ADR-014)", () => {
     const list = new DownloadList([entry({ id: "old", startedAt: 1 })]);
-    list.add(entry({ id: "secret", startedAt: 3 }), { ephemeral: true });
+    list.add(entry({ id: "secret", startedAt: 3 }), { owner: "private-1" });
     list.add(entry({ id: "normal", startedAt: 2 }));
-    expect(list.list().map((e) => e.id)).toEqual(["normal", "secret", "old"]);
     expect(list.isEphemeral("secret")).toBe(true);
     expect(list.toJSON().map((e) => e.id)).toEqual(["normal", "old"]);
+  });
+
+  it("shows each private window its own downloads only, and normal windows none of them (audit LOW-3)", () => {
+    const list = new DownloadList([entry({ id: "old", startedAt: 1 })]);
+    list.add(entry({ id: "secret", startedAt: 3 }), { owner: "private-1" });
+    list.add(entry({ id: "other", startedAt: 4 }), { owner: "private-2" });
+    list.add(entry({ id: "normal", startedAt: 2 }));
+    expect(list.list(null).map((e) => e.id)).toEqual(["normal", "old"]);
+    expect(list.list("private-1").map((e) => e.id)).toEqual(["secret"]);
+    expect(list.list("private-2").map((e) => e.id)).toEqual(["other"]);
+    expect(list.isVisibleTo("secret", null)).toBe(false);
+    expect(list.isVisibleTo("secret", "private-2")).toBe(false);
+    expect(list.isVisibleTo("secret", "private-1")).toBe(true);
+    expect(list.isVisibleTo("normal", null)).toBe(true);
+    expect(list.isVisibleTo("normal", "private-1")).toBe(false);
+    expect(list.isVisibleTo("unknown", null)).toBe(false);
+    // Clearing the list from one window leaves the others' entries alone.
+    expect(list.clearFinished(null)).toEqual([]);
+    list.update("secret", (e) => ({ ...e, state: "completed" }));
+    list.update("normal", (e) => ({ ...e, state: "completed" }));
+    expect(list.clearFinished("private-1")).toEqual(["secret"]);
+    expect(list.list(null).map((e) => e.id)).toEqual(["normal", "old"]);
   });
 });

@@ -4,7 +4,7 @@ import { WebView as RNWebView } from "react-native-webview";
 import type { WebViewProps } from "react-native-webview/lib/WebView";
 import type { ShouldStartLoadRequest, WebViewNavigation } from "react-native-webview/lib/WebViewTypes";
 import { LINK_MENU_COOLDOWN_MS, linkMenuScript, parseLinkMenuMessage, type LinkMenuRequest } from "../lib/linkMenu";
-import { decideNavigation, isHttpsUpgradeFailure } from "../lib/navigation";
+import { decideNavigation, decideOpenWindow, isHttpsUpgradeFailure } from "../lib/navigation";
 import { useBrowserActions, useEvent } from "../state/BrowserProvider";
 import { LoadError } from "./LoadError";
 import type { WebTabProps } from "./webTabTypes";
@@ -74,7 +74,8 @@ export const WebTab = memo(function WebTab({ id, loadUrl, loadSeq, upgradedFrom,
   });
 
   const onOpenWindow = useEvent((event: { nativeEvent: { targetUrl: string } }) => {
-    const decision = decideNavigation({ url: event.nativeEvent.targetUrl, isTopFrame: true }, actions.httpExceptions());
+    // Web pages and about:blank only: never a top-level data: document opened by a page (ADR-017).
+    const decision = decideOpenWindow(event.nativeEvent.targetUrl, actions.httpExceptions());
     if (decision.kind === "external") Linking.openURL(decision.url).catch(() => {});
     else if (decision.kind === "allow" || decision.kind === "upgrade") {
       actions.openUrl(decision.kind === "upgrade" ? decision.from : event.nativeEvent.targetUrl, { private: isPrivate, afterId: id });
@@ -143,6 +144,9 @@ export const WebTab = memo(function WebTab({ id, loadUrl, loadSeq, upgradedFrom,
         javaScriptCanOpenWindowsAutomatically={false}
         setSupportMultipleWindows
         allowFileAccess={false}
+        // Android content:// access (other apps' files) has no prop in react-native-webview 14: its
+        // RNCWebViewManagerImpl sets `settings.allowContentAccess = false` for every WebView
+        // (checked for ADR-017; re-check on upgrades).
         allowFileAccessFromFileURLs={false}
         allowUniversalAccessFromFileURLs={false}
         mixedContentMode="never"

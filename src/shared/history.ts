@@ -1,3 +1,4 @@
+import { storableFavicon } from "./favicon";
 import { rankHistory, topSites } from "./search";
 import type { HistoryEntry } from "./types";
 
@@ -6,7 +7,10 @@ export const MAX_HISTORY_ENTRIES = 10_000;
 /** Visiting the same URL again within this delay (reloads, redirects back…) is not a new visit. */
 export const REVISIT_MS = 30_000;
 
-const isRecordable = (url: string) => /^https?:\/\//i.test(url);
+/** Longer URLs (pushState spam, data smuggled in a query string) are not recorded. */
+export const MAX_HISTORY_URL_LENGTH = 8192;
+
+const isRecordable = (url: string) => url.length <= MAX_HISTORY_URL_LENGTH && /^https?:\/\//i.test(url);
 const MAX_TEXT = 2048;
 
 function sanitizeEntry(value: unknown): HistoryEntry | null {
@@ -17,7 +21,8 @@ function sanitizeEntry(value: unknown): HistoryEntry | null {
   return {
     url: e.url,
     title: typeof e.title === "string" ? e.title.slice(0, MAX_TEXT) : "",
-    favicon: typeof e.favicon === "string" ? e.favicon : null,
+    // Migration (ADR-017): favicons used to be remote URLs the UI fetched; only small data: URLs are kept.
+    favicon: storableFavicon(e.favicon),
     visitCount: typeof e.visitCount === "number" && e.visitCount >= 1 ? Math.floor(e.visitCount) : 1,
     lastVisit: e.lastVisit,
   };
@@ -56,7 +61,8 @@ export class History {
     if (!existing || now - existing.lastVisit >= REVISIT_MS) entry.visitCount += 1;
     entry.lastVisit = now;
     if (page.title) entry.title = page.title.slice(0, MAX_TEXT);
-    if (page.favicon !== undefined && page.favicon !== null) entry.favicon = page.favicon;
+    const favicon = storableFavicon(page.favicon);
+    if (favicon) entry.favicon = favicon;
     // Re-insert so the Map stays ordered by last visit.
     this.entries.delete(url);
     this.entries.set(url, entry);
@@ -73,8 +79,9 @@ export class History {
       entry.title = page.title.slice(0, MAX_TEXT);
       changed = true;
     }
-    if (page.favicon !== undefined && page.favicon !== entry.favicon) {
-      entry.favicon = page.favicon;
+    const favicon = page.favicon === undefined ? entry.favicon : storableFavicon(page.favicon);
+    if (favicon !== entry.favicon) {
+      entry.favicon = favicon;
       changed = true;
     }
     return changed;

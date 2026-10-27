@@ -21,7 +21,7 @@ async function press(app: ElectronApplication, keyCode: string, modifiers: ("con
   );
 }
 
-const isOverlay = (page: Page) => page.url().endsWith("/renderer/overlay.html");
+const isOverlay = (page: Page) => page.url().startsWith("app://browser/overlay.html");
 
 /** The overlay layer's page (pre-warmed once the window is shown). */
 async function overlayOf(app: ElectronApplication): Promise<Page> {
@@ -34,7 +34,7 @@ function overlayAttached(app: ElectronApplication): Promise<boolean> {
   return app.evaluate(({ BrowserWindow, WebContentsView }) => {
     const children = BrowserWindow.getAllWindows()[0].contentView.children;
     const top = children.at(-1);
-    return top instanceof WebContentsView && top.webContents.getURL().endsWith("/renderer/overlay.html");
+    return top instanceof WebContentsView && top.webContents.getURL().startsWith("app://browser/overlay.html");
   });
 }
 
@@ -192,6 +192,6 @@ test("IPC accepts the overlay as its window's UI, never a tab page", async ({ ap
 
   await emitFrom("/page");
   await expect(tabCount).toHaveCount(1);
-  await emitFrom("/renderer/overlay.html");
+  await emitFrom("app://browser/overlay.html");
   await expect(tabCount).toHaveCount(2);
 });

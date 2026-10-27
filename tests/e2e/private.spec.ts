@@ -15,7 +15,7 @@ async function visit(chrome: Page, url: string, title: string): Promise<void> {
 
 const stateOf = (chrome: Page) => chrome.evaluate(() => (globalThis as unknown as { browser: BrowserApi }).browser.getState()) as Promise<BrowserState>;
 
-const chromePages = (app: ElectronApplication) => app.windows().filter((page) => page.url().endsWith("/renderer/index.html"));
+const chromePages = (app: ElectronApplication) => app.windows().filter((page) => page.url().startsWith("app://browser/index.html"));
 
 /**
  * Opens a private window: with Ctrl+Shift+N through the main process (menu accelerators do not fire
@@ -137,11 +137,24 @@ test("a private window's downloads and zoom levels are not written to the profil
   const app = await launch(profile);
   try {
     const chrome = await chromeOf(app);
+    type Api = { browser: BrowserApi; seen: string[] };
+    // Everything the normal window hears about downloads (audit LOW-3: nothing from private windows).
+    await chrome.evaluate(() => {
+      const g = globalThis as unknown as Api;
+      g.seen = [];
+      g.browser.downloads.onChanged((change) => g.seen.push(...change.updated.map((entry) => entry.filename)));
+    });
     const priv = await openPrivateWindow(app, chrome);
     await visit(priv, server.url("/downloads"), "Downloads");
     await evalInTab(app, server.url("/downloads"), `document.getElementById("pdf").click()`);
     // The file itself is saved where the user asked…
     await expect.poll(() => existsSync(join(folder, "report.pdf")) && readFileSync(join(folder, "report.pdf"), "utf8")).toBe(DOWNLOAD_CONTENT);
+    // …listed in the private window only.
+    const listed = (page: Page) =>
+      page.evaluate(async () => (await (globalThis as unknown as Api).browser.downloads.list()).map((entry) => entry.filename));
+    await expect.poll(() => listed(priv)).toEqual(["report.pdf"]);
+    expect(await listed(chrome)).toEqual([]);
+    expect(await chrome.evaluate(() => (globalThis as unknown as Api).seen)).toEqual([]);
     // …and zooming a site is applied, but only remembered for this window.
     await priv.evaluate(() => (globalThis as unknown as { browser: BrowserApi }).browser.commands.run("zoom-in"));
     await expect.poll(async () => (await stateOf(priv)).tabs.find((tab) => tab.url.includes("/downloads"))?.zoom).toBe(110);

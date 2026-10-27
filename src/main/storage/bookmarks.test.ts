@@ -2,12 +2,13 @@ import { describe, expect, it } from "vitest";
 import { Bookmarks } from "./bookmarks";
 
 const NOW = Date.UTC(2026, 5, 1);
+const PNG = "data:image/png;base64,iVBORw0KGgo=";
 
 describe("Bookmarks", () => {
   it("adds, finds and removes bookmarks", () => {
     const bookmarks = new Bookmarks();
-    const added = bookmarks.add({ url: "https://a.com/", title: " A ", favicon: "https://a.com/f.ico" }, NOW);
-    expect(added).toMatchObject({ url: "https://a.com/", title: "A", favicon: "https://a.com/f.ico", createdAt: NOW });
+    const added = bookmarks.add({ url: "https://a.com/", title: " A ", favicon: PNG }, NOW);
+    expect(added).toMatchObject({ url: "https://a.com/", title: "A", favicon: PNG, createdAt: NOW });
     expect(bookmarks.has("https://a.com/")).toBe(true);
     // Adding the same URL again returns the existing bookmark.
     expect(bookmarks.add({ url: "https://a.com/" }, NOW + 1)?.id).toBe(added?.id);
@@ -59,5 +60,19 @@ describe("Bookmarks", () => {
       folders: [{ id: "f1", name: "Travail", createdAt: NOW }],
     });
     expect(new Bookmarks(data!).has("https://b.com/")).toBe(true);
+  });
+
+  it("stores small data: favicons only, and drops remote ones on load (audit HIGH-1)", () => {
+    const bookmarks = new Bookmarks();
+    expect(bookmarks.add({ url: "https://a.com/", favicon: "https://tracker.example/f.ico" }, NOW)?.favicon).toBeNull();
+    expect(bookmarks.add({ url: "https://b.com/", favicon: `data:image/png;base64,${"A".repeat(20_000)}` }, NOW)?.favicon).toBeNull();
+    expect(bookmarks.add({ url: "https://c.com/", favicon: PNG }, NOW)?.favicon).toBe(PNG);
+    const data = Bookmarks.parse({
+      bookmarks: [
+        { id: "1", url: "https://a.com/", favicon: "https://a.com/favicon.ico" },
+        { id: "2", url: "https://b.com/", favicon: PNG },
+      ],
+    });
+    expect(data?.bookmarks.map((bookmark) => bookmark.favicon)).toEqual([null, PNG]);
   });
 });

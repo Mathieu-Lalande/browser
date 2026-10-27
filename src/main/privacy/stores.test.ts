@@ -59,6 +59,43 @@ describe("PermissionStore", () => {
     expect(reloaded.get("https://b.com", "notifications")).toBeUndefined();
   });
 
+  it("keys decisions by (requesting origin, top-level origin) (audit LOW-2)", async () => {
+    const file = join(dir, "permissions.json");
+    const store = new PermissionStore(file);
+    await store.set("https://widget.com", "camera", "allow", true, "https://news.com");
+    expect(store.get("https://widget.com", "camera", "https://news.com")).toBe("allow");
+    // Neither the widget on its own, nor the widget embedded by another site, inherits it.
+    expect(store.get("https://widget.com", "camera")).toBeUndefined();
+    expect(store.get("https://widget.com", "camera", "https://widget.com")).toBeUndefined();
+    expect(store.get("https://widget.com", "camera", "https://evil.com")).toBeUndefined();
+    // Same-origin decisions keep the old single-origin key.
+    await store.set("https://a.com", "geolocation", "deny", true, "https://a.com");
+    expect(readJson(file)).toEqual({
+      "https://widget.com https://news.com": { camera: "allow" },
+      "https://a.com": { geolocation: "deny" },
+    });
+    expect(new PermissionStore(file).get("https://widget.com", "camera", "https://news.com")).toBe("allow");
+  });
+
+  it("migrates old per-origin decisions as same-origin, top-level ones and drops malformed keys", () => {
+    const file = join(dir, "permissions.json");
+    writeFileSync(
+      file,
+      JSON.stringify({
+        "https://old.com": { camera: "allow" },
+        "https://a.com https://b.com": { microphone: "allow" },
+        "https://a.com https://b.com https://c.com": { microphone: "allow" },
+        "not an origin": { camera: "allow" },
+        "https://a.com/path": { camera: "allow" },
+      }),
+    );
+    const store = new PermissionStore(file);
+    expect(store.get("https://old.com", "camera")).toBe("allow");
+    expect(store.get("https://old.com", "camera", "https://other.com")).toBeUndefined();
+    expect(store.get("https://a.com", "microphone", "https://b.com")).toBe("allow");
+    expect(store.toJSON()).toEqual({ "https://old.com": { camera: "allow" }, "https://a.com https://b.com": { microphone: "allow" } });
+  });
+
   it("drops invalid entries from disk", () => {
     const file = join(dir, "permissions.json");
     writeFileSync(file, JSON.stringify({ "https://a.com": { camera: "maybe", microphone: "allow" }, "https://b.com": 3 }));
@@ -133,6 +170,26 @@ describe("PermissionPrompts", () => {
 
     prompts.request(1, "http://127.0.0.1:8080/", ["camera"], vi.fn());
     expect(prompts.current(1)?.origin).toBe("http://127.0.0.1:8080");
+  });
+
+  it("asks an embedded frame separately for each top-level site, and names both (audit LOW-2)", () => {
+    const { prompts } = setup();
+    const embedded = vi.fn();
+    prompts.request(4, "https://widget.com/frame", ["camera"], embedded, "https://news.com/article");
+    expect(prompts.current(4)).toMatchObject({ origin: "https://widget.com", topOrigin: "https://news.com", kinds: ["camera"] });
+    prompts.respond(4, prompts.current(4)!.id, true, false);
+    expect(embedded).toHaveBeenCalledWith(true);
+    expect(prompts.check("https://widget.com", ["camera"], "https://news.com")).toBe(true);
+    // Allowed inside news.com only: elsewhere (or on its own) the widget must ask again.
+    expect(prompts.check("https://widget.com", ["camera"], "https://evil.com")).toBe(false);
+    expect(prompts.check("https://widget.com", ["camera"])).toBe(false);
+    const elsewhere = vi.fn();
+    prompts.request(5, "https://widget.com/frame", ["camera"], elsewhere, "https://evil.com/");
+    expect(elsewhere).not.toHaveBeenCalled();
+    expect(prompts.current(5)).toMatchObject({ origin: "https://widget.com", topOrigin: "https://evil.com" });
+    // A same-origin request has no topOrigin.
+    prompts.request(6, "https://a.com/", ["camera"], vi.fn(), "https://a.com/x");
+    expect(prompts.current(6)?.topOrigin).toBeUndefined();
   });
 
   it("denies everything pending when the tab navigates or closes", () => {

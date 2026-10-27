@@ -1,5 +1,5 @@
 import { httpsUpgradeFor } from "@shared/https-only";
-import { isNavigableUrl } from "@shared/url";
+import { isNavigableUrl, isPageOpenableUrl } from "@shared/url";
 
 /**
  * Navigation policy for tab WebViews (`onShouldStartLoadWithRequest`), the same rules as the
@@ -70,4 +70,22 @@ export function isHttpsUpgradeFailure(platform: string, code: number): boolean {
     return code === -6 || code === -8 || code === -9 || code === -11;
   }
   return false;
+}
+
+/**
+ * What to do with a new window a page asks for (`onOpenWindow`): like a navigation, but stricter —
+ * a page may open web pages and `about:blank` only, never a top-level `data:` document (a phishing
+ * vector; same rule as the desktop, `isPageOpenableUrl`, ADR-017).
+ */
+export function decideOpenWindow(url: string, httpExceptions: ReadonlySet<string>): NavigationDecision {
+  const decision = decideNavigation({ url, isTopFrame: true }, httpExceptions);
+  if (decision.kind === "allow" && !isPageOpenableUrl(url)) return { kind: "block" };
+  return decision;
+}
+
+/** What the start page of a private tab says is kept, per platform (ADR-016, audit LOW-5). */
+export function privateModeNotice(platform: string): string {
+  return platform === "ios"
+    ? "Les pages ne sont pas enregistrées dans l'historique. Cookies et données de chaque onglet privé sont effacés à sa fermeture."
+    : "Cookies partagés avec les onglets normaux sur Android. Les pages ne sont pas enregistrées dans l'historique ni dans le cache.";
 }

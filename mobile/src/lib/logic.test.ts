@@ -6,12 +6,30 @@ import { appColors, colorsFor, resolveMode, toRnColor } from "./colors";
 import { initialCollapse, isSwipeUp, nextCollapse, resolveHorizontalSwipe, rubberBand, shouldDismissCard } from "./gestures";
 import { linkMenuScript, parseLinkMenuMessage } from "./linkMenu";
 import { sanitizeMobileSettings } from "./mobileSettings";
-import { decideNavigation, initialLoad, isHttpsUpgradeFailure, schemeOf } from "./navigation";
+import { decideNavigation, decideOpenWindow, initialLoad, isHttpsUpgradeFailure, privateModeNotice, schemeOf } from "./navigation";
 import { cardRect, gridLayout, scrollOffsetFor, zoomTransform } from "./overviewLayout";
 import { buildSheet, MOBILE_COMMANDS } from "./searchSheet";
 import { faviconUrl, greeting, monogram, siteHue, siteLabel } from "./site";
 
 const none = new Set<string>();
+
+describe("new windows (audit MEDIUM-1)", () => {
+  it("opens web pages in a tab, never a top-level data: document", () => {
+    expect(decideOpenWindow("https://example.com/", none)).toEqual({ kind: "allow" });
+    expect(decideOpenWindow("about:blank", none)).toEqual({ kind: "allow" });
+    expect(decideOpenWindow("http://example.com/", none)).toEqual({ kind: "upgrade", url: "https://example.com/", from: "http://example.com/" });
+    expect(decideOpenWindow("data:text/html,<h1>phish</h1>", none)).toEqual({ kind: "block" });
+    expect(decideOpenWindow("javascript:alert(1)", none)).toEqual({ kind: "block" });
+    expect(decideOpenWindow("mailto:a@b.c", none)).toEqual({ kind: "external", url: "mailto:a@b.c" });
+  });
+});
+
+describe("private mode notice (audit LOW-5)", () => {
+  it("says explicitly on Android that cookies are shared", () => {
+    expect(privateModeNotice("android")).toContain("Cookies partagés avec les onglets normaux sur Android");
+    expect(privateModeNotice("ios")).not.toContain("partagés");
+  });
+});
 
 describe("navigation policy", () => {
   it("allows web pages, about: and data:", () => {
@@ -195,6 +213,7 @@ describe("search sheet", () => {
     isMuted: false,
     zoom: 100,
     find: null,
+    blockedPopup: null,
   };
   const base = { tabs: [tab], activeTabId: null, history: [], bookmarks: [], engine: SEARCH_ENGINES[0], context: { activeTab: tab }, now: 0 };
 

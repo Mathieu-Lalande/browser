@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { downloadStatus, formatBytes, formatDuration, isOpenable, overallProgress, type DownloadEntry } from "./downloads";
+import { canOpenFile, downloadStatus, formatBytes, formatDuration, isOpenable, overallProgress, type DownloadEntry } from "./downloads";
 
 const entry = (overrides: Partial<DownloadEntry> = {}): DownloadEntry => ({
   id: "d1",
@@ -68,5 +68,40 @@ describe("overallProgress and isOpenable", () => {
     expect(isOpenable(entry({ state: "progressing" }))).toBe(false);
     expect(isOpenable(entry({ state: "completed", awaitingConfirmation: true }))).toBe(false);
     expect(isOpenable(entry({ state: "completed", path: "" }))).toBe(false);
+  });
+});
+
+describe("canOpenFile (audit MEDIUM-3)", () => {
+  const done = (filename: string, overrides: Partial<DownloadEntry> = {}) =>
+    entry({ state: "completed", filename, path: `/tmp/${filename}`, ...overrides });
+
+  it.each(["report.pdf", "photo.JPG", "clip.mp4", "song.mp3", "notes.txt", "data.csv", "README.md", "letter.docx", "sheet.xlsx", "slides.pptx", "doc.odt"])(
+    "offers Ouvrir for %s",
+    (name) => {
+      expect(canOpenFile(done(name))).toBe(true);
+    },
+  );
+
+  it.each([
+    "page.html",
+    "image.svg",
+    "macro.docm",
+    "legacy.doc",
+    "archive.zip",
+    "disk.iso",
+    "setup.exe",
+    "script.ps1",
+    "shortcut.url",
+    "no-extension",
+    "kept.exe",
+  ])("only offers Afficher dans le dossier for %s", (name) => {
+    expect(canOpenFile(done(name))).toBe(false);
+  });
+
+  it("follows isOpenable (complete, confirmed, in place)", () => {
+    expect(canOpenFile(done("report.pdf", { state: "progressing" }))).toBe(false);
+    expect(canOpenFile(done("report.pdf", { awaitingConfirmation: true }))).toBe(false);
+    // The path on disk decides, not the display name.
+    expect(canOpenFile(done("report.pdf", { path: "/tmp/report.pdf.exe" }))).toBe(false);
   });
 });

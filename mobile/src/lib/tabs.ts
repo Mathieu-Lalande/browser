@@ -172,6 +172,7 @@ export function toTabState(tab: MobileTab, bookmarked: boolean): TabState {
     isMuted: false,
     zoom: 100,
     find: null,
+    blockedPopup: null,
   };
 }
 

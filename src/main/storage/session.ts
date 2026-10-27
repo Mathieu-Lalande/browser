@@ -2,6 +2,7 @@ import { internalPageOf, internalUrl } from "@shared/internal";
 import type { SpaceId, SpaceInfo } from "@shared/types";
 import { DEFAULT_SPACE, isSpaceId, sanitizeSpace } from "@shared/spaces";
 import { MAX_SPLIT_TABS, clampRatio } from "@shared/split";
+import { storableFavicon } from "@shared/favicon";
 import { isNavigableUrl } from "@shared/url";
 
 /**
@@ -60,7 +61,8 @@ function sanitizeTab(value: unknown): SessionTab | null {
   return {
     url: internal ? internalUrl(internal) : t.url,
     title: typeof t.title === "string" ? t.title.slice(0, MAX_TEXT) : "",
-    favicon: typeof t.favicon === "string" && isNavigableUrl(t.favicon) ? t.favicon : null,
+    // Small data: favicons only (ADR-017): the UI never fetches a remote favicon itself.
+    favicon: storableFavicon(t.favicon),
     pinned: t.pinned === true,
   };
 }

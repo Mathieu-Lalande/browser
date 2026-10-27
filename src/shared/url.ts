@@ -75,6 +75,21 @@ export function isNavigableUrl(url: string): boolean {
   }
 }
 
+/**
+ * What a page may open in a new tab (`window.open`, `target=_blank`): web pages and `about:blank`
+ * only. Stricter than `isNavigableUrl`: a top-level `data:` document opened by a page is a classic
+ * phishing vector (Chromium blocks it too), whereas the user may still type one (ADR-017).
+ */
+export function isPageOpenableUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") return true;
+    return parsed.protocol === "about:" && parsed.pathname.toLowerCase() === "blank" && !parsed.search && !parsed.hash;
+  } catch {
+    return false;
+  }
+}
+
 /** Short, human friendly label for a URL (used for tab titles before the page sets one). */
 export function displayUrl(url: string): string {
   if (!url) return "";

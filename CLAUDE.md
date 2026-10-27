@@ -26,3 +26,6 @@
 - Application mobile : `mobile/` (Expo SDK 58 / React Native, ADR-016), importe `src/shared` via `@shared/*`
   (jamais de copie) : `src/shared` doit rester pur (ni Electron, ni Node, ni DOM). Vérifications dans `mobile/` :
   `npx tsc --noEmit && npx jest && npx expo export --platform android`.
+- Durcissement post-audit (ADR-017) : interface servie sur `app://browser/` (plus `file://`), favicons et image d'accueil
+  récupérés par main puis passés en `data:` (CSP `img-src 'self' data:`), bloqueur de fenêtres surgissantes
+  (`src/main/activation.ts`), fusibles Electron (`build.electronFuses`) ; crochets `BROWSER_*` ignorés une fois empaqueté.

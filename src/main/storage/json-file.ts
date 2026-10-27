@@ -99,7 +99,15 @@ export class JsonFile<T> {
     this.timer = null;
     const snapshot = this.pending;
     this.pending = null;
-    if (snapshot) this.save(snapshot());
+    if (!snapshot) return;
+    let data: T;
+    try {
+      data = snapshot();
+    } catch (error) {
+      // A broken snapshot must not stop the caller (on quit, the other stores still flush).
+      return this.report(error);
+    }
+    this.save(data);
   }
 
   /** Cancels any pending save and writes `data` now. Returns false if the write failed. */
@@ -107,10 +115,11 @@ export class JsonFile<T> {
     if (this.timer) clearTimeout(this.timer);
     this.timer = null;
     this.pending = null;
-    const content = JSON.stringify({ version: this.options.version, data } satisfies Envelope);
-    if (content === this.lastWritten) return true;
     const temp = `${this.path}.tmp-${process.pid}`;
     try {
+      // Inside the try: data that cannot be serialized (BigInt, cycles) is reported, not thrown.
+      const content = JSON.stringify({ version: this.options.version, data } satisfies Envelope);
+      if (content === this.lastWritten) return true;
       this.fs.mkdirSync(dirname(this.path), { recursive: true });
       this.fs.writeFileSync(temp, content, "utf8");
       const fd = this.fs.openSync(temp, "r+");
@@ -145,5 +154,22 @@ export class JsonFile<T> {
   private report(error: unknown): void {
     if (this.options.onError) this.options.onError(error);
     else console.error(`[storage] ${this.path}:`, error);
+  }
+}
+
+/**
+ * Flushes several stores, each in its own try: one failing store (full disk, broken snapshot)
+ * never keeps the others from being written, on quit in particular.
+ */
+export function flushAll(
+  files: readonly { flush(): void }[],
+  onError: (error: unknown) => void = (error) => console.error("[storage]", error),
+): void {
+  for (const file of files) {
+    try {
+      file.flush();
+    } catch (error) {
+      onError(error);
+    }
   }
 }

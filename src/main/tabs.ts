@@ -4,7 +4,10 @@ import { INTERNAL_PAGES, internalPageOf, internalUrl, isInternalUrl, type Intern
 import type { CloseTabActivates, NewTabPosition } from "@shared/settings";
 import { clampRatio, splitLayout, splitWith, splitWithout } from "@shared/split";
 import type { Bounds, SplitState, TabId, TabState, TabsState } from "@shared/types";
-import { DEFAULT_SEARCH_ENGINE, displayUrl, isNavigableUrl, normalizeInput, type SearchEngine } from "@shared/url";
+import { storableFavicon } from "@shared/favicon";
+import { DEFAULT_SEARCH_ENGINE, displayUrl, isPageOpenableUrl, normalizeInput, type SearchEngine } from "@shared/url";
+import { InPageVisits } from "./activation";
+import { loadFavicon } from "./favicons";
 import {
   allowHttp,
   attachTabPrivacy,
@@ -45,6 +48,12 @@ interface Tab {
   lastSeenAt: number;
   /** Back/forward entries of a tab put to sleep, restored when it wakes. */
   sleptHistory?: { entries: Electron.NavigationEntry[]; index: number };
+  /** Rate limit of the in-page visits (pushState) recorded in the history. */
+  inPageVisits: InPageVisits;
+  /** Page + favicon candidates last fetched, so repeated `page-favicon-updated` events fetch nothing. */
+  faviconKey?: string;
+  /** Bumped on each favicon fetch and navigation: a late answer for an older page is dropped. */
+  faviconSeq: number;
 }
 
 /** A tab taken out of a TabManager (`release`) to be adopted by another one, live page included. */
@@ -177,7 +186,8 @@ export class TabManager {
   snapshot(): SessionTabList {
     const indexOf = (id: TabId) => this.tabs.findIndex((tab) => tab.id === id);
     return {
-      tabs: this.tabs.map(({ state }) => ({ url: state.url, title: state.title, favicon: state.favicon, pinned: state.isPinned })),
+      // Only small data: favicons go to session.json (ADR-017).
+      tabs: this.tabs.map(({ state }) => ({ url: state.url, title: state.title, favicon: storableFavicon(state.favicon), pinned: state.isPinned })),
       activeIndex: Math.max(0, indexOf(this.activeId ?? "")),
       split: this.split && { tabIndexes: this.split.tabIds.map(indexOf), ratioX: this.split.ratioX, ratioY: this.split.ratioY },
     };
@@ -216,7 +226,7 @@ export class TabManager {
       view.webContents.close();
       view = null;
     }
-    const tab: Tab = { id: state.id, view, state: { ...state }, lastSeenAt: Date.now() };
+    const tab: Tab = { id: state.id, view, state: { ...state }, lastSeenAt: Date.now(), inPageVisits: new InPageVisits(), faviconSeq: 0 };
     if (!view) {
       Object.assign(tab.state, { isLoading: false, canGoBack: false, canGoForward: false, blockedCount: 0, permissionRequest: null, interstitial: null });
     } else {
@@ -460,6 +470,22 @@ export class TabManager {
     this.navigate(id, url);
   }
 
+  /** The user opens the popup the blocker stopped ("Ouvrir" in the notice), next to its tab. */
+  openBlockedPopup(id: TabId): void {
+    const tab = this.find(id);
+    const url = tab?.state.blockedPopup?.url;
+    if (!tab || !url) return;
+    tab.state.blockedPopup = null;
+    this.create(url, { index: this.tabs.indexOf(tab) + 1 });
+  }
+
+  dismissBlockedPopup(id: TabId): void {
+    const tab = this.find(id);
+    if (!tab?.state.blockedPopup) return;
+    tab.state.blockedPopup = null;
+    this.emit();
+  }
+
   respondPermission(id: TabId, promptId: string, allow: boolean, remember: boolean): void {
     const tab = this.find(id);
     if (tab?.view) respondPermission(tab.view.webContents.id, promptId, allow, remember);
@@ -604,8 +630,11 @@ export class TabManager {
         isMuted: false,
         zoom: Math.round(this.options.defaultZoom * 100),
         find: null,
+        blockedPopup: null,
       },
       lastSeenAt: Date.now(),
+      inPageVisits: new InPageVisits(),
+      faviconSeq: 0,
     };
     this.tabs.splice(Math.max(0, Math.min(index, this.tabs.length)), 0, tab);
     return tab;
@@ -776,6 +805,9 @@ export class TabManager {
   private visit(tab: Tab, url: string, inPage: boolean): void {
     // Hash-only changes (anchors, old-style routers) are not new visits.
     if (inPage && tab.lastVisit && withoutHash(tab.lastVisit) === withoutHash(url)) return;
+    // pushState storms must not flood the history: one in-page visit per second at most (ADR-017).
+    if (!inPage) tab.inPageVisits.reset(url);
+    else if (!tab.inPageVisits.accept(url, Date.now())) return;
     tab.lastVisit = url;
     this.hooks.onVisit?.(url);
   }
@@ -793,10 +825,16 @@ export class TabManager {
 
     hardenWebContents(contents, {
       openTab: (url, foreground) => {
-        // Defense in depth: hardenWebContents already only lets web URLs through.
-        if (!isNavigableUrl(url)) return;
+        // Defense in depth: hardenWebContents already only lets web pages and about:blank through.
+        if (!isPageOpenableUrl(url)) return;
         const index = this.tabs.indexOf(tab) + 1;
         this.create(url, { activate: foreground, index });
+      },
+      popupBlocked: (url) => {
+        // The notice keeps the last blocked popup of the page; "Ouvrir" opens it (openBlockedPopup).
+        if (!isPageOpenableUrl(url)) return;
+        tab.state.blockedPopup = { url, count: (tab.state.blockedPopup?.count ?? 0) + 1 };
+        this.emit();
       },
     });
     attachTabPrivacy(contents, {
@@ -828,8 +866,9 @@ export class TabManager {
     });
     on("did-start-navigation", (details) => {
       if (!details.isMainFrame || details.isSameDocument) return;
-      // A new page: fresh blocked counter, and any interstitial gives way to it.
+      // A new page: fresh blocked counter, no blocked popup, and any interstitial gives way to it.
       tab.state.blockedCount = 0;
+      tab.state.blockedPopup = null;
       if (tab.state.interstitial) {
         tab.state.interstitial = null;
         this.syncAttachment();
@@ -845,6 +884,12 @@ export class TabManager {
       refresh();
     });
     on("did-navigate", (_event, url) => {
+      // A new document: its favicon comes with it (or not at all).
+      if (tab.faviconKey && !tab.faviconKey.startsWith(`${url}\n`)) {
+        tab.faviconKey = undefined;
+        tab.faviconSeq++;
+        if (!tab.waking) tab.state.favicon = null;
+      }
       if (url === tab.waking) tab.lastVisit = url;
       else this.visit(tab, url, false);
       tab.waking = undefined;
@@ -875,9 +920,18 @@ export class TabManager {
     });
     on("page-favicon-updated", (_event, favicons) => {
       if (!showsWebPage(tab.state.url)) return;
-      tab.state.favicon = favicons.find(isNavigableUrl) ?? null;
-      if (tab.state.favicon) this.hooks.onPageInfo?.(contents.getURL(), { favicon: tab.state.favicon });
-      this.emit();
+      // Fetched by main with the tab's own session, handed to the UI as a data: URL (ADR-017).
+      const pageUrl = contents.getURL();
+      const key = `${pageUrl}\n${favicons.join("\n")}`;
+      if (key === tab.faviconKey) return;
+      tab.faviconKey = key;
+      const seq = ++tab.faviconSeq;
+      void loadFavicon(contents, favicons, pageUrl).then((favicon) => {
+        if (seq !== tab.faviconSeq || contents.isDestroyed()) return;
+        tab.state.favicon = favicon;
+        if (favicon) this.hooks.onPageInfo?.(pageUrl, { favicon });
+        this.emit();
+      });
     });
     on("did-fail-load", (_event, code, description, url, isMainFrame) => {
       // -3 is ERR_ABORTED: a navigation replaced by another one, not a real failure.

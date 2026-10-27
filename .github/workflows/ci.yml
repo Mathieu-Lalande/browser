@@ -62,7 +62,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run dist:dir
-      # Smoke test of the packaged (asar) app: starts, browses, runs the filter worker.
+      # Smoke test of the packaged (asar, fused) app: fuses, archive contents, starts and browses.
       - name: Smoke test the packaged app
         if: runner.os == 'Linux'
         run: xvfb-run -a npx playwright test packaging

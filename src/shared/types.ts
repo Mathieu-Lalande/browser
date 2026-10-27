@@ -34,6 +34,11 @@ export interface TabState {
   zoom: number;
   /** Find in page: null until the find bar was first opened in this tab (the query is kept per tab). */
   find: FindState | null;
+  /**
+   * The last popup the page tried to open without a user gesture (popup blocker, ADR-017), with
+   * how many were blocked since the page loaded; null when none.
+   */
+  blockedPopup: { url: string; count: number } | null;
 }
 
 export interface FindState {
@@ -66,6 +71,11 @@ export interface PermissionPrompt {
   id: string;
   /** Origin asking, e.g. `https://meet.example.com`. */
   origin: string;
+  /**
+   * The tab's top-level origin, when the request comes from a frame of another origin: the bar
+   * says "X (intégré dans Y)", and the decision only holds for X inside Y (ADR-017).
+   */
+  topOrigin?: string;
   kinds: PermissionKind[];
 }
 

@@ -1,5 +1,6 @@
 import { app, BrowserWindow } from "electron";
 import { tabSleepDelayMs } from "@shared/settings";
+import { registerAppScheme, serveAppScheme } from "./app-protocol";
 import { registerIpc } from "./ipc";
 import { installMenu } from "./menu";
 import { flushProfile, openProfile } from "./profile";
@@ -9,8 +10,11 @@ import { startTabSleeper } from "./sleep";
 import { spaces } from "./spaces";
 import { BrowserController } from "./window";
 
-/** Test hook: `BROWSER_TEST_SLEEP_MS` replaces the sleep delay (unless sleeping is off). */
-const TEST_SLEEP_MS = Number(process.env.BROWSER_TEST_SLEEP_MS) || 0;
+/**
+ * Test hook: `BROWSER_TEST_SLEEP_MS` replaces the sleep delay (unless sleeping is off). Test and dev
+ * hooks are only honored by an unpackaged app (ADR-017, audit LOW-4).
+ */
+const TEST_SLEEP_MS = (!app.isPackaged && Number(process.env.BROWSER_TEST_SLEEP_MS)) || 0;
 
 function sleepDelay(): number | null {
   const delay = tabSleepDelayMs(currentSettings());
@@ -18,9 +22,12 @@ function sleepDelay(): number | null {
 }
 
 app.setName("Browser");
-// Lets tests and power users run isolated profiles.
-if (process.env.BROWSER_PROFILE_DIR) app.setPath("userData", process.env.BROWSER_PROFILE_DIR);
+// Lets tests run isolated profiles. A packaged app ignores it: an environment variable must not
+// silently redirect a user's profile; `--user-data-dir=<dir>` (Chromium's switch) does that openly.
+if (!app.isPackaged && process.env.BROWSER_PROFILE_DIR) app.setPath("userData", process.env.BROWSER_PROFILE_DIR);
 hardenApp();
+// The chrome UI and the overlay are served from app:// (registered before ready).
+registerAppScheme();
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -38,6 +45,7 @@ if (!app.requestSingleInstanceLock()) {
   void app.whenReady().then(() => {
     // The profile comes first: session hardening reads the settings (Accept-Language).
     const { previousSession, settings } = openProfile();
+    serveAppScheme();
     hardenSession();
     registerIpc();
     installMenu();

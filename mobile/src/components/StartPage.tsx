@@ -5,6 +5,7 @@ import { memo, useEffect, useMemo, useState } from "react";
 import { Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { withAlpha } from "../lib/colors";
+import { privateModeNotice } from "../lib/navigation";
 import { greeting } from "../lib/site";
 import { useBrowserState, useHistoryEntries } from "../state/BrowserProvider";
 import { useTheme } from "../state/theme";
@@ -64,9 +65,7 @@ export const StartPage = memo(function StartPage({ bottomInset, onSearch, onOpen
               Navigation privée
             </Text>
             <Text style={[styles.privateText, { color: colors.textMuted }]}>
-              {Platform.OS === "ios"
-                ? "Les pages ne sont pas enregistrées dans l'historique. Cookies et données de chaque onglet privé sont effacés à sa fermeture."
-                : "Les pages ne sont pas enregistrées dans l'historique ni dans le cache. Sur Android, les onglets privés partagent encore les cookies des autres onglets."}
+              {privateModeNotice(Platform.OS)}
             </Text>
           </Animated.View>
         ) : (

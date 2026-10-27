@@ -8,6 +8,7 @@
   import { applyTheme } from "./lib/theme";
   import Icon from "./components/Icon.svelte";
   import PermissionBar from "./components/PermissionBar.svelte";
+  import PopupBar from "./components/PopupBar.svelte";
   import Sidebar from "./components/Sidebar.svelte";
   import SidebarResizer from "./components/SidebarResizer.svelte";
   import SplitView from "./components/split/SplitView.svelte";
@@ -31,6 +32,7 @@
   const showSidebar = $derived(zen ? revealed : sidebarVisible);
   const showStartPage = $derived(!browser.activeTab?.url);
   const permissionRequest = $derived(browser.activeTab?.permissionRequest ?? null);
+  const blockedPopup = $derived(browser.activeTab?.blockedPopup ?? null);
   /** The active space's accent (null: the theme's own accent). */
   const spaceColor = $derived(browser.activeSpace?.color ?? null);
   const internalPage = $derived(internalPageOf(browser.activeTab?.url ?? ""));
@@ -154,6 +156,9 @@
     <!-- The page view is native and cannot be drawn over: the bar shrinks the viewport instead. -->
     {#if browser.activeTab && permissionRequest}
       <PermissionBar tabId={browser.activeTab.id} prompt={permissionRequest} />
+    {/if}
+    {#if browser.activeTab && blockedPopup && !permissionRequest}
+      <PopupBar tabId={browser.activeTab.id} popup={blockedPopup} />
     {/if}
     {#if browser.activeTab && findState}
       {#key browser.activeTab.id}

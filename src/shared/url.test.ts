@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SEARCH_ENGINES, displayUrl, isNavigableUrl, normalizeInput } from "./url";
+import { SEARCH_ENGINES, displayUrl, isNavigableUrl, isPageOpenableUrl, normalizeInput } from "./url";
 
 const ddg = (q: string) => `https://duckduckgo.com/?q=${encodeURIComponent(q)}`;
 
@@ -41,6 +41,28 @@ describe("isNavigableUrl", () => {
     expect(isNavigableUrl("file:///etc/passwd")).toBe(false);
     expect(isNavigableUrl("javascript:alert(1)")).toBe(false);
     expect(isNavigableUrl("not a url")).toBe(false);
+  });
+});
+
+describe("isPageOpenableUrl", () => {
+  it("lets pages open web pages and about:blank only, never top-level data: (audit MEDIUM-1)", () => {
+    expect(isPageOpenableUrl("https://a.com/x")).toBe(true);
+    expect(isPageOpenableUrl("http://127.0.0.1:8080/")).toBe(true);
+    expect(isPageOpenableUrl("about:blank")).toBe(true);
+    expect(isPageOpenableUrl("ABOUT:BLANK")).toBe(true);
+    expect(isPageOpenableUrl("data:text/html,<h1>phish</h1>")).toBe(false);
+    expect(isPageOpenableUrl("about:srcdoc")).toBe(false);
+    expect(isPageOpenableUrl("about:blank#x")).toBe(false);
+    expect(isPageOpenableUrl("app://browser/index.html")).toBe(false);
+    expect(isPageOpenableUrl("browser://settings")).toBe(false);
+    expect(isPageOpenableUrl("javascript:alert(1)")).toBe(false);
+    expect(isPageOpenableUrl("file:///etc/passwd")).toBe(false);
+    expect(isPageOpenableUrl("nonsense")).toBe(false);
+  });
+
+  it("is stricter than isNavigableUrl, which still accepts typed data: URLs", () => {
+    expect(isNavigableUrl("data:text/html,hi")).toBe(true);
+    expect(isNavigableUrl("app://browser/index.html")).toBe(false);
   });
 });
 

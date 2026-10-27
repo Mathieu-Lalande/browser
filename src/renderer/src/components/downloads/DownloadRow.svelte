@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { downloadStatus, isActiveDownload, isOpenable, type DownloadEntry } from "@shared/downloads";
+  import { canOpenFile, downloadStatus, isActiveDownload, isOpenable, type DownloadEntry } from "@shared/downloads";
   import { displayUrl } from "@shared/url";
   import { api } from "../../lib/browser.svelte";
   import Icon from "../Icon.svelte";
@@ -9,6 +9,8 @@
 
   const active = $derived(isActiveDownload(entry));
   const openable = $derived(isOpenable(entry));
+  /** "Ouvrir" only for types whose default app runs no code (ADR-017); the others: the folder only. */
+  const launchable = $derived(canOpenFile(entry));
   const failed = $derived(entry.state === "cancelled" || entry.state === "interrupted");
   const percent = $derived(entry.totalBytes > 0 ? Math.min(100, (entry.receivedBytes / entry.totalBytes) * 100) : null);
   const extension = $derived(/\.([a-z0-9]{1,4})$/i.exec(entry.filename)?.[1].toUpperCase() ?? "");
@@ -61,10 +63,12 @@
         <Icon name="close" size={14} />
       </button>
     {:else}
-      {#if openable}
+      {#if launchable}
         <button aria-label="Ouvrir {entry.filename}" title="Ouvrir" onclick={() => api.downloads.open(entry.id)}>
           <Icon name="open" size={14} />
         </button>
+      {/if}
+      {#if openable}
         <button
           aria-label="Afficher {entry.filename} dans le dossier"
           title="Afficher dans le dossier"

@@ -39,6 +39,11 @@ export class HttpsOnly {
     return upgraded;
   }
 
+  /** Where a request the browser makes for a page (its favicon) goes: upgraded like a navigation, nothing recorded. */
+  upgradeFor(url: string): string | null {
+    return httpsUpgradeFor(url, this.exceptions);
+  }
+
   /** On a failed top-level load: the original http URL to offer, if the failure is a failed upgrade. */
   fallbackFor(contentsId: number, failedUrl: string, code: number): string | null {
     const upgrade = this.upgrades.get(contentsId);

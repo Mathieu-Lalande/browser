@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { History, REVISIT_MS } from "./history";
+import { MAX_STORED_FAVICON_LENGTH } from "./favicon";
+import { History, MAX_HISTORY_URL_LENGTH, REVISIT_MS } from "./history";
 
 const DAY = 24 * 60 * 60 * 1000;
 const NOW = Date.UTC(2026, 5, 1);
+const PNG = "data:image/png;base64,iVBORw0KGgo=";
 
 describe("History", () => {
   it("records http(s) visits only", () => {
@@ -29,9 +31,9 @@ describe("History", () => {
     history.recordVisit("https://a.com/", NOW);
     expect(history.updatePage("https://a.com/", { title: "A" })).toBe(true);
     expect(history.updatePage("https://a.com/", { title: "A" })).toBe(false);
-    expect(history.updatePage("https://a.com/", { favicon: "https://a.com/f.ico" })).toBe(true);
+    expect(history.updatePage("https://a.com/", { favicon: PNG })).toBe(true);
     expect(history.updatePage("https://unknown.com/", { title: "X" })).toBe(false);
-    expect(history.get("https://a.com/")).toMatchObject({ title: "A", favicon: "https://a.com/f.ico" });
+    expect(history.get("https://a.com/")).toMatchObject({ title: "A", favicon: PNG });
   });
 
   it("prunes the least recently visited entries beyond the cap", () => {
@@ -106,5 +108,37 @@ describe("History", () => {
       1,
     );
     expect(history.toJSON().map((entry) => entry.url)).toEqual(["https://new.com/"]);
+  });
+
+  it("never stores a remote favicon, nor a data: one over the cap (audit HIGH-1, MEDIUM-4)", () => {
+    const history = new History();
+    history.recordVisit("https://a.com/", NOW, { favicon: "https://tracker.example/f.ico" });
+    expect(history.get("https://a.com/")?.favicon).toBeNull();
+    expect(history.updatePage("https://a.com/", { favicon: "http://a.com/favicon.ico" })).toBe(false);
+    expect(history.updatePage("https://a.com/", { favicon: "data:image/svg+xml;base64,PHN2Zz4=" })).toBe(false);
+    const huge = `data:image/png;base64,${"A".repeat(MAX_STORED_FAVICON_LENGTH)}`;
+    expect(history.updatePage("https://a.com/", { favicon: huge })).toBe(false);
+    expect(history.get("https://a.com/")?.favicon).toBeNull();
+    expect(history.updatePage("https://a.com/", { favicon: PNG })).toBe(true);
+    // A favicon that becomes unstorable is forgotten rather than kept stale.
+    expect(history.updatePage("https://a.com/", { favicon: huge })).toBe(true);
+    expect(history.get("https://a.com/")?.favicon).toBeNull();
+  });
+
+  it("migrates stored remote favicons away on load", () => {
+    expect(
+      History.parse([
+        { url: "https://a.com/", title: "A", favicon: "https://a.com/favicon.ico", visitCount: 1, lastVisit: NOW },
+        { url: "https://b.com/", title: "B", favicon: PNG, visitCount: 1, lastVisit: NOW },
+      ])?.map((entry) => entry.favicon),
+    ).toEqual([null, PNG]);
+  });
+
+  it("does not record visits to huge URLs", () => {
+    const history = new History();
+    const long = `https://a.com/?q=${"x".repeat(MAX_HISTORY_URL_LENGTH)}`;
+    expect(history.recordVisit(long, NOW)).toBe(false);
+    expect(history.recordVisit(long.slice(0, MAX_HISTORY_URL_LENGTH), NOW)).toBe(true);
+    expect(History.parse([{ url: long, lastVisit: NOW }])).toEqual([]);
   });
 });

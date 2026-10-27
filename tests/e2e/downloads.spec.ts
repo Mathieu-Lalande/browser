@@ -55,7 +55,7 @@ test("a download goes straight to the downloads folder under a unique name, and 
 
     // The sidebar button opens the popover in the overlay layer.
     await chrome.getByRole("button", { name: "Téléchargements", exact: true }).click();
-    const overlay = app.windows().find((page) => page.url().endsWith("/renderer/overlay.html"))!;
+    const overlay = app.windows().find((page) => page.url().startsWith("app://browser/overlay.html"))!;
     const panel = overlay.getByRole("dialog", { name: "Téléchargements" });
     await expect(panel).toBeVisible();
     await expect(panel.getByText("report (1).pdf")).toBeVisible();

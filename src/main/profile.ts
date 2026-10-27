@@ -5,7 +5,7 @@ import type { DownloadEntry } from "@shared/downloads";
 import { DOWNLOADS_VERSION, DownloadList } from "./downloads/list";
 import { BOOKMARKS_VERSION, Bookmarks, type BookmarksData } from "./storage/bookmarks";
 import { HISTORY_VERSION, History } from "@shared/history";
-import { JsonFile } from "./storage/json-file";
+import { JsonFile, flushAll } from "./storage/json-file";
 import { SESSION_VERSION, parseSession, type Session } from "./storage/session";
 import { SiteZoom, ZOOM_VERSION } from "./zoom/levels";
 
@@ -102,14 +102,8 @@ export function openProfile(dir = app.getPath("userData")): Profile {
       settings = next;
       settingsFile.scheduleSave(() => settings);
     },
-    flush: () => {
-      historyFile.flush();
-      bookmarksFile.flush();
-      sessionFile.flush();
-      settingsFile.flush();
-      downloadsFile.flush();
-      zoomFile.flush();
-    },
+    // Each store in its own try: one failure never keeps the others from being written.
+    flush: () => flushAll([historyFile, bookmarksFile, sessionFile, settingsFile, downloadsFile, zoomFile]),
   };
   return current;
 }

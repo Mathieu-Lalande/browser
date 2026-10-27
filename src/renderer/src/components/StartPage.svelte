@@ -27,6 +27,22 @@
   const options = $derived(settings.current.startPage);
   const name = $derived(options.greetingName.trim());
   const image = $derived(options.background === "image" && options.backgroundImage ? options.backgroundImage : null);
+  /**
+   * The image itself, as a data: URL fetched by main: the UI loads no remote image (CSP
+   * `img-src 'self' data:`, ADR-017). Private windows keep their own look and do not load it.
+   */
+  let imageData = $state<string | null>(null);
+  $effect(() => {
+    const url = image;
+    imageData = null;
+    if (!url || browser.isPrivate) return;
+    api.settings.startImage().then(
+      (data) => {
+        if (image === url) imageData = data;
+      },
+      () => {},
+    );
+  });
 
   function submit(event: SubmitEvent): void {
     event.preventDefault();
@@ -43,8 +59,8 @@
 <section
   class="start"
   class:aurora={options.background === "aurora"}
-  class:image={image !== null}
-  style:--start-image={image ? `url("${encodeURI(image)}")` : undefined}
+  class:image={imageData !== null}
+  style:--start-image={imageData ? `url("${imageData}")` : undefined}
 >
   {#if browser.isPrivate}
     <span class="mask"><Icon name="mask" size={30} /></span>

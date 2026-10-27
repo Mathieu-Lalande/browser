@@ -37,7 +37,7 @@ function attachedViews(app: ElectronApplication): Promise<{ url: string; x: numb
     BrowserWindow.getAllWindows()[0]
       .contentView.children.filter((view) => view instanceof WebContentsView)
       .map((view) => ({ url: (view as InstanceType<typeof WebContentsView>).webContents.getURL(), ...view.getBounds() }))
-      .filter((view) => !view.url.endsWith("/renderer/overlay.html")),
+      .filter((view) => !view.url.startsWith("app://browser/overlay.html")),
   );
 }
 

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { session, type Session } from "electron";
 import { forgetPrivateDownloads } from "./downloads";
+import { forgetFavicons } from "./favicons";
 import { hardenSession, releaseSession } from "./security";
 
 /**
@@ -31,5 +32,6 @@ export function isPrivateSession(ses: Session): boolean {
 export async function wipePrivateSession(ses: Session): Promise<void> {
   releaseSession(ses);
   forgetPrivateDownloads(ses);
+  forgetFavicons(ses);
   await Promise.allSettled([ses.clearStorageData(), ses.clearCache(), ses.clearAuthCache(), ses.clearHostResolverCache()]);
 }

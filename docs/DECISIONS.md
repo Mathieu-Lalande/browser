@@ -29,11 +29,16 @@ réactive (onglets qui chargent, favicons, titres) qui doit rester fluide.
 ## ADR-003 — Modèle de sécurité
 
 - Interface (« chrome ») : `contextIsolation`, `sandbox`, pas de Node ; seule une API typée et validée
-  (`window.browser`) est exposée par le preload. CSP stricte.
+  (`window.browser`) est exposée par le preload. CSP stricte (`img-src 'self' data:` : l'interface ne
+  charge aucune image distante, ADR-017). Servie depuis `app://browser/` (schéma privilégié, ADR-017),
+  plus depuis `file://`.
 - Pages web : `WebContentsView` sandboxées, sans preload, `webSecurity` actif, pas de `<webview>`.
-- Les pages ne peuvent charger que `http(s)`, `about:` et `data:` ; `file:` / `javascript:` sont refusés.
+- Les pages ne peuvent charger que `http(s)`, `about:` et `data:` ; `file:` / `javascript:` / `app:` sont refusés.
+  Une page ne peut **ouvrir** (`window.open`, `target=_blank`) que `http(s)` et `about:blank`
+  (`isPageOpenableUrl`), et seulement juste après un geste de l'utilisateur (bloqueur de fenêtres, ADR-017).
 - Les permissions sensibles (caméra, micro, géoloc, notifications…) sont demandées site par site via une
-  barre d'autorisation dans l'interface (décisions mémorisables par origine) ; seules les origines https
+  barre d'autorisation dans l'interface (décisions mémorisables par couple origine demandeuse / origine
+  de premier niveau, ADR-017) ; seules les origines https
   (ou localhost) peuvent les demander. Le reste est refusé (voir ADR-008).
 - Chaque message IPC est validé et n'est accepté que s'il provient d'une fenêtre du navigateur.
 
@@ -44,7 +49,9 @@ DuckDuckGo par défaut (cohérent avec « privé ») ; Brave Search, Startpage e
 ## ADR-005 — Persistance en fichiers JSON
 
 **Décision.** Session, historique et favoris sont des fichiers JSON dans le dossier de profil
-(`userData`, ou `BROWSER_PROFILE_DIR`) : `session.json`, `history.json`, `bookmarks.json`.
+(`userData`, ou `BROWSER_PROFILE_DIR` hors paquet — `--user-data-dir` sinon, ADR-017) : `session.json`,
+`history.json`, `bookmarks.json`. Les favicons n'y sont que des `data:` d'au plus 16 Ko (ADR-017) ; une
+visite dont l'URL dépasse 8 Ko n'est pas enregistrée.
 Pas de dépendance (SQLite natif compliquerait le packaging et les rebuilds Electron) ; les volumes
 restent petits (historique plafonné à 10 000 URL, les plus anciennes sont supprimées).
 
@@ -91,7 +98,8 @@ nous-mêmes dans `src/main/privacy/` :
   (hors ligne), on navigue sans blocage et on réessaie 30 min plus tard ;
 - protections désactivables par site (liste de noms d'hôte dans `userData/shields.json`, écriture
   atomique), compteur de requêtes bloquées par onglet remis à zéro à chaque navigation principale ;
-- crochet de test : `BROWSER_TEST_FILTERS=<fichier>` remplace les listes téléchargées par une liste locale.
+- crochet de test : `BROWSER_TEST_FILTERS=<fichier>` remplace les listes téléchargées par une liste locale
+  (ignoré par l'application empaquetée, ADR-017).
 
 **Conséquences.** Couverture cosmétique un peu inférieure à celle d'une extension (pubs injectées
 tardivement par script, anti-adblock à base de scriptlets) en échange d'un modèle de sécurité intact.
@@ -118,6 +126,8 @@ par le main au début du chargement, toujours sans preload.
   redevienne actif ; tout ce qui est en attente est refusé si l'onglet navigue ou se ferme. « Autoriser » /
   « Bloquer » valent pour la session, ou sont enregistrés par origine (`userData/permissions.json`) avec
   « Se souvenir pour ce site ». Le *check handler* ne répond « oui » que pour une autorisation explicite.
+  Les décisions sont indexées par (origine demandeuse, origine de premier niveau) : un cadre intégré
+  autorisé dans un site ne l'est pas ailleurs, et la barre affiche « X (intégré dans Y) » (ADR-017).
   Seules les origines https (ou localhost) peuvent demander quoi que ce soit ; `fullscreen`, `pointerLock`
   et `clipboard-sanitized-write` restent accordées d'office. Limite connue : `getDisplayMedia` demande
   encore un sélecteur d'écran (`setDisplayMediaRequestHandler`), non implémenté.
@@ -254,14 +264,19 @@ l'URL vide pour la compatibilité des sessions). Elles sont restaurées avec la 
   sélecteur natif (`dialog.showOpenDialog` dans main) ; le validateur des paramètres n'accepte de toute
   façon que des chemins absolus.
 - **Fichiers dangereux** (exécutables, installeurs, scripts, raccourcis : `.exe`, `.msi`, `.bat`, `.js`,
-  `.ps1`, `.jar`, `.app`, `.dmg`, `.pkg`, `.deb`, `.sh`, `.AppImage`…, dernière extension, points et
-  espaces finaux ignorés comme le fait Windows — classification pure et testée) : téléchargés sous un nom
+  `.ps1`, `.jar`, `.app`, `.dmg`, `.pkg`, `.deb`, `.sh`, `.AppImage`…, et depuis ADR-017 les listes
+  « dangereux » et « autorisé sur geste » de Chromium : `.iso`, `.vhd`, `.html`, `.svg`, `.mht`, `.docm`,
+  `.chm`, `.webloc`, `.mobileconfig`…, dernière extension, points et espaces finaux ignorés comme le
+  fait Windows, caractères de format invisibles `\p{Cf}` — dont le RLO — retirés du nom — classification
+  pure et testée) : téléchargés sous un nom
   neutre (`<id>.download`) dans `userData/Unconfirmed downloads`, jamais dans le dossier de l'utilisateur
   sous leur vrai nom. Ils restent « à confirmer » : « Conserver » (une fois terminés) les déplace vers le
   dossier sous un nom unique, « Supprimer » les efface. Au redémarrage, ce qui n'a pas été confirmé est
   supprimé (l'entrée revient « Annulé »).
 - **Rien ne s'ouvre tout seul.** « Ouvrir » (`shell.openPath`) n'est proposé qu'à un fichier terminé et
-  confirmé, « Afficher dans le dossier » utilise `shell.showItemInFolder`. L'interface ne désigne un
+  confirmé **d'un type sûr** (`canOpenFile` : PDF, images, audio/vidéo, texte/CSV/Markdown, documents
+  bureautiques sans macros ; ni archives, ni HTML/SVG, ni macros, ni images disque — ADR-017), revérifié
+  dans main ; pour le reste seul « Afficher dans le dossier » (`shell.showItemInFolder`) est proposé. L'interface ne désigne un
   téléchargement que par son identifiant : aucun chemin ne vient jamais du renderer.
 - État : un réducteur pur (`applySnapshot`) traduit les mises à jour du `DownloadItem` (progression,
   vitesse de Chromium, pause, reprise possible, fin). Historique `downloads.json` (couche ADR-005,
@@ -322,7 +337,7 @@ précédent/suivant est restaurée (`navigationHistory.restore`), sinon l'URL es
   contextuel d'onglet. Elles ignorent seulement le délai : son, autorisation et formulaire protègent toujours.
 - Interface : `TabState.isAsleep` (déchargé, quelle qu'en soit la raison — y compris un onglet
   restauré pas encore affiché) estompe l'onglet dans la barre latérale.
-- Crochet de test : `BROWSER_TEST_SLEEP_MS` remplace le délai (sauf « Jamais »).
+- Crochet de test : `BROWSER_TEST_SLEEP_MS` remplace le délai (sauf « Jamais » ; ignoré une fois empaqueté, ADR-017).
 
 ### Fenêtres privées
 
@@ -341,7 +356,8 @@ idempotent) : bloqueur, HTTPS-Only, GPC, client hints, invite de permissions.
   restent en mémoire et partagées, comme avant.
 - **Téléchargements et zoom (ADR-013).** `hardenSession` passe le drapeau à
   `installDownloads(ses, { ephemeral })` : le fichier est enregistré où l'utilisateur l'a demandé, l'entrée
-  apparaît dans la liste pendant la session mais `DownloadList.toJSON` l'exclut de `downloads.json` ;
+  apparaît dans la liste **de cette fenêtre seulement** (les fenêtres normales ne la voient ni ne la
+  reçoivent, ADR-017) mais `DownloadList.toJSON` l'exclut de `downloads.json` ;
   à la fermeture de la fenêtre, ses téléchargements en cours sont annulés et ses entrées retirées. Le zoom
   par site part des niveaux mémorisés, mais une fenêtre privée garde ses changements en mémoire
   (`isPrivateSession`, `src/main/zoom/`) : rien n'est écrit dans `zoom.json`. Toute nouvelle écriture
@@ -390,9 +406,13 @@ de bureau quelconque (`src/main/fingerprint.ts`, fonctions pures testées) :
   d'`asarUnpack`. La page overlay (seconde entrée du renderer) est empaquetée avec le reste de `out/`.
 - Icônes : `build/icon.png` (512 px), `icon.ico` et `icon.icns` de l'ancien projet Tauri, utilisées
   automatiquement (`buildResources`). `desktopName` relie la fenêtre à son entrée `.desktop` sous Linux.
-- Test de fumée du paquet (`tests/e2e/packaging.spec.ts`, ignoré sans `BROWSER_PACKAGED`) : l'app
-  empaquetée démarre, affiche sa fenêtre et l'overlay, charge une page filtrée, et le worker tourne
-  depuis `app.asar`.
+- Test de fumée du paquet (`tests/e2e/packaging.spec.ts`, ignoré sans `BROWSER_PACKAGED`) : fusibles
+  Electron lus dans le binaire, code, interface et worker présents dans `app.asar` (et pas de dossier
+  `app/`), puis l'app empaquetée démarre, affiche sa fenêtre et l'overlay depuis `app://`, charge une page
+  filtrée, et ignore les crochets de test. Les fusibles coupant l'inspecteur Node (ADR-017), le pilote
+  Electron de Playwright ne peut plus s'y attacher : le test pilote l'app par le protocole DevTools de
+  Chromium (`--remote-debugging-port`), pages seulement ; le moteur de filtres est préparé dans le
+  profil (`--user-data-dir`). Le chargement du worker depuis l'archive n'est plus exécuté dans ce test.
 - CI GitHub Actions (`.github/workflows/ci.yml`) : sur chaque push/PR, Ubuntu exécute typecheck,
   tests unitaires, build puis e2e sous `xvfb-run` (les fixtures passent `--no-sandbox`). Sur `master`,
   une matrice Ubuntu/Windows/macOS lance `npm run dist:dir` sans signature
@@ -436,7 +456,8 @@ versions épinglées), un onglet = une `react-native-webview`.
   l'onglet actif et les 4 derniers utilisés gardent une WebView montée ; les autres gardent
   URL/titre et se rechargent quand on y revient (les onglets privés iOS restent montés, leurs
   cookies vivant dans la WebView).
-- **Sécurité des WebViews.** Navigation limitée à `http(s)`, `about:`, `data:` (`isNavigableUrl`
+- **Sécurité des WebViews.** Nouvelles fenêtres limitées à `http(s)` et `about:blank`
+  (`decideOpenWindow`, ADR-017). Navigation limitée à `http(s)`, `about:`, `data:` (`isNavigableUrl`
   dans `onShouldStartLoadWithRequest`) ; `mailto:`/`tel:`/`sms:` (cadre principal seulement)
   confiés au système ; HTTPS uniquement avec la même fonction pure que le bureau, appliquée aussi
   aux chargements explicites (la WebView ne consulte pas `onShouldStartLoadWithRequest` pour sa
@@ -457,8 +478,8 @@ versions épinglées), un onglet = une `react-native-webview`.
   non persistant (cookies isolés, effacés à la fermeture). Android : `incognito` de
   react-native-webview appelle `CookieManager.removeAllCookies` (global), ce qui déconnecterait
   l'utilisateur de tous ses sites ; il n'est donc pas utilisé. Les onglets privés Android n'ont ni
-  historique, ni session, ni cache, ni formulaires, mais partagent les cookies (dit dans
-  l'interface). Isolation réelle en phase 2 (profils `WebViewCompat`/`ProfileStore`).
+  historique, ni session, ni cache, ni formulaires, mais partagent les cookies (dit explicitement dans
+  l'interface : « Cookies partagés avec les onglets normaux sur Android »). Isolation réelle en phase 2 (profils `WebViewCompat`/`ProfileStore`).
 - **Ergonomie.** Barre d'adresse et outils en bas (zone du pouce), repli en nom de domaine au
   défilement (logique pure `nextCollapse`), balayage horizontal de la barre pour changer d'onglet
   et vers le haut pour la vue des onglets, transition zoom page ↔ carte calculée (géométrie de la
@@ -484,3 +505,80 @@ versions épinglées), un onglet = une `react-native-webview`.
 métier testée. Toute fonction utile aux deux doit vivre, pure, dans `src/shared` ; le bureau ne
 compile pas `mobile/` (tsconfig/vitest inchangés) et la CI mobile (`.github/workflows/mobile.yml`)
 vérifie types, tests Jest et bundle Android dès que `mobile/` ou `src/shared` change.
+
+## ADR-017 — Durcissement post-audit
+
+**Contexte.** Un audit de sécurité a relevé une fuite des favicons hors de la session de l'onglet, des
+fenêtres surgissantes sans geste (dont des documents `data:`), l'absence de fusibles Electron, des
+lacunes de la liste des téléchargements dangereux, une croissance non bornée de l'historique et
+quelques crochets de test actifs en production. Chaque point a son test de régression
+(`tests/e2e/hardening.spec.ts`, tests unitaires associés).
+
+- **Favicons** (`src/main/favicons.ts`, règles pures `src/shared/favicon.ts`). L'interface n'affiche plus
+  l'URL déclarée par la page avec un `<img>` chargé par la session par défaut (une fenêtre privée ou un
+  espace isolé y laissait requête, cookies et cache, hors boucliers, HTTPS-Only et GPC). Main la
+  récupère avec la **session de l'onglet** (`ses.fetch`, cookies de cette session, `Sec-GPC`, mise à
+  niveau HTTPS-Only, refus si les boucliers bloquent l'image pour cette page), n'accepte que http(s) ou
+  un `data:` base64, un type image matriciel (pas de SVG), 64 Ko et 5 s au plus, et met un `data:` dans
+  `TabState.favicon`. Cache par onglet et par page (clé page + candidats) et par session (200 entrées,
+  oublié à la fermeture d'une fenêtre privée). Historique, favoris et `session.json` ne gardent qu'un
+  `data:` de 16 Ko au plus ; les favicons http(s) déjà enregistrés sont retirés au chargement (migration
+  par le validateur, sans changement de version). Une fenêtre privée n'écrit de favicon nulle part (pas
+  d'historique, favori enregistré sans favicon).
+- **CSP de l'interface** : `img-src 'self' data:` (chrome et overlay). L'image de fond de la page
+  d'accueil (URL https choisie dans les paramètres) est récupérée par main dans une session dédiée **en
+  mémoire et sans cookies** (`browser-assets`, `src/main/start-image.ts`, 8 Mo, image matricielle) et
+  transmise en `data:` (IPC `settings:start-image`, l'URL vient des paramètres, jamais du renderer).
+  Décision : les fenêtres privées ne l'affichent pas (thème privé fixe, aucune requête de leur fait).
+- **Fenêtres surgissantes** (`src/main/activation.ts`, pur et testé ; `security.ts`). `isPageOpenableUrl`
+  (`http`, `https`, `about:blank`) remplace `isNavigableUrl` pour `window.open`, la défense en profondeur
+  de `openTab` et `onOpenWindow` sur mobile : plus jamais de document `data:` de premier niveau ouvert
+  par une page. Bloqueur : main note la dernière entrée de confiance de chaque onglet
+  (`before-mouse-event` / `before-input-event` : appui souris, touche — pas les modificateurs seuls ni la
+  répétition ; le tactile arrive en événements souris/gestes) ; une ouverture n'est permise que dans la
+  seconde qui suit, **une par geste**. `disposition` n'autorise rien (un script peut poser des
+  modificateurs sur un clic synthétique) : il choisit seulement premier/arrière-plan. Une fenêtre bloquée
+  s'annonce dans une bande au-dessus de la page (`PopupBar`, comme la barre d'autorisation) :
+  « Fenêtre surgissante bloquée », « Ouvrir » (main garde l'URL, le renderer ne désigne que l'onglet),
+  « Ignorer » ; effacée à la navigation suivante.
+- **`mailto:` / `tel:`** : seulement après un geste (le même, partagé avec les fenêtres) et au plus une
+  fois toutes les 3 s par onglet.
+- **Interface sur `app://`** (`src/main/app-protocol.ts`, règles pures `app-files.ts`). Schéma
+  `app://browser/` enregistré comme privilégié (standard, sécurisé, fetch) et servi par
+  `protocol.handle` sur la session par défaut : fichiers de `out/renderer` uniquement (chemin résolu et
+  vérifié sous la racine, séparateurs encodés refusés, types MIME connus seulement, `nosniff`). Les pages
+  d'onglets ne peuvent ni y naviguer (`isNavigableUrl`), ni l'ouvrir, ni le requêter (le pipeline de
+  confidentialité annule leurs requêtes `app:`). `ELECTRON_RENDERER_URL` (serveur Vite) n'est suivi que
+  si `!app.isPackaged`.
+- **Fusibles Electron** (`build.electronFuses`, pris en charge par electron-builder 26) : `runAsNode`,
+  `enableNodeOptionsEnvironmentVariable`, `enableNodeCliInspectArguments`,
+  `grantFileProtocolExtraPrivileges` désactivés ; `enableCookieEncryption`,
+  `enableEmbeddedAsarIntegrityValidation` (macOS/Windows), `onlyLoadAppFromAsar` activés. Le
+  chiffrement des cookies passe par le trousseau de l'OS ; sous Linux sans trousseau (CI, xvfb),
+  Chromium se rabat sur son magasin « basic » : l'app démarre (vérifié par le test de fumée). Vérifier
+  avec `npx @electron/fuses read --app release/linux-unpacked/browser`.
+- **Crochets de dev et de test** : `BROWSER_PROFILE_DIR`, `BROWSER_TEST_FILTERS`, `BROWSER_TEST_SLEEP_MS`
+  et `ELECTRON_RENDERER_URL` ne sont lus que si `!app.isPackaged`. Un profil séparé s'obtient alors avec
+  l'option de Chromium `--user-data-dir=<dossier>` (suivie par Electron). `--no-sandbox` reste accepté
+  (certaines distributions ne peuvent pas lancer le bac à sable) mais une application empaquetée l'écrit
+  en avertissement.
+- **Téléchargements** : liste dangereuse alignée sur Chromium, `\p{Cf}` retiré des noms, « Ouvrir »
+  réservé à une liste blanche de types (ADR-013). Les entrées d'une fenêtre privée portent la clé de sa
+  session : elle seule les voit et les reçoit, les fenêtres normales ne voient que celles du profil, et
+  chaque action IPC vérifie cette visibilité.
+- **Historique** : pas de visite pour une URL de plus de 8 Ko ; visites dans la page (pushState) limitées
+  à une par seconde et par onglet, URL distinctes seulement (une rafale de pushState n'en enregistre
+  qu'une). `JsonFile` sérialise dans son `try` (une donnée non sérialisable est signalée, pas levée) et un
+  instantané qui lève est signalé ; `flush()` du profil écrit chaque fichier dans son propre `try`.
+- **Permissions** : clé `"<origine>"` quand l'origine demandeuse est le site de premier niveau (format
+  inchangé : les anciennes décisions valent désormais pour ce seul cas), sinon
+  `"<origine demandeuse> <origine de premier niveau>"` ; les clés invalides sont abandonnées au chargement.
+- **Mobile** : `onOpenWindow` passe par `decideOpenWindow` (même règle que le bureau) ;
+  `allowContentAccess` n'est pas une prop de react-native-webview 14, qui le met déjà à `false` pour
+  chaque WebView Android (vérifié dans `RNCWebViewManagerImpl`, à revérifier aux mises à jour) ; le
+  libellé privé Android dit « Cookies partagés avec les onglets normaux sur Android ».
+
+**Limites.** L'activation utilisateur est approchée depuis main (l'entrée de confiance la plus récente) :
+une page peut utiliser un clic de l'utilisateur sur elle, dans la seconde, pour ouvrir *un* onglet
+qu'il n'a pas demandé, comme dans Chromium. Une rafale de pushState n'enregistre pas la dernière URL
+de la rafale si elle arrive dans la même seconde.
