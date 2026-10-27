@@ -4,7 +4,7 @@ import { faviconImageType } from "@shared/favicon";
 /**
  * The start page's background image (a https URL chosen in the settings), fetched by main and
  * handed to the chrome UI as a `data:` URL: the UI's CSP only allows `'self'` and `data:` images
- * (ADR-017). It goes through a dedicated in-memory session without cookies, so the image host
+ * (ADR-018). It goes through a dedicated in-memory session without cookies, so the image host
  * learns nothing of the user's profile and nothing reaches the disk cache. Private windows do not
  * show it at all (they keep their fixed private look, and make no request of their own).
  */

@@ -4,7 +4,7 @@ Un navigateur desktop **rapide, privé et entièrement personnalisable**, dans l
 
 - Moteur Chromium via Electron, un onglet = une `WebContentsView` sandboxée.
 - Interface Svelte 5 : barre latérale verticale, onglets épinglés, barre d'adresse intégrée, page d'accueil.
-- Espaces (onglets, emoji et couleur propres ; sessions isolées façon conteneurs en option) et vue scindée
+- Espaces (onglets, icône et couleur propres ; sessions isolées façon conteneurs en option) et vue scindée
   (2 à 4 pages côte à côte).
 - Session restaurée au démarrage (onglets chargés à la demande), historique, favoris, suggestions
   dans la barre d'adresse et sites les plus visités sur la page d'accueil.
@@ -23,6 +23,9 @@ Un navigateur desktop **rapide, privé et entièrement personnalisable**, dans l
 - Téléchargements sans boîte de dialogue (pause, reprise, annulation, historique, `browser://downloads`) ;
   les programmes et scripts attendent une confirmation et rien n'est jamais ouvert automatiquement.
 - Recherche dans la page, zoom mémorisé par site, image dans l'image, son coupé onglet par onglet.
+
+![Espaces et leur éditeur (icônes Lucide)](docs/screenshots/spaces.png)
+![Page d'accueil](docs/screenshots/start-light.png)
 
 ![Paramètres](docs/screenshots/settings.png)
 

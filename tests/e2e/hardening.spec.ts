@@ -3,7 +3,7 @@ import type { BrowserApi } from "@shared/ipc";
 import type { BrowserState } from "@shared/types";
 import { ICON_PNG, clickInTab, evalInTab, expect, openPrivateWindow, tabUrls, test, visit } from "./fixtures";
 
-/** Regression tests of the post-audit hardening (ADR-017). */
+/** Regression tests of the post-audit hardening (ADR-018). */
 
 type Api = { browser: BrowserApi };
 const stateOf = (chrome: Page) => chrome.evaluate(() => (globalThis as unknown as Api).browser.getState()) as Promise<BrowserState>;

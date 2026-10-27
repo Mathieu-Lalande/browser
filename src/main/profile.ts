@@ -53,7 +53,8 @@ export function openProfile(dir = app.getPath("userData")): Profile {
   const sessionFile = new JsonFile<Session>({
     path: join(dir, "session.json"),
     version: SESSION_VERSION,
-    parse: (data) => parseSession(data),
+    // v1 sessions (before spaces) are migrated: the version is what tells them apart.
+    parse: (data, version) => parseSession(data, version),
     debounceMs: 1000,
   });
 

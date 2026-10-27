@@ -1,7 +1,7 @@
 import { extname, isAbsolute, join, relative, sep } from "node:path";
 
 /**
- * Pure rules of the `app://` scheme that serves the browser's own UI (ADR-017). No Electron here,
+ * Pure rules of the `app://` scheme that serves the browser's own UI (ADR-018). No Electron here,
  * so they are unit-tested; `./app-protocol.ts` wires them to `protocol.handle`.
  */
 

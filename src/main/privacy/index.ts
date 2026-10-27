@@ -7,6 +7,7 @@ import { TabCosmetics } from "./cosmetics";
 import { webHostname } from "@shared/hosts";
 import { APP_SCHEME } from "../app-files";
 import { HttpsOnly } from "@shared/https-only";
+import { flushJsonWriters } from "./json-file";
 import { PermissionStore } from "./permission-store";
 import { PermissionPrompts, permissionKinds } from "./permissions";
 import { ShieldsAllowList } from "./shields";
@@ -65,14 +66,18 @@ function privacyState(): PrivacyState {
   const dir = app.getPath("userData");
   const state: PrivacyState = {
     shields: new ShieldsAllowList(join(dir, "shields.json")),
-    // `BROWSER_TEST_FILTERS` (e2e tests) is a dev hook: a packaged app ignores it (ADR-017).
+    // `BROWSER_TEST_FILTERS` (e2e tests) is a dev hook: a packaged app ignores it (ADR-018).
     blocker: new ContentBlocker(join(dir, "adblock", "engine.bin"), fetchList, app.isPackaged ? undefined : process.env.BROWSER_TEST_FILTERS),
     https: new HttpsOnly(),
     prompts: promptsWith(new PermissionStore(join(dir, "permissions.json"))),
   };
   privacy = state;
   state.blocker.start();
-  app.once("will-quit", () => state.blocker.stop());
+  app.once("will-quit", () => {
+    state.blocker.stop();
+    // Shields toggles and remembered permissions saved just before quitting reach the disk too.
+    flushJsonWriters();
+  });
   return state;
 }
 
@@ -120,7 +125,7 @@ export function installPrivacy(ses: Session, alwaysAllowed: ReadonlySet<string>,
   ses.webRequest.onBeforeRequest((details, callback) => {
     const tab = details.webContentsId === undefined ? undefined : tabs.get(details.webContentsId);
     if (!tab) return callback({});
-    // The browser's own UI scheme is never reachable from a page, not even as a subresource (ADR-017).
+    // The browser's own UI scheme is never reachable from a page, not even as a subresource (ADR-018).
     if (details.url.startsWith(`${APP_SCHEME}:`)) return callback({ cancel: true });
     if (details.resourceType === "mainFrame") {
       const upgraded = state.https.upgrade(tab.contents.id, details.url);
@@ -148,7 +153,7 @@ export function installPrivacy(ses: Session, alwaysAllowed: ReadonlySet<string>,
     const kinds = permissionKinds(permission, "mediaTypes" in details ? (details.mediaTypes ?? []) : []);
     if (!kinds || !tabs.has(contents.id)) return callback(false);
     // Decisions are keyed by (requesting origin, top-level origin): an embedded frame allowed
-    // inside one site is not allowed inside every site embedding it (ADR-017).
+    // inside one site is not allowed inside every site embedding it (ADR-018).
     prompts.request(contents.id, details.requestingUrl || contents.getURL(), kinds, callback, contents.getURL());
   });
   ses.setPermissionCheckHandler((contents, permission, requestingOrigin, details) => {
@@ -235,7 +240,7 @@ export function onShieldsChange(listener: () => void): () => void {
 /**
  * The URL to fetch a tab page's favicon from, or null when its own pipeline would not load it: the
  * shields block it for that page, or it is not a web URL. HTTPS-Only upgrades it like a navigation
- * (main fetches favicons itself, outside `webRequest`'s view of the tab: ADR-017).
+ * (main fetches favicons itself, outside `webRequest`'s view of the tab: ADR-018).
  */
 export function faviconRequestUrl(contents: WebContents, iconUrl: string, pageUrl: string): string | null {
   if (!/^https?:/i.test(iconUrl)) return null;

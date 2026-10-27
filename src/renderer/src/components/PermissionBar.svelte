@@ -45,7 +45,7 @@
 </script>
 
 <div class="permission-bar" role="alertdialog" aria-label="Demande d'autorisation">
-  <Icon name="shield" size={15} />
+  <Icon name="shield" size={16} />
   <p><strong>{host}</strong>{#if embedder}&nbsp;<span class="embedder">(intégré dans {embedder})</span>{/if} souhaite {request}.</p>
   <!-- Private window: decisions last as long as the window, nothing is remembered (ADR-014). -->
   {#if !browser.isPrivate}

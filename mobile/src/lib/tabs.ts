@@ -151,6 +151,16 @@ export function liveTabIds(model: TabsModel, max: number, keepPrivate = false): 
   return live;
 }
 
+/**
+ * Where a newly created WebView for the tab starts: its current page. `load` is only what was
+ * last asked for explicitly (it must not change while the page navigates, or a mounted WebView
+ * would reload); a tab whose WebView was unmounted (evicted from `liveTabIds`) or died comes back
+ * where it was, not on the first page of that load.
+ */
+export function mountUrl(tab: Pick<MobileTab, "url" | "load">): string {
+  return tab.url || tab.load.url;
+}
+
 /** The shape the shared palette/commands code expects. */
 export function toTabState(tab: MobileTab, bookmarked: boolean): TabState {
   return {
@@ -227,9 +237,9 @@ function activate(model: TabsModel, id: TabId, now: number): TabsModel {
   };
 }
 
-/** Which tab of the same space becomes active when `closing` goes away. */
-function successor(tabs: readonly MobileTab[], closing: MobileTab, activates: CloseTabActivates): MobileTab | null {
-  const siblings = tabs.filter((tab) => tab.spaceId === closing.spaceId);
+/** Which tab of the same space becomes active when `closing` goes away: its neighbor in display order. */
+function successor(model: TabsModel, closing: MobileTab, activates: CloseTabActivates): MobileTab | null {
+  const siblings = orderedTabs(model, closing.spaceId);
   const index = siblings.findIndex((tab) => tab.id === closing.id);
   const rest = siblings.filter((tab) => tab.id !== closing.id);
   if (rest.length === 0) return null;
@@ -244,7 +254,7 @@ function closeTabs(model: TabsModel, ids: ReadonlySet<TabId>, activates: CloseTa
     const closing = next.tabs.find((tab) => tab.id === id);
     if (!closing) continue;
     const wasActive = next.activeTabs[closing.spaceId] === id;
-    const heir = wasActive ? successor(next.tabs.filter((tab) => tab.id === id || !ids.has(tab.id)), closing, activates) : null;
+    const heir = wasActive ? successor({ ...next, tabs: next.tabs.filter((tab) => tab.id === id || !ids.has(tab.id)) }, closing, activates) : null;
     next = { ...next, tabs: next.tabs.filter((tab) => tab.id !== id) };
     if (wasActive) {
       next = { ...next, activeTabs: { ...next.activeTabs, [closing.spaceId]: heir?.id ?? null } };

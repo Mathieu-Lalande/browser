@@ -91,7 +91,7 @@ export function hardenWebContents(contents: WebContents, hooks: TabHooks): void 
   const tab = { hooks, activation: new UserActivation() };
   hardenedContents.set(contents, tab);
 
-  // Popup blocker (ADR-017): what counts is trusted input main sees reaching the page, not the
+  // Popup blocker (ADR-018): what counts is trusted input main sees reaching the page, not the
   // page's own claims (`disposition` follows modifiers a script can put on a synthetic click).
   // Touch input reaches pages as mouse/gesture events here.
   contents.on("before-mouse-event", (_event, mouse) => {

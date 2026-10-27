@@ -185,7 +185,7 @@ export function registerIpc(): void {
     resetSettingsSection(section as Parameters<typeof resetSettingsSection>[0]),
   );
   on(Channels.settingsOpen, none, (c) => c.openSettings());
-  // The URL comes from the settings, never from the renderer; private windows get nothing (ADR-017).
+  // The URL comes from the settings, never from the renderer; private windows get nothing (ADR-018).
   ipcMain.handle(Channels.startImage, (event) => {
     const controller = BrowserController.fromUi(event.sender);
     if (!controller) throw new Error(`Rejected ${Channels.startImage}`);

@@ -43,15 +43,15 @@
 <div class="page">
   <div class="inner">
     <header>
-      <span class="badge"><Icon name="download" size={18} /></span>
+      <span class="badge"><Icon name="download" size={20} /></span>
       <h1>Téléchargements</h1>
       <button class="clear" disabled={!clearable} onclick={() => api.downloads.clear()}>
-        <Icon name="trash" size={13} /> Effacer la liste
+        <Icon name="trash" size={12} /> Effacer la liste
       </button>
     </header>
 
     <label class="search">
-      <Icon name="search" size={14} />
+      <Icon name="search" size={16} />
       <input bind:value={query} placeholder="Rechercher dans les téléchargements" aria-label="Rechercher dans les téléchargements" spellcheck="false" />
     </label>
 

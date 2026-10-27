@@ -1,5 +1,5 @@
 /**
- * User activation rules for tab pages (ADR-017, audit MEDIUM-1, LOW-1, MEDIUM-4). Pure: main feeds
+ * User activation rules for tab pages (ADR-018, audit MEDIUM-1, LOW-1, MEDIUM-4). Pure: main feeds
  * them the trusted input it sees (`before-mouse-event`, `before-input-event`), which a page cannot
  * forge — unlike `disposition` or a synthetic click, which scripts control.
  */

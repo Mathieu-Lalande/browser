@@ -23,6 +23,7 @@ import { webHostname } from "@shared/hosts";
 import { hardenWebContents } from "./security";
 import type { SleepCandidate } from "./sleep";
 import type { SessionTab, SessionTabList } from "./storage/session";
+import { tabSlot } from "./tab-order";
 import { onSiteZoomChange, rememberSiteZoom, siteZoomFactor } from "./zoom";
 import { nextZoomFactor, sameFactor } from "./zoom/levels";
 
@@ -47,7 +48,14 @@ interface Tab {
   /** Epoch ms when the tab was last on screen (or created): its idle time for tab sleeping. */
   lastSeenAt: number;
   /** Back/forward entries of a tab put to sleep, restored when it wakes. */
-  sleptHistory?: { entries: Electron.NavigationEntry[]; index: number };
+  sleptHistory?: SleptHistory;
+  /**
+   * The start page or internal page the user left with Back to the live page kept below it:
+   * Forward shows it again (until the page goes elsewhere).
+   */
+  forwardTo?: string;
+  /** Favicon of the page kept below the start page or an internal page, for when Back shows it again. */
+  parkedFavicon?: string | null;
   /** Rate limit of the in-page visits (pushState) recorded in the history. */
   inPageVisits: InPageVisits;
   /** Page + favicon candidates last fetched, so repeated `page-favicon-updated` events fetch nothing. */
@@ -56,10 +64,16 @@ interface Tab {
   faviconSeq: number;
 }
 
+type SleptHistory = { entries: Electron.NavigationEntry[]; index: number };
+
+/** What a tab carries along to another TabManager, beyond its state and page. */
+type TabMemory = Pick<Tab, "lastVisit" | "waking" | "sleptHistory" | "forwardTo" | "parkedFavicon">;
+
 /** A tab taken out of a TabManager (`release`) to be adopted by another one, live page included. */
 export interface ReleasedTab {
   readonly state: TabState;
   readonly view: WebContentsView | null;
+  readonly memory: TabMemory;
 }
 
 export interface TabManagerOptions {
@@ -103,6 +117,26 @@ const isDiscarded = (tab: Tab) => !tab.view && showsWebPage(tab.state.url);
 const withoutHash = (url: string) => url.split("#", 1)[0];
 
 /**
+ * The tab's page, unless it is gone: a page can close itself (`window.close()`), and a destroyed
+ * webContents throws on any use. Such a tab is being removed (see `wire`).
+ */
+function liveContents(tab: Tab): WebContents | null {
+  const contents = tab.view?.webContents;
+  return contents && !contents.isDestroyed() ? contents : null;
+}
+
+/** The back/forward list of a tab's live web page, to bring it back later (sleep, duplicate, move). */
+function historyOf(tab: Tab): SleptHistory | undefined {
+  const contents = liveContents(tab);
+  if (!contents || !showsWebPage(tab.state.url) || tab.state.interstitial) return undefined;
+  const history = contents.navigationHistory;
+  return history.length() > 0 ? { entries: history.getAllEntries(), index: history.getActiveIndex() } : undefined;
+}
+
+/** Pinned flags of a tab list, for `tabSlot`. */
+const pinnedFlags = (tabs: readonly Tab[]) => tabs.map((tab) => ({ pinned: tab.state.isPinned }));
+
+/**
  * Owns the web pages of one space of one window: each tab is a sandboxed WebContentsView that is
  * attached to the window only while it is the active tab (or one of the tabs of a visible split).
  */
@@ -136,7 +170,7 @@ export class TabManager {
     });
     // A site zoomed (from any window): its other tabs follow.
     this.unsubscribeZoom = onSiteZoomChange((host) => {
-      for (const tab of this.tabs) if (tab.view && webHostname(tab.view.webContents.getURL()) === host) this.applyZoom(tab);
+      for (const tab of this.tabs) if (webHostname(liveContents(tab)?.getURL() ?? "") === host) this.applyZoom(tab);
     });
   }
 
@@ -186,7 +220,7 @@ export class TabManager {
   snapshot(): SessionTabList {
     const indexOf = (id: TabId) => this.tabs.findIndex((tab) => tab.id === id);
     return {
-      // Only small data: favicons go to session.json (ADR-017).
+      // Only small data: favicons go to session.json (ADR-018).
       tabs: this.tabs.map(({ state }) => ({ url: state.url, title: state.title, favicon: storableFavicon(state.favicon), pinned: state.isPinned })),
       activeIndex: Math.max(0, indexOf(this.activeId ?? "")),
       split: this.split && { tabIndexes: this.split.tabIds.map(indexOf), ratioX: this.split.ratioX, ratioY: this.split.ratioY },
@@ -200,7 +234,10 @@ export class TabManager {
 
   close(id: TabId): void {
     const tab = this.remove(id);
-    tab?.view?.webContents.close();
+    if (!tab) return;
+    tab.unwire?.();
+    tab.unwire = undefined;
+    liveContents(tab)?.close();
   }
 
   /**
@@ -212,7 +249,8 @@ export class TabManager {
     if (!tab) return null;
     tab.unwire?.();
     tab.unwire = undefined;
-    return { state: tab.state, view: tab.view };
+    const { lastVisit, waking, sleptHistory, forwardTo, parkedFavicon } = tab;
+    return { state: tab.state, view: liveContents(tab) ? tab.view : null, memory: { lastVisit, waking, sleptHistory, forwardTo, parkedFavicon } };
   }
 
   /**
@@ -221,19 +259,30 @@ export class TabManager {
    */
   adopt(released: ReleasedTab, options: { activate?: boolean; index?: number } = {}): TabId {
     const { state } = released;
-    let view = released.view;
-    if (view && view.webContents.session !== this.sessionOf()) {
-      view.webContents.close();
-      view = null;
+    const tab: Tab = {
+      ...released.memory,
+      id: state.id,
+      view: released.view,
+      state: { ...state },
+      lastSeenAt: Date.now(),
+      inPageVisits: new InPageVisits(),
+      faviconSeq: 0,
+    };
+    const contents = liveContents(tab);
+    if (contents && contents.session !== this.sessionOf()) {
+      // The page reloads in this manager's session, with its back/forward list (like a sleeping tab).
+      tab.sleptHistory = historyOf(tab) ?? tab.sleptHistory;
+      contents.close();
+      tab.view = null;
     }
-    const tab: Tab = { id: state.id, view, state: { ...state }, lastSeenAt: Date.now(), inPageVisits: new InPageVisits(), faviconSeq: 0 };
+    const { view } = tab;
     if (!view) {
+      tab.forwardTo = undefined;
       Object.assign(tab.state, { isLoading: false, canGoBack: false, canGoForward: false, blockedCount: 0, permissionRequest: null, interstitial: null });
     } else {
       view.setBorderRadius(this.options.pageRadius);
     }
-    this.tabs.splice(Math.max(0, Math.min(options.index ?? this.tabs.length, this.tabs.length)), 0, tab);
-    this.tabs.sort((a, b) => Number(b.state.isPinned) - Number(a.state.isPinned));
+    this.tabs.splice(tabSlot(pinnedFlags(this.tabs), state.isPinned, options.index ?? this.tabs.length), 0, tab);
     if (view) this.wire(tab, view.webContents);
     // A manager always has an active tab once it has tabs.
     if (options.activate || !this.activeId) this.activate(tab.id);
@@ -274,8 +323,9 @@ export class TabManager {
       if (!tab.view) continue;
       tab.unwire?.();
       tab.unwire = undefined;
-      tab.view.webContents.close();
+      liveContents(tab)?.close();
       tab.view = null;
+      tab.forwardTo = undefined;
       Object.assign(tab.state, { isLoading: false, canGoBack: false, canGoForward: false, blockedCount: 0, permissionRequest: null });
     }
     if (this.activeId) this.activate(this.activeId);
@@ -317,51 +367,69 @@ export class TabManager {
     const tab = this.find(id);
     if (!tab) return;
     const url = normalizeInput(input, this.options.searchEngine);
+    const wasWebPage = showsWebPage(tab.state.url);
     tab.state.url = url;
     tab.state.interstitial = null;
     tab.state.shieldsEnabled = shieldsEnabledFor(url, this.session);
+    tab.forwardTo = undefined;
     if (!showsWebPage(url)) {
-      // Start page or internal page: drawn by the chrome UI, the page view (if any) is parked.
+      // Start page or internal page: drawn by the chrome UI. The page view (if any) is parked:
+      // detached but kept with its history, so that Back shows it again as it was.
       const page = internalPageOf(url);
+      if (wasWebPage) tab.parkedFavicon = tab.state.favicon;
       tab.state.title = page ? INTERNAL_PAGES[page].title : START_TITLE;
       tab.state.favicon = null;
       tab.state.isLoading = false;
-      if (tab.view?.webContents.getURL()) tab.view.webContents.loadURL("about:blank").catch(() => {});
+      liveContents(tab)?.stop();
     } else {
       tab.state.title = displayUrl(url);
       this.ensureView(tab).webContents.loadURL(url).catch(() => {
         // Load failures are reported through did-fail-load.
       });
     }
+    this.updateHistory(tab);
     this.syncAttachment();
     this.emit();
   }
 
+  /** Back: in the page's history, or from the start page / an internal page to the page parked below it. */
   back(id: TabId): void {
-    this.find(id)?.view?.webContents.navigationHistory.goBack();
+    const tab = this.find(id);
+    const contents = tab && liveContents(tab);
+    if (!tab || !contents) return;
+    if (showsWebPage(tab.state.url)) contents.navigationHistory.goBack();
+    else if (contents.getURL()) this.unpark(tab, contents);
   }
 
+  /** Forward: to the start page / internal page left with Back, else in the page's history. */
   forward(id: TabId): void {
-    this.find(id)?.view?.webContents.navigationHistory.goForward();
+    const tab = this.find(id);
+    if (!tab) return;
+    if (tab.forwardTo !== undefined && showsWebPage(tab.state.url)) this.navigate(id, tab.forwardTo);
+    else liveContents(tab)?.navigationHistory.goForward();
   }
 
   reload(id: TabId): void {
     const tab = this.find(id);
     if (!tab || !showsWebPage(tab.state.url)) return;
-    if (tab.view) tab.view.webContents.reload();
+    const contents = liveContents(tab);
+    if (contents) contents.reload();
     else this.wake(tab);
   }
 
   stop(id: TabId): void {
-    this.find(id)?.view?.webContents.stop();
+    const tab = this.find(id);
+    if (tab) liveContents(tab)?.stop();
   }
 
   togglePin(id: TabId): void {
     const tab = this.find(id);
     if (!tab) return;
     tab.state.isPinned = !tab.state.isPinned;
-    // Pinned tabs always sit before unpinned ones.
-    this.tabs.sort((a, b) => Number(b.state.isPinned) - Number(a.state.isPinned));
+    // Pinned tabs always sit before unpinned ones: the tab joins the end of its new group.
+    const index = this.tabs.indexOf(tab);
+    this.tabs.splice(index, 1);
+    this.tabs.splice(tabSlot(pinnedFlags(this.tabs), tab.state.isPinned, tab.state.isPinned ? this.tabs.length : 0), 0, tab);
     this.emit();
   }
 
@@ -372,18 +440,17 @@ export class TabManager {
   duplicate(id: TabId): TabId | undefined {
     const source = this.find(id);
     if (!source) return undefined;
-    const pinnedCount = this.tabs.filter((tab) => tab.state.isPinned).length;
-    const index = Math.max(this.tabs.indexOf(source) + 1, pinnedCount);
     const { url, title, favicon } = source.state;
-    const copy = this.insert({ url, title, favicon, pinned: false }, index);
-    const entries = source.view?.webContents.navigationHistory;
-    if (showsWebPage(url) && entries && entries.length() > 0) {
+    const copy = this.insert({ url, title, favicon, pinned: false }, this.tabs.indexOf(source) + 1);
+    const history = historyOf(source);
+    if (history) {
       const view = this.ensureView(copy);
       // Like waking a restored tab: reopening a page is not a new visit.
       copy.waking = url;
-      view.webContents.navigationHistory
-        .restore({ entries: entries.getAllEntries(), index: entries.getActiveIndex() })
-        .catch(() => view.webContents.loadURL(url).catch(() => {}));
+      view.webContents.navigationHistory.restore(history).catch(() => view.webContents.loadURL(url).catch(() => {}));
+    } else if (isDiscarded(source) && source.sleptHistory) {
+      // A sleeping source: the copy sleeps too, with the same back/forward list.
+      copy.sleptHistory = { entries: [...source.sleptHistory.entries], index: source.sleptHistory.index };
     }
     // Without a live source page (start page, discarded tab) the copy loads on activation, like a restored tab.
     this.activate(copy.id);
@@ -396,7 +463,7 @@ export class TabManager {
    */
   zoom(id: TabId, direction: 1 | -1 | 0): void {
     const tab = this.find(id);
-    const contents = tab?.view?.webContents;
+    const contents = tab && liveContents(tab);
     if (!tab || !contents || !showsWebPage(tab.state.url)) return;
     const next = nextZoomFactor(contents.getZoomFactor(), direction, this.options.defaultZoom);
     if (next === undefined) return;
@@ -407,7 +474,7 @@ export class TabManager {
 
   toggleMute(id: TabId): void {
     const tab = this.find(id);
-    const contents = tab?.view?.webContents;
+    const contents = tab && liveContents(tab);
     if (!tab || !contents) return;
     contents.setAudioMuted(!contents.isAudioMuted());
     tab.state.isMuted = contents.isAudioMuted();
@@ -437,20 +504,21 @@ export class TabManager {
     const tab = this.find(id);
     if (!tab?.finder) return;
     tab.finder.close();
-    if (id === this.activeId && tab.view && this.attached.has(tab.view)) tab.view.webContents.focus();
+    if (id === this.activeId && tab.view && this.attached.has(tab.view)) liveContents(tab)?.focus();
   }
 
   /** Picture-in-picture on the page's main video (or back from it). */
   pictureInPicture(id: TabId): void {
     const tab = this.find(id);
-    if (tab?.view && showsWebPage(tab.state.url)) void togglePictureInPicture(tab.view.webContents);
+    const contents = tab && liveContents(tab);
+    if (contents && showsWebPage(tab.state.url)) void togglePictureInPicture(contents);
   }
 
   move(id: TabId, toIndex: number): void {
     const from = this.tabs.findIndex((tab) => tab.id === id);
     if (from === -1) return;
     const [tab] = this.tabs.splice(from, 1);
-    this.tabs.splice(Math.max(0, Math.min(toIndex, this.tabs.length)), 0, tab);
+    this.tabs.splice(tabSlot(pinnedFlags(this.tabs), tab.state.isPinned, toIndex), 0, tab);
     this.emit();
   }
 
@@ -488,7 +556,8 @@ export class TabManager {
 
   respondPermission(id: TabId, promptId: string, allow: boolean, remember: boolean): void {
     const tab = this.find(id);
-    if (tab?.view) respondPermission(tab.view.webContents.id, promptId, allow, remember);
+    const contents = tab && liveContents(tab);
+    if (contents) respondPermission(contents.id, promptId, allow, remember);
   }
 
   /** Cycle through tabs in sidebar order (Ctrl+Tab / Ctrl+Shift+Tab). */
@@ -510,7 +579,7 @@ export class TabManager {
 
   activeWebContents(): WebContents | null {
     const tab = this.activeId ? this.find(this.activeId) : undefined;
-    return tab && showsWebPage(tab.state.url) && tab.view ? tab.view.webContents : null;
+    return tab && showsWebPage(tab.state.url) ? liveContents(tab) : null;
   }
 
   /** Shows an internal page: switches to its tab if one is open, else opens it in a new tab. */
@@ -544,8 +613,14 @@ export class TabManager {
     this.unsubscribeZoom();
     // The window is closing: its views go with it (removing them from a destroyed window hangs).
     this.attached.clear();
-    for (const tab of this.tabs) tab.view?.webContents.close();
+    const tabs = this.tabs;
     this.tabs = [];
+    for (const tab of tabs) {
+      tab.unwire?.();
+      tab.unwire = undefined;
+      // A page that already closed itself is skipped (closing it again would throw).
+      liveContents(tab)?.close();
+    }
   }
 
   /** Removes a tab from the list (active tab and split follow); its page is left to the caller. */
@@ -636,7 +711,7 @@ export class TabManager {
       inPageVisits: new InPageVisits(),
       faviconSeq: 0,
     };
-    this.tabs.splice(Math.max(0, Math.min(index, this.tabs.length)), 0, tab);
+    this.tabs.splice(tabSlot(pinnedFlags(this.tabs), entry.pinned, index), 0, tab);
     return tab;
   }
 
@@ -647,7 +722,7 @@ export class TabManager {
   }
 
   private ensureView(tab: Tab): WebContentsView {
-    if (tab.view) return tab.view;
+    if (tab.view && liveContents(tab)) return tab.view;
     const view = new WebContentsView({
       webPreferences: {
         ...(this.session ? { session: this.session } : {}),
@@ -688,10 +763,10 @@ export class TabManager {
     this.markSeen(now);
     const shown = new Set(this.visible ? this.shownTabs() : []);
     return this.tabs.map((tab) => {
-      const contents = tab.view?.webContents;
+      const contents = liveContents(tab);
       return {
         id: tab.id,
-        hasView: !!contents && !contents.isDestroyed(),
+        hasView: !!contents,
         shown: shown.has(tab),
         // Muted tabs still count: the user may unmute them at any time.
         audible: tab.state.isAudible || (contents?.isCurrentlyAudible() ?? false),
@@ -705,7 +780,8 @@ export class TabManager {
 
   /** The live page of a tab (null when it has none: start page, discarded…). */
   pageOf(id: TabId): WebContents | null {
-    return this.find(id)?.view?.webContents ?? null;
+    const tab = this.find(id);
+    return tab ? liveContents(tab) : null;
   }
 
   /**
@@ -721,15 +797,15 @@ export class TabManager {
       this.window.contentView.removeChildView(view);
       this.attached.delete(view);
     }
-    const history = view.webContents.navigationHistory;
-    if (showsWebPage(tab.state.url) && !tab.state.interstitial && history.length() > 0) {
-      tab.sleptHistory = { entries: history.getAllEntries(), index: history.getActiveIndex() };
-    }
+    tab.sleptHistory = historyOf(tab) ?? tab.sleptHistory;
+    const contents = liveContents(tab);
     tab.unwire?.();
     tab.unwire = undefined;
     tab.view = null;
-    view.webContents.close();
+    contents?.close();
     Object.assign(tab.state, { isLoading: false, blockedCount: 0, permissionRequest: null });
+    // A page parked below the start page or an internal page is gone: nothing left to go back to.
+    if (!showsWebPage(tab.state.url)) this.updateHistory(tab);
     this.emit();
     return true;
   }
@@ -788,8 +864,8 @@ export class TabManager {
 
   /** Gives the page its site's zoom (or the default zoom), and mirrors it in the tab state. */
   private applyZoom(tab: Tab): void {
-    const contents = tab.view?.webContents;
-    if (!contents || contents.isDestroyed()) return;
+    const contents = liveContents(tab);
+    if (!contents) return;
     const factor = siteZoomFactor(contents.getURL(), this.options.defaultZoom, this.session);
     if (factor !== undefined && !sameFactor(contents.getZoomFactor(), factor)) contents.setZoomFactor(factor);
     const zoom = Math.round((factor ?? contents.getZoomFactor()) * 100);
@@ -805,11 +881,53 @@ export class TabManager {
   private visit(tab: Tab, url: string, inPage: boolean): void {
     // Hash-only changes (anchors, old-style routers) are not new visits.
     if (inPage && tab.lastVisit && withoutHash(tab.lastVisit) === withoutHash(url)) return;
-    // pushState storms must not flood the history: one in-page visit per second at most (ADR-017).
+    // pushState storms must not flood the history: one in-page visit per second at most (ADR-018).
     if (!inPage) tab.inPageVisits.reset(url);
     else if (!tab.inPageVisits.accept(url, Date.now())) return;
     tab.lastVisit = url;
     this.hooks.onVisit?.(url);
+  }
+
+  /**
+   * Back from the start page or an internal page: the page parked below it is shown again, as it
+   * was (its own history untouched), and Forward leads back to what was left.
+   */
+  private unpark(tab: Tab, contents: WebContents): void {
+    tab.forwardTo = tab.state.url;
+    const url = contents.getURL();
+    Object.assign(tab.state, {
+      url,
+      title: contents.getTitle() || displayUrl(url),
+      favicon: tab.parkedFavicon ?? null,
+      isLoading: contents.isLoading(),
+      shieldsEnabled: shieldsEnabledFor(url, this.session),
+    });
+    this.updateHistory(tab);
+    this.syncAttachment();
+    this.applyZoom(tab);
+    this.emit();
+  }
+
+  /** Back/forward availability of the tab, page history and parked page included. */
+  private updateHistory(tab: Tab): void {
+    const contents = liveContents(tab);
+    if (!showsWebPage(tab.state.url)) {
+      // Start page or internal page: Back shows the page parked below it, if any.
+      tab.state.canGoBack = !!contents?.getURL();
+      tab.state.canGoForward = false;
+    } else {
+      tab.state.canGoBack = contents?.navigationHistory.canGoBack() ?? false;
+      tab.state.canGoForward = tab.forwardTo !== undefined || (contents?.navigationHistory.canGoForward() ?? false);
+    }
+  }
+
+  /** The page closed itself (`window.close()`): the tab goes away, as if the user closed it. */
+  private pageClosed(tab: Tab): void {
+    // Pages closed by the manager itself (close, sleep, move…) are unwired first: this never runs for them.
+    if (!this.tabs.includes(tab)) return;
+    tab.unwire?.();
+    tab.unwire = undefined;
+    this.remove(tab.id);
   }
 
   private wire(tab: Tab, contents: WebContents): void {
@@ -849,16 +967,24 @@ export class TabManager {
     });
 
     const refresh = () => {
+      if (contents.isDestroyed()) return;
       const url = contents.getURL();
-      // While an interstitial is shown, the tab keeps the address the user asked for.
-      if (url && url !== "about:blank" && !tab.state.interstitial) {
+      // A parked page (below the start page or an internal page) does not change the tab's
+      // address, and while an interstitial is shown, the tab keeps the address the user asked for.
+      if (url && showsWebPage(tab.state.url) && !tab.state.interstitial) {
         tab.state.url = url;
         tab.state.shieldsEnabled = shieldsEnabledFor(url, this.session);
       }
-      tab.state.canGoBack = contents.navigationHistory.canGoBack();
-      tab.state.canGoForward = contents.navigationHistory.canGoForward();
+      this.updateHistory(tab);
       this.emit();
     };
+    /** A page committed in the main frame: the start/internal page left with Back is no longer ahead. */
+    const committed = () => {
+      if (showsWebPage(tab.state.url)) tab.forwardTo = undefined;
+    };
+
+    // The page closed itself: never touch it again (a destroyed webContents throws).
+    on("destroyed", () => this.pageClosed(tab));
 
     // Clicking a pane of a visible split makes its tab the active one (address bar, shortcuts…).
     on("focus", () => {
@@ -876,6 +1002,8 @@ export class TabManager {
       this.emit();
     });
     on("did-start-loading", () => {
+      // A parked page loading (script navigation) does not make the start/internal page spin.
+      if (!showsWebPage(tab.state.url)) return;
       tab.state.isLoading = true;
       this.emit();
     });
@@ -888,11 +1016,15 @@ export class TabManager {
       if (tab.faviconKey && !tab.faviconKey.startsWith(`${url}\n`)) {
         tab.faviconKey = undefined;
         tab.faviconSeq++;
-        if (!tab.waking) tab.state.favicon = null;
+        if (tab.waking) {
+          // A woken tab keeps its saved favicon until the page reports its own.
+        } else if (showsWebPage(tab.state.url)) tab.state.favicon = null;
+        else tab.parkedFavicon = null;
       }
       if (url === tab.waking) tab.lastVisit = url;
       else this.visit(tab, url, false);
       tab.waking = undefined;
+      committed();
       this.applyZoom(tab);
       refresh();
     });
@@ -908,7 +1040,10 @@ export class TabManager {
       this.emit();
     });
     on("did-navigate-in-page", (_event, url, isMainFrame) => {
-      if (isMainFrame) this.visit(tab, url, true);
+      if (isMainFrame) {
+        this.visit(tab, url, true);
+        committed();
+      }
       refresh();
     });
     on("page-title-updated", (_event, title) => {
@@ -919,8 +1054,7 @@ export class TabManager {
       this.emit();
     });
     on("page-favicon-updated", (_event, favicons) => {
-      if (!showsWebPage(tab.state.url)) return;
-      // Fetched by main with the tab's own session, handed to the UI as a data: URL (ADR-017).
+      // Fetched by main with the tab's own session, handed to the UI as a data: URL (ADR-018).
       const pageUrl = contents.getURL();
       const key = `${pageUrl}\n${favicons.join("\n")}`;
       if (key === tab.faviconKey) return;
@@ -928,6 +1062,11 @@ export class TabManager {
       const seq = ++tab.faviconSeq;
       void loadFavicon(contents, favicons, pageUrl).then((favicon) => {
         if (seq !== tab.faviconSeq || contents.isDestroyed()) return;
+        // A parked page's favicon is kept for when Back shows it again.
+        if (!showsWebPage(tab.state.url)) {
+          tab.parkedFavicon = favicon;
+          return;
+        }
         tab.state.favicon = favicon;
         if (favicon) this.hooks.onPageInfo?.(pageUrl, { favicon });
         this.emit();
@@ -935,7 +1074,8 @@ export class TabManager {
     });
     on("did-fail-load", (_event, code, description, url, isMainFrame) => {
       // -3 is ERR_ABORTED: a navigation replaced by another one, not a real failure.
-      if (!isMainFrame || code === -3) return;
+      // A parked page's failures do not concern the start/internal page shown in the tab.
+      if (!isMainFrame || code === -3 || !showsWebPage(tab.state.url)) return;
       const httpUrl = httpsFallbackFor(contents.id, url, code);
       if (httpUrl) {
         // HTTPS-Only: the upgraded load failed; the chrome UI asks before falling back to http.

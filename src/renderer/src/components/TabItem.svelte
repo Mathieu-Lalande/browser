@@ -36,7 +36,7 @@
       title={tab.isMuted ? "Réactiver le son (Ctrl+M)" : "Couper le son (Ctrl+M)"}
       onclick={(event) => (event.stopPropagation(), api.tabs.toggleMute(tab.id))}
     >
-      <Icon name={tab.isMuted ? "volume-off" : "volume"} size={13} />
+      <Icon name={tab.isMuted ? "volume-off" : "volume"} size={12} />
     </button>
   {/if}
   <button class="close" aria-label="Fermer l'onglet" onclick={(event) => (event.stopPropagation(), api.tabs.close(tab.id))}>

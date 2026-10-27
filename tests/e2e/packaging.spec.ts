@@ -15,14 +15,14 @@ import { CHROME_URL, OVERLAY_URL, expect, test } from "./fixtures";
  * `npm run dist:dir && BROWSER_PACKAGED=release/linux-unpacked/browser xvfb-run -a npx playwright test packaging`
  * (the CI packaging job runs it on Linux).
  *
- * The fuses turn the Node inspector off (ADR-017), so Playwright's Electron driver (which evaluates
+ * The fuses turn the Node inspector off (ADR-018), so Playwright's Electron driver (which evaluates
  * code in the main process through it) cannot attach: the app is driven through Chromium's DevTools
  * protocol instead, like any Chromium browser — its pages only, never its main process.
  */
 const executable = process.env.BROWSER_PACKAGED;
 test.skip(!executable, "set BROWSER_PACKAGED to a packaged executable (npm run dist:dir)");
 
-test("the packaged build has its Electron fuses set (ADR-017)", async () => {
+test("the packaged build has its Electron fuses set (ADR-018)", async () => {
   const wire = await getCurrentFuseWire(resolve(executable!));
   expect(wire.version).toBe(FuseVersion.V1);
   const on = (fuse: FuseV1Options) => wire[fuse] === "1".charCodeAt(0);
@@ -48,7 +48,7 @@ test("the packaged app keeps its code, renderer and filter worker inside app.asa
 test("the packaged app starts, browses, blocks, and ignores the dev and test hooks", async ({ server }) => {
   const profile = mkdtempSync(join(tmpdir(), "browser-packaged-"));
   const ignored = mkdtempSync(join(tmpdir(), "browser-packaged-ignored-"));
-  // Test hooks are ignored by a packaged app (ADR-017): the filter engine is seeded in the profile
+  // Test hooks are ignored by a packaged app (ADR-018): the filter engine is seeded in the profile
   // instead (a fresh cache is used as is), and the profile is chosen with Chromium's own switch.
   const filters = readFileSync(fileURLToPath(new URL("./filters.txt", import.meta.url)), "utf8");
   mkdirSync(join(profile, "adblock"), { recursive: true });

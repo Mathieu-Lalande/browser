@@ -28,7 +28,7 @@
       class:selected={option.value === value}
       onclick={() => onchange(option.value)}
     >
-      {#if option.icon}<Icon name={option.icon} size={14} />{/if}
+      {#if option.icon}<Icon name={option.icon} size={16} />{/if}
       {option.label}
     </button>
   {/each}

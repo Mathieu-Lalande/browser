@@ -15,14 +15,27 @@ describe("normalizeInput", () => {
     ["localhost:3000", "http://localhost:3000/"],
     ["localhost", "http://localhost/"],
     ["127.0.0.1:8080/x", "http://127.0.0.1:8080/x"],
-    ["192.168.1.1", "https://192.168.1.1/"],
     ["about:blank", "about:blank"],
     ["example.com:8443", "https://example.com:8443/"],
+    // Private, mDNS and loopback hosts usually only speak http.
+    ["192.168.1.1", "http://192.168.1.1/"],
+    ["10.0.0.2:8080/admin", "http://10.0.0.2:8080/admin"],
+    ["nas.local", "http://nas.local/"],
+    ["app.localhost", "http://app.localhost/"],
+    ["[fd00::1]", "http://[fd00::1]/"],
+    ["8.8.8.8", "https://8.8.8.8/"],
+    // A final dot (fully qualified name) is kept.
+    ["localhost.:3000", "http://localhost.:3000/"],
+    ["example.com.", "https://example.com./"],
+    ["nas.local.", "http://nas.local./"],
+    // A single-label name with a port: an intranet machine or a dev server.
+    ["devbox:3000", "http://devbox:3000/"],
+    ["devbox:3000/path", "http://devbox:3000/path"],
   ])("%j → %j", (input, expected) => {
     expect(normalizeInput(input)).toBe(expected);
   });
 
-  it.each(["hello world", "typescript", "what is 1.5", "file:///etc/passwd", "javascript:alert(1)", "foo.bar1"])(
+  it.each(["hello world", "typescript", "what is 1.5", "file:///etc/passwd", "javascript:alert(1)", "foo.bar1", "foo:bar", "devbox:port", "a.:b", "."])(
     "searches %j",
     (input) => {
       expect(normalizeInput(input)).toBe(ddg(input));

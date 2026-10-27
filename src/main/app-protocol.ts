@@ -5,7 +5,7 @@ import { APP_SCHEME, CHROME_PAGE, OVERLAY_PAGE, mimeTypeOf, resolveAppFile } fro
 
 /**
  * The browser's own UI (chrome and overlay) is served from `app://browser/…` instead of `file://`
- * (ADR-017): the `grantFileProtocolExtraPrivileges` fuse is off, and a custom standard scheme gives
+ * (ADR-018): the `grantFileProtocolExtraPrivileges` fuse is off, and a custom standard scheme gives
  * the UI a real origin (`'self'` in its CSP) without any file:// rights. Only files of the renderer
  * bundle are served. Tab pages can neither navigate to it (`isNavigableUrl`) nor request it (the
  * privacy pipeline cancels their app:// requests).

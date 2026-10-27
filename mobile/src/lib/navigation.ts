@@ -75,7 +75,7 @@ export function isHttpsUpgradeFailure(platform: string, code: number): boolean {
 /**
  * What to do with a new window a page asks for (`onOpenWindow`): like a navigation, but stricter —
  * a page may open web pages and `about:blank` only, never a top-level `data:` document (a phishing
- * vector; same rule as the desktop, `isPageOpenableUrl`, ADR-017).
+ * vector; same rule as the desktop, `isPageOpenableUrl`, ADR-018).
  */
 export function decideOpenWindow(url: string, httpExceptions: ReadonlySet<string>): NavigationDecision {
   const decision = decideNavigation({ url, isTopFrame: true }, httpExceptions);

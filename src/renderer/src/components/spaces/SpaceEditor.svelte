@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { SPACE_COLORS, SPACE_ICONS } from "@shared/spaces";
+  import { SPACE_COLORS, SPACE_ICON_LABELS, SPACE_ICONS } from "@shared/spaces";
   import type { SpaceInfo, SpaceInput } from "@shared/types";
   import { api, browser } from "../../lib/browser.svelte";
   import Icon from "../Icon.svelte";
@@ -61,7 +61,7 @@
     </div>
   {:else}
     <div class="name-row">
-      <span class="preview" style:--dot={space.color ?? "var(--accent)"}>{space.icon}</span>
+      <span class="preview" style:--dot={space.color ?? "var(--accent)"}><Icon name={space.icon} size={16} /></span>
       <input
         bind:this={nameInput}
         bind:value={name}
@@ -78,9 +78,11 @@
         <button
           role="radio"
           aria-checked={space.icon === icon}
-          aria-label={icon}
+          aria-label={SPACE_ICON_LABELS[icon]}
+          title={SPACE_ICON_LABELS[icon]}
+          data-icon={icon}
           class:selected={space.icon === icon}
-          onclick={() => update({ icon })}>{icon}</button
+          onclick={() => update({ icon })}><Icon name={icon} size={16} /></button
         >
       {/each}
     </div>
@@ -118,7 +120,7 @@
 
     <div class="actions">
       <button class="delete" disabled={!canDelete} onclick={() => (confirming = true)}>
-        <Icon name="trash" size={13} /> Supprimer
+        <Icon name="trash" size={12} /> Supprimer
       </button>
       <button class="primary" onclick={() => (commitName(), onClose())}>Terminé</button>
     </div>
@@ -162,8 +164,8 @@
     width: 32px;
     height: 32px;
     border-radius: 9px;
-    background: color-mix(in oklab, var(--dot) 22%, transparent);
-    font-size: 17px;
+    background: color-mix(in oklab, var(--dot) 18%, transparent);
+    color: color-mix(in oklab, var(--dot) 70%, var(--text));
   }
   .name-row input {
     flex: 1;
@@ -187,16 +189,21 @@
   .icons button {
     display: grid;
     place-items: center;
-    height: 26px;
-    border-radius: 7px;
-    font-size: 14px;
+    height: 28px;
+    border-radius: 8px;
+    color: var(--text-muted);
+    transition:
+      background 0.12s var(--ease),
+      color 0.12s var(--ease);
   }
   .icons button:hover {
     background: var(--surface-hover);
+    color: var(--text);
   }
   .icons button.selected {
-    background: var(--surface-active);
+    background: color-mix(in oklab, var(--accent) 16%, transparent);
     box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 55%, transparent);
+    color: var(--accent);
   }
   .colors {
     display: flex;

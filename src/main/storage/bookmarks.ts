@@ -27,7 +27,7 @@ function sanitizeBookmark(value: unknown): Bookmark | null {
     id: b.id,
     url: b.url,
     title: isText(b.title) ? b.title.slice(0, MAX_TEXT) : displayUrl(b.url),
-    // Migration (ADR-017): remote favicon URLs are dropped, only small data: URLs are kept.
+    // Migration (ADR-018): remote favicon URLs are dropped, only small data: URLs are kept.
     favicon: storableFavicon(b.favicon),
     createdAt: typeof b.createdAt === "number" && Number.isFinite(b.createdAt) ? b.createdAt : 0,
     ...(isText(b.folderId) ? { folderId: b.folderId } : {}),

@@ -30,15 +30,15 @@ réactive (onglets qui chargent, favicons, titres) qui doit rester fluide.
 
 - Interface (« chrome ») : `contextIsolation`, `sandbox`, pas de Node ; seule une API typée et validée
   (`window.browser`) est exposée par le preload. CSP stricte (`img-src 'self' data:` : l'interface ne
-  charge aucune image distante, ADR-017). Servie depuis `app://browser/` (schéma privilégié, ADR-017),
+  charge aucune image distante, ADR-018). Servie depuis `app://browser/` (schéma privilégié, ADR-018),
   plus depuis `file://`.
 - Pages web : `WebContentsView` sandboxées, sans preload, `webSecurity` actif, pas de `<webview>`.
 - Les pages ne peuvent charger que `http(s)`, `about:` et `data:` ; `file:` / `javascript:` / `app:` sont refusés.
   Une page ne peut **ouvrir** (`window.open`, `target=_blank`) que `http(s)` et `about:blank`
-  (`isPageOpenableUrl`), et seulement juste après un geste de l'utilisateur (bloqueur de fenêtres, ADR-017).
+  (`isPageOpenableUrl`), et seulement juste après un geste de l'utilisateur (bloqueur de fenêtres, ADR-018).
 - Les permissions sensibles (caméra, micro, géoloc, notifications…) sont demandées site par site via une
   barre d'autorisation dans l'interface (décisions mémorisables par couple origine demandeuse / origine
-  de premier niveau, ADR-017) ; seules les origines https
+  de premier niveau, ADR-018) ; seules les origines https
   (ou localhost) peuvent les demander. Le reste est refusé (voir ADR-008).
 - Chaque message IPC est validé et n'est accepté que s'il provient d'une fenêtre du navigateur.
 
@@ -49,8 +49,8 @@ DuckDuckGo par défaut (cohérent avec « privé ») ; Brave Search, Startpage e
 ## ADR-005 — Persistance en fichiers JSON
 
 **Décision.** Session, historique et favoris sont des fichiers JSON dans le dossier de profil
-(`userData`, ou `BROWSER_PROFILE_DIR` hors paquet — `--user-data-dir` sinon, ADR-017) : `session.json`,
-`history.json`, `bookmarks.json`. Les favicons n'y sont que des `data:` d'au plus 16 Ko (ADR-017) ; une
+(`userData`, ou `BROWSER_PROFILE_DIR` hors paquet — `--user-data-dir` sinon, ADR-018) : `session.json`,
+`history.json`, `bookmarks.json`. Les favicons n'y sont que des `data:` d'au plus 16 Ko (ADR-018) ; une
 visite dont l'URL dépasse 8 Ko n'est pas enregistrée.
 Pas de dépendance (SQLite natif compliquerait le packaging et les rebuilds Electron) ; les volumes
 restent petits (historique plafonné à 10 000 URL, les plus anciennes sont supprimées).
@@ -99,7 +99,7 @@ nous-mêmes dans `src/main/privacy/` :
 - protections désactivables par site (liste de noms d'hôte dans `userData/shields.json`, écriture
   atomique), compteur de requêtes bloquées par onglet remis à zéro à chaque navigation principale ;
 - crochet de test : `BROWSER_TEST_FILTERS=<fichier>` remplace les listes téléchargées par une liste locale
-  (ignoré par l'application empaquetée, ADR-017).
+  (ignoré par l'application empaquetée, ADR-018).
 
 **Conséquences.** Couverture cosmétique un peu inférieure à celle d'une extension (pubs injectées
 tardivement par script, anti-adblock à base de scriptlets) en échange d'un modèle de sécurité intact.
@@ -127,7 +127,7 @@ par le main au début du chargement, toujours sans preload.
   « Bloquer » valent pour la session, ou sont enregistrés par origine (`userData/permissions.json`) avec
   « Se souvenir pour ce site ». Le *check handler* ne répond « oui » que pour une autorisation explicite.
   Les décisions sont indexées par (origine demandeuse, origine de premier niveau) : un cadre intégré
-  autorisé dans un site ne l'est pas ailleurs, et la barre affiche « X (intégré dans Y) » (ADR-017).
+  autorisé dans un site ne l'est pas ailleurs, et la barre affiche « X (intégré dans Y) » (ADR-018).
   Seules les origines https (ou localhost) peuvent demander quoi que ce soit ; `fullscreen`, `pointerLock`
   et `clipboard-sanitized-write` restent accordées d'office. Limite connue : `getDisplayMedia` demande
   encore un sélecteur d'écran (`setDisplayMediaRequestHandler`), non implémenté.
@@ -141,7 +141,7 @@ par le main au début du chargement, toujours sans preload.
 
 ## ADR-009 — Espaces (sessions partitionnées) et vue scindée
 
-**Espaces.** Un espace = nom, emoji, couleur (facultative), onglets propres (épinglés compris) et
+**Espaces.** Un espace = nom, icône (nom d'icône Lucide, voir ADR-017), couleur (facultative), onglets propres (épinglés compris) et
 une option « isolé ». La liste des espaces est commune à toutes les fenêtres ; chaque fenêtre en
 affiche un à la fois, avec ses propres onglets pour chaque espace.
 
@@ -170,7 +170,7 @@ affiche un à la fois, avec ses propres onglets pour chaque espace.
   de l'espace affiché charge (ou les onglets de sa vue scindée si elle est visible).
 - **Interface.** Sélecteur d'espaces en bas de la barre latérale (Ctrl+Alt+1…9, Ctrl+Alt+←/→, aussi
   dans la palette), glissement latéral de la liste d'onglets au changement d'espace, popover
-  d'édition dans la barre latérale (nom, emoji, couleur, isolement, suppression confirmée). La
+  d'édition dans la barre latérale (nom, grille d'icônes, couleur, isolement, suppression confirmée). La
   couleur de l'espace remplace `--accent` dans l'interface (et est exposée en `--space-color`) ;
   sans couleur, l'accent du thème s'applique.
 
@@ -247,6 +247,9 @@ l'URL vide pour la compatibilité des sessions). Elles sont restaurées avec la 
   connues ; `isNavigableUrl` refuse le schéma `browser:`, donc une page web ne peut ni y naviguer,
   ni l'ouvrir dans un nouvel onglet, ni y être redirigée (testé en unitaire et en e2e).
 - Elles ne passent jamais par l'historique ni les favoris.
+- Ouvrir la page d'accueil ou une page interne dans un onglet qui affiche une page web ne navigue pas
+  la vue : elle est détachée et gardée telle quelle (historique compris). « Précédent » la rattache,
+  « Suivant » revient alors à la page interne, jusqu'à ce que la page navigue ailleurs.
 
 ## ADR-013 — Téléchargements, recherche dans la page, zoom par site, médias
 
@@ -264,7 +267,7 @@ l'URL vide pour la compatibilité des sessions). Elles sont restaurées avec la 
   sélecteur natif (`dialog.showOpenDialog` dans main) ; le validateur des paramètres n'accepte de toute
   façon que des chemins absolus.
 - **Fichiers dangereux** (exécutables, installeurs, scripts, raccourcis : `.exe`, `.msi`, `.bat`, `.js`,
-  `.ps1`, `.jar`, `.app`, `.dmg`, `.pkg`, `.deb`, `.sh`, `.AppImage`…, et depuis ADR-017 les listes
+  `.ps1`, `.jar`, `.app`, `.dmg`, `.pkg`, `.deb`, `.sh`, `.AppImage`…, et depuis ADR-018 les listes
   « dangereux » et « autorisé sur geste » de Chromium : `.iso`, `.vhd`, `.html`, `.svg`, `.mht`, `.docm`,
   `.chm`, `.webloc`, `.mobileconfig`…, dernière extension, points et espaces finaux ignorés comme le
   fait Windows, caractères de format invisibles `\p{Cf}` — dont le RLO — retirés du nom — classification
@@ -275,7 +278,7 @@ l'URL vide pour la compatibilité des sessions). Elles sont restaurées avec la 
   supprimé (l'entrée revient « Annulé »).
 - **Rien ne s'ouvre tout seul.** « Ouvrir » (`shell.openPath`) n'est proposé qu'à un fichier terminé et
   confirmé **d'un type sûr** (`canOpenFile` : PDF, images, audio/vidéo, texte/CSV/Markdown, documents
-  bureautiques sans macros ; ni archives, ni HTML/SVG, ni macros, ni images disque — ADR-017), revérifié
+  bureautiques sans macros ; ni archives, ni HTML/SVG, ni macros, ni images disque — ADR-018), revérifié
   dans main ; pour le reste seul « Afficher dans le dossier » (`shell.showItemInFolder`) est proposé. L'interface ne désigne un
   téléchargement que par son identifiant : aucun chemin ne vient jamais du renderer.
 - État : un réducteur pur (`applySnapshot`) traduit les mises à jour du `DownloadItem` (progression,
@@ -337,7 +340,7 @@ précédent/suivant est restaurée (`navigationHistory.restore`), sinon l'URL es
   contextuel d'onglet. Elles ignorent seulement le délai : son, autorisation et formulaire protègent toujours.
 - Interface : `TabState.isAsleep` (déchargé, quelle qu'en soit la raison — y compris un onglet
   restauré pas encore affiché) estompe l'onglet dans la barre latérale.
-- Crochet de test : `BROWSER_TEST_SLEEP_MS` remplace le délai (sauf « Jamais » ; ignoré une fois empaqueté, ADR-017).
+- Crochet de test : `BROWSER_TEST_SLEEP_MS` remplace le délai (sauf « Jamais » ; ignoré une fois empaqueté, ADR-018).
 
 ### Fenêtres privées
 
@@ -357,7 +360,7 @@ idempotent) : bloqueur, HTTPS-Only, GPC, client hints, invite de permissions.
 - **Téléchargements et zoom (ADR-013).** `hardenSession` passe le drapeau à
   `installDownloads(ses, { ephemeral })` : le fichier est enregistré où l'utilisateur l'a demandé, l'entrée
   apparaît dans la liste **de cette fenêtre seulement** (les fenêtres normales ne la voient ni ne la
-  reçoivent, ADR-017) mais `DownloadList.toJSON` l'exclut de `downloads.json` ;
+  reçoivent, ADR-018) mais `DownloadList.toJSON` l'exclut de `downloads.json` ;
   à la fermeture de la fenêtre, ses téléchargements en cours sont annulés et ses entrées retirées. Le zoom
   par site part des niveaux mémorisés, mais une fenêtre privée garde ses changements en mémoire
   (`isPrivateSession`, `src/main/zoom/`) : rien n'est écrit dans `zoom.json`. Toute nouvelle écriture
@@ -409,7 +412,7 @@ de bureau quelconque (`src/main/fingerprint.ts`, fonctions pures testées) :
 - Test de fumée du paquet (`tests/e2e/packaging.spec.ts`, ignoré sans `BROWSER_PACKAGED`) : fusibles
   Electron lus dans le binaire, code, interface et worker présents dans `app.asar` (et pas de dossier
   `app/`), puis l'app empaquetée démarre, affiche sa fenêtre et l'overlay depuis `app://`, charge une page
-  filtrée, et ignore les crochets de test. Les fusibles coupant l'inspecteur Node (ADR-017), le pilote
+  filtrée, et ignore les crochets de test. Les fusibles coupant l'inspecteur Node (ADR-018), le pilote
   Electron de Playwright ne peut plus s'y attacher : le test pilote l'app par le protocole DevTools de
   Chromium (`--remote-debugging-port`), pages seulement ; le moteur de filtres est préparé dans le
   profil (`--user-data-dir`). Le chargement du worker depuis l'archive n'est plus exécuté dans ce test.
@@ -457,7 +460,7 @@ versions épinglées), un onglet = une `react-native-webview`.
   URL/titre et se rechargent quand on y revient (les onglets privés iOS restent montés, leurs
   cookies vivant dans la WebView).
 - **Sécurité des WebViews.** Nouvelles fenêtres limitées à `http(s)` et `about:blank`
-  (`decideOpenWindow`, ADR-017). Navigation limitée à `http(s)`, `about:`, `data:` (`isNavigableUrl`
+  (`decideOpenWindow`, ADR-018). Navigation limitée à `http(s)`, `about:`, `data:` (`isNavigableUrl`
   dans `onShouldStartLoadWithRequest`) ; `mailto:`/`tel:`/`sms:` (cadre principal seulement)
   confiés au système ; HTTPS uniquement avec la même fonction pure que le bureau, appliquée aussi
   aux chargements explicites (la WebView ne consulte pas `onShouldStartLoadWithRequest` pour sa
@@ -487,7 +490,7 @@ versions épinglées), un onglet = une `react-native-webview`.
   et des zones sûres. Retour arrière : geste de bord natif sur iOS
   (`allowsBackForwardNavigationGestures`), bouton/geste retour du système sur Android
   (`BackHandler`, qui ferme d'abord feuilles et vues). Pas de miniatures (pas de
-  `react-native-view-shot` dans Expo Go) : cartes à l'icône et aux couleurs du site. Les favicons
+  `react-native-view-shot` dans Expo Go) : cartes neutres (surface du thème, favicon du site ou son initiale en gris, ADR-017). Les favicons
   viennent du site lui-même (`/favicon.ico`), jamais d'un service tiers, et pas du tout pour les
   onglets privés.
 - **Bloqueur de contenu : phase 2, pas de simulacre.** Un vrai blocage demande du natif :
@@ -506,7 +509,37 @@ métier testée. Toute fonction utile aux deux doit vivre, pure, dans `src/share
 compile pas `mobile/` (tsconfig/vitest inchangés) et la CI mobile (`.github/workflows/mobile.yml`)
 vérifie types, tests Jest et bundle Android dès que `mobile/` ou `src/shared` change.
 
-## ADR-017 — Durcissement post-audit
+## ADR-017 — Icônes : Lucide partout, aucun emoji
+
+**Contexte.** L'interface mélangeait des tracés SVG dessinés à la main, des emojis (icônes des
+espaces, menus) et des tuiles de site colorées selon l'hôte. Le propriétaire veut une application
+qui « fait pro » : un seul jeu d'icônes, dont la couleur vient du CSS, et aucun emoji.
+
+**Décision.**
+- **Lucide** sur les deux applications : `@lucide/svelte` (bureau, Svelte 5) et
+  `lucide-react-native` (mobile, sur `react-native-svg` déjà inclus dans Expo Go), versions
+  épinglées. Chaque icône est importée individuellement (`@lucide/svelte/icons/<nom>`,
+  `lucide-react-native/icons/<nom>`) : seul ce qui est utilisé est embarqué.
+- Les composants `Icon` (`src/renderer/src/components/Icon.svelte`, `mobile/src/components/Icon.tsx`)
+  restent la seule porte d'entrée : ils associent les noms de l'interface (et `CommandIcon`) à un
+  composant Lucide, si bien que les appels ne changent pas. Couleur : `currentColor` (bureau) ou une
+  couleur du thème (mobile) ; jamais de couleur codée en dur. Trait 2 (bureau, icônes de 12 à 20 px)
+  et 1,75 (mobile, 20 à 24 px) ; tailles sur la grille de 4 px.
+- **Espaces.** `SpaceInfo.icon` est un nom d'icône Lucide pris dans une liste de 32
+  (`SPACE_ICONS`, `src/shared/spaces.ts`, libellés français dans `SPACE_ICON_LABELS`) ; l'IPC refuse
+  toute autre valeur. Au chargement, `sanitizeSpace` → `migrateSpaceIcon` convertit les emojis des
+  versions précédentes (session.json v2 du bureau, AsyncStorage du mobile ; 🏠 → `circle-user`,
+  💼 → `briefcase`…) et remplace toute valeur inconnue par `star`, sans changer de version de
+  fichier (la migration est idempotente). Les fenêtres privées ont l'icône `venetian-mask`, jamais
+  proposée. Les menus natifs (« Déplacer vers l'espace ») n'affichent que le nom.
+- **Sites sans favicon.** Tuile neutre : surface du thème, bordure fine, globe (bureau) ou initiale
+  du site (mobile) dans la couleur de texte atténuée. L'accent ne sert qu'aux états actif/sélectionné.
+  Les vrais favicons, logos des sites, restent tels quels. Les cartes de la vue des onglets mobile
+  n'ont plus de dégradé coloré par site.
+- Les glyphes de raccourcis clavier (⌘ ⇧ ⌥ ↵ ← →) restent : ce sont des caractères
+  typographiques, pas des icônes.
+
+## ADR-018 — Durcissement post-audit
 
 **Contexte.** Un audit de sécurité a relevé une fuite des favicons hors de la session de l'onglet, des
 fenêtres surgissantes sans geste (dont des documents `data:`), l'absence de fusibles Electron, des

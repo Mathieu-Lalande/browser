@@ -4,7 +4,7 @@
   import Icon from "./Icon.svelte";
 
   /**
-   * Popup blocker notice (ADR-017): a page tried to open a window without a user gesture. Like the
+   * Popup blocker notice (ADR-018): a page tried to open a window without a user gesture. Like the
    * permission bar, it shrinks the viewport (nothing can be drawn over the native page view).
    */
   let { tabId, popup }: { tabId: TabId; popup: NonNullable<TabState["blockedPopup"]> } = $props();

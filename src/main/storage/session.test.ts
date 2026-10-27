@@ -3,7 +3,7 @@ import { DEFAULT_SPACE } from "@shared/spaces";
 import { parseSession, type SessionTabList } from "./session";
 
 const tab = (url: string, pinned = false) => ({ url, title: url, favicon: null, pinned });
-const space = (id: string, extra: Record<string, unknown> = {}) => ({ id, name: id, icon: "⭐", color: null, isolated: false, ...extra });
+const space = (id: string, extra: Record<string, unknown> = {}) => ({ id, name: id, icon: "star", color: null, isolated: false, ...extra });
 
 /** Parses a v1 session and returns the migrated tab list of each window. */
 const v1Lists = (data: unknown): SessionTabList[] | undefined =>
@@ -89,7 +89,27 @@ describe("parseSession v2", () => {
   it("always has a space, and drops invalid or duplicate ones", () => {
     expect(parseSession({ spaces: [], windows: [] })).toEqual({ spaces: [DEFAULT_SPACE], windows: [] });
     const parsed = parseSession({ spaces: [space("a"), space("a"), space("bad id!"), { id: "b", name: 3, color: "red" }], windows: [] });
-    expect(parsed?.spaces).toEqual([space("a"), { id: "b", name: "Espace", icon: "⭐", color: null, isolated: false }]);
+    expect(parsed?.spaces).toEqual([space("a"), { id: "b", name: "Espace", icon: "star", color: null, isolated: false }]);
+  });
+
+  it("migrates the emoji icons of earlier versions to Lucide icon names", () => {
+    const parsed = parseSession({
+      spaces: [
+        { id: "personal", name: "Personnel", icon: "🏠", color: null, isolated: false },
+        { id: "work", name: "Travail", icon: "💼", color: "#4fc3a1", isolated: true },
+        { id: "trips", name: "Voyages", icon: "✈️", color: null, isolated: false },
+        { id: "odd", name: "Autre", icon: "🦄", color: null, isolated: false },
+      ],
+      windows: [{ activeSpaceId: "work", spaces: [{ spaceId: "work", tabs: [tab("https://a.com/")], activeIndex: 0 }] }],
+    });
+    expect(parsed?.spaces.map((space) => [space.id, space.icon])).toEqual([
+      ["personal", "circle-user"],
+      ["work", "briefcase"],
+      ["trips", "plane"],
+      ["odd", "star"],
+    ]);
+    expect(parsed?.spaces[1]).toEqual({ id: "work", name: "Travail", icon: "briefcase", color: "#4fc3a1", isolated: true });
+    expect(parsed?.windows[0].activeSpaceId).toBe("work");
   });
 
   it("drops tab lists of unknown spaces, and falls back to a known active space", () => {

@@ -1,5 +1,5 @@
 /**
- * Favicon rules (audit HIGH-1, ADR-017). The browser UI never loads a page's favicon from the
+ * Favicon rules (audit HIGH-1, ADR-018). The browser UI never loads a page's favicon from the
  * network itself: main fetches it through the tab's own session and hands the UI a `data:` URL.
  * Pure: no Electron, no Node, no DOM (shared with the mobile app).
  */

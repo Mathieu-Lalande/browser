@@ -9,7 +9,7 @@
 
   const active = $derived(isActiveDownload(entry));
   const openable = $derived(isOpenable(entry));
-  /** "Ouvrir" only for types whose default app runs no code (ADR-017); the others: the folder only. */
+  /** "Ouvrir" only for types whose default app runs no code (ADR-018); the others: the folder only. */
   const launchable = $derived(canOpenFile(entry));
   const failed = $derived(entry.state === "cancelled" || entry.state === "interrupted");
   const percent = $derived(entry.totalBytes > 0 ? Math.min(100, (entry.receivedBytes / entry.totalBytes) * 100) : null);
@@ -19,9 +19,9 @@
 <div class="download" class:warning={entry.awaitingConfirmation} class:failed data-state={entry.state}>
   <span class="file" aria-hidden="true">
     {#if entry.awaitingConfirmation}
-      <Icon name="warning" size={17} />
+      <Icon name="warning" size={16} />
     {:else}
-      <Icon name="file" size={22} />
+      <Icon name="file" size={24} />
       {#if extension}<span class="ext">{extension}</span>{/if}
     {/if}
   </span>
@@ -50,22 +50,22 @@
       <!-- Decided with the buttons below the name. -->
     {:else if entry.state === "progressing"}
       <button aria-label="Mettre en pause {entry.filename}" title="Mettre en pause" onclick={() => api.downloads.pause(entry.id)}>
-        <Icon name="pause" size={14} />
+        <Icon name="pause" size={16} />
       </button>
       <button aria-label="Annuler {entry.filename}" title="Annuler" onclick={() => api.downloads.cancel(entry.id)}>
-        <Icon name="close" size={14} />
+        <Icon name="close" size={16} />
       </button>
     {:else if entry.state === "paused" || (entry.state === "interrupted" && entry.canResume)}
       <button aria-label="Reprendre {entry.filename}" title="Reprendre" onclick={() => api.downloads.resume(entry.id)}>
-        <Icon name="play" size={14} />
+        <Icon name="play" size={16} />
       </button>
       <button aria-label="Annuler {entry.filename}" title="Annuler" onclick={() => api.downloads.cancel(entry.id)}>
-        <Icon name="close" size={14} />
+        <Icon name="close" size={16} />
       </button>
     {:else}
       {#if launchable}
         <button aria-label="Ouvrir {entry.filename}" title="Ouvrir" onclick={() => api.downloads.open(entry.id)}>
-          <Icon name="open" size={14} />
+          <Icon name="open" size={16} />
         </button>
       {/if}
       {#if openable}
@@ -74,11 +74,11 @@
           title="Afficher dans le dossier"
           onclick={() => api.downloads.showInFolder(entry.id)}
         >
-          <Icon name="folder" size={14} />
+          <Icon name="folder" size={16} />
         </button>
       {/if}
       <button aria-label="Retirer {entry.filename} de la liste" title="Retirer de la liste" onclick={() => api.downloads.remove(entry.id)}>
-        <Icon name="trash" size={14} />
+        <Icon name="trash" size={16} />
       </button>
     {/if}
   </div>

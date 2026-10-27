@@ -37,7 +37,7 @@ test("links opening a new window become a new tab", async ({ app, chrome, server
   await address.fill(server.url("/popup"));
   await address.press("Enter");
   await expect(chrome.locator(".tab.active .title")).toHaveText("Opener");
-  // A real click: the popup blocker lets pages open tabs right after a trusted input only (ADR-017).
+  // A real click: the popup blocker lets pages open tabs right after a trusted input only (ADR-018).
   await clickInTab(app, server.url("/popup"), "#open");
   await expect(chrome.locator(".tabs [role=tab]")).toHaveCount(2);
   await expect(chrome.locator(".tab.active .title")).toHaveText("Page second");

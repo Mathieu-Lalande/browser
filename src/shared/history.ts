@@ -21,7 +21,7 @@ function sanitizeEntry(value: unknown): HistoryEntry | null {
   return {
     url: e.url,
     title: typeof e.title === "string" ? e.title.slice(0, MAX_TEXT) : "",
-    // Migration (ADR-017): favicons used to be remote URLs the UI fetched; only small data: URLs are kept.
+    // Migration (ADR-018): favicons used to be remote URLs the UI fetched; only small data: URLs are kept.
     favicon: storableFavicon(e.favicon),
     visitCount: typeof e.visitCount === "number" && e.visitCount >= 1 ? Math.floor(e.visitCount) : 1,
     lastVisit: e.lastVisit,

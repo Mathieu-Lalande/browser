@@ -61,7 +61,7 @@ const tabOptions = (current: Settings) => ({
 });
 
 // Downloads progress and history changes reach the browser UIs (sidebar button, panel, page) of
-// the windows that may see them: a private window's downloads stay its own (ADR-017, audit LOW-3).
+// the windows that may see them: a private window's downloads stay its own (ADR-018, audit LOW-3).
 onDownloadsChanged((change) => {
   for (const controller of controllers.values()) {
     const updated = change.updated.filter((entry) => isDownloadVisible(entry.id, controller.downloadViewer));
@@ -181,10 +181,14 @@ export class BrowserController {
       if (outcome === "keep") BrowserController.saveSession(true);
       controllers.delete(chrome.id);
       if (outcome === "forget") BrowserController.saveSession();
-      this.spaces.destroy();
-      this.overlay.destroy();
-      // A private window takes its cookies, storage and cache with it.
-      if (this.privateSession) void wipePrivateSession(this.privateSession);
+      try {
+        this.spaces.destroy();
+      } finally {
+        // Whatever happened to the pages, the overlay goes and a private window takes its
+        // cookies, storage and cache with it.
+        this.overlay.destroy();
+        if (this.privateSession) void wipePrivateSession(this.privateSession);
+      }
     });
 
     // app://browser/index.html (or the dev server, unpackaged only).
@@ -196,7 +200,7 @@ export class BrowserController {
     const tab = this.tabs.getState().tabs.find((item) => item.id === this.tabs.activeTabId);
     if (!tab?.url) return;
     const { bookmarks, saveBookmarks } = profile();
-    // A private window writes no favicon anywhere (ADR-014, ADR-017).
+    // A private window writes no favicon anywhere (ADR-014, ADR-018).
     bookmarks.toggle({ url: tab.url, title: tab.title, favicon: this.isPrivate ? null : tab.favicon }, Date.now());
     saveBookmarks();
     BrowserController.refreshAll();

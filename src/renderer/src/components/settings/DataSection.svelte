@@ -39,9 +39,9 @@
 </script>
 
 <Row label="Historique de navigation" hint="Efface toutes les pages visitées, et les suggestions qui en découlent.">
-  {#if cleared}<span class="done"><Icon name="check" size={13} /> Historique effacé</span>{/if}
+  {#if cleared}<span class="done"><Icon name="check" size={12} /> Historique effacé</span>{/if}
   <button class="danger" class:confirming onclick={clearHistory}>
-    <Icon name="trash" size={13} />
+    <Icon name="trash" size={12} />
     {confirming ? "Confirmer l'effacement" : "Effacer l'historique"}
   </button>
 </Row>

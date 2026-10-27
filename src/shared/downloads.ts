@@ -55,7 +55,7 @@ export function fileExtension(filename: string): string {
 }
 
 /**
- * Types the browser offers to open with their default app (ADR-013, ADR-017): documents, images and
+ * Types the browser offers to open with their default app (ADR-013, ADR-018): documents, images and
  * media whose usual viewers do not run code. Everything else — archives (opening one can lead to
  * running what is inside), HTML/SVG (opened by a browser with file:// rights), macro-capable office
  * formats, disk images, executables… — only gets "Afficher dans le dossier".

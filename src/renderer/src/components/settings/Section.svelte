@@ -14,14 +14,14 @@
 
 <section class="section" {id} aria-labelledby="{id}-title" data-section={id}>
   <header>
-    <span class="badge"><Icon name={icon} size={17} /></span>
+    <span class="badge"><Icon name={icon} size={16} /></span>
     <div class="heading">
       <h2 id="{id}-title">{title}</h2>
       <p>{description}</p>
     </div>
     {#if onReset}
       <button class="reset" onclick={onReset} title="Revenir aux réglages par défaut de cette section">
-        <Icon name="reset" size={13} /> Réinitialiser
+        <Icon name="reset" size={12} /> Réinitialiser
       </button>
     {/if}
   </header>

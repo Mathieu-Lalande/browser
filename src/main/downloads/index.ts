@@ -291,26 +291,31 @@ export async function keepDownload(id: string, window?: BaseWindow): Promise<voi
   const entry = downloads.get(id);
   if (!entry?.awaitingConfirmation || entry.state !== "completed") return;
   const source = join(quarantineDir(), `${id}.download`);
-  let target: string;
-  if (settings().downloads.askWhere) {
-    const options = { defaultPath: join(downloadsFolder(), entry.filename) };
-    const result = await (window ? dialog.showSaveDialog(window, options) : dialog.showSaveDialog(options));
-    if (result.canceled || !result.filePath) return;
-    target = result.filePath;
-  } else {
-    const folder = downloadsFolder();
-    mkdirSync(folder, { recursive: true });
-    target = reservePath(folder, entry.filename);
-    reserved.delete(target);
-  }
-  // The entry may have been discarded while the dialog was open.
-  if (!downloads.get(id)?.awaitingConfirmation) return;
+  let target = "";
+  let reservedTarget = "";
   try {
+    if (settings().downloads.askWhere) {
+      const options = { defaultPath: join(downloadsFolder(), entry.filename) };
+      const result = await (window ? dialog.showSaveDialog(window, options) : dialog.showSaveDialog(options));
+      if (result.canceled || !result.filePath) return;
+      target = result.filePath;
+    } else {
+      const folder = downloadsFolder();
+      mkdirSync(folder, { recursive: true });
+      target = reservedTarget = reservePath(folder, entry.filename);
+    }
+    // The entry may have been discarded while the dialog was open.
+    if (!downloads.get(id)?.awaitingConfirmation) return;
     mkdirSync(dirname(target), { recursive: true });
     moveFile(source, target);
   } catch (error) {
+    // Folder missing and not creatable, no permission, disk full…: the file stays aside, still
+    // waiting for confirmation, and the UI gets the entry back as it is (it can try again).
     console.error("[downloads] cannot keep", entry.filename, error);
+    push(id, true);
     return;
+  } finally {
+    if (reservedTarget) reserved.delete(reservedTarget);
   }
   downloads.update(id, (current) => ({ ...current, awaitingConfirmation: false, path: target, filename: basename(target) }));
   saveDownloads();
@@ -319,7 +324,7 @@ export async function keepDownload(id: string, window?: BaseWindow): Promise<voi
 
 /**
  * Opens a completed download with its default app: only ever on the user's request, and only for
- * types whose default app does not run code (`canOpenFile`, ADR-017); the others are shown in their folder.
+ * types whose default app does not run code (`canOpenFile`, ADR-018); the others are shown in their folder.
  */
 export function openDownload(id: string): void {
   const entry = profile().downloads.get(id);

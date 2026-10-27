@@ -12,7 +12,7 @@ import { BrowserController } from "./window";
 
 /**
  * Test hook: `BROWSER_TEST_SLEEP_MS` replaces the sleep delay (unless sleeping is off). Test and dev
- * hooks are only honored by an unpackaged app (ADR-017, audit LOW-4).
+ * hooks are only honored by an unpackaged app (ADR-018, audit LOW-4).
  */
 const TEST_SLEEP_MS = (!app.isPackaged && Number(process.env.BROWSER_TEST_SLEEP_MS)) || 0;
 

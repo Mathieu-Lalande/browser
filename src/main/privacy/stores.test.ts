@@ -2,6 +2,7 @@ import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "n
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { flushJsonWriters } from "./json-file";
 import { PermissionStore } from "./permission-store";
 import { PermissionPrompts, permissionKinds } from "./permissions";
 import { ShieldsAllowList } from "./shields";
@@ -31,6 +32,20 @@ describe("ShieldsAllowList", () => {
     expect(new ShieldsAllowList(file).isEnabled("example.com")).toBe(false);
     await list.setEnabled("example.com", true);
     expect(new ShieldsAllowList(file).isEnabled("example.com")).toBe(true);
+  });
+
+  it("writes pending saves synchronously on quit (flushJsonWriters)", async () => {
+    const file = join(dir, "shields.json");
+    const list = new ShieldsAllowList(file);
+    const saved = list.setEnabled("a.com", false);
+    void list.setEnabled("b.com", false);
+    // Quitting before the asynchronous writes ran: the latest data is on disk right away.
+    flushJsonWriters();
+    expect(readJson(file)).toEqual({ disabledHosts: ["a.com", "b.com"] });
+    await saved;
+    await list.setEnabled("c.com", false);
+    expect(readJson(file)).toEqual({ disabledHosts: ["a.com", "b.com", "c.com"] });
+    expect(readdirSync(dir)).toEqual(["shields.json"]);
   });
 
   it("ignores corrupt or malformed files", () => {

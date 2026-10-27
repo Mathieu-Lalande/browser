@@ -29,7 +29,7 @@
   const image = $derived(options.background === "image" && options.backgroundImage ? options.backgroundImage : null);
   /**
    * The image itself, as a data: URL fetched by main: the UI loads no remote image (CSP
-   * `img-src 'self' data:`, ADR-017). Private windows keep their own look and do not load it.
+   * `img-src 'self' data:`, ADR-018). Private windows keep their own look and do not load it.
    */
   let imageData = $state<string | null>(null);
   $effect(() => {
@@ -63,23 +63,23 @@
   style:--start-image={imageData ? `url("${imageData}")` : undefined}
 >
   {#if browser.isPrivate}
-    <span class="mask"><Icon name="mask" size={30} /></span>
+    <span class="mask"><Icon name="mask" size={32} /></span>
     <h1>Navigation privée</h1>
   {:else}
     {#if options.showClock}<p class="time">{time}</p>{/if}
     <h1>{greeting}{#if name}, {name}{/if}.</h1>
   {/if}
   <form class="search" onsubmit={submit}>
-    <Icon name="search" size={18} />
+    <Icon name="search" size={20} />
     <!-- svelte-ignore a11y_autofocus -->
     <input bind:value={query} placeholder="Rechercher sur le web ou saisir une adresse" spellcheck="false" autofocus />
   </form>
   {#if browser.isPrivate}
     <ul class="private" aria-label="Ce que la navigation privée conserve">
-      <li><Icon name="check" size={14} /> Ni historique, ni sites fréquents, ni session restaurée</li>
-      <li><Icon name="check" size={14} /> Cookies, cache et données de sites effacés à la fermeture de la fenêtre</li>
-      <li><Icon name="check" size={14} /> Autorisations accordées pour cette fenêtre seulement</li>
-      <li class="kept"><Icon name="star" size={14} /> Les favoris ajoutés et les fichiers téléchargés sont conservés</li>
+      <li><Icon name="check" size={16} /> Ni historique, ni sites fréquents, ni session restaurée</li>
+      <li><Icon name="check" size={16} /> Cookies, cache et données de sites effacés à la fermeture de la fenêtre</li>
+      <li><Icon name="check" size={16} /> Autorisations accordées pour cette fenêtre seulement</li>
+      <li class="kept"><Icon name="star" size={16} /> Les favoris ajoutés et les fichiers téléchargés sont conservés</li>
     </ul>
   {:else if options.showTopSites && topSites.length}
     <nav class="sites" aria-label="Sites les plus visités">

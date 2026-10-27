@@ -60,7 +60,7 @@
     {#if !isMac}<WindowControls />{/if}
     {#if browser.isPrivate}
       <div class="private-badge" title="Navigation privée : ni historique, ni cookies conservés après la fermeture de la fenêtre">
-        <Icon name="mask" size={15} />
+        <Icon name="mask" size={16} />
         <span>Navigation privée</span>
       </div>
     {/if}
@@ -93,7 +93,7 @@
       <div class="space-content" in:fly={{ x: direction * 36, duration: 240, easing: cubicOut, opacity: 0 }}>
         {#if browser.activeSpace && browser.state.spaces.length > 1}
           <div class="space-title" style:--dot={browser.activeSpace.color ?? "var(--accent)"}>
-            <span class="space-icon">{browser.activeSpace.icon}</span>
+            <span class="space-icon"><Icon name={browser.activeSpace.icon} size={16} /></span>
             <span class="space-name">{browser.activeSpace.name}</span>
             {#if browser.activeSpace.isolated}<span class="badge" title="Cookies et connexions séparés">Isolé</span>{/if}
             <button class="icon small" aria-label="Modifier l'espace" title="Modifier l'espace" onclick={() => (editing = browser.state.activeSpaceId)}>
@@ -125,7 +125,7 @@
         <div class="divider"></div>
 
         <button class="new-tab" onclick={() => (api.tabs.create(), focusAddress())}>
-          <Icon name="plus" size={14} /> Nouvel onglet
+          <Icon name="plus" size={16} /> Nouvel onglet
         </button>
 
         <div class="tabs" role="tablist" aria-label="Onglets" aria-orientation="vertical">
@@ -307,7 +307,9 @@
     padding: 0 2px 0 8px;
   }
   .space-icon {
-    font-size: 14px;
+    display: grid;
+    place-items: center;
+    color: color-mix(in oklab, var(--dot) 70%, var(--text));
   }
   .space-name {
     flex: 1;

@@ -3,6 +3,7 @@ import { Linking, Platform, StyleSheet, View } from "react-native";
 import { WebView as RNWebView } from "react-native-webview";
 import type { WebViewProps } from "react-native-webview/lib/WebView";
 import type { ShouldStartLoadRequest, WebViewNavigation } from "react-native-webview/lib/WebViewTypes";
+import { isNavigableUrl } from "@shared/url";
 import { LINK_MENU_COOLDOWN_MS, linkMenuScript, parseLinkMenuMessage, type LinkMenuRequest } from "../lib/linkMenu";
 import { decideNavigation, decideOpenWindow, isHttpsUpgradeFailure } from "../lib/navigation";
 import { useBrowserActions, useEvent } from "../state/BrowserProvider";
@@ -25,7 +26,7 @@ const ORIGIN_WHITELIST = ["http://*", "https://*", "about:*", "data:*", "mailto:
  * Memoized on purpose: it re-renders only when what it must load changes, never while the page
  * navigates by itself or other tabs update.
  */
-export const WebTab = memo(function WebTab({ id, loadUrl, loadSeq, upgradedFrom, isPrivate, active, background, bottomInset, onScroll, onLinkMenu }: WebTabProps) {
+export const WebTab = memo(function WebTab({ id, loadUrl, loadSeq, resumeUrl, upgradedFrom, isPrivate, active, background, bottomInset, onScroll, onLinkMenu }: WebTabProps) {
   const actions = useBrowserActions();
   const ref = useRef<WebViewHandle | null>(null);
   const [generation, setGeneration] = useState(0);
@@ -34,10 +35,18 @@ export const WebTab = memo(function WebTab({ id, loadUrl, loadSeq, upgradedFrom,
   const activeRef = useRef(active);
   activeRef.current = active;
   const lastMenu = useRef(0);
+  /** The page committed last, followed from the WebView's own navigation events. */
+  const currentUrl = useRef(resumeUrl);
+  /**
+   * Where a new WebView starts: the tab's current page (a tab coming back after being unmounted,
+   * or revived), for as long as no newer explicit load (`loadSeq`) was requested.
+   */
+  const start = useRef({ uri: resumeUrl, seq: loadSeq });
 
-  // A new object only when a new load is requested (loadSeq), so in-page navigation never reloads.
+  // A new object only when a new load is requested (loadSeq) or the WebView is recreated, so
+  // in-page navigation never reloads.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const source = useMemo(() => ({ uri: loadUrl }), [loadUrl, loadSeq]);
+  const source = useMemo(() => ({ uri: start.current.seq === loadSeq ? start.current.uri : loadUrl }), [loadUrl, loadSeq, generation]);
 
   const setRef = useCallback(
     (view: WebViewHandle | null) => {
@@ -64,6 +73,8 @@ export const WebTab = memo(function WebTab({ id, loadUrl, loadSeq, upgradedFrom,
   });
 
   const onNavigationStateChange = useEvent((navigation: WebViewNavigation) => {
+    // Same rule as the tab model: about:blank (start-up) and refused schemes are not pages.
+    if (isNavigableUrl(navigation.url) && navigation.url !== "about:blank") currentUrl.current = navigation.url;
     actions.reportNavigation(id, {
       url: navigation.url,
       title: navigation.title,
@@ -74,7 +85,7 @@ export const WebTab = memo(function WebTab({ id, loadUrl, loadSeq, upgradedFrom,
   });
 
   const onOpenWindow = useEvent((event: { nativeEvent: { targetUrl: string } }) => {
-    // Web pages and about:blank only: never a top-level data: document opened by a page (ADR-017).
+    // Web pages and about:blank only: never a top-level data: document opened by a page (ADR-018).
     const decision = decideOpenWindow(event.nativeEvent.targetUrl, actions.httpExceptions());
     if (decision.kind === "external") Linking.openURL(decision.url).catch(() => {});
     else if (decision.kind === "allow" || decision.kind === "upgrade") {
@@ -106,8 +117,11 @@ export const WebTab = memo(function WebTab({ id, loadUrl, loadSeq, upgradedFrom,
     },
   );
 
-  // The web content process died (memory pressure): start a fresh WebView on the same URL.
-  const revive = useEvent(() => setGeneration((value) => value + 1));
+  // The web content process died (memory pressure): start a fresh WebView on the current page.
+  const revive = useEvent(() => {
+    start.current = { uri: currentUrl.current || loadUrl, seq: loadSeq };
+    setGeneration((value) => value + 1);
+  });
   const renderError = useCallback((_domain: string | undefined, code: number, description: string) => (
     <LoadError code={code} description={description} onRetry={() => ref.current?.reload()} />
   ), []);
@@ -146,7 +160,7 @@ export const WebTab = memo(function WebTab({ id, loadUrl, loadSeq, upgradedFrom,
         allowFileAccess={false}
         // Android content:// access (other apps' files) has no prop in react-native-webview 14: its
         // RNCWebViewManagerImpl sets `settings.allowContentAccess = false` for every WebView
-        // (checked for ADR-017; re-check on upgrades).
+        // (checked for ADR-018; re-check on upgrades).
         allowFileAccessFromFileURLs={false}
         allowUniversalAccessFromFileURLs={false}
         mixedContentMode="never"
@@ -169,7 +183,12 @@ export const WebTab = memo(function WebTab({ id, loadUrl, loadSeq, upgradedFrom,
       />
     </View>
   );
-});
+}, sameProps);
+
+/** `resumeUrl` only matters when the WebView is created: the page navigating does not re-render the tab. */
+function sameProps(previous: WebTabProps, next: WebTabProps): boolean {
+  return (Object.keys(next) as (keyof WebTabProps)[]).every((key) => key === "resumeUrl" || previous[key] === next[key]);
+}
 
 const styles = StyleSheet.create({
   web: { flex: 1 },

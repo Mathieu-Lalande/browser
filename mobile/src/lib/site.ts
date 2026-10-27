@@ -1,7 +1,7 @@
 import { webHostname } from "@shared/hosts";
 import { displayUrl } from "@shared/url";
 
-/** Small helpers to present a site without a screenshot: label, monogram, hue, favicon. */
+/** Small helpers to present a site without a screenshot: label, monogram, favicon. */
 
 /** "www.example.co.uk" → "example.co.uk"; empty for non-web URLs. */
 export function siteHost(url: string): string {
@@ -25,7 +25,7 @@ export function monogram(url: string, title = ""): string {
   return (letter ?? "?").toUpperCase();
 }
 
-/** A stable hue (0…359) per host, to tint cards and monograms. */
+/** A stable hue (0…359) per host: only for the web preview stand-in pages (the app UI stays neutral). */
 export function siteHue(url: string): number {
   const host = siteHost(url) || url;
   let hash = 2166136261;
@@ -38,7 +38,7 @@ export function siteHue(url: string): number {
 
 /**
  * The site's own `/favicon.ico` (fetched from the site being visited, never from a third-party
- * favicon service). Null for non-web URLs; callers fall back to the monogram on error.
+ * favicon service). Null for non-web URLs; callers fall back to a neutral monogram tile on error.
  */
 export function faviconUrl(url: string): string | null {
   try {

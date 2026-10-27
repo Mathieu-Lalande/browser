@@ -3,7 +3,7 @@ import { MAX_FAVICON_BYTES, faviconImageType, isFaviconDataUrl } from "@shared/f
 import { faviconRequestUrl } from "./privacy";
 
 /**
- * Favicons (ADR-017, audit HIGH-1). The chrome UI used to load the URL a page declared with an
+ * Favicons (ADR-018, audit HIGH-1). The chrome UI used to load the URL a page declared with an
  * `<img>` from the default session: a private window or an isolated space leaked a request, cookies
  * and a disk cache entry to the normal profile, outside shields, HTTPS-Only and GPC. Main now
  * fetches it with the tab's own session, checks it (raster image type, size, time) and hands the UI

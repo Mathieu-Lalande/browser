@@ -160,7 +160,7 @@ export function launch(profile: string, env: Record<string, string> = {}): Promi
   });
 }
 
-/** The chrome UI and the overlay are served from the app's own privileged scheme (ADR-017). */
+/** The chrome UI and the overlay are served from the app's own privileged scheme (ADR-018). */
 export const CHROME_URL = "app://browser/index.html";
 export const OVERLAY_URL = "app://browser/overlay.html";
 
@@ -283,4 +283,14 @@ export async function visit(chrome: Page, url: string, title: string): Promise<v
   await address.fill(url);
   await address.press("Enter");
   await expect(chrome.locator(".tab.active .title")).toHaveText(title);
+}
+
+/** Tab page views attached to the window, with their bounds (the overlay layer excluded). */
+export function attachedViews(app: ElectronApplication): Promise<{ url: string; x: number; y: number; width: number; height: number }[]> {
+  return app.evaluate(({ BrowserWindow, WebContentsView }) =>
+    BrowserWindow.getAllWindows()[0]
+      .contentView.children.filter((view) => view instanceof WebContentsView)
+      .map((view) => ({ url: (view as InstanceType<typeof WebContentsView>).webContents.getURL(), ...view.getBounds() }))
+      .filter((view) => view.url !== "app://browser/overlay.html"),
+  );
 }
