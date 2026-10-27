@@ -19,3 +19,6 @@
   voir ADR-011. Pages internes `browser://…` dessinées par l'interface : ADR-012 (jamais accessibles aux pages web).
 - Téléchargements, recherche dans la page, zoom par site, médias : ADR-013. `installDownloads(session)`
   (`src/main/downloads/`) est idempotente et doit être appliquée à chaque session d'onglets.
+- Application mobile : `mobile/` (Expo SDK 58 / React Native, ADR-016), importe `src/shared` via `@shared/*`
+  (jamais de copie) : `src/shared` doit rester pur (ni Electron, ni Node, ni DOM). Vérifications dans `mobile/` :
+  `npx tsc --noEmit && npx jest && npx expo export --platform android`.
