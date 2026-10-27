@@ -131,7 +131,7 @@ par le main au début du chargement, toujours sans preload.
 
 ## ADR-009 — Espaces (sessions partitionnées) et vue scindée
 
-**Espaces.** Un espace = nom, emoji, couleur (facultative), onglets propres (épinglés compris) et
+**Espaces.** Un espace = nom, icône (nom d'icône Lucide, voir ADR-017), couleur (facultative), onglets propres (épinglés compris) et
 une option « isolé ». La liste des espaces est commune à toutes les fenêtres ; chaque fenêtre en
 affiche un à la fois, avec ses propres onglets pour chaque espace.
 
@@ -160,7 +160,7 @@ affiche un à la fois, avec ses propres onglets pour chaque espace.
   de l'espace affiché charge (ou les onglets de sa vue scindée si elle est visible).
 - **Interface.** Sélecteur d'espaces en bas de la barre latérale (Ctrl+Alt+1…9, Ctrl+Alt+←/→, aussi
   dans la palette), glissement latéral de la liste d'onglets au changement d'espace, popover
-  d'édition dans la barre latérale (nom, emoji, couleur, isolement, suppression confirmée). La
+  d'édition dans la barre latérale (nom, grille d'icônes, couleur, isolement, suppression confirmée). La
   couleur de l'espace remplace `--accent` dans l'interface (et est exposée en `--space-color`) ;
   sans couleur, l'accent du thème s'applique.
 
@@ -466,7 +466,7 @@ versions épinglées), un onglet = une `react-native-webview`.
   et des zones sûres. Retour arrière : geste de bord natif sur iOS
   (`allowsBackForwardNavigationGestures`), bouton/geste retour du système sur Android
   (`BackHandler`, qui ferme d'abord feuilles et vues). Pas de miniatures (pas de
-  `react-native-view-shot` dans Expo Go) : cartes à l'icône et aux couleurs du site. Les favicons
+  `react-native-view-shot` dans Expo Go) : cartes neutres (surface du thème, favicon du site ou son initiale en gris, ADR-017). Les favicons
   viennent du site lui-même (`/favicon.ico`), jamais d'un service tiers, et pas du tout pour les
   onglets privés.
 - **Bloqueur de contenu : phase 2, pas de simulacre.** Un vrai blocage demande du natif :
@@ -484,3 +484,33 @@ versions épinglées), un onglet = une `react-native-webview`.
 métier testée. Toute fonction utile aux deux doit vivre, pure, dans `src/shared` ; le bureau ne
 compile pas `mobile/` (tsconfig/vitest inchangés) et la CI mobile (`.github/workflows/mobile.yml`)
 vérifie types, tests Jest et bundle Android dès que `mobile/` ou `src/shared` change.
+
+## ADR-017 — Icônes : Lucide partout, aucun emoji
+
+**Contexte.** L'interface mélangeait des tracés SVG dessinés à la main, des emojis (icônes des
+espaces, menus) et des tuiles de site colorées selon l'hôte. Le propriétaire veut une application
+qui « fait pro » : un seul jeu d'icônes, dont la couleur vient du CSS, et aucun emoji.
+
+**Décision.**
+- **Lucide** sur les deux applications : `@lucide/svelte` (bureau, Svelte 5) et
+  `lucide-react-native` (mobile, sur `react-native-svg` déjà inclus dans Expo Go), versions
+  épinglées. Chaque icône est importée individuellement (`@lucide/svelte/icons/<nom>`,
+  `lucide-react-native/icons/<nom>`) : seul ce qui est utilisé est embarqué.
+- Les composants `Icon` (`src/renderer/src/components/Icon.svelte`, `mobile/src/components/Icon.tsx`)
+  restent la seule porte d'entrée : ils associent les noms de l'interface (et `CommandIcon`) à un
+  composant Lucide, si bien que les appels ne changent pas. Couleur : `currentColor` (bureau) ou une
+  couleur du thème (mobile) ; jamais de couleur codée en dur. Trait 2 (bureau, icônes de 12 à 20 px)
+  et 1,75 (mobile, 20 à 24 px) ; tailles sur la grille de 4 px.
+- **Espaces.** `SpaceInfo.icon` est un nom d'icône Lucide pris dans une liste de 32
+  (`SPACE_ICONS`, `src/shared/spaces.ts`, libellés français dans `SPACE_ICON_LABELS`) ; l'IPC refuse
+  toute autre valeur. Au chargement, `sanitizeSpace` → `migrateSpaceIcon` convertit les emojis des
+  versions précédentes (session.json v2 du bureau, AsyncStorage du mobile ; 🏠 → `circle-user`,
+  💼 → `briefcase`…) et remplace toute valeur inconnue par `star`, sans changer de version de
+  fichier (la migration est idempotente). Les fenêtres privées ont l'icône `venetian-mask`, jamais
+  proposée. Les menus natifs (« Déplacer vers l'espace ») n'affichent que le nom.
+- **Sites sans favicon.** Tuile neutre : surface du thème, bordure fine, globe (bureau) ou initiale
+  du site (mobile) dans la couleur de texte atténuée. L'accent ne sert qu'aux états actif/sélectionné.
+  Les vrais favicons, logos des sites, restent tels quels. Les cartes de la vue des onglets mobile
+  n'ont plus de dégradé coloré par site.
+- Les glyphes de raccourcis clavier (⌘ ⇧ ⌥ ↵ ← →) restent : ce sont des caractères
+  typographiques, pas des icônes.

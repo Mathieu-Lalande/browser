@@ -40,7 +40,7 @@
       />
     </svg>
   {/if}
-  <Icon name="download" size={running ? 13 : 16} />
+  <Icon name="download" size={running ? 12 : 16} />
   {#if waiting}<span class="dot" aria-hidden="true"></span>{/if}
 </button>
 

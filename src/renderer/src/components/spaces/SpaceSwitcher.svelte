@@ -25,12 +25,13 @@
         role="tab"
         aria-selected={active}
         aria-label={space.name}
+        data-icon={space.icon}
         title={index < 9 ? `${space.name} (${isMac ? "⌘⌥" : "Ctrl+Alt+"}${index + 1})` : space.name}
         style:--dot={space.color ?? "var(--accent)"}
         onclick={() => (active ? onEdit(space.id) : api.spaces.switchTo(space.id))}
         oncontextmenu={(event) => (event.preventDefault(), onEdit(space.id))}
       >
-        <span class="emoji">{space.icon}</span>
+        <Icon name={space.icon} size={16} />
       </button>
     {/each}
   </div>
@@ -41,7 +42,7 @@
     disabled={browser.state.spaces.length >= MAX_SPACES}
     onclick={create}
   >
-    <Icon name="plus" size={14} />
+    <Icon name="plus" size={16} />
   </button>
 </div>
 
@@ -73,6 +74,7 @@
     color: var(--text-muted);
     transition:
       background 0.12s var(--ease),
+      color 0.12s var(--ease),
       transform 0.12s var(--ease);
   }
   .space:hover,
@@ -83,22 +85,9 @@
   .space:active {
     transform: scale(0.92);
   }
-  .emoji {
-    font-size: 16px;
-    line-height: 1;
-    filter: grayscale(0.6);
-    opacity: 0.7;
-    transition:
-      filter 0.15s var(--ease),
-      opacity 0.15s var(--ease);
-  }
-  .space:hover .emoji,
-  .space.active .emoji {
-    filter: none;
-    opacity: 1;
-  }
   .space.active {
     background: color-mix(in oklab, var(--dot) 18%, transparent);
+    color: color-mix(in oklab, var(--dot) 70%, var(--text));
   }
   .space.active::after {
     position: absolute;

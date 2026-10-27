@@ -115,7 +115,7 @@
       class:secure={isSecure || isInternal}
       title={isInternal ? "Page du navigateur" : isSecure ? "Connexion sécurisée" : undefined}
     >
-      <Icon name={!tab?.url ? "search" : isInternal ? "sparkle" : isSecure ? "lock" : "warning"} size={13} />
+      <Icon name={!tab?.url ? "search" : isInternal ? "sparkle" : isSecure ? "lock" : "warning"} size={12} />
     </span>
     <input
       bind:this={input}
@@ -155,7 +155,7 @@
         title={tab.isBookmarked ? "Retirer des favoris (Ctrl+D)" : "Ajouter aux favoris (Ctrl+D)"}
         onclick={() => api.bookmarks.toggleActive()}
       >
-        <Icon name="star" size={14} filled={tab.isBookmarked} />
+        <Icon name="star" size={16} filled={tab.isBookmarked} />
       </button>
     {/if}
     {#if tab && showShield}
@@ -168,7 +168,7 @@
         aria-pressed={tab.shieldsEnabled}
         onclick={() => tab && api.tabs.toggleShields(tab.id)}
       >
-        <Icon name={tab.shieldsEnabled ? "shield" : "shield-off"} size={13} />
+        <Icon name={tab.shieldsEnabled ? "shield" : "shield-off"} size={12} />
         {#if tab.shieldsEnabled && tab.blockedCount > 0}<span class="count">{tab.blockedCount > 99 ? "99+" : tab.blockedCount}</span>{/if}
       </button>
     {/if}
@@ -187,7 +187,7 @@
         onmousedown={(event) => event.preventDefault()}
         onclick={() => go(draft)}
       >
-        <span class="icon"><Icon name={isSearch ? "search" : "globe"} size={14} /></span>
+        <span class="icon"><Icon name={isSearch ? "search" : "globe"} size={16} /></span>
         <span class="text">
           {#if isSearch}Rechercher « {query} »{:else}Aller à {displayUrl(normalizeInput(query, settings.engine))}{/if}
         </span>
@@ -209,7 +209,7 @@
             <span class="url">{displayUrl(suggestion.url)}</span>
           </span>
           {#if suggestion.kind === "bookmark"}
-            <span class="kind" title="Favori"><Icon name="star" size={11} filled /></span>
+            <span class="kind" title="Favori"><Icon name="star" size={12} filled /></span>
           {/if}
         </li>
       {/each}

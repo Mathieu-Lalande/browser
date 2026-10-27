@@ -1,4 +1,4 @@
-import { DEFAULT_SPACE } from "@shared/spaces";
+import { DEFAULT_SPACE, FALLBACK_SPACE_ICON, isSpaceIcon } from "@shared/spaces";
 import {
   activeTab,
   initialTabsModel,
@@ -6,6 +6,7 @@ import {
   orderedTabs,
   parseSession,
   PRIVATE_SPACE_ID,
+  SESSION_VERSION,
   serializeSession,
   swipeTarget,
   tabsReducer,
@@ -175,7 +176,7 @@ describe("session persistence", () => {
         { id: "../x", url: "https://bad-id.example/" },
         { id: "d", url: "" },
       ],
-      spaces: [{ id: PRIVATE_SPACE_ID, name: "x" }, null, { id: "work", name: "Travail", icon: "💼" }],
+      spaces: [{ id: PRIVATE_SPACE_ID, name: "x" }, null, { id: "work", name: "Travail", icon: "briefcase" }],
       activeSpaceId: "nope",
     });
     expect(restored?.tabs.map((tab) => [tab.id, tab.spaceId])).toEqual([
@@ -184,6 +185,39 @@ describe("session persistence", () => {
     ]);
     expect(restored?.spaces.map((space) => space.id)).toEqual(["work"]);
     expect(restored?.activeSpaceId).toBe("work");
+  });
+
+  it("migrates the emoji space icons saved by earlier versions to Lucide icon names", () => {
+    // As stored in AsyncStorage by version 1 of the app (`{ version, data }`).
+    const stored = JSON.parse(
+      JSON.stringify({
+        version: SESSION_VERSION,
+        data: {
+          tabs: [{ id: "t1", url: "https://a.example/", spaceId: "work" }],
+          spaces: [
+            { id: "personal", name: "Personnel", icon: "🏠", color: null, isolated: false },
+            { id: "work", name: "Travail", icon: "💼", color: "#4fc3a1", isolated: false },
+            { id: "trips", name: "Voyages", icon: "✈️", color: null, isolated: false },
+            { id: "love", name: "Famille", icon: "❤️", color: null, isolated: false },
+            { id: "odd", name: "Autre", icon: "🦄", color: null, isolated: false },
+          ],
+          activeSpaceId: "work",
+        },
+      }),
+    ) as { data: unknown };
+    const restored = parseSession(stored.data);
+    expect(restored?.spaces.map((space) => [space.id, space.icon])).toEqual([
+      ["personal", "circle-user"],
+      ["work", "briefcase"],
+      ["trips", "plane"],
+      ["love", "heart"],
+      ["odd", FALLBACK_SPACE_ICON],
+    ]);
+    expect(restored?.activeSpaceId).toBe("work");
+    // Saved back with the icon names: a second load is stable.
+    const again = parseSession(JSON.parse(JSON.stringify(serializeSession(restored!))));
+    expect(again?.spaces).toEqual(restored?.spaces);
+    for (const space of again!.spaces) expect(isSpaceIcon(space.icon)).toBe(true);
   });
 
   it("rejects non-sessions", () => {

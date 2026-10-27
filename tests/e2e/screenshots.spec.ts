@@ -10,6 +10,10 @@ import { chromeOf, evalInTab, expect, launch, test } from "./fixtures";
  */
 test.skip(!process.env.SCREENSHOTS, "set SCREENSHOTS=1 to refresh docs/screenshots");
 
+/** SCREENSHOT_THEME=light shoots the light theme (files get a `-light` suffix where both exist). */
+const theme = process.env.SCREENSHOT_THEME === "light" ? "light" : "dark";
+const suffix = theme === "light" ? "-light" : "";
+
 const article = `<!doctype html><title>Le guide des navigateurs rapides</title>
 <style>
   body { margin: 0; font: 17px/1.6 Georgia, serif; color: #1f2328; background: #fbfaf7; }
@@ -26,7 +30,7 @@ const article = `<!doctype html><title>Le guide des navigateurs rapides</title>
 <p>Un bon navigateur s'efface derrière les pages. Les raccourcis clavier y jouent un rôle central : tout doit être à une touche de distance, sans jamais quitter le clavier.</p></main>`;
 
 test("command palette over a page", async ({ app, chrome, server }) => {
-  const colorScheme = process.env.SCREENSHOT_THEME === "light" ? "light" : "dark";
+  const colorScheme = theme;
   await chrome.emulateMedia({ colorScheme });
   const address = chrome.getByLabel("Barre d'adresse");
   for (const path of ["/docs", "/notes", "/projets"]) {
@@ -64,14 +68,14 @@ test("command palette over a page", async ({ app, chrome, server }) => {
     "-strip",
     "-colors",
     "256",
-    "docs/screenshots/palette.png",
+    `docs/screenshots/palette${suffix}.png`,
   ]);
 });
 
 /** A dark-themed profile whose downloads go to a scratch folder. */
 function prepareProfile(profile: string): string {
   const folder = mkdtempSync(join(tmpdir(), "browser-shots-"));
-  const settings = { appearance: { mode: process.env.SCREENSHOT_THEME === "light" ? "light" : "dark" }, downloads: { folder } };
+  const settings = { appearance: { mode: theme }, downloads: { folder } };
   writeFileSync(join(profile, "settings.json"), JSON.stringify({ version: 1, data: settings }));
   return folder;
 }
@@ -175,13 +179,15 @@ async function open(chrome: import("@playwright/test").Page, url: string, title:
 type Api = import("@shared/ipc").BrowserApi;
 
 test("sidebar with spaces", async ({ app, chrome }) => {
-  await chrome.emulateMedia({ colorScheme: "dark" });
+  await chrome.emulateMedia({ colorScheme: theme });
   await open(chrome, page("Notes de voyage", "#e8536b", "Lisbonne, Porto et la côte."), "Notes de voyage", false);
   await open(chrome, page("Recettes d'automne", "#f6a04d", "Courge rôtie et châtaignes."), "Recettes d'automne");
   for (const input of [
-    { name: "Travail", icon: "💼", color: "#4fc3a1", isolated: true },
-    { name: "Études", icon: "📚", color: "#5aa9ff" },
-  ]) {
+    { name: "Travail", icon: "briefcase", color: "#4fc3a1", isolated: true },
+    { name: "Études", icon: "graduation-cap", color: "#5aa9ff" },
+    { name: "Voyages", icon: "plane", color: "#ffb454" },
+    { name: "Cuisine", icon: "chef-hat", color: null },
+  ] as const) {
     await chrome.evaluate((input) => (globalThis as unknown as { browser: Api }).browser.spaces.create(input), input);
   }
   const spaces = chrome.getByRole("tablist", { name: "Espaces" }).getByRole("tab");
@@ -197,7 +203,21 @@ test("sidebar with spaces", async ({ app, chrome }) => {
   await expect(chrome.getByRole("dialog", { name: "Modifier l'espace" })).toBeVisible();
   await chrome.getByLabel("Nom de l'espace").blur();
   await new Promise((resolve) => setTimeout(resolve, 500));
-  await captureWindow(app, "spaces");
+  await captureWindow(app, `spaces${suffix}`);
+});
+
+test("start page", async ({ app, chrome, server }) => {
+  await chrome.emulateMedia({ colorScheme: theme });
+  // A few visited sites for the "most visited" tiles: some with a favicon, some without.
+  await open(chrome, server.url("/docs"), "Page docs", false);
+  await open(chrome, page("Notes de voyage", "#e8536b", "Lisbonne, Porto et la côte."), "Notes de voyage", false);
+  await open(chrome, server.url("/notes"), "Page notes", false);
+  await open(chrome, server.url("/projets"), "Page projets", false);
+  await chrome.getByRole("button", { name: "Nouvel onglet" }).click();
+  await expect(chrome.locator(".start h1")).toBeVisible();
+  await chrome.locator(".start input").blur();
+  await new Promise((resolve) => setTimeout(resolve, 600));
+  await captureWindow(app, `start${suffix}`);
 });
 
 test("private window", async ({ app, chrome }) => {

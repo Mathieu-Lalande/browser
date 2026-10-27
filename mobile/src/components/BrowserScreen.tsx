@@ -1,5 +1,5 @@
 import { getCommand, type CommandId } from "@shared/commands";
-import { cycleSpace } from "@shared/spaces";
+import { cycleSpace, FALLBACK_SPACE_ICON } from "@shared/spaces";
 import type { SpaceInfo } from "@shared/types";
 import { displayUrl } from "@shared/url";
 import * as Clipboard from "expo-clipboard";
@@ -226,7 +226,7 @@ export function BrowserScreen() {
         return;
       case "new-space": {
         const spaceId = actions.addSpace();
-        setEditingSpace({ id: spaceId, name: "", icon: "⭐", color: null, isolated: false });
+        setEditingSpace({ id: spaceId, name: "", icon: FALLBACK_SPACE_ICON, color: null, isolated: false });
         break;
       }
       case "next-space":
@@ -366,8 +366,8 @@ export function BrowserScreen() {
           title: "Déplacer vers",
           items: destinations.map((space) => ({
             key: space.id,
-            label: `${space.icon}  ${space.name}`,
-            icon: "layers" as const,
+            label: space.name,
+            icon: space.icon,
             onPress: () => actions.moveToSpace(target.id, space.id),
           })),
         }),

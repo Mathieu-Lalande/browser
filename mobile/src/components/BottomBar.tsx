@@ -149,7 +149,7 @@ export const BottomBar = memo(function BottomBar(props: Props) {
           style={styles.miniTap}
           pressScale={0.97}
         >
-          {secure && <Icon name="lock" size={11} color={colors.textMuted} strokeWidth={2.4} />}
+          {secure && <Icon name="lock" size={12} color={colors.textMuted} strokeWidth={2} />}
           <Text style={[styles.miniText, { color: colors.text }]} numberOfLines={1}>
             {label || "Page d'accueil"}
           </Text>
@@ -180,7 +180,7 @@ export const BottomBar = memo(function BottomBar(props: Props) {
                   name={isPrivate ? "mask" : label ? (secure ? "lock" : "unlock") : "search"}
                   size={16}
                   color={isPrivate ? colors.accentText : colors.textMuted}
-                  strokeWidth={2.2}
+                  strokeWidth={2}
                 />
               </View>
               <Text style={[styles.pillText, { color: label ? colors.text : colors.textMuted }]} numberOfLines={1}>
@@ -208,8 +208,8 @@ export const BottomBar = memo(function BottomBar(props: Props) {
         </GestureDetector>
 
         <Animated.View style={[styles.toolRow, tools]}>
-          <IconButton icon="back" label="Page précédente" onPress={props.onBack} disabled={!tab?.canGoBack} size={25} />
-          <IconButton icon="forward" label="Page suivante" onPress={props.onForward} disabled={!tab?.canGoForward} size={25} />
+          <IconButton icon="back" label="Page précédente" onPress={props.onBack} disabled={!tab?.canGoBack} size={24} />
+          <IconButton icon="forward" label="Page suivante" onPress={props.onForward} disabled={!tab?.canGoForward} size={24} />
           <IconButton icon="share" label="Partager la page" onPress={props.onShare} disabled={!tab?.url} />
           <Tap
             accessibilityRole="button"
