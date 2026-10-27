@@ -2,7 +2,7 @@ import { readdirSync, writeFileSync } from "node:fs";
 import type { ElectronApplication, Page } from "@playwright/test";
 import type { BrowserApi } from "@shared/ipc";
 import type { BrowserState, HistoryEntry, TabId } from "@shared/types";
-import { attachedViews, chromeOf, evalInTab, expect, launch, tabUrls, test } from "./fixtures";
+import { attachedViews, chromeOf, evalInTab, expect, launch, overlayOf, tabUrls, test } from "./fixtures";
 
 type Global = { browser: BrowserApi };
 /** Uncaught exceptions of the main process, collected by `watchErrors`. */
@@ -280,8 +280,7 @@ test("the address bar never picks a suggestion computed for older text", async (
 test("the command palette never runs a suggestion computed for older text", async ({ app, chrome, server }) => {
   const stale: HistoryEntry = { url: server.url("/stale"), title: "Stale", favicon: null, visitCount: 1, lastVisit: Date.now() };
   await slowHistorySearch(app, stale, "zzfresh", 2000);
-  await expect.poll(() => app.windows().some((page) => page.url().endsWith("/renderer/overlay.html"))).toBe(true);
-  const overlay = app.windows().find((page) => page.url().endsWith("/renderer/overlay.html"))!;
+  const overlay = await overlayOf(app);
   await run(chrome, "command-palette");
   const input = overlay.getByRole("combobox", { name: "Palette de commandes" });
   await expect(input).toBeFocused();
