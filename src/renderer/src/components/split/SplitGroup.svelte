@@ -18,7 +18,7 @@
   </div>
   {#if visible}
     <button class="exit" aria-label="Quitter la vue scindée" title="Quitter la vue scindée (Ctrl+Maj+\)" onclick={() => api.split.exit()}>
-      <Icon name="split" size={13} />
+      <Icon name="split" size={12} />
     </button>
   {/if}
 </div>

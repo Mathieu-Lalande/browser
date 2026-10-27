@@ -177,7 +177,7 @@
     </div>
   {:else}
     <div class="search">
-      <Icon name="search" size={18} />
+      <Icon name="search" size={20} />
       <input
         bind:this={input}
         value={query}
@@ -220,11 +220,11 @@
             >
               <span class="icon" class:tile={item.kind === "command" || item.kind === "search" || item.kind === "navigate"}>
                 {#if item.kind === "command"}
-                  <Icon name={item.command.icon} size={15} />
+                  <Icon name={item.command.icon} size={16} />
                 {:else if item.kind === "search"}
-                  <Icon name="search" size={15} />
+                  <Icon name="search" size={16} />
                 {:else if item.kind === "navigate"}
-                  <Icon name="arrow" size={15} />
+                  <Icon name="arrow" size={16} />
                 {:else if item.kind === "tab"}
                   <Favicon src={item.tab.favicon} loading={item.tab.isLoading} />
                 {:else if item.kind === "bookmark" || item.kind === "history"}

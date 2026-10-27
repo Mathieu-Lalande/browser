@@ -1,5 +1,4 @@
 import type { SpaceInfo } from "@shared/types";
-import { LinearGradient } from "expo-linear-gradient";
 import { memo, useMemo } from "react";
 import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
@@ -18,10 +17,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { scheduleOnRN } from "react-native-worklets";
 import { shouldDismissCard } from "../lib/gestures";
 import { cardRect, gridLayout, scrollOffsetFor, type GridLayout, type Rect } from "../lib/overviewLayout";
-import { siteHue, siteLabel } from "../lib/site";
+import { siteLabel } from "../lib/site";
 import { isPrivateTab, orderedTabs, PRIVATE_SPACE_ID, type MobileTab, type TabsModel } from "../lib/tabs";
 import { useTheme } from "../state/theme";
-import { Icon } from "./Icon";
+import { Icon, type IconName } from "./Icon";
 import { IconButton, SiteIcon, Tap } from "./ui";
 
 export const CHIPS_HEIGHT = 56;
@@ -123,7 +122,7 @@ export const TabOverview = memo(function TabOverview(props: Props) {
             <Chip
               key={space.id}
               label={space.name}
-              emoji={space.icon}
+              icon={space.icon}
               color={space.color}
               selected={model.activeSpaceId === space.id}
               onPress={() => props.onShowSpace(space.id)}
@@ -187,7 +186,7 @@ export const TabOverview = memo(function TabOverview(props: Props) {
           style={[styles.plus, { backgroundColor: colors.accent }]}
           testID="overview-new-tab"
         >
-          <Icon name="plus" size={26} color={colors.onAccent} strokeWidth={2.4} />
+          <Icon name="plus" size={24} color={colors.onAccent} strokeWidth={2} />
         </Tap>
         <Text style={[styles.spaceName, { color: "transparent" }]} numberOfLines={1}>
           {spaceName}
@@ -203,15 +202,13 @@ export const TabOverview = memo(function TabOverview(props: Props) {
 function Chip({
   label,
   icon,
-  emoji,
   color,
   selected,
   onPress,
   onLongPress,
 }: {
   label: string;
-  icon?: "mask" | "plus";
-  emoji?: string;
+  icon?: IconName;
   color?: string | null;
   selected: boolean;
   onPress: () => void;
@@ -242,7 +239,7 @@ function Chip({
         { backgroundColor: selected ? tint : colors.surface, borderColor: selected ? tint : colors.hairline },
       ]}
     >
-      {emoji ? <Text style={styles.chipEmoji}>{emoji}</Text> : icon ? <Icon name={icon} size={15} color={selected ? colors.onAccent : colors.text} strokeWidth={2.2} /> : null}
+      {icon ? <Icon name={icon} size={16} color={selected ? colors.onAccent : colors.textMuted} strokeWidth={2} /> : null}
       <Text style={[styles.chipText, { color: selected ? colors.onAccent : colors.text }]} numberOfLines={1}>
         {label}
       </Text>
@@ -303,10 +300,9 @@ const TabCard = memo(function TabCard({
   onClose: (id: string) => void;
   onLongPress: (tab: MobileTab) => void;
 }) {
-  const { colors, dark, haptic } = useTheme();
+  const { colors, haptic } = useTheme();
   const x = useSharedValue(0);
   const width = layout.cardWidth;
-  const hue = siteHue(tab.url);
   const label = tab.url ? siteLabel(tab.url) : "Page d'accueil";
   const title = tab.title || label;
   const privateTab = isPrivateTab(tab);
@@ -367,7 +363,7 @@ const TabCard = memo(function TabCard({
               backgroundColor: colors.bgElevated,
               borderColor: active ? colors.accent : colors.hairline,
               borderWidth: active ? 2.5 : StyleSheet.hairlineWidth,
-              shadowColor: dark ? "#000" : "#3c2d78",
+              shadowColor: "#000",
             },
           ]}
         >
@@ -378,23 +374,13 @@ const TabCard = memo(function TabCard({
             </Text>
             <Tap accessibilityRole="button" accessibilityLabel="Fermer l'onglet" onPress={close} hitSlop={8} pressScale={0.8} style={styles.cardClose}>
               <View style={[styles.cardCloseDot, { backgroundColor: colors.surfaceActive }]}>
-                <Icon name="close" size={12} color={colors.textMuted} strokeWidth={2.6} />
+                <Icon name="close" size={12} color={colors.textMuted} strokeWidth={2} />
               </View>
             </Tap>
           </View>
-          <View style={styles.preview}>
-            {tab.url ? (
-              <LinearGradient
-                colors={[`hsla(${hue}, 75%, ${dark ? 45 : 62}%, ${dark ? 0.5 : 0.45})`, `hsla(${(hue + 40) % 360}, 70%, ${dark ? 30 : 80}%, ${dark ? 0.25 : 0.25})`]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={StyleSheet.absoluteFill}
-              />
-            ) : (
-              <LinearGradient colors={[colors.accentSoft, "transparent"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-            )}
-            <View style={[styles.previewIcon, { backgroundColor: dark ? "rgba(0,0,0,0.25)" : "rgba(255,255,255,0.7)" }]}>
-              <SiteIcon url={tab.url} title={tab.title} size={34} offline={privateTab} />
+          <View style={[styles.preview, { backgroundColor: colors.surface, borderTopColor: colors.hairline }]}>
+            <View style={[styles.previewIcon, { backgroundColor: colors.bgElevated, borderColor: colors.hairline }]}>
+              <SiteIcon url={tab.url} title={tab.title} size={32} offline={privateTab} plain />
             </View>
             <Text style={[styles.previewLabel, { color: colors.text }]} numberOfLines={1}>
               {label}
@@ -412,7 +398,6 @@ const styles = StyleSheet.create({
   chips: { paddingHorizontal: 14, gap: 8, alignItems: "center" },
   chipDivider: { width: StyleSheet.hairlineWidth * 2, height: 22, marginHorizontal: 2 },
   chip: { flexDirection: "row", alignItems: "center", gap: 6, height: 38, paddingHorizontal: 14, borderRadius: 19, borderWidth: StyleSheet.hairlineWidth },
-  chipEmoji: { fontSize: 15 },
   chipText: { fontSize: 15, fontWeight: "600", maxWidth: 160 },
   pinnedRow: { position: "absolute", left: 16, right: 16, height: PINNED_HEIGHT, flexDirection: "row", gap: 14, paddingTop: 6 },
   pinned: { width: PINNED_TILE, height: PINNED_TILE, borderRadius: 18, alignItems: "center", justifyContent: "center" },
@@ -430,8 +415,8 @@ const styles = StyleSheet.create({
   cardTitle: { flex: 1, fontSize: 13, fontWeight: "600" },
   cardClose: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
   cardCloseDot: { width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center" },
-  preview: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, overflow: "hidden" },
-  previewIcon: { width: 60, height: 60, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  preview: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, overflow: "hidden", borderTopWidth: StyleSheet.hairlineWidth },
+  previewIcon: { width: 60, height: 60, borderRadius: 16, alignItems: "center", justifyContent: "center", borderWidth: StyleSheet.hairlineWidth },
   previewLabel: { fontSize: 12, fontWeight: "600", opacity: 0.75, paddingHorizontal: 10 },
   loadingDot: { position: "absolute", top: 10, right: 10, width: 7, height: 7, borderRadius: 4 },
   empty: { width: "100%", alignItems: "center", paddingTop: 80, gap: 8 },

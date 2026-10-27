@@ -74,7 +74,7 @@
     {/if}
   {:else}
     <div class="empty">
-      <span class="badge"><Icon name="download" size={18} /></span>
+      <span class="badge"><Icon name="download" size={20} /></span>
       <p>Aucun téléchargement pour l'instant.</p>
       <p class="hint">Les fichiers vont dans votre dossier Téléchargements, sans boîte de dialogue.</p>
     </div>

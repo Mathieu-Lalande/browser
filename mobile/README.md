@@ -6,9 +6,9 @@ directement le code de la version de bureau (`../src/shared` : URL et moteurs de
 historique et suggestions, recherche floue, palette de commandes, paramètres, moteur de thème,
 espaces, mode HTTPS uniquement).
 
-| Accueil | Onglets et espaces | Recherche |
-| --- | --- | --- |
-| ![Accueil](../docs/screenshots/mobile-start-light.png) | ![Onglets](../docs/screenshots/mobile-tabs-dark.png) | ![Recherche](../docs/screenshots/mobile-search-light.png) |
+| Accueil | Onglets et espaces | Espace | Recherche |
+| --- | --- | --- | --- |
+| ![Accueil](../docs/screenshots/mobile-start-light.png) | ![Onglets](../docs/screenshots/mobile-tabs-dark.png) | ![Modifier un espace](../docs/screenshots/mobile-space-editor-dark.png) | ![Recherche](../docs/screenshots/mobile-search-light.png) |
 
 (Captures faites avec le rendu web de développement : la page affichée est un faux contenu.)
 
@@ -69,7 +69,7 @@ Chaque modification du code est rechargée instantanément sur le téléphone. S
 - **Vue des onglets** : grille de cartes (balayer une carte sur le côté pour la fermer, la
   maintenir pour l'épingler, la dupliquer, la déplacer vers un autre espace), onglets épinglés en
   haut, **espaces** sous forme de pastilles (maintenir une pastille pour la renommer, changer son
-  emoji et sa couleur, ou la supprimer), bouton « + ».
+  icône et sa couleur, ou la supprimer), bouton « + ».
 - **Navigation privée** : pastille « Privé » de la vue des onglets, ou « Nouvel onglet privé ».
   Rien n'est enregistré (ni historique ni session). Sur iPhone, chaque onglet privé a ses propres
   cookies, effacés à sa fermeture. Sur Android, voir les limites ci-dessous.
@@ -94,9 +94,9 @@ Chaque modification du code est rechargée instantanément sur le téléphone. S
   de *tous* les onglets ; elle n'est donc pas utilisée. Les onglets privés n'ont ni historique, ni
   cache, ni formulaires mémorisés, mais partagent encore les cookies des autres onglets.
 - **Pas de miniatures de pages** dans la vue des onglets (il faudrait `react-native-view-shot`,
-  absent d'Expo Go) : chaque carte affiche l'icône et les couleurs du site.
+  absent d'Expo Go) : chaque carte, neutre, affiche le favicon du site (ou son initiale).
 - **Tirer pour actualiser** n'existe que sur iPhone (la WebView Android ne le propose pas) ;
-  sur Android, utilisez le bouton ↻ de la barre d'adresse.
+  sur Android, utilisez le bouton Recharger de la barre d'adresse.
 - Les cookies des sites ne peuvent pas être effacés depuis l'application dans Expo Go.
 
 ## Développement

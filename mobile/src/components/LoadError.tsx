@@ -9,7 +9,7 @@ export function LoadError({ code, description, onRetry }: { code: number; descri
   return (
     <View style={[styles.root, { backgroundColor: colors.bg }]}>
       <View style={[styles.badge, { backgroundColor: colors.surfaceActive }]}>
-        <Icon name="globe" size={30} color={colors.textMuted} />
+        <Icon name="globe" size={32} color={colors.textMuted} />
       </View>
       <Text style={[styles.title, { color: colors.text }]}>Impossible d'ouvrir la page</Text>
       <Text style={[styles.detail, { color: colors.textMuted }]}>
@@ -19,7 +19,7 @@ export function LoadError({ code, description, onRetry }: { code: number; descri
         </Text>
       </Text>
       <Tap accessibilityRole="button" onPress={onRetry} style={[styles.button, { backgroundColor: colors.accent }]}>
-        <Icon name="reload" size={18} color={colors.onAccent} />
+        <Icon name="reload" size={20} color={colors.onAccent} />
         <Text style={[styles.buttonText, { color: colors.onAccent }]}>Réessayer</Text>
       </Tap>
     </View>

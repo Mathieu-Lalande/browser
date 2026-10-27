@@ -38,12 +38,23 @@ test("spaces have their own tabs; switching back and forth shows each space's pa
   const editor = chrome.getByRole("dialog", { name: "Modifier l'espace" });
   await expect(editor).toBeVisible();
   await editor.getByLabel("Nom de l'espace").fill("Travail");
+  // Icons are Lucide icons picked from a grid (no emoji), drawn in the theme's colors.
+  const icons = editor.getByRole("radiogroup", { name: "Icône" }).getByRole("radio");
+  await expect(icons).toHaveCount(32);
+  await expect(icons.locator("svg.lucide")).toHaveCount(32);
+  await editor.getByRole("radio", { name: "Voyages" }).click();
+  await expect(editor.getByRole("radio", { name: "Voyages" })).toHaveAttribute("aria-checked", "true");
+  await expect(editor.locator(".preview svg")).toHaveClass(/lucide-plane/);
   await editor.getByRole("button", { name: "Terminé" }).click();
   await expect(editor).toHaveCount(0);
 
   const spaces = chrome.getByRole("tablist", { name: "Espaces" }).getByRole("tab");
   await expect(spaces).toHaveCount(2);
   await expect(spaces.nth(1)).toHaveAttribute("aria-selected", "true");
+  await expect(spaces.nth(0)).toHaveAttribute("data-icon", "circle-user");
+  await expect(spaces.nth(1)).toHaveAttribute("data-icon", "plane");
+  await expect(spaces.nth(1).locator("svg")).toHaveClass(/lucide-plane/);
+  expect((await state(chrome)).spaces.map((space) => space.icon)).toEqual(["circle-user", "plane"]);
   await expect(chrome.locator(".space-name")).toHaveText("Travail");
   // A new space starts on a start page, without the other space's tabs.
   await expect(chrome.locator(".start")).toBeVisible();
@@ -114,7 +125,7 @@ test("tabs move between spaces, and spaces, tabs and splits survive a restart", 
   await visit(chrome, server.url("/keep"), "Page keep");
   await chrome.getByRole("button", { name: "Nouvel onglet" }).click();
   await visit(chrome, server.url("/moved"), "Page moved");
-  const work = await createSpace(chrome, { name: "Travail", icon: "💼", color: "#4fc3a1" });
+  const work = await createSpace(chrome, { name: "Travail", icon: "briefcase", color: "#4fc3a1" });
   await visit(chrome, server.url("/work-a"), "Page work-a");
   await chrome.getByRole("button", { name: "Nouvel onglet" }).click();
   await visit(chrome, server.url("/work-b"), "Page work-b");
@@ -144,6 +155,7 @@ test("tabs move between spaces, and spaces, tabs and splits survive a restart", 
     const spaces = chrome.getByRole("tablist", { name: "Espaces" }).getByRole("tab");
     await expect(spaces).toHaveCount(2);
     await expect(spaces.nth(1)).toHaveAttribute("aria-label", "Travail");
+    await expect(spaces.nth(1)).toHaveAttribute("data-icon", "briefcase");
     await expect(spaces.nth(1)).toHaveAttribute("aria-selected", "true");
     await expect(chrome.locator(".space-name")).toHaveText("Travail");
     await expect(chrome.locator(".tabs [role=tab]")).toHaveCount(3);
@@ -200,4 +212,31 @@ test("split view lays two pages side by side, resizes, and Ctrl+Shift+\\ leaves 
   // Same shortcut again: the active tab side by side with the next one.
   await press(app, "\\", ["control", "shift"]);
   await expect.poll(async () => (await attachedViews(app)).length).toBe(2);
+});
+
+test("spaces saved with emoji icons by earlier versions get Lucide icons", async ({ profile }) => {
+  const { writeFileSync } = await import("node:fs");
+  const space = (id: string, name: string, icon: string) => ({ id, name, icon, color: null, isolated: false });
+  writeFileSync(
+    `${profile}/session.json`,
+    JSON.stringify({
+      version: 2,
+      data: {
+        spaces: [space("personal", "Personnel", "🏠"), space("work", "Travail", "💼"), space("odd", "Autre", "🦄")],
+        windows: [{ activeSpaceId: "work", spaces: [{ spaceId: "work", tabs: [{ url: "", title: "", favicon: null, pinned: false }], activeIndex: 0 }] }],
+      },
+    }),
+  );
+  const app = await launch(profile);
+  try {
+    const chrome = await chromeOf(app);
+    const spaces = chrome.getByRole("tablist", { name: "Espaces" }).getByRole("tab");
+    await expect(spaces).toHaveCount(3);
+    expect(await spaces.evaluateAll((tabs) => tabs.map((tab) => tab.getAttribute("data-icon")))).toEqual(["circle-user", "briefcase", "star"]);
+    await expect(spaces.nth(1).locator("svg")).toHaveClass(/lucide-briefcase/);
+    // No emoji left anywhere in the window's UI.
+    expect(await chrome.locator("body").innerText()).not.toMatch(/\p{Extended_Pictographic}/u);
+  } finally {
+    await app.close();
+  }
 });

@@ -1,3 +1,5 @@
+import type { SpaceIcon } from "./spaces";
+
 export type TabId = string;
 
 export interface TabState {
@@ -97,8 +99,8 @@ export type SpaceId = string;
 export interface SpaceInfo {
   id: SpaceId;
   name: string;
-  /** An emoji (or a short symbol). */
-  icon: string;
+  /** A Lucide icon name from `SPACE_ICONS` (see spaces.ts). */
+  icon: SpaceIcon;
   /** `#rrggbb` accent used while the space is shown; null keeps the theme accent. */
   color: string | null;
   /** Own session partition (separate logins, like containers) instead of the shared default one. */

@@ -40,7 +40,7 @@
 
 <div class="find-bar" role="search" aria-label="Rechercher dans la page">
   <label class="field" class:not-found={notFound}>
-    <Icon name="search" size={14} />
+    <Icon name="search" size={16} />
     <input
       bind:this={input}
       bind:value={draft}
@@ -65,14 +65,14 @@
   </button>
   <div class="steps">
     <button aria-label="Occurrence précédente" title="Occurrence précédente (Maj+Entrée)" disabled={!find.matches} onclick={() => api.find.step(tabId, false)}>
-      <Icon name="chevron-up" size={15} />
+      <Icon name="chevron-up" size={16} />
     </button>
     <button aria-label="Occurrence suivante" title="Occurrence suivante (Entrée)" disabled={!find.matches} onclick={() => api.find.step(tabId, true)}>
-      <Icon name="chevron-down" size={15} />
+      <Icon name="chevron-down" size={16} />
     </button>
   </div>
   <button class="close" aria-label="Fermer la recherche" title="Fermer (Échap)" onclick={() => api.find.close(tabId)}>
-    <Icon name="close" size={13} />
+    <Icon name="close" size={12} />
   </button>
 </div>
 
