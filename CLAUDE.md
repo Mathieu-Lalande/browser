@@ -26,3 +26,6 @@
 - Application mobile : `mobile/` (Expo SDK 58 / React Native, ADR-016), importe `src/shared` via `@shared/*`
   (jamais de copie) : `src/shared` doit rester pur (ni Electron, ni Node, ni DOM). Vérifications dans `mobile/` :
   `npx tsc --noEmit && npx jest && npx expo export --platform android`.
+- Synchronisation chiffrée (ADR-018) : moteur pur `src/shared/sync/` (crypto `@noble/*`, HLC, LWW), adaptateurs
+  `src/main/sync/` et `mobile/src/lib/sync/`, relais `server/` (`cd server && npm test`). Le serveur ne doit
+  jamais voir de clair ; rien de privé n'est synchronisé.

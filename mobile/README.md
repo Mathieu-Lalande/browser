@@ -56,6 +56,13 @@ Chaque modification du code est rechargée instantanément sur le téléphone. S
 - **Le PC a plusieurs cartes réseau** (VirtualBox, WSL, VPN) et le téléphone n'atteint pas la bonne
   adresse : `--tunnel` règle le problème.
 
+## Synchronisation avec le PC
+
+Paramètres → **Synchronisation** → « Scanner le code de jumelage » (le QR code s'affiche sur le PC dans
+Paramètres → Synchronisation). Chiffrement de bout en bout, serveur auto-hébergé : voir
+[`../server/README.md`](../server/README.md) et l'ADR-018. Les onglets du PC apparaissent dans la vue
+des onglets (« Autres appareils ») et dans la recherche. Rien de la navigation privée n'est envoyé.
+
 ## Ce que l'on peut faire
 
 - **Barre d'adresse en bas**, dans la zone du pouce. Elle se réduit à un simple nom de domaine

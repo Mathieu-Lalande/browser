@@ -32,3 +32,5 @@ jobs:
         run: npx jest --ci
       - name: Bundle for Android (Metro + Hermes)
         run: npx expo export --platform android --output-dir dist/android
+      - name: Bundle for iOS (Metro + Hermes)
+        run: npx expo export --platform ios --output-dir dist/ios

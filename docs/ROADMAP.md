@@ -53,6 +53,20 @@ barre d'adresse, page d'accueil, raccourcis, durcissement sécurité, tests unit
   4. Linux : AppImage via electron-updater ; les paquets deb passent par un dépôt apt plus tard.
   5. Canal bêta (`allowPrerelease`) pour tester avant diffusion.
 
+## Synchronisation — voir ADR-018 et `server/README.md`
+- ✅ Synchronisation chiffrée de bout en bout entre le bureau et le téléphone : favoris (et
+  dossiers), historique des 90 derniers jours, onglets ouverts par appareil (« Onglets de mes autres
+  appareils » dans la palette, la vue des onglets et la recherche mobile), espaces, thème, moteur de
+  recherche et page d'accueil. Jamais la navigation privée.
+- ✅ Moteur partagé (`src/shared/sync/`) : XChaCha20-Poly1305, identifiants HMAC, dernier écrivain
+  gagnant avec horloge logique hybride, pierres tombales, concurrence optimiste, nouvel essai avec
+  délai exponentiel. Jumelage par QR code ou code texte, déconnexion, réinitialisation avec
+  nouvelle clé.
+- ✅ Relais auto-hébergé (`server/`, Node 22 sans dépendance, Docker, guides VPS + Caddy, Fly.io,
+  Render). Aucun serveur fourni : la synchronisation reste désactivée tant qu'il n'est pas déployé.
+- Reste : révoquer un seul appareil sans tout réinitialiser, fusion fine des titres, favicons,
+  synchronisation des mots de passe (avec une clé dérivée séparée), test sur un vrai iPhone.
+
 ## Mobile (iOS et Android) — voir ADR-016 et `mobile/README.md`
 
 ### Phase 1 — Expo Go ✅
@@ -72,7 +86,8 @@ retours haptiques.
   données de site ; espaces isolés (conteneurs) sur les deux plateformes.
 - Miniatures des onglets (`react-native-view-shot`), recherche dans la page, téléchargements,
   mode lecture, « version ordinateur » du site.
-- Synchronisation chiffrée avec le bureau (favoris, onglets ouverts, historique, espaces).
+- ✅ Synchronisation chiffrée avec le bureau (favoris, onglets ouverts, historique, espaces) :
+  faite dès Expo Go (ADR-018), voir ci-dessus.
 - Widgets et raccourcis de l'écran d'accueil, extension de partage (« Ouvrir dans Browser »),
   navigateur par défaut.
 - Publication sur l'App Store et le Play Store.

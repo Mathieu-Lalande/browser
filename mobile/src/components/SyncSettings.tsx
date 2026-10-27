@@ -66,7 +66,7 @@ export const SyncSettings = memo(function SyncSettings({ onScan }: { onScan: () 
             accessibilityLabel="Code de jumelage"
             keyboardAppearance={dark ? "dark" : "light"}
           />
-          <Button label="Jumeler" disabled={busy || !code.trim()} onPress={() => void run(() => actions.sync.pair(code.trim()), "Appareil jumelé.").then((ok) => ok && setCode(""))} />
+          <Button label="Jumeler" disabled={busy || !code.trim() || isPrivate} onPress={() => void run(() => actions.sync.pair(code.trim()), "Appareil jumelé.").then((ok) => ok && setCode(""))} />
         </View>
         <View style={[styles.block, { borderTopColor: colors.hairline }]}>
           <Text style={[styles.label, { color: colors.text }]}>Premier appareil</Text>

@@ -23,6 +23,9 @@ Un navigateur desktop **rapide, privé et entièrement personnalisable**, dans l
 - Téléchargements sans boîte de dialogue (pause, reprise, annulation, historique, `browser://downloads`) ;
   les programmes et scripts attendent une confirmation et rien n'est jamais ouvert automatiquement.
 - Recherche dans la page, zoom mémorisé par site, image dans l'image, son coupé onglet par onglet.
+- Synchronisation chiffrée de bout en bout avec le téléphone (favoris, historique récent, onglets
+  ouverts, espaces, thème) via un petit serveur que vous hébergez ([`server/`](server/README.md)) et
+  qui ne voit que des données illisibles ; jumelage par QR code. Jamais la navigation privée.
 
 ![Paramètres](docs/screenshots/settings.png)
 

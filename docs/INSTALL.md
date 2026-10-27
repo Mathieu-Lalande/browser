@@ -121,15 +121,41 @@ eas build:configure       # crée eas.json
 JavaScript sans repasser par la revue des stores (le code natif, lui, demande un nouveau build).
 
 **Phase 2 mobile** (`docs/ROADMAP.md`) : la version compilée permet d'ajouter du code natif, et
-donc le bloqueur de pubs, de vrais onglets privés isolés sur Android, et la synchronisation avec le
-bureau.
+donc le bloqueur de pubs et de vrais onglets privés isolés sur Android. La synchronisation avec le
+bureau, elle, fonctionne déjà dans Expo Go (section 3).
 
 ---
 
-## 3. Récapitulatif
+## 3. Synchroniser le PC et l'iPhone
+
+La synchronisation (favoris, historique récent, onglets ouverts, espaces, thème) passe par **votre
+propre serveur**, qui ne voit que des données chiffrées (ADR-018). Aucun serveur n'est fourni :
+tant que vous n'en avez pas déployé un, elle reste simplement désactivée.
+
+1. **Déployer le serveur** : dossier `server/`, guide pas à pas dans [`server/README.md`](../server/README.md)
+   (VPS avec Docker et Caddy, Fly.io ou Render ; quelques minutes, un petit serveur suffit).
+   Choisissez un `REGISTRATION_SECRET` : sans lui, n'importe qui peut créer un compte sur votre serveur.
+2. **Sur le PC** : Paramètres → Synchronisation → *Premier appareil* : adresse du serveur
+   (`https://sync.exemple.fr`) et code d'inscription → « Activer la synchronisation ».
+3. Toujours sur le PC : « Afficher le code de jumelage » (après l'avertissement : ce code donne
+   accès à toutes vos données synchronisées).
+4. **Sur l'iPhone** : Browser → Paramètres → Synchronisation → « Scanner le code de jumelage »
+   (fonctionne dans Expo Go : `expo-camera` y est inclus). Ou collez le code texte.
+5. Les onglets de l'autre appareil apparaissent dans « Onglets de mes autres appareils » (PC : `Ctrl+K`)
+   et dans la vue des onglets du téléphone (« Autres appareils »).
+
+Pour tester sans serveur public : `cd server && npm ci && npm run build && npm start` sur le PC,
+puis l'adresse `http://<IP-du-PC>:8787` (http n'est accepté que pour une adresse du réseau local).
+
+Vérifications du serveur : `cd server && npm test` (ou `npm run test:server` à la racine).
+
+---
+
+## 4. Récapitulatif
 
 | Besoin | Bureau | iPhone |
 | --- | --- | --- |
 | Développer | `npm run dev` | Expo Go + `npx expo start` |
 | L'utiliser au quotidien soi-même | `npm run dist` → installateur | EAS Build → TestFlight (compte Apple Developer) |
 | Le distribuer | Signature + releases GitHub + mises à jour auto | App Store (revue Apple) |
+| Synchroniser | Paramètres → Synchronisation (serveur auto-hébergé, `server/`) | Paramètres → Synchronisation → Scanner |

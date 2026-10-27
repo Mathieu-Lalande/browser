@@ -484,3 +484,134 @@ versions épinglées), un onglet = une `react-native-webview`.
 métier testée. Toute fonction utile aux deux doit vivre, pure, dans `src/shared` ; le bureau ne
 compile pas `mobile/` (tsconfig/vitest inchangés) et la CI mobile (`.github/workflows/mobile.yml`)
 vérifie types, tests Jest et bundle Android dès que `mobile/` ou `src/shared` change.
+
+## ADR-018 — Synchronisation chiffrée de bout en bout
+
+**Contexte.** Retrouver sur le téléphone ses favoris, son historique récent, ses espaces et ses
+onglets du PC (et inversement), sans confier sa navigation à un tiers : le projet se veut privé, et
+le propriétaire héberge lui-même le serveur.
+
+**Décision.** Un relais minimal auto-hébergé (`server/`) qui ne stocke que des données chiffrées
+sur les appareils, et un moteur de synchronisation pur partagé par les deux applications
+(`src/shared/sync/`). Désactivé par défaut : aucun serveur n'est contacté tant que l'utilisateur n'a
+pas créé un compte sur *son* serveur ou jumelé l'appareil ; aucun serveur tiers n'est codé en dur.
+
+### Modèle de menace
+
+- **Protégé contre** l'hébergeur du relais, une sauvegarde volée de ses données, un attaquant qui lit
+  le trafic (TLS par le proxy inverse, en plus du chiffrement de bout en bout) : ils ne peuvent ni
+  lire ni modifier sans détection (AEAD) les enregistrements, ni déplacer un enregistrement d'une
+  collection ou d'un identifiant à un autre (données associées), ni tester une URL devinée contre
+  les identifiants (HMAC à clé).
+- **Non protégé contre** un appareil jumelé compromis (il a la clé), quelqu'un qui voit le code de
+  jumelage (accès complet : il n'est affiché qu'à la demande, après un avertissement, jamais pendant
+  la synchronisation elle-même), un relais malveillant qui *supprime*, rejoue d'anciennes versions
+  ou refuse le service (disponibilité et fraîcheur ne sont pas garanties ; une ancienne version
+  rejouée perd contre l'horodatage plus récent que les appareils ont déjà vu), l'analyse de trafic.
+
+### Cryptographie et clés
+
+- `@noble/ciphers` et `@noble/hashes` (JavaScript pur, audités, sans dépendance) : le même code
+  tourne dans le process principal d'Electron et dans Hermes (Expo Go n'a pas WebCrypto `subtle`).
+  L'aléa est injecté : `crypto.randomBytes` (bureau), `expo-crypto` `getRandomBytes` (mobile),
+  vérifié (longueur, pas de zéros).
+- **Clé de synchronisation** : 256 bits aléatoires créés sur le premier appareil. HKDF-SHA256
+  (sel `browser-sync/v1`) en dérive une clé de chiffrement, une clé d'identifiants et une empreinte
+  courte affichée dans les paramètres (même valeur sur tous les appareils d'un compte).
+- **Enregistrements** : XChaCha20-Poly1305, nonce aléatoire de 192 bits (sûr avec des nonces
+  aléatoires), données associées `browser-sync/v1|collection|id`. Enveloppe : octet de version,
+  nonce, chiffré + tag, en base64url. Le clair contient l'identifiant local, qui doit redonner
+  l'identifiant serveur par HMAC (un enregistrement ne peut pas être déplacé).
+- **Identifiants** : HMAC-SHA256(clé d'identifiants, collection + identifiant local) tronqué à
+  128 bits. L'identifiant local d'un favori ou d'une page d'historique est son URL : elle ne quitte
+  jamais l'appareil, même hachée sans clé.
+- **Jumelage** : `browser-sync:1:<base64url(JSON)>` avec l'adresse du serveur, l'identifiant du
+  compte, le jeton d'accès et la clé. QR code dessiné localement (`uqr`, pur JS, aucun réseau) et
+  texte copiable ; scanné sur le téléphone avec `expo-camera` (inclus dans Expo Go), collé sur un PC.
+  `https` obligatoire, `http` accepté seulement pour une adresse locale (essai à la maison, tests).
+- **Stockage des secrets** : bureau, `sync-credentials.json` chiffré par `safeStorage` (Trousseau,
+  DPAPI, libsecret/kwallet), sinon fichier 0600 ; mobile, `expo-secure-store` (Keychain iOS
+  `WHEN_UNLOCKED_THIS_DEVICE_ONLY`, Keystore Android). L'état du moteur (`sync.json`, AsyncStorage)
+  ne contient ni clé ni jeton.
+- **Réinitialiser** (code perdu, appareil volé) : le compte est supprimé du serveur puis recréé avec
+  un nouveau jeton et une nouvelle clé ; les autres appareils reçoivent 401 et doivent être jumelés
+  à nouveau. **Déconnecter** : l'appareil publie la suppression de sa fiche (onglets) puis oublie
+  le compte ; ses données locales restent.
+
+### Ce que voit le serveur
+
+Pour chaque compte : un identifiant aléatoire, le haché SHA-256 du jeton, la date de création ; par
+enregistrement : le nom de la collection (`settings`, `spaces`, `bookmarks`, `history`, `clients`),
+l'identifiant haché, un numéro de version, la date d'écriture, la taille du chiffré, et si
+l'enregistrement a été retiré (expiré). Il en déduit le nombre approximatif de favoris, de pages
+d'historique et d'appareils, et les heures d'activité. Il ne voit ni URL, ni titre, ni nom
+d'appareil, ni réglage. Ses journaux ne contiennent ni identifiant, ni jeton, ni adresse IP.
+
+### Données et fusion
+
+- **Synchronisé** : favoris et dossiers (identifiés par URL : la même page enregistrée sur deux
+  appareils est un seul favori), historique des 90 derniers jours (5 000 pages au plus, nombre de
+  visites et dernière visite fusionnés par maximum), onglets ouverts de chaque appareil (100 au plus,
+  http(s) seulement), définition des espaces (nom, icône comme chaîne opaque, couleur, isolement,
+  ordre ; jamais leurs onglets), réglages communs (mode de thème, accents, moteur de recherche,
+  page d'accueil). **Non synchronisé** : disposition et fenêtre, téléchargements, zoom, boucliers,
+  permissions, réglages propres au bureau ou au téléphone, favicons.
+- **Navigation privée** : jamais rien. Les fenêtres et onglets privés n'écrivent pas d'historique,
+  ne sont pas dans la session et ne sont pas publiés dans la liste d'onglets (testé de bout en bout) ;
+  le compte ne peut être ni créé, ni jumelé, ni réinitialisé depuis une fenêtre privée, et le code de
+  jumelage n'y est pas affiché. Seule exception, conforme à l'ADR-014 : un favori enregistré
+  explicitement depuis une fenêtre privée est un favori du profil, synchronisé comme les autres.
+- **Dernier écrivain gagnant, par enregistrement**, avec une horloge logique hybride (HLC : temps
+  réel + compteur, identifiant d'appareil pour départager) ; les suppressions sont des pierres
+  tombales chiffrées. Le moteur détecte les changements locaux en comparant chaque collection à un
+  *miroir* (haché par enregistrement) de ce qui a été synchronisé, si bien que les applications
+  n'ont qu'à signaler « quelque chose a changé ». Premier passage d'une collection sur un appareil
+  qui rejoint un compte : les données du compte gagnent, les enregistrements purement locaux sont
+  ajoutés (un téléphone neuf ne remplace pas le thème du PC par les valeurs par défaut).
+- Une page d'historique qui sort de la fenêtre de 90 jours (ou d'un historique local plein) n'est
+  pas une suppression : elle est retirée du serveur (`payload: null`) sans être effacée ailleurs.
+  « Effacer l'historique » en est une, propagée à tous les appareils.
+- **Protocole** : tirage incrémental depuis la dernière version vue, puis envoi par lots (200
+  enregistrements, 2 Mo) avec concurrence optimiste : chaque enregistrement porte la version qu'il
+  remplace ; si l'une a changé, le serveur répond 409 sans rien écrire, l'appareil retire, fusionne
+  et renvoie (3 essais). Pages de 500 au tirage. Enregistrements indéchiffrables : ignorés, et si une
+  page entière l'est (autre clé), arrêt sans avancer le curseur.
+- **Quand** : au démarrage, 5 s après un changement local (plafonné à 30 s d'activité continue),
+  toutes les 5 minutes, au retour au premier plan sur mobile, et à la demande (bouton, commande
+  « Synchroniser maintenant »). Hors ligne, erreurs serveur et 429 : nouvel essai avec délai
+  exponentiel (15 s à 15 min, `Retry-After` respecté) ; jeton refusé ou clé différente : arrêt et
+  message dans les paramètres.
+
+### Serveur
+
+Node 22 et TypeScript sans dépendance d'exécution (`node:http`, `node:crypto`). `node:sqlite`
+étant encore expérimental dans Node 22, les données sont un fichier JSON par compte, écrit de
+façon atomique avant de répondre (volumes de quelques Mo). Jeton haché, comparaison à temps
+constant ; limite de requêtes par adresse (et de créations de comptes par heure) ; corps limités à
+2 Mo, enveloppes à 256 Ko, quota de 64 Mo par compte ; **pas de CORS**, et toute requête portant un
+en-tête `Origin` (donc venant d'une page web) est refusée ; code d'inscription facultatif
+(`REGISTRATION_SECRET`) pour réserver la création de comptes. TLS attendu d'un proxy inverse.
+Dockerfile et guide de déploiement (VPS + Caddy, Fly.io, Render) dans `server/README.md`.
+
+### Intégration
+
+- Bureau : `src/main/sync/` (adaptateurs du profil, `net.fetch` d'Electron pour le proxy et les
+  certificats du système, secrets), IPC `sync:*` validés (règles de l'ADR-003), section
+  « Synchronisation » des paramètres (état, appareils et leurs onglets, code de jumelage derrière un
+  avertissement, déconnexion, réinitialisation), section « Onglets de mes autres appareils » de la
+  palette `Ctrl+K`, commande « Synchroniser maintenant » du registre.
+- Mobile : `mobile/src/lib/sync/` (adaptateurs purs testés avec un serveur en mémoire), section
+  « Synchronisation » des paramètres, scanner de QR code, section « Autres appareils » dans la vue des
+  onglets et dans la recherche.
+- Tests : moteur (matrice de conflits, 409, pagination, hors ligne, clé différente, aucun clair sur
+  le serveur), contrôleur, enregistrements, serveur (Vitest) ; adaptateurs mobiles et
+  interopérabilité bureau/mobile (Jest) ; e2e avec le vrai relais et deux instances du bureau
+  (jumelage, favori, onglets, fenêtre privée absente, aucun clair dans les fichiers du serveur).
+
+**Limites.** Pas de fusion fine (un titre modifié en même temps sur deux appareils : le plus récent
+gagne entièrement) ; un appareil dont l'horloge avance gagne les conflits (dérive bornée à 24 h dans
+l'horloge, pas dans la comparaison) ; les changements faits hors ligne prennent l'heure de leur
+première synchronisation ; pas de rotation de clé sans réinitialisation, ni de révocation d'un seul
+appareil (il faut réinitialiser) ; pas de favicons ; l'historique n'est qu'une ligne par URL ;
+`expo-camera` et le chiffrement n'ont été exécutés que dans les tests (Node/Jest) et dans le bundle
+Hermes compilé, pas encore sur un vrai téléphone.
