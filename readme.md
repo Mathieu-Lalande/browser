@@ -37,6 +37,21 @@ Un navigateur desktop **rapide, privé et entièrement personnalisable**, dans l
 
 ![Recherche dans la page](docs/screenshots/find.png)
 
+## Installer
+
+Téléchargez la dernière version sur le site **https://mathieu-lalande.github.io/browser/** ou dans les
+[releases GitHub](https://github.com/Mathieu-Lalande/browser/releases/latest) : installateur Windows
+(x64 et ARM, sans droits administrateur), version portable `.zip`, `.dmg` macOS (Apple Silicon et Intel),
+AppImage et `.deb` pour Linux, avec `SHA256SUMS.txt`. Les paquets ne sont pas encore signés (voir la FAQ du site).
+
+**Publier une version** : `npm run release:version -- 0.3.0` puis `git push --follow-tags`. Le workflow
+`.github/workflows/release.yml` construit les trois systèmes et crée la release (ou : *Actions* → *Release* →
+*Run workflow*). Le site vitrine (`site/`) est déployé sur GitHub Pages par `.github/workflows/site.yml` ;
+à activer une fois dans *Settings → Pages → Source : GitHub Actions*. Détails : `docs/INSTALL.md` (section 2.2)
+et ADR-023.
+
+Captures du site : [`docs/screenshots/site-desktop.png`](docs/screenshots/site-desktop.png), [`site-mobile.png`](docs/screenshots/site-mobile.png).
+
 ## Démarrer
 
 Guide complet (développement sur PC et iPhone, installateurs, TestFlight, App Store) : [`docs/INSTALL.md`](docs/INSTALL.md).
@@ -80,11 +95,13 @@ npx expo start     # scannez le QR code ; même Wi-Fi, ou `npx expo start --tunn
 | `npm run test:e2e` | Tests end-to-end (Playwright pilotant Electron) |
 | `npm run dist` | Paquets installables (electron-builder) dans `release/` |
 | `npm run dist:dir` | Application empaquetée non compressée (plus rapide, pour tester) |
+| `npm run dist:win` | Installateur NSIS et `.zip` Windows (x64 et arm64), à lancer sous Windows |
+| `npm run release:version -- <version>` | Monte la version, commit et tag `v<version>` (puis `git push --follow-tags`) |
 
 Sous Linux sans affichage (CI) : `xvfb-run -a npm run test:e2e`. Test de fumée du paquet :
 `npm run dist:dir && BROWSER_PACKAGED=release/linux-unpacked/browser xvfb-run -a npx playwright test packaging`.
 La CI GitHub Actions (`.github/workflows/ci.yml`) lance les vérifications à chaque push et construit des
-paquets non signés pour Linux, Windows et macOS sur `master` (ADR-015).
+paquets non signés pour Linux, Windows et macOS sur `master` (ADR-015) ; un tag `v*` publie une release (ADR-023).
 
 ## Raccourcis
 

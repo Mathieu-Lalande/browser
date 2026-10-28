@@ -37,6 +37,9 @@
   jamais voir de clair ; rien de privé n'est synchronisé.
 - Menu contextuel des pages, infos sur le site, données des sites, cookies tiers : ADR-021
   (`src/main/page-menu*.ts`, `src/main/site-info/`). Toute URL venue d'une page repasse par `isPageOpenableUrl`.
+- Releases et site vitrine (ADR-023) : workflow de release sur tag `v*` (`npm run release:version`), noms de
+  fichiers fixés par `artifactName` (le site en dépend), page de fin NSIS dans `build/installer.nsh` ; site
+  statique `site/` (Vite + TS : `cd site && npm ci && npm run build`), déployé sur GitHub Pages.
 - Organisation (ADR-022) : dossiers d'onglets (`src/shared/folders.ts`, session v3), grille des favoris
   (`src/shared/favorites.ts`, `favorites.json`, collection de synchro `favorites`), geste à deux doigts entre
   espaces (`src/shared/space-swipe.ts`), archivage (`src/shared/archive.ts`, `browser://archive`) ; côté main :

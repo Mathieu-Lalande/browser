@@ -47,7 +47,7 @@ Vérifications : `npm run typecheck`, `npm test` et `npm run test:e2e` (tests de
 Chaque modification du code se recharge sur le téléphone en direct. Dépannage : `mobile/README.md`.
 
 Limite d'Expo Go : pas de code natif sur mesure, donc **pas de bloqueur de pubs** sur mobile tant
-qu'on n'est pas passé à une version compilée (section 2.2).
+qu'on n'est pas passé à une version compilée (section 2.3).
 
 ---
 
@@ -61,7 +61,7 @@ qu'on n'est pas passé à une version compilée (section 2.2).
 npm run dist
 ```
 
-L'installateur est créé dans `release\` (`Browser Setup x.y.z.exe` sous Windows). Lance-le : Browser
+L'installateur est créé dans `release\` (`Browser-Setup-x.y.z-x64.exe` sous Windows). Lance-le : Browser
 s'installe comme n'importe quel navigateur (menu Démarrer, raccourci, désinstallation).
 
 - Construis chaque plateforme **sur son système** : l'installateur Windows sur Windows, le `.dmg` sur
@@ -79,11 +79,58 @@ s'installe comme n'importe quel navigateur (menu Démarrer, raccourci, désinsta
      simple aujourd'hui), sinon SmartScreen avertit chaque utilisateur ;
    - macOS : compte Apple Developer (abonnement annuel), certificat *Developer ID* et notarisation.
      C'est le même compte que pour l'App Store iOS.
-3. **Publication** : releases GitHub créées par la CI sur un tag `v1.0.0`, puis mises à jour
-   automatiques avec `electron-updater`. Le plan détaillé est dans `docs/ROADMAP.md` (Sprint 3) ; ce
-   n'est pas encore implémenté.
+3. **Publication** : voir la section 2.2 ci-dessous. Les mises à jour automatiques (`electron-updater`)
+   viendront avec la signature (`docs/ROADMAP.md`, Sprint 3).
 
-### 2.2 iPhone (et Android) sans Expo Go
+### 2.2 Publier une version (release GitHub) et le site vitrine
+
+Le workflow `.github/workflows/release.yml` construit les installateurs sur Windows, macOS et Linux et
+les publie dans une **release GitHub** (ADR-023).
+
+1. Sur `master`, à jour et sans modification en cours :
+   ```powershell
+   npm run release:version -- 0.3.0     # ou patch / minor / major
+   git push --follow-tags
+   ```
+   `npm version` met à jour `package.json` et `package-lock.json`, crée le commit « Version 0.3.0 » et
+   le tag `v0.3.0`. Le push du tag lance le workflow **Release**.
+2. Variante sans tag local : onglet *Actions* → **Release** → *Run workflow*, saisir la version (`0.3.0`).
+   Le tag `v0.3.0` est créé sur le commit choisi (sans modifier `package.json` du dépôt).
+3. Une vingtaine de minutes plus tard, la release apparaît dans l'onglet **Releases** du dépôt
+   (`https://github.com/Mathieu-Lalande/browser/releases`), avec des notes générées automatiquement :
+
+   | Fichier | Contenu |
+   | --- | --- |
+   | `Browser-Setup-<version>-x64.exe` / `-arm64.exe` | Installateur Windows (NSIS) |
+   | `Browser-<version>-win-x64.zip` / `-arm64.zip` | Version portable Windows |
+   | `Browser-<version>-mac-arm64.dmg` / `-x64.dmg` | macOS Apple Silicon / Intel |
+   | `Browser-<version>-linux-….AppImage`, `….deb` | Linux 64 bits |
+   | `SHA256SUMS.txt` | Empreintes SHA-256 de tous les fichiers |
+
+   Une version avec un suffixe (`0.3.0-beta.1`) est publiée en *pre-release*.
+
+L'installateur Windows propose une installation **pour l'utilisateur courant** (par défaut, sans droits
+administrateur) ou pour tous les utilisateurs, le choix du dossier, un raccourci dans le menu Démarrer,
+une case « Créer un raccourci sur le Bureau » en fin d'installation, et un désinstallateur
+(Paramètres → Applications). Le profil (favoris, session) est conservé à la désinstallation.
+Pour construire l'installateur sur un PC Windows : `npm run dist:win` (sortie dans `release\`).
+
+**Signature (facultative).** Sans secrets, les paquets sont construits non signés (SmartScreen et
+Gatekeeper avertissent ; sur macOS, signature *ad hoc* pour éviter le message « endommagé » sur
+Apple Silicon). Pour signer, ajouter dans *Settings → Secrets and variables → Actions* :
+`WIN_CSC_LINK` (certificat `.pfx` en base64) et `WIN_CSC_KEY_PASSWORD` pour Windows, `CSC_LINK` et
+`CSC_KEY_PASSWORD` pour macOS (la notarisation Apple n'est pas encore configurée).
+
+**Site vitrine.** Le dossier `site/` (Vite + TypeScript, sans framework) est publié sur GitHub Pages par
+`.github/workflows/site.yml` à chaque push sur `master` qui touche `site/`. **Une seule fois** :
+*Settings → Pages → Build and deployment → Source : GitHub Actions*. Adresse :
+**https://mathieu-lalande.github.io/browser/**. Le bouton de téléchargement détecte le système du
+visiteur et pointe vers le bon fichier de la dernière release (API GitHub), ou vers la page des
+releases s'il n'y en a pas encore ou si l'API ne répond pas.
+
+En local : `cd site && npm ci && npm run dev` (ou `npm run build && npm run preview`).
+
+### 2.3 iPhone (et Android) sans Expo Go
 
 Expo Go sert au développement. Pour avoir **Browser comme une vraie app** sur l'écran d'accueil,
 avec son icône, il faut une version compilée. Depuis Windows, on passe par **EAS Build** (le
@@ -157,5 +204,5 @@ Vérifications du serveur : `cd server && npm test` (ou `npm run test:server` à
 | --- | --- | --- |
 | Développer | `npm run dev` | Expo Go + `npx expo start` |
 | L'utiliser au quotidien soi-même | `npm run dist` → installateur | EAS Build → TestFlight (compte Apple Developer) |
-| Le distribuer | Signature + releases GitHub + mises à jour auto | App Store (revue Apple) |
+| Le distribuer | `npm run release:version` → release GitHub + site vitrine (signature à venir) | App Store (revue Apple) |
 | Synchroniser | Paramètres → Synchronisation (serveur auto-hébergé, `server/`) | Paramètres → Synchronisation → Scanner |

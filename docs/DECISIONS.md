@@ -975,3 +975,71 @@ le téléphone, ni imbrication ni
 glisser-déposer des cartes ; le geste à deux doigts n'a été vérifié qu'avec des événements
 synthétiques (xvfb), pas avec un vrai pavé tactile ; l'archivage mobile ne sait pas si une page joue
 du son.
+
+## ADR-023 — Releases GitHub et site vitrine
+
+**Contexte.** Le propriétaire veut pouvoir installer Browser sur ordinateur depuis une release
+(Windows d'abord) ou depuis un site vitrine dans le style du navigateur. ADR-015 ne produisait que des
+dossiers non compressés en artefacts de CI.
+
+**Release** (`.github/workflows/release.yml`), déclenchée par un tag `v*` ou à la main
+(`workflow_dispatch`, champ `version`) :
+- `prepare` (Ubuntu) valide la version (semver, suffixe = *pre-release*), lance typecheck et tests.
+  La version du tag (ou saisie) est appliquée à `package.json` dans chaque job de build
+  (`npm pkg set version`, sans commit) : un tag qui ne correspond pas à `package.json` donne un
+  avertissement, pas un échec.
+- `build` : matrice Windows / macOS / Ubuntu, `electron-builder --win|--mac|--linux --publish never`.
+  Cibles et architectures dans la clé `build` de `package.json` : NSIS + `zip` (x64, arm64), `dmg`
+  (arm64, x64, deux fichiers plutôt qu'un universel deux fois plus lourd), AppImage + `deb` (x64).
+  Noms stables via `artifactName` (`Browser-Setup-<v>-<arch>.exe`, `Browser-<v>-<os>-<arch>.<ext>`),
+  dont dépend la détection du site.
+- `publish` : rassemble les artefacts, calcule `SHA256SUMS.txt`, crée la release avec
+  `softprops/action-gh-release` (notes générées automatiquement + tableau d'installation). Seul ce job
+  a `contents: write`. `"publish": null` reste en place : pas de `latest.yml` ni d'auto-update.
+- Actions épinglées par SHA de commit (version en commentaire).
+- **Signature facultative** : `WIN_CSC_LINK`/`WIN_CSC_KEY_PASSWORD` (Windows) et
+  `CSC_LINK`/`CSC_KEY_PASSWORD` (macOS) ne sont exportés que s'ils existent. Sinon
+  `CSC_IDENTITY_AUTO_DISCOVERY=false`, et sur macOS signature *ad hoc* (`mac.identity = "-"`,
+  `hardenedRuntime` coupé) : une app arm64 sans aucune signature est déclarée « endommagée » par
+  Gatekeeper, une app ad hoc demande seulement clic droit → Ouvrir. Pas de notarisation.
+- Procédure : `npm run release:version -- <version>` (`npm version` : commit + tag) puis
+  `git push --follow-tags`.
+
+**Installateur Windows (NSIS assisté).** `oneClick: false`, `perMachine: false` : page « pour moi
+seul » (par défaut, sans élévation, `%LOCALAPPDATA%\Programs`) ou « pour tous » (élévation UAC),
+choix du dossier, raccourci menu Démarrer, désinstallateur avec nom/éditeur/icône (`author`,
+`build/icon.ico`), profil conservé à la désinstallation, interface en français (`fr_FR`).
+electron-builder n'offre pas de case pour le raccourci Bureau : `build/installer.nsh`
+(`nsis.include`, UTF-8 avec BOM) remplace la page de fin (même lancement de l'app que la page par
+défaut) et ajoute « Créer un raccourci sur le Bureau », cochée ; décochée, le raccourci créé par
+l'installation est supprimé en quittant la page. Installations silencieuses et mises à jour : le
+raccourci reste. La fonction de sortie est définie *après* `MUI_PAGE_FINISH`, qui déclare
+`$mui.FinishPage.ShowReadme` (sinon avertissement 6000, fatal avec `-WX`).
+- Vérifié sous Linux : le paquet Windows et le script NSIS complet (avec l'include) compilent avec le
+  `makensis` d'electron-builder ; l'exécution de l'installateur (et l'édition des ressources de l'exe,
+  qui demande wine) n'a pas été testée ici : c'est le runner Windows qui fait foi.
+
+**Site vitrine** (`site/`, `.github/workflows/site.yml`) :
+- Vite + TypeScript sans framework (une page, ~5 Ko de JS, ~15 Ko de CSS ; < 0,5 Mo au total avec
+  les captures en WebP). Svelte n'apporterait rien à une page statique. Icônes Lucide
+  (`lucide-static`) insérées en SVG au build par un petit plugin Vite (`<i data-icon="…">`) : aucun
+  runtime ; un nom inconnu fait échouer le build. Aucun emoji (ADR-017).
+- Langage visuel de l'app : dégradés en maillage `--accent`/`--accent-2`, « aurore » animée de la page
+  d'accueil (désactivée avec `prefers-reduced-motion`), surfaces vitrées, grands rayons, police
+  Inter/système. Sombre par défaut, thème clair au choix (mémorisé dans `localStorage`, appliqué
+  avant le premier rendu).
+- Téléchargement : détection du système (User-Agent Client Hints, architecture ARM sur Windows ;
+  Apple Silicon par défaut sur Mac), puis `GET https://api.github.com/repos/Mathieu-Lalande/browser/releases/latest`
+  côté client ; chaque lien vise l'asset correspondant. Sans release (404), limite de débit (403) ou
+  réseau coupé, tous les liens restent sur la page des releases (liens présents dans le HTML : le
+  site fonctionne sans JavaScript). Sur téléphone, le bouton mène à la liste des plateformes.
+- `base: "/browser/"` (Pages de projet) ; déploiement par `actions/deploy-pages` à chaque push sur
+  `master` touchant `site/`. Prérequis manuel : *Settings → Pages → Source : GitHub Actions*.
+  Adresse : https://mathieu-lalande.github.io/browser/. Captures : `docs/screenshots/site-*.png` ;
+  image OpenGraph `site/public/og.png` (1200×630, capture du haut de page).
+
+**Limites.** Ni signature ni notarisation par défaut (SmartScreen et Gatekeeper avertissent, expliqué
+dans la FAQ du site et les notes de release) ; pas de mises à jour automatiques ; pas de Linux arm64 ;
+le workflow n'a pas pu être exécuté hors de GitHub (YAML validé, entrées des actions vérifiées sur
+leurs `action.yml`). La CI de `master` (`npm run dist:dir`) construit désormais aussi les dossiers
+arm64 sous Windows et macOS (cibles communes).

@@ -26,7 +26,9 @@
     "check": "npm run typecheck && npm test",
     "test:server": "npm --prefix server test",
     "dist": "npm run build && electron-builder --publish never",
-    "dist:dir": "npm run build && electron-builder --dir --publish never"
+    "dist:dir": "npm run build && electron-builder --dir --publish never",
+    "dist:win": "npm run build && electron-builder --win --publish never",
+    "release:version": "npm version -m \"Version %s\""
   },
   "devDependencies": {
     "@electron/asar": "^3.4.1",
@@ -49,6 +51,7 @@
   "build": {
     "appId": "com.mathieulalande.browser",
     "productName": "Browser",
+    "copyright": "Copyright © 2026 Mathieu Lalande",
     "directories": {
       "output": "release",
       "buildResources": "build"
@@ -69,15 +72,55 @@
     },
     "publish": null,
     "mac": {
-      "target": "dmg",
-      "category": "public.app-category.productivity"
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.productivity",
+      "artifactName": "Browser-${version}-mac-${arch}.${ext}"
+    },
+    "dmg": {
+      "title": "${productName} ${version}"
     },
     "win": {
-      "target": "nsis"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "artifactName": "Browser-${version}-win-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Browser",
+      "uninstallDisplayName": "Browser",
+      "installerLanguages": [
+        "fr_FR"
+      ],
+      "deleteAppDataOnUninstall": false,
+      "include": "build/installer.nsh",
+      "artifactName": "Browser-Setup-${version}-${arch}.${ext}"
     },
     "linux": {
       "target": [
@@ -87,7 +130,8 @@
       "category": "Network",
       "maintainer": "Mathieu Lalande",
       "syncDesktopName": true,
-      "synopsis": "Navigateur rapide, privé et personnalisable"
+      "synopsis": "Navigateur rapide, privé et personnalisable",
+      "artifactName": "Browser-${version}-linux-${arch}.${ext}"
     }
   },
   "dependencies": {
