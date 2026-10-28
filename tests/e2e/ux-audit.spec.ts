@@ -179,7 +179,7 @@ test("window controls sit in the sidebar, and unfold at the top of the window wh
   await chrome.getByRole("button", { name: "Afficher la barre latérale" }).click();
   await api(chrome).update({ layout: { sidebarPosition: "right" } });
   await expect(chrome.getByTestId("traffic-lights-band")).toBeVisible();
-  expect((await chrome.locator(".sidebar").boundingBox())!.y).toBeGreaterThanOrEqual(36);
+  await expect.poll(async () => (await chrome.locator(".sidebar").boundingBox())!.y).toBeGreaterThanOrEqual(36);
 });
 
 test("a space color goes through the contrast engine", async ({ chrome }) => {
