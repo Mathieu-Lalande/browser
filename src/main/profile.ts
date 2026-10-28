@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { app } from "electron";
+import { BOOSTS_VERSION, sanitizeBoosts, type Boost } from "@shared/boosts";
 import { sanitizeSettings, type Settings } from "@shared/settings";
 import type { DownloadEntry } from "@shared/downloads";
 import { DOWNLOADS_VERSION, DownloadList } from "./downloads/list";
@@ -26,12 +27,16 @@ export interface Profile {
   previousSession: Session | null;
   /** Current user settings (always complete and valid). */
   readonly settings: Settings;
+  /** Per-site boosts (`boosts.json`, ADR-029). */
+  readonly boosts: readonly Boost[];
   saveHistory(): void;
   saveBookmarks(): void;
   saveDownloads(): void;
   saveZoom(): void;
   saveFavorites(): void;
   saveArchive(): void;
+  /** Replaces the boosts and schedules their write. */
+  saveBoosts(next: readonly Boost[]): void;
   /** Replaces the settings and schedules their write. */
   saveSettings(next: Settings): void;
   /** Debounced: `snapshot` is taken when the write happens. */
@@ -42,7 +47,7 @@ export interface Profile {
   onChange(listener: (what: ProfileChange) => void): () => void;
 }
 
-export type ProfileChange = "history" | "bookmarks" | "session" | "settings" | "favorites" | "archive";
+export type ProfileChange = "history" | "bookmarks" | "session" | "settings" | "favorites" | "archive" | "boosts";
 
 let current: Profile | null = null;
 
@@ -103,6 +108,13 @@ export function openProfile(dir = app.getPath("userData")): Profile {
     debounceMs: 1000,
   });
 
+  const boostsFile = new JsonFile<Boost[]>({
+    path: join(dir, "boosts.json"),
+    version: BOOSTS_VERSION,
+    parse: (data) => sanitizeBoosts(data),
+    debounceMs: 300,
+  });
+
   const history = new History(historyFile.load() ?? []);
   const favorites = new Favorites(favoritesFile.load() ?? []);
   const archive = new Archive(archiveFile.load() ?? []);
@@ -110,6 +122,7 @@ export function openProfile(dir = app.getPath("userData")): Profile {
   const downloads = new DownloadList(downloadsFile.load() ?? []);
   const zoom = new SiteZoom(zoomFile.load() ?? {});
   let settings = settingsFile.load() ?? sanitizeSettings(undefined);
+  let boosts: readonly Boost[] = boostsFile.load() ?? [];
   const listeners = new Set<(what: ProfileChange) => void>();
   const changed = (what: ProfileChange) => {
     for (const listener of listeners) listener(what);
@@ -125,6 +138,14 @@ export function openProfile(dir = app.getPath("userData")): Profile {
     previousSession: sessionFile.load(),
     get settings() {
       return settings;
+    },
+    get boosts() {
+      return boosts;
+    },
+    saveBoosts: (next) => {
+      boosts = next;
+      boostsFile.scheduleSave(() => [...boosts]);
+      changed("boosts");
     },
     saveHistory: () => {
       historyFile.scheduleSave(() => history.toJSON());
@@ -158,7 +179,7 @@ export function openProfile(dir = app.getPath("userData")): Profile {
       return () => listeners.delete(listener);
     },
     // Each store in its own try: one failure never keeps the others from being written.
-    flush: () => flushAll([historyFile, bookmarksFile, sessionFile, settingsFile, downloadsFile, zoomFile, favoritesFile, archiveFile]),
+    flush: () => flushAll([historyFile, bookmarksFile, sessionFile, settingsFile, downloadsFile, zoomFile, favoritesFile, archiveFile, boostsFile]),
   };
   return current;
 }

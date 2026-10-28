@@ -1,3 +1,4 @@
+import { boostRecord, mergeBoosts, sanitizeSyncedBoost, type SyncedBoost } from "@shared/boosts";
 import { favoriteLocalId, favoriteRecord, mergeFavorites, sanitizeSyncedFavorite, type SyncedFavorite } from "@shared/favorites";
 import { MAX_SPACES } from "@shared/spaces";
 import type { CollectionAdapter } from "@shared/sync/engine";
@@ -23,6 +24,7 @@ import {
   type SyncedSpace,
 } from "@shared/sync/records";
 import type { HistoryEntry } from "@shared/types";
+import { setBoosts } from "../boosts";
 import { profile } from "../profile";
 import { settings, updateSettings } from "../settings";
 import { spaces } from "../spaces";
@@ -116,6 +118,18 @@ function favoritesAdapter(): CollectionAdapter<SyncedFavorite> {
   };
 }
 
+/** Boosts (ADR-029): keyed by boost id; a script travels only while it is enabled. */
+function boostsAdapter(): CollectionAdapter<SyncedBoost> {
+  return {
+    name: "boosts",
+    snapshot: () => new Map(profile().boosts.map((boost) => [boost.id, boostRecord(boost)])),
+    sanitize: (value, id) => sanitizeSyncedBoost(value, id),
+    apply: ({ upserts, deletes }) => {
+      setBoosts(mergeBoosts(profile().boosts, upserts.map((change) => [change.id, change.data]), deletes));
+    },
+  };
+}
+
 export function desktopAdapters(now: () => number = Date.now): CollectionAdapter[] {
-  return [settingsAdapter(), spacesAdapter(), bookmarksAdapter(), historyAdapter(now), favoritesAdapter()] as CollectionAdapter[];
+  return [settingsAdapter(), spacesAdapter(), bookmarksAdapter(), historyAdapter(now), favoritesAdapter(), boostsAdapter()] as CollectionAdapter[];
 }

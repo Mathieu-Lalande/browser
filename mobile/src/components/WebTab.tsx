@@ -4,6 +4,7 @@ import { WebView as RNWebView } from "react-native-webview";
 import type { WebViewProps } from "react-native-webview/lib/WebView";
 import type { ShouldStartLoadRequest, WebViewNavigation } from "react-native-webview/lib/WebViewTypes";
 import { isNavigableUrl } from "@shared/url";
+import { boostScript, type BoostPayload } from "../lib/boosts";
 import { LINK_MENU_COOLDOWN_MS, linkMenuScript, parseLinkMenuMessage, type LinkMenuRequest } from "../lib/linkMenu";
 import { decideNavigation, decideOpenWindow, isHttpsUpgradeFailure } from "../lib/navigation";
 import { PASSWORD_CAPTURE_SCRIPT, PASSWORD_PROMPT_COOLDOWN_MS, parsePasswordMessage } from "../lib/passwords";
@@ -17,6 +18,7 @@ import type { WebViewHandle } from "./webViewHandle";
 const WebView = RNWebView as unknown as ComponentType<WebViewProps & { ref?: Ref<WebViewHandle> }>;
 
 const INJECTED = linkMenuScript(Platform.OS);
+const NO_BOOSTS: readonly BoostPayload[] = [];
 /** Normal tabs also watch login forms (ADR-025); private tabs never offer to save a password. */
 const INJECTED_WITH_PASSWORDS = INJECTED + PASSWORD_CAPTURE_SCRIPT;
 /** Only these schemes may ever reach the native view (navigation policy: `decideNavigation`). */
@@ -46,6 +48,7 @@ export const WebTab = memo(function WebTab({
   desktopSite = false,
   readerToken = null,
   onReaderArticle,
+  boosts = NO_BOOSTS,
 }: WebTabProps) {
   const actions = useBrowserActions();
   const ref = useRef<WebViewHandle | null>(null);
@@ -76,6 +79,15 @@ export const WebTab = memo(function WebTab({
     appliedDesktop.current = desktopSite;
     ref.current?.reload();
   }, [desktopSite]);
+
+  // Boosts (ADR-029): at each document start, and restyled live when they change.
+  const boostBootstrap = useMemo(() => (boosts.length ? boostScript(boosts) : undefined), [boosts]);
+  const appliedBoosts = useRef(boosts);
+  useEffect(() => {
+    if (appliedBoosts.current === boosts) return;
+    appliedBoosts.current = boosts;
+    ref.current?.injectJavaScript(boostScript(boosts, true));
+  }, [boosts]);
 
   // Reader mode requested: run Readability in the page; the answer comes back through onMessage.
   const readerTokenRef = useRef(readerToken);
@@ -201,6 +213,8 @@ export const WebTab = memo(function WebTab({
         onRenderProcessGone={revive}
         injectedJavaScript={isPrivate ? INJECTED : INJECTED_WITH_PASSWORDS}
         injectedJavaScriptForMainFrameOnly
+        injectedJavaScriptBeforeContentLoaded={boostBootstrap}
+        injectedJavaScriptBeforeContentLoadedForMainFrameOnly
         userAgent={desktopSite ? desktopUserAgent(Platform.OS) : undefined}
         // Security. iOS: each private tab gets its own non-persistent data store. Android's
         // `incognito` wipes the cookies of every tab (global CookieManager), so it is not used

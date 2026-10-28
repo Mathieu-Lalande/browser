@@ -69,6 +69,16 @@ const api: BrowserApi = {
     remove: (id) => ipcRenderer.invoke(Channels.extensionsRemove, id),
     onChanged: (listener) => subscribe<void>(Channels.extensionsChanged, () => listener()),
   },
+  boosts: {
+    list: () => ipcRenderer.invoke(Channels.boostsList),
+    forTab: (tabId) => ipcRenderer.invoke(Channels.boostsForTab, tabId),
+    createForTab: (tabId) => ipcRenderer.invoke(Channels.boostsCreateForTab, tabId),
+    save: (boost) => ipcRenderer.invoke(Channels.boostsSave, boost),
+    remove: (id) => ipcRenderer.invoke(Channels.boostsRemove, id),
+    unzap: (tabId, selector) => ipcRenderer.invoke(Channels.boostsUnzap, tabId, selector),
+    zap: (tabId) => send(Channels.boostsZap, tabId),
+    onChanged: (listener) => subscribe<void>(Channels.boostsChanged, () => listener()),
+  },
   passwords: {
     status: () => ipcRenderer.invoke(Channels.passwordsStatus),
     list: () => ipcRenderer.invoke(Channels.passwordsList),

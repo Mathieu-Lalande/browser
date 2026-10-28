@@ -17,6 +17,8 @@ export const KEYS = {
   favorites: "browser.favorites",
   /** Archived tabs (ADR-022). */
   archive: "browser.archive",
+  /** Boosts (ADR-029, synced). */
+  boosts: "browser.boosts",
 } as const;
 
 export type StorageKey = (typeof KEYS)[keyof typeof KEYS];

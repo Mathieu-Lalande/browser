@@ -1,3 +1,4 @@
+import type { Boost } from "./boosts";
 import type { FolderId, TabFolder } from "./folders";
 import type { LoadError } from "./load-error";
 import type { PeekState } from "./peek";
@@ -175,6 +176,17 @@ export interface Bounds {
   y: number;
   width: number;
   height: number;
+}
+
+/** The boost of a tab's site, as the site panel shows it (ADR-029). */
+export interface TabBoost {
+  host: string;
+  /** The most specific boost matching the site, enabled or not; null: none yet. */
+  boost: Boost | null;
+  /** Private window: boosts apply but are not edited from there. */
+  isPrivate: boolean;
+  /** The zap tool is running in the tab's page. */
+  zapping: boolean;
 }
 
 /** Commands triggered by main (menus, shortcuts) that the chrome UI must handle. */

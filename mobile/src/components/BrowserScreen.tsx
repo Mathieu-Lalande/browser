@@ -17,11 +17,13 @@ import { isBookmarked } from "../lib/bookmarks";
 import { initialCollapse, nextCollapse } from "../lib/gestures";
 import type { LinkMenuRequest } from "../lib/linkMenu";
 import { readerToken } from "../lib/reader";
+import { QUICK_FILTERS, boostPayload, ensureSiteBoost, filterOn, fontLabel, nextFont, removeZap, siteBoost, toggleFilter, upsertBoost } from "../lib/boosts";
+import { boostHostOf, type Boost } from "@shared/boosts";
 import type { Rect } from "../lib/overviewLayout";
 import type { SheetItem } from "../lib/searchSheet";
 import { connectionLabel, mobileSiteInfo, SITE_DATA_NOTE } from "../lib/siteInfo";
 import { activeTab, isPrivateTab, liveTabIds, mountUrl, orderedTabs, swipeTarget, type MobileFolder, type MobileTab } from "../lib/tabs";
-import { useBrowserActions, useBrowserState, useEvent } from "../state/BrowserProvider";
+import { newId, useBrowserActions, useBrowserState, useEvent } from "../state/BrowserProvider";
 import { passwords, usePasswords } from "../state/passwords";
 import { useTheme } from "../state/theme";
 import { ActionSheet, type MenuItem, type MenuSpec } from "./ActionSheet";
@@ -43,7 +45,10 @@ const MAX_LIVE_TABS = 4;
 type Overlay = "none" | "search" | "tabs" | "settings";
 
 export function BrowserScreen() {
-  const { model, bookmarks, mobile, favorites } = useBrowserState();
+  const { model, bookmarks, mobile, favorites, boosts } = useBrowserState();
+  // Boosts (ADR-029): one payload for normal tabs, one for private ones (scripts only if allowed).
+  const normalBoosts = useMemo(() => boostPayload(boosts, false), [boosts]);
+  const privateBoosts = useMemo(() => boostPayload(boosts, true), [boosts]);
   const actions = useBrowserActions();
   const { colors, dark, isPrivate, reduceMotion, haptic } = useTheme();
   const insets = useSafeAreaInsets();
@@ -425,6 +430,43 @@ export function BrowserScreen() {
     };
   });
 
+  /**
+   * Per-site boost toggles (ADR-029): the site's boost (created on first change), quick filters,
+   * font, zapped elements to show again. Each change re-opens the sheet with the new state.
+   */
+  const boostMenu = useEvent((current?: Boost): MenuSpec | null => {
+    const url = tab?.url ?? "";
+    const host = boostHostOf(url);
+    if (!tab || !host) return null;
+    const boost = current ?? siteBoost(boosts, url);
+    const change = (update: (boost: Boost) => Boost): MenuSpec | null => {
+      const id = newId();
+      const ensured = ensureSiteBoost(boosts, url, host, id, Date.now());
+      const next = update(boost ?? ensured.boost);
+      actions.setBoosts((list) => upsertBoost(list.some((item) => item.id === next.id) ? list : ensured.boosts, next));
+      haptic("selection");
+      return boostMenu(next);
+    };
+    const on = (value: boolean) => (value ? " : activé" : "");
+    const items: MenuItem[] = [];
+    if (boost) {
+      items.push({ key: "enabled", label: boost.enabled ? "Désactiver le boost" : "Activer le boost", icon: "rocket", onPress: () => change((b) => ({ ...b, enabled: !b.enabled, updatedAt: Date.now() })) ?? undefined });
+    }
+    for (const filter of QUICK_FILTERS) {
+      items.push({ key: filter.key, label: `${filter.label}${on(!!boost && filterOn(boost, filter.key))}`, icon: "palette", onPress: () => change((b) => toggleFilter(b, filter.key, Date.now())) ?? undefined });
+    }
+    items.push({ key: "font", label: `Police : ${fontLabel(boost?.font ?? null)}`, icon: "textSize", onPress: () => change((b) => ({ ...b, font: nextFont(b.font), updatedAt: Date.now() })) ?? undefined });
+    for (const selector of boost?.zaps ?? []) {
+      items.push({ key: `zap:${selector}`, label: `Réafficher ${selector}`, icon: "undo", onPress: () => change((b) => removeZap(b, selector, Date.now())) ?? undefined });
+    }
+    return {
+      title: `Boost de ${host}`,
+      subtitle: boost ? (boost.enabled ? boost.match : `${boost.match} · désactivé`) : "Aucun boost pour ce site",
+      note: "Pour masquer des éléments d'une page, utilisez l'outil de la version ordinateur : les boosts sont synchronisés.",
+      items,
+    };
+  });
+
   const showSiteInfo = useEvent(() => {
     const spec = siteInfoMenu();
     if (spec) setMenu(spec);
@@ -463,6 +505,7 @@ export function BrowserScreen() {
         },
         { key: "copy", label: "Copier le lien", icon: "link", onPress: () => copy(tab.url) },
         ...(mobileSiteInfo(tab.url) ? [{ key: "site-info", label: "Infos sur le site", icon: "info" as const, onPress: () => siteInfoMenu() ?? undefined }] : []),
+        ...(boostHostOf(tab.url) ? [{ key: "boost", label: "Boost du site", icon: "rocket" as const, onPress: () => boostMenu() ?? undefined }] : []),
         ...(tabPasswords.length ? [{ key: "passwords", label: "Remplir le mot de passe", icon: "key" as const, onPress: () => passwordsMenu() ?? undefined }] : []),
         { key: "reader", label: "Mode lecture", icon: "reader", onPress: () => setReaderRequest({ tabId: tab.id, token: readerToken() }) },
         {
@@ -725,6 +768,7 @@ export function BrowserScreen() {
               desktopSite={desktopTabs.has(candidate.id)}
               readerToken={readerRequest?.tabId === candidate.id ? readerRequest.token : null}
               onReaderArticle={onReaderArticle}
+              boosts={isPrivateTab(candidate) ? privateBoosts : normalBoosts}
             />
           ))}
           {showStart && (

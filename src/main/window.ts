@@ -13,6 +13,7 @@ import type { DownloadViewer } from "./downloads/list";
 import { favoriteFavicon, favoriteTiles, setArchiveNotifier, setFavoritesRefresh } from "./organize";
 import { Overlay } from "./overlay";
 import { LinkPeek } from "./peek";
+import { boostPage } from "./boosts";
 import { watchPasswordForms } from "./passwords";
 import { hasPasswordsFor, setPasswordsNotifier } from "./passwords/vault";
 import { createPrivateSession, wipePrivateSession } from "./private";
@@ -193,6 +194,7 @@ export class BrowserController {
           ...tabHooks,
           contextMenu: (tabId, params) => pageMenu?.(this, tabId, params),
           pageReady: (tabId, contents) => watchPasswordForms(this, tabId, contents),
+          boostPage: (contents) => boostPage(contents, this.isPrivate),
           peekLink: (tabId, url) => this.peek.open(tabId, url),
         },
         this.isPrivate,
@@ -290,6 +292,11 @@ export class BrowserController {
   /** Shows `browser://extensions` (ADR-024). */
   openExtensions(): void {
     this.openInternal("extensions");
+  }
+
+  /** Shows `browser://boosts` (ADR-029). */
+  openBoosts(): void {
+    this.openInternal("boosts");
   }
 
   /** Shows `browser://passwords` (ADR-025). */

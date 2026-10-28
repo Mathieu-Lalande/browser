@@ -57,3 +57,6 @@
   l'onglet source, rien d'enregistré), carte `LinkPeekPanel.svelte`, géométrie `src/shared/peek.ts` ; mobile `PeekSheet.tsx`.
 - Raccourcis personnalisables (ADR-028) : `settings.shortcuts`, module pur `src/shared/accelerators.ts` ; tout raccourci
   affiché ou installé passe par `effectiveAccelerator`/`effectiveAliases` (jamais `command.accelerator` directement).
+- Boosts par site (ADR-029) : modèle pur `src/shared/boosts.ts` (motifs d'hôte, sélecteurs validés, CSS généré),
+  bureau `src/main/boosts/` (`insertCSS` à clés suivies, script et outil « Masquer des éléments » en monde isolé),
+  `browser://boosts`, collection de synchro `boosts` ; mobile `mobile/src/lib/boosts.ts` (pas d'outil de masquage).

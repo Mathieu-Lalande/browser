@@ -1,6 +1,7 @@
 <script lang="ts">
+  import { BOOST_FONTS, type Boost, type BoostFont } from "@shared/boosts";
   import { PERMISSION_LABELS, cookieCount, type SiteInfo, type SitePermission } from "@shared/site-info";
-  import type { Bounds, TabId } from "@shared/types";
+  import type { Bounds, TabBoost, TabId } from "@shared/types";
   import { api, browser } from "../lib/browser.svelte";
   import Icon from "../components/Icon.svelte";
   import ConfirmButton from "../components/settings/ConfirmButton.svelte";
@@ -46,6 +47,31 @@
     void refresh();
   });
   $effect(() => panel?.focus());
+
+  // Boost of the site (ADR-029): quick toggles here, the full editor in browser://boosts.
+  let tabBoost = $state<TabBoost | null>(null);
+  const refreshBoost = () => api.boosts.forTab(tabId).then((next) => (tabBoost = next), () => {});
+  $effect(() => {
+    void refreshBoost();
+    return api.boosts.onChanged(() => void refreshBoost());
+  });
+  const createBoost = () => api.boosts.createForTab(tabId).then((next) => (tabBoost = next), () => {});
+  function updateBoost(change: (boost: Boost) => Boost): void {
+    const boost = tabBoost?.boost;
+    if (boost) void api.boosts.save(change($state.snapshot(boost))).then(() => refreshBoost(), () => {});
+  }
+  const QUICK_FILTERS = [
+    { key: "invert", label: "Inverser" },
+    { key: "grayscale", label: "Gris" },
+    { key: "sepia", label: "Sépia" },
+  ] as const;
+  const filterOn = (boost: Boost, key: (typeof QUICK_FILTERS)[number]["key"]) => (key === "invert" ? boost.filters.invert : boost.filters[key] > 0);
+  const toggleFilter = (key: (typeof QUICK_FILTERS)[number]["key"]) =>
+    updateBoost((boost) => ({
+      ...boost,
+      filters: key === "invert" ? { ...boost.filters, invert: !boost.filters.invert } : { ...boost.filters, [key]: boost.filters[key] > 0 ? 0 : 100 },
+    }));
+  const unzap = (selector: string) => api.boosts.unzap(tabId, selector).then((next) => (tabBoost = next), () => {});
 
   const dateFormat = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" });
   const date = (ms: number) => dateFormat.format(new Date(ms));
@@ -202,6 +228,64 @@
               <Icon name="reset" size={12} /> {info.defaultZoom}&#8239;%
             </button>
           </div>
+        </section>
+      {/if}
+
+      {#if tabBoost}
+        {@const boost = tabBoost.boost}
+        <section aria-labelledby="site-boost" data-testid="site-boost">
+          <div class="line">
+            <Icon name="rocket" size={14} />
+            <span class="label" id="site-boost">Boost</span>
+            {#if boost && !tabBoost.isPrivate}
+              <Toggle label="Boost actif sur ce site" checked={boost.enabled} onchange={(enabled) => updateBoost((b) => ({ ...b, enabled }))} />
+            {:else if boost}
+              <span class="value">{boost.enabled ? "Actif" : "Désactivé"}</span>
+            {/if}
+          </div>
+          {#if !boost}
+            {#if !tabBoost.isPrivate}
+              <div class="actions">
+                <button class="reset" onclick={createBoost}><Icon name="plus" size={12} /> Personnaliser ce site</button>
+              </div>
+            {:else}
+              <p class="hint">Aucun boost pour ce site.</p>
+            {/if}
+          {:else if !tabBoost.isPrivate}
+            <div class="chips" role="group" aria-label="Filtres de couleur">
+              {#each QUICK_FILTERS as filter (filter.key)}
+                <button class="chip" aria-pressed={filterOn(boost, filter.key)} onclick={() => toggleFilter(filter.key)}>{filter.label}</button>
+              {/each}
+              <select
+                class="chip"
+                aria-label="Police"
+                value={boost.font ?? ""}
+                onchange={(event) => {
+                  const font = (event.currentTarget.value || null) as BoostFont | null;
+                  updateBoost((b) => ({ ...b, font }));
+                }}
+              >
+                <option value="">Police du site</option>
+                {#each Object.entries(BOOST_FONTS) as [id, font] (id)}<option value={id}>{font.label}</option>{/each}
+              </select>
+            </div>
+            {#if boost.zaps.length}
+              <ul class="permissions" aria-label="Éléments masqués">
+                {#each boost.zaps as selector (selector)}
+                  <li>
+                    <span class="text"><code class="mono">{selector}</code></span>
+                    <button class="reset" onclick={() => unzap(selector)} title="Afficher de nouveau cet élément"><Icon name="undo" size={12} /> Réafficher</button>
+                  </li>
+                {/each}
+              </ul>
+            {/if}
+            <div class="actions">
+              <button class="reset" onclick={() => api.boosts.zap(tabId)} disabled={tabBoost.zapping}>
+                <Icon name="eraser" size={12} /> Masquer des éléments
+              </button>
+              <button class="reset" onclick={() => (onClose(false), api.commands.run("open-boosts"))}><Icon name="pencil" size={12} /> Modifier</button>
+            </div>
+          {/if}
         </section>
       {/if}
 
@@ -419,6 +503,26 @@
   }
   .reset:disabled {
     opacity: 0.45;
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .chip {
+    height: 26px;
+    padding: 0 10px;
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: 12px;
+  }
+  .chip[aria-pressed="true"] {
+    border-color: transparent;
+    background: color-mix(in oklab, var(--accent) 18%, transparent);
+    color: var(--accent-text);
   }
   .private {
     display: flex;

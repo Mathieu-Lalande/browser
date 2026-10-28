@@ -151,6 +151,12 @@ function startServer(): Promise<{ server: Server; origin: string; log: ServerLog
           `<p id="last">Phrase finale du test.</p></article>` +
           `<footer>Pied de page</footer></body></html>`,
       );
+    } else if (path.startsWith("/boost")) {
+      // A page to customize (boosts, ADR-029): an element to zap and some text.
+      res.end(
+        `<title>Boost</title><div class="promo"><div id="ad" style="width:240px;height:90px;background:#c33">Publicité</div></div>` +
+          `<p id="text">Le contenu reste.</p>`,
+      );
     } else if (path.startsWith("/login")) {
       // A plain login form (ADR-025); the POST lands on a welcome page.
       res.end(

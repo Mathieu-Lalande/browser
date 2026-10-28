@@ -57,7 +57,9 @@ export type CommandId =
   | "open-extensions"
   | "open-passwords"
   | "toggle-reader"
-  | "toggle-mobile-site";
+  | "toggle-mobile-site"
+  | "open-boosts"
+  | "zap-elements";
 
 /** Icon names used by commands; the UI's Icon component must know each of them. */
 export type CommandIcon =
@@ -97,7 +99,9 @@ export type CommandIcon =
   | "extension"
   | "key"
   | "reader"
-  | "smartphone";
+  | "smartphone"
+  | "rocket"
+  | "eraser";
 
 /** What a command's label and availability may depend on. */
 export interface CommandContext {
@@ -349,6 +353,17 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
     icon: "smartphone",
     needsPage: true,
   },
+  "open-boosts": {
+    label: "Boosts",
+    keywords: ["boosts", "personnaliser", "css", "style", "site", "thème du site", "arc"],
+    icon: "rocket",
+  },
+  "zap-elements": {
+    label: "Masquer des éléments",
+    keywords: ["zap", "masquer", "cacher", "supprimer un élément", "boost", "publicité", "nettoyer"],
+    icon: "eraser",
+    needsPage: true,
+  },
 };
 
 /** Every command, in palette order. */
@@ -451,6 +466,8 @@ export const COMMAND_GROUPS: readonly { label: string; ids: readonly CommandId[]
       "open-archive",
       "open-downloads",
       "open-passwords",
+      "open-boosts",
+      "zap-elements",
       "open-extensions",
       "site-info",
       "clear-site-data",

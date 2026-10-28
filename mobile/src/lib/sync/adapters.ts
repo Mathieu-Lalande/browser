@@ -1,3 +1,4 @@
+import { boostRecord, mergeBoosts, sanitizeSyncedBoost, type Boost, type SyncedBoost } from "@shared/boosts";
 import { favoriteLocalId, favoriteRecord, mergeFavorites, sanitizeSyncedFavorite, type Favorite, type SyncedFavorite } from "@shared/favorites";
 import type { History } from "@shared/history";
 import { mergeSettings, type Settings } from "@shared/settings";
@@ -53,6 +54,9 @@ export interface MobileSyncStore {
   /** The favorites grid (ADR-022). */
   favorites(): Favorite[];
   setFavorites(favorites: Favorite[]): void;
+  /** Boosts (ADR-029). */
+  boosts(): Boost[];
+  setBoosts(boosts: Boost[]): void;
   history(): History;
   historyChanged(): void;
   /**
@@ -164,6 +168,18 @@ function favoritesAdapter(store: MobileSyncStore): CollectionAdapter<SyncedFavor
   };
 }
 
+/** Boosts (ADR-029), same records as the desktop (a script travels only while enabled). */
+function boostsAdapter(store: MobileSyncStore): CollectionAdapter<SyncedBoost> {
+  return {
+    name: "boosts",
+    snapshot: () => new Map(store.boosts().map((boost) => [boost.id, boostRecord(boost)])),
+    sanitize: (value, id) => sanitizeSyncedBoost(value, id),
+    apply: ({ upserts, deletes }) => {
+      store.setBoosts(mergeBoosts(store.boosts(), upserts.map((change) => [change.id, change.data]), deletes));
+    },
+  };
+}
+
 export function mobileAdapters(store: MobileSyncStore): CollectionAdapter[] {
-  return [settingsAdapter(store), spacesAdapter(store), bookmarksAdapter(store), historyAdapter(store), favoritesAdapter(store)] as CollectionAdapter[];
+  return [settingsAdapter(store), spacesAdapter(store), bookmarksAdapter(store), historyAdapter(store), favoritesAdapter(store), boostsAdapter(store)] as CollectionAdapter[];
 }

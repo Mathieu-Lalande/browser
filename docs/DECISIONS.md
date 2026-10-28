@@ -1314,3 +1314,48 @@ veut changer la combinaison d'une commande, ou la retirer, sans que menu, palett
   propres au bureau ; les raccourcis restent locaux.
 - Téléphone : non applicable. React Native n'expose pas les touches d'un clavier matériel hors d'un `TextInput`
   (iPad `UIKeyCommand`, Android `onKeyDown` demandent du code natif, impossible dans Expo Go) : aucun code mobile.
+
+## ADR-029 — Boosts : personnalisation par site
+
+**Décision.** Un « boost » (comme dans Arc) personnalise un site : filtres de couleur, police, éléments
+masqués, CSS et, en option, un script. Modèle pur et validé dans `src/shared/boosts.ts`, partagé par le
+bureau et le téléphone ; stocké dans `boosts.json` (bureau) et `browser.boosts` (mobile), synchronisé.
+
+- Modèle : `id`, `name`, `match` (hôte exact `news.exemple.fr`, ou `*.exemple.fr` = le domaine et ses
+  sous-domaines ; `*.fr` refusé ; une URL collée est réduite à son hôte), `enabled`, `css` (20 000 caractères
+  au plus), `zaps` (100 sélecteurs au plus), `font` (liste fermée de piles de polices système, aucune police
+  téléchargée), `filters` (inversion, gris, sépia 0–100 %, luminosité et contraste 50–150 % : une page reste
+  lisible), `script` (`enabled` faux par défaut, `code`, `allowPrivate`). L'éditeur reçoit un message en
+  français plutôt qu'une troncature (`validateBoostInput`).
+- Sélecteurs masqués : chacun devient sa propre règle `sel { display: none !important }` (un sélecteur invalide
+  n'annule que la sienne) ; `isValidSelector` refuse ce qui sortirait de la règle (accolades, `;`, `@`, `<`,
+  commentaires, sauts de ligne, barre oblique inverse finale, guillemets ou crochets non équilibrés) et ce qui
+  masquerait la page entière (`html`, `body`, `*`, `:root`). Le CSS personnalisé vient en dernier.
+- Plusieurs boosts peuvent viser une page : tous s'appliquent, du moins précis au plus précis (le plus précis
+  gagne). Le panneau du site montre le plus précis (`siteBoost`).
+- Bureau : à chaque `dom-ready` (crochet `boostPage` de `TabManager`, conservé en fenêtre privée), le CSS passe
+  par `webContents.insertCSS` ; les clés sont gardées par page pour que toute modification soit appliquée en
+  direct (`removeInsertedCSS` puis nouvel `insertCSS`, sans recharger). Le script s'exécute dans un monde isolé
+  (1007), jamais dans celui de la page, au chargement suivant ; en fenêtre privée seulement si `allowPrivate`.
+- Outil « Masquer des éléments » (commande `zap-elements`, aussi dans le panneau du site) : un script en monde
+  isolé (1008, sans preload) surligne l'élément survolé, intercepte le clic (événements de confiance seulement,
+  les gestionnaires de la page ne le voient pas), calcule un sélecteur qui ne désigne que cet élément
+  (`#id` stable, sinon classes stables + `:nth-of-type` en remontant) et résout sa promesse ; main le valide,
+  l'ajoute au boost du site (créé au premier clic) et relance l'outil. Échap le termine.
+- Interface : section « Boost » du panneau Infos sur le site (ADR-021 : créer, activer, filtres rapides, police,
+  éléments masqués avec « Réafficher », outil, « Modifier ») et page interne `browser://boosts` (ADR-012 :
+  liste, éditeur complet, CSS et script en chasse fixe, avertissement avant le script). Icônes Lucide `rocket`,
+  `eraser`, `undo`.
+- Fenêtres privées : les boosts s'appliquent (lecture), mais ne se créent ni ne se modifient depuis une fenêtre
+  privée (écriture dans le profil, ADR-014) ; l'outil y est inactif.
+- Synchronisation (ADR-019) : collection `boosts`, clé = id du boost. Le script ne voyage que s'il est activé ;
+  un enregistrement reçu sans script garde le script désactivé local (`mergeBoosts`), qui ne quitte donc jamais
+  l'appareil. Rien de secret, mais chiffré comme le reste.
+- Téléphone : `injectedJavaScriptBeforeContentLoaded` (cadre principal) pose une balise `<style>` avec le CSS
+  des boosts dont le motif correspond à `location.hostname` (mêmes règles que `matchesHost`) et lance les
+  scripts autorisés ; une modification est appliquée en direct par `injectJavaScript` (CSS seul). Limites
+  assumées : react-native-webview n'a pas de monde isolé, un script activé s'exécute donc dans le monde de la
+  page (via `eval`, bloqué par une CSP qui l'interdit) — le texte des réglages le dit ; pas d'outil pour masquer
+  des éléments (pas de survol au doigt, sélection peu fiable) : les éléments masqués viennent du bureau par la
+  synchronisation. Menu de la page « Boost du site » (activer, filtres rapides, police, réafficher) et liste
+  dans les réglages (activer, supprimer).

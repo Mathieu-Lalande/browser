@@ -80,6 +80,7 @@ import FolderInput from "lucide-react-native/icons/folder-input";
 import FolderPlus from "lucide-react-native/icons/folder-plus";
 import LayoutGrid from "lucide-react-native/icons/layout-grid";
 import Type from "lucide-react-native/icons/type";
+import Undo2 from "lucide-react-native/icons/undo-2";
 
 const ui = {
   search: Search,
@@ -135,6 +136,8 @@ const ui = {
   // Reader mode (ADR-026).
   reader: BookOpen,
   textSize: Type,
+  // Boosts (ADR-029).
+  undo: Undo2,
 } satisfies Record<string, LucideIcon>;
 
 /** Space icons: their stored names (src/shared/spaces.ts) are Lucide's own. */

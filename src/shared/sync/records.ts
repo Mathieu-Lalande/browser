@@ -9,7 +9,7 @@ import { isNavigableUrl } from "../url";
  * value decrypted from another device.
  */
 
-export const COLLECTIONS = ["settings", "spaces", "bookmarks", "history", "clients", "favorites"] as const;
+export const COLLECTIONS = ["settings", "spaces", "bookmarks", "history", "clients", "favorites", "boosts"] as const;
 export type CollectionName = (typeof COLLECTIONS)[number];
 
 const MAX_TEXT = 512;

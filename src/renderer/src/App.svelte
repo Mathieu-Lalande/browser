@@ -7,6 +7,7 @@
   import ArchivePage from "./components/folders/ArchivePage.svelte";
   import ExtensionsPage from "./components/extensions/ExtensionsPage.svelte";
   import PasswordsPage from "./components/passwords/PasswordsPage.svelte";
+  import BoostsPage from "./components/boosts/BoostsPage.svelte";
   import ReaderView from "./components/reader/ReaderView.svelte";
   import FindBar from "./components/FindBar.svelte";
   import HttpsOnlyPage from "./components/HttpsOnlyPage.svelte";
@@ -279,6 +280,8 @@
         <ExtensionsPage />
       {:else if internalPage === "passwords"}
         <PasswordsPage />
+      {:else if internalPage === "boosts"}
+        <BoostsPage />
       {:else if browser.activeTab?.interstitial}
         <HttpsOnlyPage tab={browser.activeTab} />
       {:else if browser.activeTab?.loadError}

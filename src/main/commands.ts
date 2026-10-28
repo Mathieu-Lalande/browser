@@ -3,6 +3,7 @@ import { effectiveAccelerator, effectiveAliases, getCommand, type CommandId } fr
 import { settings } from "./settings";
 import { toggleFavorite } from "./organize";
 import { profile } from "./profile";
+import { startZap } from "./boosts";
 import { toggleReader } from "./reader";
 import { clearTabSiteData } from "./site-info";
 import { sleepTabNow, sleepTabs } from "./sleep";
@@ -97,6 +98,8 @@ const RUNNERS: Record<CommandId, Runner> = {
   "open-passwords": (c) => c.openPasswords(),
   "toggle-reader": onActiveTab((c, id) => void toggleReader(c, id)),
   "toggle-mobile-site": onActiveTab((c, id) => c.tabs.toggleMobileSite(id)),
+  "open-boosts": (c) => c.openBoosts(),
+  "zap-elements": onActiveTab(startZap),
 };
 
 /** Commands that make sense without any window (macOS keeps the app running windowless). */

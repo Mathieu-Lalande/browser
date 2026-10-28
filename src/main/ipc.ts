@@ -1,3 +1,4 @@
+import { isBoostId, isValidSelector } from "@shared/boosts";
 import { ipcMain, type IpcMainEvent, type IpcMainInvokeEvent } from "electron";
 import { isCommandId, type CommandId } from "@shared/commands";
 import { Channels } from "@shared/ipc";
@@ -77,6 +78,7 @@ import { isPeekAction, type PeekAction } from "@shared/peek";
 import { startImage } from "./start-image";
 import { registerSyncIpc } from "./sync/ipc";
 import { showTabMenu } from "./tab-menu";
+import { boostForTab, createBoostForTab, listBoosts, removeBoost, saveBoost, startZap, unzap } from "./boosts";
 import { BrowserController } from "./window";
 
 type Handler = (controller: BrowserController, ...args: unknown[]) => void;
@@ -95,6 +97,8 @@ const MAX_QUERY_LENGTH = 1024;
 const MAX_URL_LENGTH = 8192;
 const MAX_RESULTS = 100;
 const MAX_SETTINGS_PATCH = 16 * 1024;
+/** A whole boost: CSS and script at their limits, plus zaps and fields. */
+const MAX_BOOST_PAYLOAD = 128 * 1024;
 
 /** Undefined (use the default) or an integer in 1…MAX_RESULTS. */
 const isLimit = (value: unknown) =>
@@ -406,6 +410,16 @@ export function registerIpc(): void {
   withController(Channels.passwordsAnswer, (args) => isPasswordId(args[0]) && isPromptAnswer(args[1]), (c, captureId, answer) =>
     answerPrompt(c, captureId as string, answer as PromptAnswer),
   );
+  // Boosts (ADR-029): whole boosts validated by the shared model (sizes, pattern, selectors);
+  // tabs named by id, their URL read here. Private windows read only (checked in ./boosts).
+  const isSmallObject = (value: unknown) => typeof value === "object" && value !== null && JSON.stringify(value).length <= MAX_BOOST_PAYLOAD;
+  withController(Channels.boostsList, none, () => listBoosts());
+  withController(Channels.boostsForTab, id, (c, tabId) => boostForTab(c, tabId as string));
+  withController(Channels.boostsCreateForTab, id, (c, tabId) => createBoostForTab(c, tabId as string));
+  withController(Channels.boostsSave, (args) => isSmallObject(args[0]), (c, boost) => saveBoost(c, boost));
+  withController(Channels.boostsRemove, (args) => isBoostId(args[0]), (c, boostId) => removeBoost(c, boostId as string));
+  withController(Channels.boostsUnzap, (args) => isString(args[0]) && isValidSelector(args[1]), (c, tabId, selector) => unzap(c, tabId as string, selector as string));
+  on(Channels.boostsZap, id, (c, tabId) => startZap(c, tabId as string));
   withController(Channels.readerArticle, id, (c, tabId) => readerArticle(c, tabId as string));
 
   registerSyncIpc();

@@ -1,4 +1,5 @@
 import type { ArchivedTab } from "./archive";
+import type { Boost, BoostInput, BoostResult } from "./boosts";
 import type { CommandId } from "./commands";
 import type { ExtensionInfo, ExtensionInstallResult } from "./extensions";
 import type { FolderId, FolderInput } from "./folders";
@@ -23,6 +24,7 @@ import type {
   BookmarkInput,
   Bounds,
   BrowserState,
+  TabBoost,
   HistoryEntry,
   OverlayBackdrop,
   OverlayRequest,
@@ -160,6 +162,14 @@ export const Channels = {
   passwordsPrompt: "passwords:prompt",
   passwordsAnswer: "passwords:answer",
   readerArticle: "reader:article",
+  boostsList: "boosts:list",
+  boostsForTab: "boosts:for-tab",
+  boostsCreateForTab: "boosts:create-for-tab",
+  boostsSave: "boosts:save",
+  boostsRemove: "boosts:remove",
+  boostsUnzap: "boosts:unzap",
+  boostsZap: "boosts:zap",
+  boostsChanged: "boosts:changed",
   peekState: "peek:state",
   peekAction: "peek:action",
 } as const;
@@ -246,6 +256,24 @@ export interface BrowserApi {
    * Password manager (ADR-025). Lists carry no password: one reaches the UI only through `reveal`,
    * after the user confirmed; `copy` and `exportCsv` stay in main (clipboard, save dialog).
    */
+  /**
+   * Boosts (ADR-029): per-site CSS, zapped elements, font, color filters and an optional script.
+   * The UI names tabs of its own window; main reads their URL. Changes are refused from a private window.
+   */
+  boosts: {
+    list(): Promise<Boost[]>;
+    forTab(tabId: TabId): Promise<TabBoost | null>;
+    /** The tab's site boost, created when there is none. */
+    createForTab(tabId: TabId): Promise<TabBoost | null>;
+    /** A whole boost (no id: a new one), validated in main. */
+    save(boost: BoostInput): Promise<BoostResult>;
+    remove(id: string): Promise<void>;
+    /** Shows a zapped element of the tab's site again. */
+    unzap(tabId: TabId, selector: string): Promise<TabBoost | null>;
+    /** Starts the zap tool in the tab's page (closes the overlay). */
+    zap(tabId: TabId): void;
+    onChanged(listener: () => void): () => void;
+  };
   passwords: {
     status(): Promise<PasswordsStatus>;
     list(): Promise<PasswordSummary[]>;

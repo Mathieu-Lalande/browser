@@ -24,6 +24,8 @@ export function tabHooksFor(hooks: TabManagerHooks, isPrivate: boolean): TabMana
         isFavorite: hooks.isFavorite,
         contextMenu: hooks.contextMenu,
         hasPasswords: hooks.hasPasswords,
+        // Boosts apply (reading); their scripts only when a boost allows it (ADR-029).
+        boostPage: hooks.boostPage,
         // The link peek uses the window's private session and records nothing (ADR-027).
         peekLink: hooks.peekLink,
       }

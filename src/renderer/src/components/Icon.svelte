@@ -123,6 +123,8 @@
   import Ban from "@lucide/svelte/icons/ban";
   import FileDown from "@lucide/svelte/icons/file-down";
   import Keyboard from "@lucide/svelte/icons/keyboard";
+  import Eraser from "@lucide/svelte/icons/eraser";
+  import Undo2 from "@lucide/svelte/icons/undo-2";
 
   type LucideIcon = Component<Record<string, unknown>>;
 
@@ -230,6 +232,10 @@
     "copy-text": Copy,
     // Keyboard shortcuts (ADR-028).
     keyboard: Keyboard,
+    // Boosts (ADR-029).
+    rocket: Rocket,
+    eraser: Eraser,
+    undo: Undo2,
   } satisfies Record<string, LucideIcon> & Record<CommandIcon, LucideIcon>;
 
   /** Space icons: their stored names are Lucide's own. */

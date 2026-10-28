@@ -1,4 +1,5 @@
 /// <reference types="node" />
+import { newBoost, type Boost } from "@shared/boosts";
 import type { Favorite } from "@shared/favorites";
 import { History } from "@shared/history";
 import { DEFAULT_SETTINGS, mergeSettings, type Settings } from "@shared/settings";
@@ -31,6 +32,7 @@ function phone(server: MemorySyncServer) {
     bookmarks: [] as Bookmark[],
     folders: [] as BookmarkFolder[],
     favorites: [] as Favorite[],
+    boosts: [] as Boost[],
     history: new History([], 5000),
     deleted: new Set<string>(),
   };
@@ -48,6 +50,8 @@ function phone(server: MemorySyncServer) {
     },
     favorites: () => data.favorites,
     setFavorites: (next) => void (data.favorites = next),
+    boosts: () => data.boosts,
+    setBoosts: (next) => void (data.boosts = next),
     history: () => data.history,
     historyChanged: () => {},
     historyDeleted: (url) => data.deleted.has(url),
@@ -166,6 +170,24 @@ describe("mobile sync adapters", () => {
     await b.sync.syncNow();
     await a.sync.syncNow();
     expect(a.data.favorites.map((favorite) => favorite.url)).toEqual(["https://agenda.example/"]);
+  });
+
+  it("syncs boosts (ADR-029), never a disabled script", async () => {
+    const server = new MemorySyncServer();
+    const a = phone(server);
+    const base = newBoost("boost-1", "news.example", 1);
+    a.data.boosts = [{ ...base, zaps: ["#ad"], script: { enabled: false, code: "secretCode()", allowPrivate: false } }];
+    await a.sync.createAccount("https://sync.example.org");
+    const b = phone(server);
+    await b.sync.pair(a.sync.pairingCode()!);
+    expect(b.data.boosts).toMatchObject([{ id: "boost-1", match: "news.example", zaps: ["#ad"], script: { enabled: false, code: "" } }]);
+    expect(server.dump()).not.toContain("news.example");
+
+    // Changed on B: A follows and keeps its own disabled script.
+    b.data.boosts = [{ ...b.data.boosts[0], enabled: false, updatedAt: 2 }];
+    await b.sync.syncNow();
+    await a.sync.syncNow();
+    expect(a.data.boosts[0]).toMatchObject({ enabled: false, script: { code: "secretCode()" } });
   });
 
   it("history pruned on a full phone is not deleted elsewhere, a cleared history is", async () => {
