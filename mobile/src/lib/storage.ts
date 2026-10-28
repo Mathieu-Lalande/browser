@@ -13,6 +13,10 @@ export const KEYS = {
   mobile: "browser.mobile-settings",
   /** Bookmark folders received from the desktop through sync (not shown on the phone). */
   folders: "browser.bookmark-folders",
+  /** The favorites grid (ADR-022, synced). */
+  favorites: "browser.favorites",
+  /** Archived tabs (ADR-022). */
+  archive: "browser.archive",
 } as const;
 
 export type StorageKey = (typeof KEYS)[keyof typeof KEYS];

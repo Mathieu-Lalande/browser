@@ -25,6 +25,18 @@ export function resolveHorizontalSwipe(translationX: number, velocityX: number, 
   return distance >= SWIPE_MIN_DISTANCE && flungSameWay ? direction : 0;
 }
 
+/**
+ * The tab overview pager (ADR-022): the page a horizontal swipe leads to from page `index` of
+ * `count`: the next one (finger moved left), the previous one, or the same (snap back, or no page
+ * that way).
+ */
+export function pagerTarget(index: number, count: number, translationX: number, velocityX: number, width: number): number {
+  "worklet";
+  const step = resolveHorizontalSwipe(translationX, velocityX, width);
+  const next = index + step;
+  return next >= 0 && next < count ? next : index;
+}
+
 /** Whether a vertical swipe on the address bar asks for the tab overview. */
 export function isSwipeUp(translationY: number, velocityY: number): boolean {
   "worklet";

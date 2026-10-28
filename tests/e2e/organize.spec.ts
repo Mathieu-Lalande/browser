@@ -174,9 +174,15 @@ test("a two-finger horizontal swipe on the sidebar changes space once; vertical 
   const wheel = (deltaX: number, deltaY: number, count: number) =>
     chrome.evaluate(
       async ({ deltaX, deltaY, count }) => {
-        const target = document.querySelector("[data-testid=space-area]")!;
+        // Runs in the chrome page (DOM types are not in the tests' tsconfig).
+        type Target = { dispatchEvent(event: unknown): boolean };
+        const page = globalThis as unknown as {
+          document: { querySelector(selector: string): Target };
+          WheelEvent: new (type: string, init: Record<string, unknown>) => unknown;
+        };
+        const target = page.document.querySelector("[data-testid=space-area]");
         for (let i = 0; i < count; i++) {
-          target.dispatchEvent(new WheelEvent("wheel", { deltaX, deltaY, deltaMode: 0, bubbles: true, cancelable: true }));
+          target.dispatchEvent(new page.WheelEvent("wheel", { deltaX, deltaY, deltaMode: 0, bubbles: true, cancelable: true }));
           await new Promise((resolve) => setTimeout(resolve, 8));
         }
       },

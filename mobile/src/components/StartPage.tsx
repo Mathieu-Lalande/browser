@@ -9,7 +9,10 @@ import { privateModeNotice } from "../lib/navigation";
 import { greeting } from "../lib/site";
 import { useBrowserState, useHistoryEntries } from "../state/BrowserProvider";
 import { useTheme } from "../state/theme";
+import type { Favorite } from "@shared/favorites";
+import { isFavoriteTab } from "@shared/favorites";
 import { Icon } from "./Icon";
+import { FavoritesRow } from "./Organize";
 import { SiteIcon, Tap } from "./ui";
 
 interface Props {
@@ -17,14 +20,17 @@ interface Props {
   onSearch: () => void;
   onOpen: (url: string) => void;
   onLongPressSite: (url: string, title: string) => void;
+  /** Favorites grid (ADR-022). */
+  onOpenFavorite: (url: string) => void;
+  onFavoriteMenu: (favorite: Favorite) => void;
 }
 
 const TOP_SITES = 8;
 
 /** New tab page: greeting, search pill, most visited sites (frecency) and favorites. */
-export const StartPage = memo(function StartPage({ bottomInset, onSearch, onOpen, onLongPressSite }: Props) {
+export const StartPage = memo(function StartPage({ bottomInset, onSearch, onOpen, onLongPressSite, onOpenFavorite, onFavoriteMenu }: Props) {
   const { colors, dark, isPrivate, reduceMotion } = useTheme();
-  const { settings, bookmarks } = useBrowserState();
+  const { settings, bookmarks, favorites: grid, model } = useBrowserState();
   const history = useHistoryEntries();
   const { width } = useWindowDimensions();
   const [now, setNow] = useState(() => new Date());
@@ -96,6 +102,17 @@ export const StartPage = memo(function StartPage({ bottomInset, onSearch, onOpen
           </Tap>
         </Animated.View>
 
+        {grid.length > 0 && !isPrivate && (
+          <Animated.View entering={entering(2)} style={styles.section}>
+            <FavoritesRow
+              title="Grille des favoris"
+              favorites={grid}
+              isOpen={(url) => model.tabs.some((tab) => tab.spaceId === model.activeSpaceId && isFavoriteTab(url, tab.url))}
+              onOpen={onOpenFavorite}
+              onLongPress={onFavoriteMenu}
+            />
+          </Animated.View>
+        )}
         {favorites.length > 0 && !isPrivate && (
           <Animated.View entering={entering(2)} style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.textMuted }]} accessibilityRole="header">

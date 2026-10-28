@@ -1,4 +1,4 @@
-import { ACCENT_PRESETS, LIMITS, type CloseTabActivates, type NewTabPosition, type ThemeMode } from "@shared/settings";
+import { ACCENT_PRESETS, ARCHIVE_DELAY_OPTIONS, LIMITS, type CloseTabActivates, type NewTabPosition, type TabArchiveDelay, type ThemeMode } from "@shared/settings";
 import { displayUrl, SEARCH_ENGINES } from "@shared/url";
 import { memo, useState, type ReactNode } from "react";
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
@@ -148,6 +148,13 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
                 ["next", "À côté"],
               ]}
               onChange={(newTabPosition) => actions.updateSettings({ behavior: { newTabPosition } })}
+            />
+          </Row>
+          <Row label="Archiver les onglets inactifs après" vertical>
+            <Segmented<TabArchiveDelay>
+              value={behavior.archiveTabsAfter}
+              options={ARCHIVE_DELAY_OPTIONS.map((option): [TabArchiveDelay, string] => [option.value, option.label])}
+              onChange={(archiveTabsAfter) => actions.updateSettings({ behavior: { archiveTabsAfter } })}
             />
           </Row>
           <Row label="Après fermeture" vertical>

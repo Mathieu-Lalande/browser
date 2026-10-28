@@ -1,3 +1,4 @@
+import { favoriteLocalId, favoriteRecord, mergeFavorites, sanitizeSyncedFavorite, type Favorite, type SyncedFavorite } from "@shared/favorites";
 import type { History } from "@shared/history";
 import { mergeSettings, type Settings } from "@shared/settings";
 import { MAX_SPACES } from "@shared/spaces";
@@ -49,6 +50,9 @@ export interface MobileSyncStore {
   bookmarks(): Bookmark[];
   folders(): BookmarkFolder[];
   setBookmarks(bookmarks: Bookmark[], folders: BookmarkFolder[]): void;
+  /** The favorites grid (ADR-022). */
+  favorites(): Favorite[];
+  setFavorites(favorites: Favorite[]): void;
   history(): History;
   historyChanged(): void;
   /**
@@ -148,6 +152,18 @@ function historyAdapter(store: MobileSyncStore): CollectionAdapter<SyncedHistory
   };
 }
 
+/** The favorites grid (ADR-022), same records as the desktop. */
+function favoritesAdapter(store: MobileSyncStore): CollectionAdapter<SyncedFavorite> {
+  return {
+    name: "favorites",
+    snapshot: () => new Map(store.favorites().map((favorite, index) => [favoriteLocalId(favorite.url), favoriteRecord(favorite, index)])),
+    sanitize: (value, id) => sanitizeSyncedFavorite(value, id),
+    apply: ({ upserts, deletes }) => {
+      store.setFavorites(mergeFavorites(store.favorites(), upserts.map((change) => change.data), deletes));
+    },
+  };
+}
+
 export function mobileAdapters(store: MobileSyncStore): CollectionAdapter[] {
-  return [settingsAdapter(store), spacesAdapter(store), bookmarksAdapter(store), historyAdapter(store)] as CollectionAdapter[];
+  return [settingsAdapter(store), spacesAdapter(store), bookmarksAdapter(store), historyAdapter(store), favoritesAdapter(store)] as CollectionAdapter[];
 }

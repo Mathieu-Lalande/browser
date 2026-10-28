@@ -871,3 +871,107 @@ react-native-webview n'a pas d'API de cookies par site et `@react-native-cookies
 n'est pas dans Expo Go : l'effacement passe par un script injecté dans la page, qui vide ce que la page
 atteint elle-même (localStorage, sessionStorage, IndexedDB, Cache Storage, cookies visibles des
 scripts) puis la recharge. Les cookies `HttpOnly` restent ; la feuille le dit.
+
+## ADR-022 — Organisation : dossiers, grille des favoris, gestes entre espaces, archivage
+
+**Contexte.** Le propriétaire veut un navigateur « utile et très pratique » : ranger ses onglets,
+garder ses sites de tous les jours à portée, passer d'un espace à l'autre au trackpad, et ne plus
+accumuler des dizaines d'onglets oubliés. Sur le bureau comme sur le téléphone.
+
+**Dossiers (bureau).** Modèle pur `src/shared/folders.ts` (testé) : dossiers imbriqués (4 niveaux,
+64 au plus), par espace, avec nom, icône Lucide de `SPACE_ICONS` (`folder` par défaut), état replié.
+Un onglet pointe vers son dossier (`TabState.folderId`) ; un onglet épinglé n'est jamais rangé.
+- Règle d'affichage (comme Arc) : dans chaque conteneur, les sous-dossiers d'abord, puis les onglets.
+  `TabManager` garde sa liste plate triée dans cet ordre (`visualOrder`) : Ctrl+Tab suit l'écran,
+  et le reste du code (veille, scindé, palette) ne change pas.
+- Un dossier replié cache son contenu, sauf l'onglet actif. Un lien ouvert depuis un onglet rangé
+  reste dans le même dossier ; un onglet déplacé vers un autre espace arrive hors dossier.
+- Glisser-déposer au pointeur (`pointerdown/move/up`, seuil de 5 px, Échap annule) : onglets et
+  dossiers se réordonnent, entrent dans un dossier ou en sortent ; `dropZone`/`resolveDrop` (purs)
+  calculent la cible et l'indicateur (ligne d'insertion décalée au niveau d'arrivée, ou dossier
+  surligné), si bien que l'indicateur montre toujours où l'élément atterrira vraiment. Alternatives
+  au clavier dans le menu contextuel d'onglet : « Déplacer vers le dossier… » et « Nouveau dossier
+  avec cet onglet » ; commande « Nouveau dossier » dans le registre.
+- Popover du dossier (dans la barre latérale) : renommer, icône, sous-dossier, supprimer. Supprimer
+  un dossier non vide demande s'il faut aussi fermer ses onglets (sinon ils remontent d'un niveau).
+- **Persistance** : `session.json` passe en **version 3** : chaque liste d'onglets d'un espace gagne
+  `folders`, ses onglets `folderId` et `lastSeenAt` (pour l'archivage). Une session v2 se lit comme
+  une v3 sans dossiers (même forme, champs facultatifs) ; un dossier inconnu renvoie l'onglet à la
+  racine, les cycles et l'imbrication trop profonde sont réparés (tests de `session.test.ts`).
+  Les fenêtres privées ont des dossiers en mémoire, jamais écrits.
+
+**Grille des favoris.** Des tuiles de sites en haut de la barre latérale, communes à tous les
+espaces, distinctes des onglets épinglés (par espace) et des favoris/marque-pages (longue liste
+classée, ADR-005). Réutiliser le magasin des favoris avec un drapeau de dossier « Favoris » n'était
+pas propre : un favori n'y appartient qu'à un seul dossier (l'ajouter à la grille l'aurait sorti de
+son dossier), la grille a besoin d'un ordre, et le téléphone ignore les dossiers de favoris. D'où un
+petit magasin à part, `favorites.json` (modèle pur `src/shared/favorites.ts`, 24 tuiles au plus,
+http(s) seulement), synchronisé comme **collection supplémentaire `favorites`** du moteur de l'ADR-019
+(identifiant `fav:<url>` haché, position dans la grille ; les favicons restent sur l'appareil).
+- Une tuile ouvre l'onglet de son site (même page d'abord, sinon le plus récent sur le même hôte,
+  dans l'espace affiché puis les autres espaces de la fenêtre), sinon un nouvel onglet ; un point
+  signale un onglet ouvert. Clic droit : ouvrir, ouvrir dans un nouvel onglet, retirer.
+- Ajout/retrait : menu contextuel d'onglet, glisser un onglet sur la grille (sans tuile, une zone de
+  dépôt flotte au-dessus de la liste pendant le glisser), commande « Ajouter à / Retirer de la
+  grille des favoris ». Le libellé « grille des favoris » la distingue des favoris (étoile, Ctrl+D).
+- Fenêtres privées : la grille est lisible et cliquable, jamais modifiable (refusé dans main).
+
+**Changer d'espace au geste.** Module pur `src/shared/space-swipe.ts` (testé) alimenté par les
+événements `wheel` de la barre latérale : les pavés tactiles de macOS et les pavés de précision de
+Windows livrent le défilement à deux doigts comme des `wheel` en pixels, l'horizontal dans `deltaX`.
+- Verrou d'axe sur les 8 premiers pixels : un geste où `|deltaX|` ne domine pas nettement
+  (`> 1,5 × |deltaY|`) reste un défilement jusqu'à sa fin ; une molette de souris (seulement
+  `deltaY`, ou en lignes) ne déclenche jamais rien, ni Maj+molette ni Ctrl+molette (zoom).
+- Le contenu de l'espace suit les doigts (`translateX`), avec un effet élastique à l'espace premier
+  et dernier, puis bascule au-delà de 30 % de la largeur ou sur un geste rapide (≥ 1,2 px/ms après
+  10 %). Défilement naturel : doigts vers la gauche, espace suivant.
+- **Un geste, un espace** : après une bascule, tous les événements du même geste (inertie de macOS
+  comprise) sont avalés jusqu'à une pause de 260 ms. Sans bascule, une pause de 140 ms ramène le
+  contenu en place. « Réduire les animations » garde le geste mais pas le suivi du doigt.
+- **Sur la page**, rien n'est intercepté : l'écouteur vit dans l'interface, les pages n'ont ni
+  preload ni écouteur ajouté. Par défaut, Electron n'ajoute pas la navigation précédent/suivant par
+  balayage à deux doigts de Chrome (fonction de la couche `chrome/` ; l'API d'Electron 44 n'expose
+  que l'événement `swipe` à trois doigts de macOS et `isSwipeTrackingFromScrollEventsEnabled`) ; la page
+  reçoit ses événements `wheel` comme avant (défilement horizontal du site). Ce comportement par
+  défaut est conservé, pas imité.
+- macOS : le balayage à trois doigts (événement `swipe` de `BrowserWindow`, « left »/« right »,
+  quand « Balayer entre les pages » l'autorise) change aussi d'espace.
+- Test e2e : des `WheelEvent` synthétiques avec `deltaX` sur la barre latérale changent l'espace
+  exactement une fois ; une molette verticale ne change rien ; rien au-delà du premier espace.
+
+**Archivage automatique.** Réglage « Archiver les onglets inactifs après » : Jamais, 12 h, 24 h,
+7 jours (défaut), 30 jours (`behavior.archiveTabsAfter`, non synchronisé). Politique pure partagée
+`src/shared/archive.ts` (testée) : jamais l'onglet affiché, épinglé, d'un site de la grille des
+favoris, qui joue du son, d'une vue scindée, ni la page d'accueil ou une page interne ; un onglet
+sans date connue est gardé. Le bureau la nourrit avec les candidats de la mise en veille
+(`TabManager.sleepCandidates`, qui gagnent `url` et `inSplit`) et compte l'inactivité depuis
+`lastSeenAt`, désormais enregistré dans la session (un redémarrage ne remet pas les compteurs à zéro).
+Contrôle toutes les 10 minutes (`BROWSER_TEST_ARCHIVE_MS` pour les tests, ignoré une fois empaqueté).
+- Un onglet archivé est fermé et rangé dans `archive.json` (500 au plus, le plus récent par URL) :
+  page interne `browser://archive` (recherche, restaurer, supprimer, tout supprimer ; ADR-012) et
+  section « Onglets archivés » de la palette Ctrl+K. Restaurer rouvre la page dans son espace s'il
+  existe encore dans la fenêtre. Les fenêtres privées ne sont jamais archivées ; elles lisent la
+  liste et peuvent rouvrir une page sans la modifier.
+
+**Mobile.**
+- Vue des onglets : un balayage horizontal sur la grille passe à l'espace précédent/suivant (pages
+  dans l'ordre des pastilles : Privé, puis les espaces), la grille suit le doigt avec un effet
+  élastique aux extrémités, les pastilles défilent vers l'espace affiché. Le balayage horizontal
+  appartenant désormais au pager, une carte se ferme par sa croix, son menu ou l'action
+  d'accessibilité (comme dans la vue des onglets de Firefox iOS), plus par balayage latéral.
+- Dossiers, version simple : un niveau, par espace ; les cartes sont regroupées sous un en-tête
+  repliable (toucher : replier ; maintenir : renommer, supprimer en gardant ou en fermant les
+  onglets). Rangement depuis le menu d'une carte, « Déplacer vers un dossier » (dont « Nouveau
+  dossier » et « Hors dossier »). La géométrie (en-têtes sur leur propre ligne) reste calculée, pas
+  mesurée, pour la transition de zoom (`sectionedGrid`). Session AsyncStorage en version 2.
+- Grille des favoris : rangée sur la page d'accueil et en tête de la vue des onglets, même magasin
+  synchronisé (`browser.favorites`) ; ajout/retrait depuis le menu d'une carte, jamais pour un
+  onglet privé.
+- Archivage : même réglage et même politique (au démarrage, chaque minute et au retour au premier
+  plan) ; section « Archivés » dans la vue des onglets (toucher : restaurer ; corbeille : supprimer).
+
+**Limites.** Pas de glisser-déposer pour réordonner les tuiles (l'API `favorites.move` existe) ; sur
+le téléphone, ni imbrication ni
+glisser-déposer des cartes ; le geste à deux doigts n'a été vérifié qu'avec des événements
+synthétiques (xvfb), pas avec un vrai pavé tactile ; l'archivage mobile ne sait pas si une page joue
+du son.

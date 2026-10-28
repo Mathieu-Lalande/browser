@@ -1,4 +1,5 @@
 import { getCommand, type CommandId } from "@shared/commands";
+import { isFavoriteTab, isFavoriteUrl, type Favorite } from "@shared/favorites";
 import { cycleSpace, FALLBACK_SPACE_ICON } from "@shared/spaces";
 import type { SpaceInfo } from "@shared/types";
 import { displayUrl } from "@shared/url";
@@ -16,11 +17,12 @@ import type { LinkMenuRequest } from "../lib/linkMenu";
 import type { Rect } from "../lib/overviewLayout";
 import type { SheetItem } from "../lib/searchSheet";
 import { connectionLabel, mobileSiteInfo, SITE_DATA_NOTE } from "../lib/siteInfo";
-import { activeTab, isPrivateTab, liveTabIds, mountUrl, orderedTabs, swipeTarget, type MobileTab } from "../lib/tabs";
+import { activeTab, isPrivateTab, liveTabIds, mountUrl, orderedTabs, swipeTarget, type MobileFolder, type MobileTab } from "../lib/tabs";
 import { useBrowserActions, useBrowserState, useEvent } from "../state/BrowserProvider";
 import { useTheme } from "../state/theme";
 import { ActionSheet, type MenuItem, type MenuSpec } from "./ActionSheet";
 import { BottomBar, COLLAPSED_HEIGHT, EXPANDED_HEIGHT } from "./BottomBar";
+import { FolderNameSheet } from "./FolderNameSheet";
 import { HttpsOnlyPage } from "./HttpsOnlyPage";
 import { SearchSheet } from "./SearchSheet";
 import { SettingsScreen } from "./SettingsScreen";
@@ -35,7 +37,7 @@ const MAX_LIVE_TABS = 4;
 type Overlay = "none" | "search" | "tabs" | "settings";
 
 export function BrowserScreen() {
-  const { model, bookmarks, mobile } = useBrowserState();
+  const { model, bookmarks, mobile, favorites } = useBrowserState();
   const actions = useBrowserActions();
   const { colors, dark, isPrivate, reduceMotion, haptic } = useTheme();
   const insets = useSafeAreaInsets();
@@ -44,6 +46,7 @@ export function BrowserScreen() {
   const [overlay, setOverlay] = useState<Overlay>("none");
   const [menu, setMenu] = useState<MenuSpec | null>(null);
   const [editingSpace, setEditingSpace] = useState<SpaceInfo | null>(null);
+  const [renamingFolder, setRenamingFolder] = useState<MobileFolder | null>(null);
   const [searchText, setSearchText] = useState("");
   const [overviewScroll, setOverviewScroll] = useState(0);
 
@@ -99,7 +102,11 @@ export function BrowserScreen() {
   const target = useSharedValue<Rect>({ x: 0, y: pageTop, width, height: pageHeight });
   const gridScrollY = useSharedValue(0);
   const hasPinned = tabs.some((candidate) => candidate.isPinned);
-  const geometry = useMemo(() => overviewGeometry(width, height, insets.top, insets.bottom, hasPinned), [width, height, insets.top, insets.bottom, hasPinned]);
+  const hasFavorites = !isPrivate && favorites.length > 0;
+  const geometry = useMemo(
+    () => overviewGeometry(width, height, insets.top, insets.bottom, hasPinned, hasFavorites),
+    [width, height, insets.top, insets.bottom, hasPinned, hasFavorites],
+  );
   const zoomTiming = { duration: reduceMotion ? 0 : 360, easing: Easing.bezier(0.2, 0.85, 0.1, 1) };
 
   const openOverview = useEvent(() => {
@@ -430,10 +437,93 @@ export function BrowserScreen() {
         }),
       });
     }
+    // Organisation (ADR-022): never for private tabs, whose pages are not kept.
+    if (!isPrivateTab(target) && !target.isPinned) {
+      const folders = model.folders.filter((folder) => folder.spaceId === target.spaceId);
+      items.push({
+        key: "folder",
+        label: "Déplacer vers un dossier",
+        icon: "folderInput",
+        onPress: () => ({
+          title: "Déplacer vers un dossier",
+          items: [
+            ...folders.map(
+              (folder): MenuItem => ({
+                key: folder.id,
+                label: folder.id === target.folderId ? `${folder.name} (actuel)` : folder.name,
+                icon: "folder",
+                onPress: () => actions.setTabFolder(target.id, folder.id),
+              }),
+            ),
+            { key: "new-folder", label: "Nouveau dossier", icon: "folderPlus", onPress: () => void actions.addFolder(target.spaceId, target.id) },
+            ...(target.folderId ? [{ key: "no-folder", label: "Hors dossier", icon: "close" as const, onPress: () => actions.setTabFolder(target.id, null) }] : []),
+          ],
+        }),
+      });
+    }
+    if (!isPrivateTab(target) && isFavoriteUrl(target.url)) {
+      const favorite = favorites.some((candidate) => isFavoriteTab(candidate.url, target.url));
+      items.push({
+        key: "favorite",
+        label: favorite ? "Retirer de la grille des favoris" : "Ajouter à la grille des favoris",
+        icon: "favorite",
+        onPress: () => actions.toggleFavorite(target),
+      });
+    }
     if (target.url) items.push({ key: "share", label: "Partager", icon: "share", onPress: () => share(target.url, target.title) });
     items.push({ key: "close", label: "Fermer l'onglet", icon: "close", destructive: true, onPress: () => actions.closeTab(target.id) });
     setMenu({ title: target.title || (target.url ? displayUrl(target.url) : "Page d'accueil"), subtitle: target.url ? displayUrl(target.url) : undefined, siteUrl: target.url, items });
   });
+
+  const folderMenu = useEvent((folder: MobileFolder) => {
+    const count = model.tabs.filter((candidate) => candidate.folderId === folder.id).length;
+    setMenu({
+      title: folder.name,
+      subtitle: `${count} onglet${count > 1 ? "s" : ""}`,
+      items: [
+        { key: "rename", label: "Renommer", icon: "edit", onPress: () => setRenamingFolder(folder) },
+        {
+          key: "delete",
+          label: "Supprimer le dossier",
+          icon: "trash",
+          destructive: true,
+          onPress: () =>
+            count === 0
+              ? actions.removeFolder(folder.id, false)
+              : {
+                  title: `Supprimer « ${folder.name} » ?`,
+                  subtitle: `Il contient ${count} onglet${count > 1 ? "s" : ""}.`,
+                  items: [
+                    { key: "keep", label: "Supprimer, garder les onglets", icon: "folder", onPress: () => actions.removeFolder(folder.id, false) },
+                    { key: "close", label: "Supprimer et fermer les onglets", icon: "trash", destructive: true, onPress: () => actions.removeFolder(folder.id, true) },
+                  ],
+                },
+        },
+      ],
+    });
+  });
+
+  const favoriteMenu = useEvent((favorite: Favorite) => {
+    const items: MenuItem[] = [
+      { key: "open", label: "Ouvrir", icon: "open", onPress: () => openFavorite(favorite.url) },
+      { key: "copy", label: "Copier le lien", icon: "link", onPress: () => copy(favorite.url) },
+    ];
+    // Private browsing reads the grid but never edits it.
+    if (!isPrivate) items.push({ key: "remove", label: "Retirer de la grille des favoris", icon: "trash", destructive: true, onPress: () => actions.removeFavorite(favorite.url) });
+    setMenu({ title: favorite.title, subtitle: displayUrl(favorite.url), siteUrl: favorite.url, items });
+  });
+
+  const openFavorite = useEvent((url: string) => {
+    if (overlay === "tabs") closeOverview(actions.openFavorite(url));
+    else actions.openFavorite(url);
+  });
+  const toggleFolder = useEvent((id: string) => actions.toggleFolder(id));
+  const restoreArchived = useEvent((id: string) => {
+    const tabId = actions.restoreArchived(id);
+    if (tabId) closeOverview(tabId);
+  });
+  const removeArchived = useEvent((id: string) => actions.removeArchived(id));
+  const clearArchive = useEvent(() => actions.clearArchive());
 
   const siteMenu = useEvent((url: string, title: string) => {
     haptic("medium");
@@ -466,6 +556,7 @@ export function BrowserScreen() {
     const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
       if (menu) return setMenu(null), true;
       if (editingSpace) return setEditingSpace(null), true;
+      if (renamingFolder) return setRenamingFolder(null), true;
       if (overlay === "tabs") return closeOverview(), true;
       if (overlay !== "none") return setOverlay("none"), true;
       if (tab?.interstitial) return actions.reload(), true;
@@ -473,7 +564,7 @@ export function BrowserScreen() {
       return false;
     });
     return () => subscription.remove();
-  }, [menu, editingSpace, overlay, tab, actions, closeOverview]);
+  }, [menu, editingSpace, renamingFolder, overlay, tab, actions, closeOverview]);
 
   const canSwipe = useMemo(() => ({ previous: swipeTarget(model, -1) !== null, next: swipeTarget(model, 1) !== null }), [model]);
   const showStart = !tab || tab.url === "";
@@ -501,6 +592,13 @@ export function BrowserScreen() {
             onSpaceMenu={setEditingSpace}
             onAddSpace={addSpace}
             onOpenRemote={openRemote}
+            onOpenFavorite={openFavorite}
+            onFavoriteMenu={favoriteMenu}
+            onToggleFolder={toggleFolder}
+            onFolderMenu={folderMenu}
+            onRestoreArchived={restoreArchived}
+            onRemoveArchived={removeArchived}
+            onClearArchive={clearArchive}
           />
         </View>
       )}
@@ -526,7 +624,16 @@ export function BrowserScreen() {
               onLinkMenu={onLinkMenu}
             />
           ))}
-          {showStart && <StartPage bottomInset={contentInset} onSearch={openSearch} onOpen={openFromStart} onLongPressSite={siteMenu} />}
+          {showStart && (
+            <StartPage
+              bottomInset={contentInset}
+              onSearch={openSearch}
+              onOpen={openFromStart}
+              onLongPressSite={siteMenu}
+              onOpenFavorite={openFavorite}
+              onFavoriteMenu={favoriteMenu}
+            />
+          )}
           {tab?.interstitial && (
             <HttpsOnlyPage
               url={tab.interstitial.url}
@@ -576,6 +683,13 @@ export function BrowserScreen() {
       <View style={[StyleSheet.absoluteFill, { zIndex: 5 }]} pointerEvents="box-none">
         <ActionSheet menu={menu} onClose={() => setMenu(null)} onReplace={setMenu} />
         {editingSpace && <SpaceEditor space={editingSpace} onClose={() => setEditingSpace(null)} />}
+        {renamingFolder && (
+          <FolderNameSheet
+            initial={renamingFolder.name}
+            onSave={(name) => actions.renameFolder(renamingFolder.id, name)}
+            onClose={() => setRenamingFolder(null)}
+          />
+        )}
       </View>
     </View>
   );

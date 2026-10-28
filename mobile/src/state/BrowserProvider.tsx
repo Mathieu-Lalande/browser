@@ -1,7 +1,9 @@
+import { addArchived, removeArchived, sanitizeArchive, type ArchivedTab } from "@shared/archive";
+import { addFavorite, favoriteTab, isFavoriteTab, removeFavorite, sanitizeFavorites, type Favorite } from "@shared/favorites";
 import { History } from "@shared/history";
 import { webHostname } from "@shared/hosts";
 import { internalPageOf } from "@shared/internal";
-import { DEFAULT_SETTINGS, mergeSettings, sanitizeSettings, searchEngineOf, type Settings, type SettingsPatch } from "@shared/settings";
+import { DEFAULT_SETTINGS, mergeSettings, sanitizeSettings, searchEngineOf, tabArchiveDelayMs, type Settings, type SettingsPatch } from "@shared/settings";
 import { nextSpaceDefaults } from "@shared/spaces";
 import { SyncError } from "@shared/sync/client";
 import type { SyncController, SyncStatus } from "@shared/sync/controller";
@@ -13,6 +15,7 @@ import type { WebViewHandle } from "../components/webViewHandle";
 import { parseBookmarks, parseFolders, toggleBookmark } from "../lib/bookmarks";
 import { DEFAULT_MOBILE_SETTINGS, sanitizeMobileSettings, type MobileSettings } from "../lib/mobileSettings";
 import { initialLoad } from "../lib/navigation";
+import { ARCHIVE_VERSION, archiveEntries, FAVORITES_VERSION, mobileTabsToArchive } from "../lib/organize";
 import { CLEAR_SITE_DATA_SCRIPT, mobileSiteInfo } from "../lib/siteInfo";
 import type { BookmarkFolder, MobileSyncStore } from "../lib/sync/adapters";
 import { createMobileSync } from "../lib/sync/platform";
@@ -20,6 +23,7 @@ import { flushDocuments, KEYS, loadDocument, removeDocuments, saveDocument } fro
 import {
   activeTab,
   initialTabsModel,
+  nextMobileFolderName,
   isPrivateTab,
   parseSession,
   PRIVATE_SPACE_ID,
@@ -87,6 +91,21 @@ export interface BrowserActions {
   updateSettings(patch: SettingsPatch): void;
   updateMobileSettings(patch: Partial<MobileSettings>): void;
   registerWebView(id: TabId, ref: WebViewHandle | null): void;
+  /** Favorites grid (ADR-022): never edited from private tabs (the caller checks). */
+  toggleFavorite(tab: Pick<MobileTab, "url" | "title">): void;
+  removeFavorite(url: string): void;
+  /** The favorite's tab in the space shown, else a new tab. Returns the tab shown. */
+  openFavorite(url: string): TabId;
+  /** Overview folders (ADR-022). Returns the new folder's id. */
+  addFolder(spaceId: string, tabId?: TabId, name?: string): string;
+  renameFolder(id: string, name: string): void;
+  toggleFolder(id: string): void;
+  removeFolder(id: string, closeTabs: boolean): void;
+  setTabFolder(tabId: TabId, folderId: string | null): void;
+  /** Archived tabs (ADR-022). Restoring reopens the page (in its space when it still exists). */
+  restoreArchived(id: string): TabId | null;
+  removeArchived(id: string): void;
+  clearArchive(): void;
   httpExceptions(): ReadonlySet<string>;
   /** End-to-end encrypted sync (ADR-019). */
   sync: {
@@ -117,6 +136,8 @@ interface BrowserState {
   settings: Settings;
   mobile: MobileSettings;
   bookmarks: Bookmark[];
+  favorites: Favorite[];
+  archive: ArchivedTab[];
   /** Bumped when history changes (the History instance is mutable). */
   historyVersion: number;
   history: History;
@@ -152,6 +173,8 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [mobile, setMobile] = useState<MobileSettings>(DEFAULT_MOBILE_SETTINGS);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+  const [favorites, setFavorites] = useState<Favorite[]>([]);
+  const [archive, setArchive] = useState<ArchivedTab[]>([]);
   const [historyVersion, setHistoryVersion] = useState(0);
   const historyRef = useRef(new History([], MAX_HISTORY));
   const [folders, setFolders] = useState<BookmarkFolder[]>([]);
@@ -161,8 +184,8 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
   const deletedHistory = useRef(new Set<string>());
 
   // Latest values for the stable action callbacks.
-  const latest = useRef({ model, settings, mobile, bookmarks, folders });
-  latest.current = { model, settings, mobile, bookmarks, folders };
+  const latest = useRef({ model, settings, mobile, bookmarks, folders, favorites, archive });
+  latest.current = { model, settings, mobile, bookmarks, folders, favorites, archive };
   const webViews = useRef(new Map<TabId, WebViewHandle>());
   const httpExceptions = useRef(new Set<string>());
 
@@ -170,13 +193,15 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const [session, history, storedBookmarks, storedSettings, storedMobile, storedFolders] = await Promise.all([
+      const [session, history, storedBookmarks, storedSettings, storedMobile, storedFolders, storedFavorites, storedArchive] = await Promise.all([
         loadDocument(KEYS.session, SESSION_VERSION),
         loadDocument(KEYS.history, HISTORY_VERSION),
         loadDocument(KEYS.bookmarks, BOOKMARKS_VERSION),
         loadDocument(KEYS.settings, SETTINGS_VERSION),
         loadDocument(KEYS.mobile, SETTINGS_VERSION),
         loadDocument(KEYS.folders, BOOKMARKS_VERSION),
+        loadDocument(KEYS.favorites, FAVORITES_VERSION),
+        loadDocument(KEYS.archive, ARCHIVE_VERSION),
       ]);
       if (cancelled) return;
       const nextSettings = sanitizeSettings(storedSettings);
@@ -184,6 +209,8 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
       setMobile(sanitizeMobileSettings(storedMobile));
       setBookmarks(parseBookmarks(storedBookmarks));
       setFolders(parseFolders(storedFolders));
+      setFavorites(sanitizeFavorites(storedFavorites));
+      setArchive(sanitizeArchive(storedArchive));
       historyRef.current = new History(History.parse(history) ?? [], MAX_HISTORY);
       setHistoryVersion((v) => v + 1);
       const restored = nextSettings.behavior.restoreSession ? parseSession(session) : null;
@@ -207,6 +234,12 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (ready) saveDocument(KEYS.folders, BOOKMARKS_VERSION, () => latest.current.folders);
   }, [folders, ready]);
+  useEffect(() => {
+    if (ready) saveDocument(KEYS.favorites, FAVORITES_VERSION, () => latest.current.favorites);
+  }, [favorites, ready]);
+  useEffect(() => {
+    if (ready) saveDocument(KEYS.archive, ARCHIVE_VERSION, () => latest.current.archive);
+  }, [archive, ready]);
   useEffect(() => {
     if (ready) saveDocument(KEYS.mobile, SETTINGS_VERSION, () => latest.current.mobile, 200);
   }, [mobile, ready]);
@@ -245,6 +278,11 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
         setBookmarks(nextBookmarks);
         setFolders(nextFolders);
       },
+      favorites: () => latest.current.favorites,
+      setFavorites: (next) => {
+        latest.current.favorites = next;
+        setFavorites(next);
+      },
       history: () => historyRef.current,
       historyChanged: () => setHistoryVersion((v) => v + 1),
       historyDeleted: (url) => deletedHistory.current.has(url),
@@ -264,7 +302,28 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
   // Any synced data changed: sync a little later (the controller debounces and ignores no-ops).
   useEffect(() => {
     if (ready) syncRef.current?.notifyChange();
-  }, [model.tabs, model.spaces, bookmarks, settings, historyVersion, ready]);
+  }, [model.tabs, model.spaces, bookmarks, favorites, settings, historyVersion, ready]);
+
+  // --- Auto-archiving (ADR-022): at startup, every minute, and back in the foreground ----------
+  useEffect(() => {
+    if (!ready) return;
+    const check = () => {
+      const idleMs = tabArchiveDelayMs(latest.current.settings);
+      if (idleMs === null) return;
+      const now = Date.now();
+      const tabs = mobileTabsToArchive(latest.current.model, latest.current.favorites, idleMs, now);
+      if (!tabs.length) return;
+      setArchive((list) => addArchived(list, archiveEntries(tabs, now, newId)));
+      dispatch({ type: "close-many", ids: tabs.map((tab) => tab.id), now });
+    };
+    check();
+    const timer = setInterval(check, 60_000);
+    const subscription = AppState.addEventListener("change", (state) => state === "active" && check());
+    return () => {
+      clearInterval(timer);
+      subscription.remove();
+    };
+  }, [ready]);
 
   // --- Actions ------------------------------------------------------------------------------
   const actions = useMemo<BrowserActions>(() => {
@@ -418,9 +477,10 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
         historyRef.current.clear();
         setHistoryVersion((v) => v + 1);
         setBookmarks([]);
+        setArchive([]);
         httpExceptions.current.clear();
         dispatch({ type: "restore", model: initialTabsModel() });
-        await removeDocuments([KEYS.history, KEYS.bookmarks, KEYS.session]);
+        await removeDocuments([KEYS.history, KEYS.bookmarks, KEYS.session, KEYS.archive]);
       },
       updateSettings(patch) {
         setSettings((current) => mergeSettings(current, patch));
@@ -433,6 +493,59 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
         else webViews.current.delete(id);
       },
       httpExceptions: () => httpExceptions.current,
+      toggleFavorite(tab) {
+        setFavorites((list) => {
+          const matching = list.filter((favorite) => isFavoriteTab(favorite.url, tab.url));
+          if (matching.length) return list.filter((favorite) => !matching.includes(favorite));
+          return addFavorite(list, { url: tab.url, title: tab.title }, now());
+        });
+      },
+      removeFavorite(url) {
+        setFavorites((list) => removeFavorite(list, url));
+      },
+      openFavorite(url) {
+        const current = latest.current.model;
+        const here = current.tabs.filter((tab) => tab.spaceId === current.activeSpaceId);
+        const match = favoriteTab(url, here);
+        if (match) {
+          dispatch({ type: "activate", id: match.id, now: now() });
+          return match.id;
+        }
+        return openUrl(url);
+      },
+      addFolder(spaceId, tabId, name) {
+        const id = `folder-${newId()}`;
+        dispatch({ type: "add-folder", id, spaceId, tabId, name: name ?? nextMobileFolderName(latest.current.model, spaceId) });
+        return id;
+      },
+      renameFolder(id, name) {
+        dispatch({ type: "rename-folder", id, name });
+      },
+      toggleFolder(id) {
+        dispatch({ type: "toggle-folder", id });
+      },
+      removeFolder(id, closeTabs) {
+        dispatch({ type: "remove-folder", id, closeTabs, now: now() });
+      },
+      setTabFolder(tabId, folderId) {
+        dispatch({ type: "set-tab-folder", id: tabId, folderId });
+      },
+      restoreArchived(id) {
+        const entry = latest.current.archive.find((candidate) => candidate.id === id);
+        if (!entry) return null;
+        const tabId = newId();
+        const spaceId = entry.spaceId && latest.current.model.spaces.some((space) => space.id === entry.spaceId) ? entry.spaceId : latest.current.model.activeSpaceId;
+        const { url: target, upgradedFrom } = initialLoad(entry.url, httpExceptions.current);
+        dispatch({ type: "open", id: tabId, url: target, upgradedFrom, spaceId, title: entry.title, now: now() });
+        setArchive((list) => removeArchived(list, id));
+        return tabId;
+      },
+      removeArchived(id) {
+        setArchive((list) => removeArchived(list, id));
+      },
+      clearArchive() {
+        setArchive([]);
+      },
       sync: {
         createAccount: (serverUrl, secret) => syncAttempt(async () => syncRef.current?.createAccount(serverUrl, secret)),
         pair: (code) => syncAttempt(async () => syncRef.current?.pair(code)),
@@ -445,8 +558,8 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const state = useMemo<BrowserState>(
-    () => ({ ready, model, settings, mobile, bookmarks, historyVersion, history: historyRef.current, sync: syncStatus }),
-    [ready, model, settings, mobile, bookmarks, historyVersion, syncStatus],
+    () => ({ ready, model, settings, mobile, bookmarks, favorites, archive, historyVersion, history: historyRef.current, sync: syncStatus }),
+    [ready, model, settings, mobile, bookmarks, favorites, archive, historyVersion, syncStatus],
   );
 
   return (

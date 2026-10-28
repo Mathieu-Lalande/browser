@@ -56,6 +56,56 @@ export function scrollOffsetFor(layout: GridLayout, index: number, count: number
   return Math.min(max, Math.max(0, Math.round(centered)));
 }
 
+/** Height of a folder header in the overview grid (ADR-022). */
+export const FOLDER_HEADER = 40;
+
+/** A run of cards in the grid, below an optional full-width folder header. */
+export interface GridSection {
+  header: boolean;
+  /** Cards shown (0 when the folder is collapsed or empty). */
+  count: number;
+}
+
+export interface SectionedGrid {
+  /** Every shown card, sections in order. */
+  cards: Rect[];
+  headers: Rect[];
+  /** Bottom of the last line, in scroll content coordinates. */
+  bottom: number;
+}
+
+/**
+ * Card and header positions when cards are grouped by folder: each header takes a full line, its
+ * cards start on the next one. Mirrors the flex-wrap grid (lines separated by `gap`).
+ */
+export function sectionedGrid(layout: GridLayout, sections: readonly GridSection[]): SectionedGrid {
+  const cards: Rect[] = [];
+  const headers: Rect[] = [];
+  const width = layout.columns * layout.cardWidth + (layout.columns - 1) * layout.gap;
+  let y = layout.top;
+  for (const section of sections) {
+    if (section.header) {
+      headers.push({ x: layout.padding, y, width, height: FOLDER_HEADER });
+      y += FOLDER_HEADER + layout.gap;
+    }
+    for (let i = 0; i < section.count; i++) {
+      const rect = cardRect({ ...layout, top: y }, i);
+      cards.push(rect);
+    }
+    const rows = Math.ceil(section.count / layout.columns);
+    y += rows * (layout.cardHeight + layout.gap);
+  }
+  return { cards, headers, bottom: Math.max(layout.top, y - layout.gap) };
+}
+
+/** Scroll offset that shows `rect` comfortably (centered when possible) in content `height` px tall. */
+export function scrollOffsetForRect(rect: Rect | undefined, contentBottom: number, viewportHeight: number, bottomInset: number): number {
+  if (!rect) return 0;
+  const max = Math.max(0, contentBottom + bottomInset - viewportHeight);
+  const centered = rect.y + rect.height / 2 - viewportHeight / 2;
+  return Math.min(max, Math.max(0, Math.round(centered)));
+}
+
 /** Transform that maps the full page rect onto `target` (scale from the page's top-left corner). */
 export function zoomTransform(page: Rect, target: Rect): { scale: number; translateX: number; translateY: number } {
   const scale = target.width / page.width;

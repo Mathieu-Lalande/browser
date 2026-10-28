@@ -1,4 +1,5 @@
 /// <reference types="node" />
+import type { Favorite } from "@shared/favorites";
 import { History } from "@shared/history";
 import { DEFAULT_SETTINGS, mergeSettings, type Settings } from "@shared/settings";
 import { toBase64Url } from "@shared/sync/bytes";
@@ -29,6 +30,7 @@ function phone(server: MemorySyncServer) {
     model: initialTabsModel() as TabsModel,
     bookmarks: [] as Bookmark[],
     folders: [] as BookmarkFolder[],
+    favorites: [] as Favorite[],
     history: new History([], 5000),
     deleted: new Set<string>(),
   };
@@ -44,6 +46,8 @@ function phone(server: MemorySyncServer) {
       data.bookmarks = bookmarks;
       data.folders = folders;
     },
+    favorites: () => data.favorites,
+    setFavorites: (next) => void (data.favorites = next),
     history: () => data.history,
     historyChanged: () => {},
     historyDeleted: (url) => data.deleted.has(url),
@@ -141,6 +145,27 @@ describe("mobile sync adapters", () => {
     iphone.store.dispatch({ type: "add-space", id: "space-travel", input: { name: "Voyages", icon: "plane" } });
     await iphone.sync.syncNow();
     expect(server.dump()).not.toContain("Voyages");
+  });
+
+  it("syncs the favorites grid (ADR-022): additions, order and removals, never favicons", async () => {
+    const server = new MemorySyncServer();
+    const a = phone(server);
+    a.data.favorites = [
+      { url: "https://mail.example/", title: "Mail", favicon: "data:image/png;base64,AA", createdAt: 1 },
+      { url: "https://agenda.example/", title: "Agenda", favicon: null, createdAt: 2 },
+    ];
+    await a.sync.createAccount("https://sync.example.org");
+    const b = phone(server);
+    await b.sync.pair(a.sync.pairingCode()!);
+    expect(b.data.favorites.map((favorite) => favorite.url)).toEqual(["https://mail.example/", "https://agenda.example/"]);
+    expect(b.data.favorites[0].favicon).toBeNull();
+    expect(server.dump()).not.toContain("mail.example");
+
+    // Reordered and one removed on B: A follows.
+    b.data.favorites = [b.data.favorites[1]];
+    await b.sync.syncNow();
+    await a.sync.syncNow();
+    expect(a.data.favorites.map((favorite) => favorite.url)).toEqual(["https://agenda.example/"]);
   });
 
   it("history pruned on a full phone is not deleted elsewhere, a cleared history is", async () => {

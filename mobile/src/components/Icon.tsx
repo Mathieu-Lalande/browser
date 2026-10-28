@@ -71,6 +71,11 @@ import QrCode from "lucide-react-native/icons/qr-code";
 import Unlink from "lucide-react-native/icons/unlink";
 import KeyRound from "lucide-react-native/icons/key-round";
 import ScanLine from "lucide-react-native/icons/scan-line";
+import Archive from "lucide-react-native/icons/archive";
+import ArchiveRestore from "lucide-react-native/icons/archive-restore";
+import FolderInput from "lucide-react-native/icons/folder-input";
+import FolderPlus from "lucide-react-native/icons/folder-plus";
+import LayoutGrid from "lucide-react-native/icons/layout-grid";
 
 const ui = {
   search: Search,
@@ -113,6 +118,12 @@ const ui = {
   scan: ScanLine,
   unlink: Unlink,
   key: KeyRound,
+  // Organisation (ADR-022).
+  archive: Archive,
+  archiveRestore: ArchiveRestore,
+  folderInput: FolderInput,
+  folderPlus: FolderPlus,
+  favorite: LayoutGrid,
 } satisfies Record<string, LucideIcon>;
 
 /** Space icons: their stored names (src/shared/spaces.ts) are Lucide's own. */
@@ -173,6 +184,9 @@ export const COMMAND_ICONS: Partial<Record<CommandIcon, IconName>> = {
   settings: "settings",
   layers: "layers",
   info: "info",
+  favorite: "favorite",
+  folder: "folder",
+  archive: "archive",
 };
 
 interface Props {

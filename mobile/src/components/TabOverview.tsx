@@ -1,6 +1,7 @@
+import { isFavoriteTab, type Favorite } from "@shared/favorites";
 import type { SpaceInfo } from "@shared/types";
-import { memo, useMemo } from "react";
-import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { memo, useEffect, useMemo, useRef } from "react";
+import { ScrollView, StyleSheet, Text, View, useWindowDimensions, type ScrollViewInstance } from "react-native";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import Animated, {
   FadeIn,
@@ -15,12 +16,15 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { scheduleOnRN } from "react-native-worklets";
-import { shouldDismissCard } from "../lib/gestures";
-import { cardRect, gridLayout, scrollOffsetFor, type GridLayout, type Rect } from "../lib/overviewLayout";
+import { pagerTarget, rubberBand } from "../lib/gestures";
+import { pagerPages } from "../lib/organize";
+import { FOLDER_HEADER, gridLayout, scrollOffsetForRect, sectionedGrid, type GridLayout, type GridSection, type Rect } from "../lib/overviewLayout";
 import { siteLabel } from "../lib/site";
-import { isPrivateTab, orderedTabs, PRIVATE_SPACE_ID, type MobileTab, type TabsModel } from "../lib/tabs";
+import { isPrivateTab, orderedTabs, overviewGroups, PRIVATE_SPACE_ID, type MobileFolder, type MobileTab, type TabsModel } from "../lib/tabs";
+import { useBrowserState } from "../state/BrowserProvider";
 import { useTheme } from "../state/theme";
 import { Icon, type IconName } from "./Icon";
+import { ArchivedTabs, FAVORITES_ROW, FavoritesRow } from "./Organize";
 import { RemoteTabs } from "./RemoteTabs";
 import { IconButton, SiteIcon, Tap } from "./ui";
 
@@ -42,33 +46,55 @@ export interface OverviewGeometry {
 /** Top margin above the pinned tiles / grid, now that the space chips live at the bottom. */
 const TOP_MARGIN = 8;
 
-export function overviewGeometry(width: number, height: number, top: number, bottom: number, hasPinned: boolean): OverviewGeometry {
+/** Top padding of the grid's scroll content. */
+const GRID_TOP = 8;
+
+/**
+ * `hasFavorites`: the favorites row (ADR-022) sits at the top of the grid's scroll content, the
+ * cards below it.
+ */
+export function overviewGeometry(width: number, height: number, top: number, bottom: number, hasPinned: boolean, hasFavorites = false): OverviewGeometry {
   const pinnedTop = top + TOP_MARGIN;
   const gridTop = pinnedTop + (hasPinned ? PINNED_HEIGHT : 0);
   const chipsTop = height - bottom - OVERVIEW_BAR - CHIPS_HEIGHT;
-  return { layout: gridLayout(width, 8), gridTop, gridHeight: Math.max(0, chipsTop - gridTop), pinnedTop, chipsTop };
+  const base = gridLayout(width, GRID_TOP);
+  const layout = hasFavorites ? { ...base, top: GRID_TOP + FAVORITES_ROW + base.gap } : base;
+  return { layout, gridTop, gridHeight: Math.max(0, chipsTop - gridTop), pinnedTop, chipsTop };
+}
+
+/** Cards of the space shown, grouped by folder (ADR-022): the grid's sections and its visible cards in order. */
+export function overviewSections(model: TabsModel): { sections: GridSection[]; visible: MobileTab[] } {
+  const groups = overviewGroups(model);
+  const sections: GridSection[] = [{ header: false, count: groups.loose.length }];
+  const visible = [...groups.loose];
+  for (const { folder, tabs } of groups.folders) {
+    sections.push({ header: true, count: folder.collapsed ? 0 : tabs.length });
+    if (!folder.collapsed) visible.push(...tabs);
+  }
+  return { sections, visible };
 }
 
 /** Where the given tab sits on screen in the overview (zoom transition target). */
 export function overviewTarget(geometry: OverviewGeometry, model: TabsModel, tabId: string | null, scrollY: number, width: number): Rect {
   const tabs = orderedTabs(model);
   const pinned = tabs.filter((tab) => tab.isPinned);
-  const grid = tabs.filter((tab) => !tab.isPinned);
   const pinnedIndex = pinned.findIndex((tab) => tab.id === tabId);
   if (pinnedIndex !== -1) {
     return { x: 16 + pinnedIndex * (PINNED_TILE + 14), y: geometry.pinnedTop + 6, width: PINNED_TILE, height: PINNED_TILE };
   }
-  const index = grid.findIndex((tab) => tab.id === tabId);
-  if (index === -1) {
+  const { sections, visible } = overviewSections(model);
+  const index = visible.findIndex((tab) => tab.id === tabId);
+  const rect = index === -1 ? undefined : sectionedGrid(geometry.layout, sections).cards[index];
+  if (!rect) {
     return { x: width / 2 - 40, y: geometry.gridTop + geometry.gridHeight / 2 - 50, width: 80, height: 100 };
   }
-  const rect = cardRect(geometry.layout, index);
   return { ...rect, y: geometry.gridTop + rect.y - scrollY };
 }
 
 export function initialScroll(geometry: OverviewGeometry, model: TabsModel, tabId: string | null, bottom: number): number {
-  const grid = orderedTabs(model).filter((tab) => !tab.isPinned);
-  return scrollOffsetFor(geometry.layout, grid.findIndex((tab) => tab.id === tabId), grid.length, geometry.gridHeight, bottom + 24);
+  const { sections, visible } = overviewSections(model);
+  const grid = sectionedGrid(geometry.layout, sections);
+  return scrollOffsetForRect(grid.cards[visible.findIndex((tab) => tab.id === tabId)], grid.bottom, geometry.gridHeight, bottom + 24);
 }
 
 interface Props {
@@ -90,17 +116,77 @@ interface Props {
   onAddSpace: () => void;
   /** Opens a tab of another synced device ("Autres appareils"). */
   onOpenRemote?: (url: string) => void;
+  /** Favorites row (ADR-022). */
+  onOpenFavorite: (url: string) => void;
+  onFavoriteMenu: (favorite: Favorite) => void;
+  /** Folder header: tap folds it, long press opens its menu. */
+  onToggleFolder: (id: string) => void;
+  onFolderMenu: (folder: MobileFolder) => void;
+  /** "Archivés" section. */
+  onRestoreArchived: (id: string) => void;
+  onRemoveArchived: (id: string) => void;
+  onClearArchive: () => void;
 }
 
-/** Tab grid with spaces (chips), private tabs and pinned favorites, Arc/Safari style. */
+/**
+ * Tab grid with spaces (chips), private tabs, pinned tabs, favorites and folders, Arc/Safari style.
+ * A horizontal swipe on the grid goes to the previous/next space (pager, ADR-022), the chips follow.
+ */
 export const TabOverview = memo(function TabOverview(props: Props) {
   const { model, activeId, geometry, progress, scrollY, initialScrollY } = props;
-  const { colors, isPrivate, reduceMotion } = useTheme();
+  const { colors, isPrivate, reduceMotion, haptic } = useTheme();
+  const { favorites } = useBrowserState();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const tabs = useMemo(() => orderedTabs(model), [model]);
   const pinned = tabs.filter((tab) => tab.isPinned);
-  const grid = tabs.filter((tab) => !tab.isPinned);
+  const groups = useMemo(() => overviewGroups(model), [model]);
   const privateCount = useMemo(() => model.tabs.filter(isPrivateTab).length, [model.tabs]);
+  const spaceTabs = useMemo(() => model.tabs.filter((tab) => tab.spaceId === model.activeSpaceId), [model]);
+  const showFavorites = !isPrivate && favorites.length > 0;
+
+  // --- Pager between spaces ------------------------------------------------------------------
+  const pages = useMemo(() => pagerPages(model, PRIVATE_SPACE_ID), [model]);
+  const pageIndex = Math.max(0, pages.indexOf(model.activeSpaceId));
+  const pageX = useSharedValue(0);
+  const showPage = (index: number, direction: number) => {
+    haptic("selection");
+    props.onShowSpace(pages[index]);
+    // The new space's grid comes in from the side the finger went to.
+    pageX.value = reduceMotion ? 0 : direction * width * 0.35;
+    pageX.value = withSpring(0, { damping: 22, stiffness: 260 });
+  };
+  const pager = usePanGesture({
+    activeOffsetX: [-16, 16],
+    failOffsetY: [-12, 12],
+    onUpdate: (event) => {
+      "worklet";
+      const edge = (event.translationX > 0 && pageIndex === 0) || (event.translationX < 0 && pageIndex === pages.length - 1);
+      pageX.value = edge ? rubberBand(event.translationX, width * 0.5) : event.translationX;
+    },
+    onDeactivate: (event) => {
+      "worklet";
+      const target = pagerTarget(pageIndex, pages.length, event.translationX, event.velocityX, width);
+      if (target === pageIndex) {
+        pageX.value = withSpring(0, { damping: 20, stiffness: 240 });
+        return;
+      }
+      const direction = target > pageIndex ? 1 : -1;
+      pageX.value = withTiming(-direction * width * 0.6, { duration: reduceMotion ? 0 : 140 }, () => scheduleOnRN(showPage, target, direction));
+    },
+  });
+  const pageStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: pageX.value }],
+    opacity: 1 - Math.min(0.6, Math.abs(pageX.value) / (width * 1.2)),
+  }));
+
+  // The chips follow the pager: the selected one scrolls into view.
+  const chipsScroll = useRef<ScrollViewInstance>(null);
+  const chipX = useRef(new Map<string, number>());
+  useEffect(() => {
+    const x = chipX.current.get(model.activeSpaceId);
+    if (x !== undefined) chipsScroll.current?.scrollTo({ x: Math.max(0, x - 48), animated: !reduceMotion });
+  }, [model.activeSpaceId, reduceMotion]);
 
   const chrome = useAnimatedStyle(() => ({
     opacity: interpolate(progress.value, [0.3, 1], [0, 1], "clamp"),
@@ -121,8 +207,9 @@ export const TabOverview = memo(function TabOverview(props: Props) {
 
       {/* Spaces right above the bottom bar: within thumb reach. */}
       <Animated.View style={[styles.chipsRow, { top: geometry.chipsTop, borderTopColor: colors.hairline, backgroundColor: colors.bg }, bottomChrome]}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+        <ScrollView ref={chipsScroll} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
           <Chip
+            onLayout={(x) => chipX.current.set(PRIVATE_SPACE_ID, x)}
             label={privateCount ? `Privé · ${privateCount}` : "Privé"}
             icon="mask"
             selected={isPrivate}
@@ -132,6 +219,7 @@ export const TabOverview = memo(function TabOverview(props: Props) {
           {model.spaces.map((space) => (
             <Chip
               key={space.id}
+              onLayout={(x) => chipX.current.set(space.id, x)}
               label={space.name}
               icon={space.icon}
               color={space.color}
@@ -152,9 +240,11 @@ export const TabOverview = memo(function TabOverview(props: Props) {
         </Animated.View>
       )}
 
+      <GestureDetector gesture={pager}>
+      <Animated.View style={[styles.grid, { top: geometry.gridTop, height: geometry.gridHeight }, pageStyle]} testID="overview-pager">
       <Animated.ScrollView
-        style={[styles.grid, { top: geometry.gridTop, height: geometry.gridHeight }]}
-        contentContainerStyle={[styles.gridContent, { paddingHorizontal: geometry.layout.padding, gap: geometry.layout.gap, paddingTop: geometry.layout.top, paddingBottom: 24 }]}
+        style={StyleSheet.absoluteFill}
+        contentContainerStyle={[styles.gridContent, { paddingHorizontal: geometry.layout.padding, gap: geometry.layout.gap, paddingTop: GRID_TOP, paddingBottom: 24 }]}
         contentOffset={{ x: 0, y: initialScrollY }}
         onScroll={(event) => {
           scrollY.value = event.nativeEvent.contentOffset.y;
@@ -162,7 +252,15 @@ export const TabOverview = memo(function TabOverview(props: Props) {
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
-        {grid.map((tab) => (
+        {showFavorites && (
+          <FavoritesRow
+            favorites={favorites}
+            isOpen={(url) => spaceTabs.some((tab) => isFavoriteTab(url, tab.url))}
+            onOpen={props.onOpenFavorite}
+            onLongPress={props.onFavoriteMenu}
+          />
+        )}
+        {groups.loose.map((tab) => (
           <TabCard
             key={tab.id}
             tab={tab}
@@ -175,6 +273,24 @@ export const TabOverview = memo(function TabOverview(props: Props) {
             onLongPress={props.onTabMenu}
           />
         ))}
+        {groups.folders.map(({ folder, tabs: filed }) => [
+          <FolderHeader key={`folder-${folder.id}`} folder={folder} count={filed.length} onToggle={props.onToggleFolder} onLongPress={props.onFolderMenu} />,
+          ...(folder.collapsed
+            ? []
+            : filed.map((tab) => (
+                <TabCard
+                  key={tab.id}
+                  tab={tab}
+                  layout={geometry.layout}
+                  active={tab.id === activeId}
+                  progress={progress}
+                  reduceMotion={reduceMotion}
+                  onPress={props.onSelect}
+                  onClose={props.onCloseTab}
+                  onLongPress={props.onTabMenu}
+                />
+              ))),
+        ])}
         {tabs.length === 0 && (
           <Animated.View entering={FadeIn} style={styles.empty}>
             <Icon name={isPrivate ? "mask" : "tabs"} size={36} color={colors.textFaint} />
@@ -183,7 +299,10 @@ export const TabOverview = memo(function TabOverview(props: Props) {
           </Animated.View>
         )}
         {!isPrivate && props.onOpenRemote && <RemoteTabs onOpen={props.onOpenRemote} />}
+        {!isPrivate && <ArchivedTabs onRestore={props.onRestoreArchived} onRemove={props.onRemoveArchived} onClear={props.onClearArchive} />}
       </Animated.ScrollView>
+      </Animated.View>
+      </GestureDetector>
 
       <Animated.View style={[styles.bottom, { height: OVERVIEW_BAR + insets.bottom, paddingBottom: insets.bottom, borderTopColor: colors.hairline, backgroundColor: colors.bgElevated }, bottomChrome]}>
         <IconButton icon="search" label="Rechercher dans les onglets" onPress={props.onSearch} />
@@ -211,6 +330,49 @@ export const TabOverview = memo(function TabOverview(props: Props) {
   );
 });
 
+/** A folder of the grid (ADR-022): a full-width header; tap folds it, long press opens its menu. */
+const FolderHeader = memo(function FolderHeader({
+  folder,
+  count,
+  onToggle,
+  onLongPress,
+}: {
+  folder: MobileFolder;
+  count: number;
+  onToggle: (id: string) => void;
+  onLongPress: (folder: MobileFolder) => void;
+}) {
+  const { colors, haptic } = useTheme();
+  return (
+    <Tap
+      accessibilityRole="button"
+      accessibilityState={{ expanded: !folder.collapsed }}
+      accessibilityLabel={`Dossier ${folder.name}, ${count} onglet${count > 1 ? "s" : ""}`}
+      accessibilityHint="Toucher pour replier ou déplier, maintenir pour plus d'options"
+      onPress={() => {
+        haptic("selection");
+        onToggle(folder.id);
+      }}
+      onLongPress={() => {
+        haptic("medium");
+        onLongPress(folder);
+      }}
+      pressScale={0.98}
+      style={[styles.folder, { backgroundColor: colors.surface, borderColor: colors.hairline }]}
+      testID={`folder-${folder.id}`}
+    >
+      <View style={{ transform: [{ rotate: folder.collapsed ? "0deg" : "90deg" }] }}>
+        <Icon name="forward" size={16} color={colors.textMuted} strokeWidth={2.2} />
+      </View>
+      <Icon name="folder" size={18} color={colors.accentText} />
+      <Text style={[styles.folderName, { color: colors.text }]} numberOfLines={1}>
+        {folder.name}
+      </Text>
+      <Text style={[styles.folderCount, { color: colors.textMuted }]}>{count}</Text>
+    </Tap>
+  );
+});
+
 function Chip({
   label,
   icon,
@@ -218,6 +380,7 @@ function Chip({
   selected,
   onPress,
   onLongPress,
+  onLayout,
 }: {
   label: string;
   icon?: IconName;
@@ -225,6 +388,7 @@ function Chip({
   selected: boolean;
   onPress: () => void;
   onLongPress?: () => void;
+  onLayout?: (x: number) => void;
 }) {
   const { colors, haptic } = useTheme();
   const tint = color ?? colors.accent;
@@ -246,6 +410,7 @@ function Chip({
         })
       }
       pressScale={0.92}
+      onLayout={onLayout && ((event) => onLayout(event.nativeEvent.layout.x))}
       hitSlop={{ top: 6, bottom: 6, left: 2, right: 2 }}
       style={[
         styles.chip,
@@ -314,7 +479,6 @@ const TabCard = memo(function TabCard({
   onLongPress: (tab: MobileTab) => void;
 }) {
   const { colors, haptic } = useTheme();
-  const x = useSharedValue(0);
   const width = layout.cardWidth;
   const label = tab.url ? siteLabel(tab.url) : "Page d'accueil";
   const title = tab.title || label;
@@ -325,34 +489,18 @@ const TabCard = memo(function TabCard({
     onClose(tab.id);
   };
 
-  const swipe = usePanGesture({
-    activeOffsetX: [-14, 14],
-    failOffsetY: [-12, 12],
-    onUpdate: (event) => {
-      "worklet";
-      x.value = event.translationX;
-    },
-    onDeactivate: (event) => {
-      "worklet";
-      if (shouldDismissCard(event.translationX, event.velocityX, width)) {
-        const direction = event.translationX < 0 ? -1 : 1;
-        x.value = withTiming(direction * width * 1.6, { duration: 180 }, () => scheduleOnRN(close));
-      } else {
-        x.value = withSpring(0, { damping: 18, stiffness: 240 });
-      }
-    },
-  });
-
+  // Horizontal swipes belong to the pager between spaces (ADR-022): a card closes with its button,
+  // its long-press menu or the accessibility action.
   const style = useAnimatedStyle(() => {
     const p = progress.value;
     return {
-      opacity: (active ? interpolate(p, [0.85, 1], [0, 1], "clamp") : interpolate(p, [0.2, 1], [0, 1], "clamp")) * (1 - Math.min(1, Math.abs(x.value) / (width * 1.4))),
-      transform: [{ translateX: x.value }, { scale: active || reduceMotion ? 1 : interpolate(p, [0, 1], [0.92, 1]) }, { rotateZ: `${x.value / 40}deg` }],
+      opacity: active ? interpolate(p, [0.85, 1], [0, 1], "clamp") : interpolate(p, [0.2, 1], [0, 1], "clamp"),
+      transform: [{ scale: active || reduceMotion ? 1 : interpolate(p, [0, 1], [0.92, 1]) }],
     };
   });
 
   return (
-    <GestureDetector gesture={swipe}>
+    <>
       {/* Layout animations on the wrapper, animated opacity/transform on the child: Reanimated
           warns (and the layout animation wins) when both target the same view. */}
       <Animated.View
@@ -364,7 +512,7 @@ const TabCard = memo(function TabCard({
           <Tap
             accessibilityRole="button"
             accessibilityLabel={`${title}${active ? ", onglet actif" : ""}`}
-            accessibilityHint="Balayer sur le côté pour fermer, maintenir pour plus d'options"
+            accessibilityHint="Maintenir pour plus d'options"
             accessibilityActions={[{ name: "close", label: "Fermer l'onglet" }]}
             onAccessibilityAction={(event) => event.nativeEvent.actionName === "close" && close()}
             onPress={() => onPress(tab.id)}
@@ -406,7 +554,7 @@ const TabCard = memo(function TabCard({
           </Tap>
         </Animated.View>
       </Animated.View>
-    </GestureDetector>
+    </>
   );
 });
 
@@ -437,6 +585,18 @@ const styles = StyleSheet.create({
   previewLabel: { fontSize: 12, fontWeight: "600", opacity: 0.75, paddingHorizontal: 10 },
   loadingDot: { position: "absolute", top: 10, right: 10, width: 7, height: 7, borderRadius: 4 },
   empty: { width: "100%", alignItems: "center", paddingTop: 80, gap: 8 },
+  folder: {
+    width: "100%",
+    height: FOLDER_HEADER,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  folderName: { flex: 1, fontSize: 15, fontWeight: "700" },
+  folderCount: { fontSize: 13, fontWeight: "600" },
   emptyTitle: { fontSize: 18, fontWeight: "700" },
   emptyText: { fontSize: 14 },
   bottom: { position: "absolute", left: 0, right: 0, bottom: 0, flexDirection: "row", alignItems: "center", paddingHorizontal: 10, borderTopWidth: StyleSheet.hairlineWidth },
