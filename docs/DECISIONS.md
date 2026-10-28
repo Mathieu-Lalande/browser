@@ -1097,3 +1097,79 @@ pas de sessions en mémoire, une partie des API `chrome.*` (scripts de contenu, 
 via le calque overlay ; mise à jour d'une extension installée (aujourd'hui : la retirer puis la
 réinstaller, un nom déjà installé est refusé) ; installation depuis le Chrome Web Store ; extensions
 en navigation privée si Electron l'autorise un jour.
+
+## ADR-025 — Gestionnaire de mots de passe
+
+**Contexte.** Enregistrer et remplir les mots de passe, sur le bureau et le téléphone, sans revenir sur
+ADR-003 : les onglets n'ont ni preload ni canal IPC, et un mot de passe ne doit pas traîner dans
+l'interface ni dans le monde JavaScript des pages.
+
+**Modèle** (`src/shared/passwords.ts`, pur et testé, partagé avec le mobile) : entrée `id`, `origin`,
+`username`, `password`, `createdAt`, `updatedAt`, `lastUsedAt` ; un compte = origine + identifiant (une
+nouvelle soumission met son mot de passe à jour) ; liste « Jamais pour ce site » ; recherche ; export CSV
+aux colonnes de Chrome/Firefox (`name,url,username,password`, toutes les cellules entre guillemets, valeurs
+jamais modifiées).
+
+**Correspondance : origine exacte** (schéma + hôte + port). Pas de regroupement par domaine
+enregistrable (eTLD+1) : il donnerait le mot de passe de `example.com` à tout sous-domaine (pages
+d'utilisateurs, hébergement partagé, sous-domaine compromis) et celui d'un site https à sa version http.
+Coût : un site qui connecte sur plusieurs hôtes demande un second enregistrement.
+
+**Capture sans preload (bureau).** À chaque `dom-ready` (crochet `pageReady` de `TabManager`), main
+exécute un script dans un **monde isolé** (`executeJavaScriptInIsolatedWorld`, monde 1004, comme le scan
+cosmétique d'ADR-006) : il partage le DOM mais aucun JavaScript avec la page. Il pose des écouteurs en
+phase de capture (envoi de formulaire, clic sur un bouton d'envoi, Entrée dans un champ mot de passe ;
+événements `isTrusted` seulement : un script ne peut pas simuler une connexion) et **renvoie une
+promesse** résolue à la connexion suivante avec `{ origin, username, password }`, ou `null` quand la page
+s'en va (`pagehide`). Le résultat revient à main comme valeur de retour de l'exécution — aucun canal
+ouvert, rien d'exposé à la page — puis main relance l'attente (un jeton par page arrête les boucles d'un
+document remplacé). L'origine est `location.origin` lu dans le monde isolé, que la page ne peut pas
+falsifier ; la capture est revalidée (`sanitizeCapture`). Polling et instantané à `did-navigate` ont été
+écartés : trop tard (la page est partie) ou trop tôt (champs vides).
+
+- **Invite** : popover du calque overlay (ADR-010, `OverlayKind` « password-save ») pour l'onglet à
+  l'écran : « Enregistrer le mot de passe pour <site> ? » (ou « Mettre à jour… ») — Enregistrer, Jamais
+  pour ce site, Plus tard. Main garde la capture sous un identifiant aléatoire (10 min au plus) ;
+  l'overlay ne reçoit que le site et l'identifiant. Pas d'invite pour un compte déjà enregistré tel quel,
+  un site de la liste « Jamais », ni deux fois pour la même connexion (clic puis envoi).
+- **Fenêtres privées : jamais d'invite** — `tabHooksFor` ne transmet pas `pageReady` (testé) et
+  `onCapture` vérifie `isPrivate`. Le remplissage y reste possible (lecture, comme l'historique) mais
+  n'écrit pas « dernière utilisation ».
+- **Remplissage** : uniquement sur demande — clé de la barre d'adresse (affichée si `TabState.hasPasswords`)
+  qui ouvre le popover « password-fill » (identifiants seulement), ou « Remplir le mot de passe » du menu
+  contextuel d'un champ (direct s'il n'y a qu'un compte). Main vérifie que l'entrée a l'origine de la page,
+  puis un script en monde isolé (1005) vérifie encore `location.origin` et pose les valeurs comme une
+  saisie (setter natif, événements `input`/`change`) : c'est à ce moment seulement que la page voit le mot
+  de passe. Cadre principal seulement (pas d'iframes).
+- **Stockage** : `passwords.json` = un bloc chiffré par `safeStorage` (Trousseau, DPAPI,
+  libsecret/kwallet), coffre déchiffré seulement dans main. Chiffrement indisponible (Linux sans trousseau,
+  où Electron le déclare indisponible) : **rien n'est enregistré**, message en français (invite muette,
+  bandeau sur la page). Fichier indéchiffrable (trousseau changé ou verrouillé) : gardé tel quel, jamais
+  réécrit. Si le magasin « basic » de Chromium est en usage, la page le signale comme protection faible.
+  Crochet de test `BROWSER_TEST_PLAIN_KEYCHAIN=1` (clé « basic » en mémoire, ignoré une fois empaqueté).
+- **Interface** (`browser://passwords`, commande « Mots de passe », lien dans Paramètres → Confidentialité) :
+  recherche, afficher (après confirmation dans l'interface : seul `passwords:reveal` fait traverser un mot
+  de passe par l'IPC), copier (fait par main, presse-papiers vidé après 30 s s'il n'a pas changé),
+  modifier, supprimer, liste « Jamais », export CSV en clair après confirmation (boîte d'enregistrement de
+  main, fichier 0600).
+
+**Mobile** (`mobile/src/lib/passwords.ts`, testé avec Jest). Coffre dans `expo-secure-store` (Keychain
+`WHEN_UNLOCKED_THIS_DEVICE_ONLY`, Keystore ; disponible dans Expo Go), en morceaux de 1 800 caractères
+(certaines versions d'iOS refusent les grandes valeurs). Les WebView n'ont pas de monde isolé exploitable :
+le script de capture (onglets normaux seulement) poste un message par le pont existant, que **toute page
+peut imiter** ; il est donc traité comme une entrée non fiable : forme et tailles validées, **origine prise
+de l'URL de l'onglet**, jamais du message, onglet à l'écran seulement, une invite toutes les 3 s au plus,
+et l'invite (feuille d'actions) ne fait qu'enregistrer ce que la page possède déjà. Remplissage par
+`injectJavaScript` au toucher d'un compte (bouton clé dans la barre, menu de la page), après vérification
+de l'origine côté app puis dans le script. Section « Mots de passe » des paramètres : recherche, afficher
+(confirmation), copier (presse-papiers vidé après 30 s), supprimer, liste « Jamais ».
+
+**Synchronisation : non incluse (suite possible).** Le moteur d'ADR-019 chiffrerait les mots de passe de
+bout en bout, mais son état local (`sync.json`, AsyncStorage) garde un *miroir* haché de chaque
+enregistrement synchronisé, hors du trousseau, et il faudrait une collection de plus côté serveur, bureau
+et mobile. À faire avec un miroir lui-même chiffré (ou des hachés à clé) et un réglage explicite.
+
+**Limites.** Pas de détection des connexions réussies (une invite peut suivre un mauvais mot de passe :
+« Plus tard ») ni des formulaires en plusieurs étapes (identifiant puis mot de passe sur deux pages) ;
+pas de génération de mot de passe ; pas d'import CSV ; pas de verrouillage par le mot de passe du système
+avant « Afficher » (confirmation dans l'interface seulement).

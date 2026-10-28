@@ -13,11 +13,14 @@ export interface MaybePrivate {
 
 /**
  * Tab integrations for a window: a private window keeps the bookmark star (reading) and the page
- * context menu (which checks `isPrivate` itself), but neither
- * records visits nor updates titles/favicons in the history (so no top sites either).
+ * context menu (which checks `isPrivate` itself) and the saved-passwords key (filling reads the
+ * vault), but neither records visits nor updates titles/favicons in the history (so no top sites
+ * either), nor watches login forms (never a save prompt, ADR-025).
  */
 export function tabHooksFor(hooks: TabManagerHooks, isPrivate: boolean): TabManagerHooks {
-  return isPrivate ? { isBookmarked: hooks.isBookmarked, isFavorite: hooks.isFavorite, contextMenu: hooks.contextMenu } : hooks;
+  return isPrivate
+    ? { isBookmarked: hooks.isBookmarked, isFavorite: hooks.isFavorite, contextMenu: hooks.contextMenu, hasPasswords: hooks.hasPasswords }
+    : hooks;
 }
 
 /** The windows that belong in session.json: never a private one. */

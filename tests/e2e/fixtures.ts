@@ -132,6 +132,13 @@ function startServer(): Promise<{ server: Server; origin: string; log: ServerLog
       // What the browser sent (user agent, client hints, languages…), as JSON.
       res.setHeader("content-type", "application/json");
       res.end(JSON.stringify(req.headers));
+    } else if (path.startsWith("/login")) {
+      // A plain login form (ADR-025); the POST lands on a welcome page.
+      res.end(
+        `<title>Login</title><form method="post" action="/welcome">` +
+          `<input id="user" name="user" autocomplete="username"><input id="pass" name="pass" type="password">` +
+          `<button id="submit">Se connecter</button></form>`,
+      );
     } else if (path.startsWith("/context")) {
       // Right-click targets for the page context menu (ADR-021); sets a first-party cookie too.
       res.setHeader("set-cookie", "ctx=1; path=/");

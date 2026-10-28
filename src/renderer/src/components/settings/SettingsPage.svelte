@@ -510,6 +510,9 @@
             onchange={(normalizeAcceptLanguage) => update({ privacy: { normalizeAcceptLanguage } })}
           />
         </Row>
+        <div class="archive-link">
+          <button class="link" onclick={() => api.commands.run("open-passwords")}><Icon name="key" size={12} /> Gérer les mots de passe</button>
+        </div>
       </Section>
 
       <Section id="siteData" icon="cookie" title="Données des sites" description="Cookies et stockage laissés par les sites, et cookies tiers.">

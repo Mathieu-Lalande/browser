@@ -4,6 +4,8 @@ import type { TabId } from "@shared/types";
 import { isPageOpenableUrl, searchUrl } from "@shared/url";
 import { searchEngineOf } from "@shared/settings";
 import { togglePictureInPicture } from "./media";
+import { fillFromMenu } from "./passwords";
+import { hasPasswordsFor } from "./passwords/vault";
 import { buildPageMenu, isSavableUrl, selectionAddress, type PageMenuEntry } from "./page-menu-model";
 import { settings } from "./settings";
 import { spaces } from "./spaces";
@@ -141,6 +143,8 @@ function runEntry(id: string, c: BrowserController, tabId: TabId, contents: WebC
     case "page-site-info":
       if (c.tabs.activeTabId !== tabId) c.tabs.activate(tabId);
       return c.showSiteInfo(undefined, tabId);
+    case "password-fill":
+      return fillFromMenu(c, tabId);
     case "inspect":
       return contents.inspectElement(params.x, params.y);
   }
@@ -175,6 +179,7 @@ export function buildPageContextMenu(c: BrowserController, tabId: TabId, params:
     spaces: c.isPrivate ? [] : spaces.list().filter((space) => space.id !== c.spaces.activeSpaceId),
     canSplit: !(c.tabs.splitVisible && (split?.tabIds.length ?? 0) >= MAX_SPLIT_TABS),
     engine: searchEngineOf(settings()),
+    hasPasswords: hasPasswordsFor(contents.getURL()),
   });
   return Menu.buildFromTemplate(
     toTemplate(entries, (id) => {

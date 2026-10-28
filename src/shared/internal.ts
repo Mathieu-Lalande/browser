@@ -9,6 +9,7 @@ export const INTERNAL_PAGES = {
   downloads: { title: "Téléchargements" },
   archive: { title: "Onglets archivés" },
   extensions: { title: "Extensions" },
+  passwords: { title: "Mots de passe" },
 } as const;
 
 export type InternalPage = keyof typeof INTERNAL_PAGES;

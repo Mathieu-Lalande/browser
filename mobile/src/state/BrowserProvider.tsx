@@ -4,6 +4,7 @@ import { History } from "@shared/history";
 import { webHostname } from "@shared/hosts";
 import { internalPageOf } from "@shared/internal";
 import { DEFAULT_SETTINGS, mergeSettings, sanitizeSettings, searchEngineOf, tabArchiveDelayMs, type Settings, type SettingsPatch } from "@shared/settings";
+import { passwordOrigin, type PasswordEntry } from "@shared/passwords";
 import { nextSpaceDefaults } from "@shared/spaces";
 import { SyncError } from "@shared/sync/client";
 import type { SyncController, SyncStatus } from "@shared/sync/controller";
@@ -15,6 +16,7 @@ import type { WebViewHandle } from "../components/webViewHandle";
 import { parseBookmarks, parseFolders, toggleBookmark } from "../lib/bookmarks";
 import { DEFAULT_MOBILE_SETTINGS, sanitizeMobileSettings, type MobileSettings } from "../lib/mobileSettings";
 import { initialLoad } from "../lib/navigation";
+import { passwordFillScript } from "../lib/passwords";
 import { ARCHIVE_VERSION, archiveEntries, FAVORITES_VERSION, mobileTabsToArchive } from "../lib/organize";
 import { CLEAR_SITE_DATA_SCRIPT, mobileSiteInfo } from "../lib/siteInfo";
 import type { BookmarkFolder, MobileSyncStore } from "../lib/sync/adapters";
@@ -74,6 +76,8 @@ export interface BrowserActions {
   reload(): void;
   /** Clears what the active page can reach of its own data, then reloads it (ADR-021). */
   clearSiteData(): void;
+  /** Fills the active page's login form with a saved account of its own origin (ADR-025). */
+  fillPassword(entry: PasswordEntry): void;
   stop(): void;
   /** From the WebView (`onNavigationStateChange`). */
   reportNavigation(id: TabId, report: NavigationReport): void;
@@ -430,6 +434,11 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
       clearSiteData() {
         const tab = active();
         if (tab && !tab.interstitial && mobileSiteInfo(tab.url)) webView(tab.id)?.injectJavaScript(CLEAR_SITE_DATA_SCRIPT);
+      },
+      fillPassword(entry) {
+        const tab = active();
+        // The script checks the page's origin again before filling.
+        if (tab && !tab.interstitial && passwordOrigin(tab.url) === entry.origin) webView(tab.id)?.injectJavaScript(passwordFillScript(entry));
       },
       stop() {
         webView(active()?.id)?.stopLoading();

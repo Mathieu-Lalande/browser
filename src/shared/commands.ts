@@ -46,7 +46,8 @@ export type CommandId =
   | "toggle-favorite"
   | "new-folder"
   | "open-archive"
-  | "open-extensions";
+  | "open-extensions"
+  | "open-passwords";
 
 /** Icon names used by commands; the UI's Icon component must know each of them. */
 export type CommandIcon =
@@ -83,7 +84,8 @@ export type CommandIcon =
   | "favorite"
   | "folder"
   | "archive"
-  | "extension";
+  | "extension"
+  | "key";
 
 /** What a command's label and availability may depend on. */
 export interface CommandContext {
@@ -311,6 +313,11 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
     label: "Extensions",
     keywords: ["extensions", "modules", "add-ons", "plugins", "chrome web store", "crx", "installer une extension"],
     icon: "extension",
+  },
+  "open-passwords": {
+    label: "Mots de passe",
+    keywords: ["passwords", "mots de passe", "identifiants", "connexion", "login", "gestionnaire", "remplir"],
+    icon: "key",
   },
 };
 

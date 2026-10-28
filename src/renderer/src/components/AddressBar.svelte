@@ -70,6 +70,11 @@
     api.siteInfo.show({ x: rect.x, y: rect.y, width: rect.width, height: rect.height });
   }
 
+  function showPasswords(event: MouseEvent & { currentTarget: HTMLElement }): void {
+    const rect = event.currentTarget.getBoundingClientRect();
+    api.passwords.showFill({ x: rect.x, y: rect.y, width: rect.width, height: rect.height });
+  }
+
   // Another page: the confirmation was about the previous one.
   $effect(() => {
     void tab?.url;
@@ -184,6 +189,19 @@
         onclick={() => api.commands.run("zoom-reset")}
       >
         {tab.zoom}&#8239;%
+      </button>
+    {/if}
+    {#if tab?.hasPasswords && isWebPage && !focused}
+      <!-- Saved passwords for this site (ADR-025): choose an account to fill the login form. -->
+      <button
+        type="button"
+        class="star"
+        aria-label="Remplir un mot de passe enregistré"
+        title="Remplir un mot de passe enregistré"
+        onmousedown={(event) => event.preventDefault()}
+        onclick={showPasswords}
+      >
+        <Icon name="key" size={14} />
       </button>
     {/if}
     {#if tab?.url && !focused && !isInternal}

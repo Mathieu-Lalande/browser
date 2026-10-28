@@ -1,3 +1,4 @@
+import type { PasswordCapture } from "@shared/passwords";
 import type { LinkMenuRequest } from "../lib/linkMenu";
 
 export interface WebTabProps {
@@ -15,4 +16,6 @@ export interface WebTabProps {
   bottomInset: number;
   onScroll: (y: number, contentHeight: number, viewportHeight: number) => void;
   onLinkMenu: (tabId: string, request: LinkMenuRequest) => void;
+  /** A login form was submitted in a normal tab (ADR-025): offer to save the password. */
+  onPasswordCapture?: (tabId: string, capture: PasswordCapture) => void;
 }

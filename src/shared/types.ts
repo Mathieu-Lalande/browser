@@ -20,6 +20,8 @@ export interface TabState {
   isFavorite?: boolean;
   /** Whether `url` is in the bookmarks. */
   isBookmarked: boolean;
+  /** Saved passwords exist for the page's origin (ADR-025): the address bar shows the key. */
+  hasPasswords?: boolean;
   /** Requests blocked by the content blocker since the last main-frame navigation. */
   blockedCount: number;
   /** False when the user turned protections off for this site. */
@@ -172,18 +174,20 @@ export interface Bounds {
 export type UiCommand = "focus-address" | "toggle-sidebar" | "focus-find";
 
 /** Floating UI shown in the overlay layer, above the page (see `src/main/overlay.ts`). */
-export type OverlayKind = "palette" | "downloads" | "site-info";
+export type OverlayKind = "palette" | "downloads" | "site-info" | "password-save" | "password-fill";
 
 export interface OverlayRequest {
   kind: OverlayKind;
   /** Popovers: the chrome UI element they hang from, in window coordinates. */
   anchor?: Bounds;
-  /** Site info: the tab it describes (set by main). */
+  /** Site info, password fill: the tab it is about (set by main). */
   tabId?: TabId;
+  /** Password save prompt: the pending capture main keeps (the password never reaches the UI). */
+  captureId?: string;
 }
 
 /** Popovers stay light: no dimmed, blurred backdrop behind them (the palette has one). */
-export const isPopover = (kind: OverlayKind) => kind === "downloads" || kind === "site-info";
+export const isPopover = (kind: OverlayKind) => kind !== "palette";
 
 /**
  * A downscaled snapshot of what is below the overlay (chrome UI, then the active page at its

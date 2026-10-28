@@ -9,6 +9,7 @@ import { useBrowserActions, useBrowserState } from "../state/BrowserProvider";
 import { useTheme } from "../state/theme";
 import { Icon, type IconName } from "./Icon";
 import { PairingScanner } from "./PairingScanner";
+import { PasswordsSettings } from "./PasswordsSettings";
 import { SyncSettings } from "./SyncSettings";
 import { IconButton, SiteIcon, Tap } from "./ui";
 
@@ -180,6 +181,10 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
 
         <Group title="Synchronisation" icon="cloud">
           <SyncSettings onScan={() => setScanning(true)} />
+        </Group>
+
+        <Group title="Mots de passe" icon="key">
+          <PasswordsSettings />
         </Group>
 
         <Group title="Confidentialité" icon="shield">

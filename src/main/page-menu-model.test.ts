@@ -33,6 +33,13 @@ const ids = (entries: PageMenuEntry[]) => items(entries).map((entry) => entry.id
 const item = (entries: PageMenuEntry[], id: string) => items(entries).find((entry) => entry.id === id);
 
 describe("page context menu", () => {
+  it("offers to fill a saved password in fields of sites that have one", () => {
+    const field = params({ isEditable: true });
+    expect(ids(buildPageMenu(field, context({ hasPasswords: true })))[0]).toBe("password-fill");
+    expect(ids(buildPageMenu(field, context()))).not.toContain("password-fill");
+    expect(ids(buildPageMenu(params(), context({ hasPasswords: true })))).not.toContain("password-fill");
+  });
+
   it("offers navigation and page tools on a plain right click", () => {
     const menu = buildPageMenu(params(), context());
     expect(ids(menu)).toEqual(["page-back", "page-forward", "page-reload", "page-save", "page-copy-url", "page-site-info", "inspect"]);

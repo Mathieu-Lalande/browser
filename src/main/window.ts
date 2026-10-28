@@ -12,6 +12,8 @@ import { setExtensionsNotifier } from "./extensions";
 import type { DownloadViewer } from "./downloads/list";
 import { favoriteFavicon, favoriteTiles, setArchiveNotifier, setFavoritesRefresh } from "./organize";
 import { Overlay } from "./overlay";
+import { watchPasswordForms } from "./passwords";
+import { hasPasswordsFor, setPasswordsNotifier } from "./passwords/vault";
 import { createPrivateSession, wipePrivateSession } from "./private";
 import { persistentWindows, sessionOnClose, tabHooksFor } from "./private-guards";
 import { profile } from "./profile";
@@ -45,6 +47,11 @@ setArchiveNotifier(() => {
 setExtensionsNotifier(() => {
   for (const controller of controllers.values()) controller.send(Channels.extensionsChanged);
 });
+// Passwords saved, edited or removed: the address bar's key and `browser://passwords` follow (ADR-025).
+setPasswordsNotifier(() => {
+  BrowserController.refreshAll();
+  for (const controller of controllers.values()) controller.send(Channels.passwordsChanged);
+});
 
 /** Set once the app starts quitting: windows closing from then on stay in the saved session. */
 let quitting = false;
@@ -66,6 +73,7 @@ const tabHooks: TabManagerHooks = {
   },
   isBookmarked: (url) => profile().bookmarks.has(url),
   isFavorite: (url) => matchesFavorite(profile().favorites.list(), url),
+  hasPasswords: (url) => hasPasswordsFor(url),
 };
 
 type PageMenu = (controller: BrowserController, tabId: string, params: Electron.ContextMenuParams) => void;
@@ -175,7 +183,14 @@ export class BrowserController {
         if (this.overlay.isOpen) this.overlay.raise();
         if (!this.isPrivate) BrowserController.saveSession();
       },
-      tabHooksFor({ ...tabHooks, contextMenu: (tabId, params) => pageMenu?.(this, tabId, params) }, this.isPrivate),
+      tabHooksFor(
+        {
+          ...tabHooks,
+          contextMenu: (tabId, params) => pageMenu?.(this, tabId, params),
+          pageReady: (tabId, contents) => watchPasswordForms(this, tabId, contents),
+        },
+        this.isPrivate,
+      ),
       this.isPrivate ? undefined : restore,
       this.privateSession ? { space: PRIVATE_SPACE, session: this.privateSession } : undefined,
     );
@@ -258,6 +273,11 @@ export class BrowserController {
   /** Shows `browser://extensions` (ADR-024). */
   openExtensions(): void {
     this.openInternal("extensions");
+  }
+
+  /** Shows `browser://passwords` (ADR-025). */
+  openPasswords(): void {
+    this.openInternal("passwords");
   }
 
   /** Toggles the bookmark of the active tab's page, then refreshes `isBookmarked` everywhere. */

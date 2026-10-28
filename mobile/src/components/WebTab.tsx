@@ -6,6 +6,7 @@ import type { ShouldStartLoadRequest, WebViewNavigation } from "react-native-web
 import { isNavigableUrl } from "@shared/url";
 import { LINK_MENU_COOLDOWN_MS, linkMenuScript, parseLinkMenuMessage, type LinkMenuRequest } from "../lib/linkMenu";
 import { decideNavigation, decideOpenWindow, isHttpsUpgradeFailure } from "../lib/navigation";
+import { PASSWORD_CAPTURE_SCRIPT, PASSWORD_PROMPT_COOLDOWN_MS, parsePasswordMessage } from "../lib/passwords";
 import { useBrowserActions, useEvent } from "../state/BrowserProvider";
 import { LoadError } from "./LoadError";
 import type { WebTabProps } from "./webTabTypes";
@@ -15,6 +16,8 @@ import type { WebViewHandle } from "./webViewHandle";
 const WebView = RNWebView as unknown as ComponentType<WebViewProps & { ref?: Ref<WebViewHandle> }>;
 
 const INJECTED = linkMenuScript(Platform.OS);
+/** Normal tabs also watch login forms (ADR-025); private tabs never offer to save a password. */
+const INJECTED_WITH_PASSWORDS = INJECTED + PASSWORD_CAPTURE_SCRIPT;
 /** Only these schemes may ever reach the native view (navigation policy: `decideNavigation`). */
 const ORIGIN_WHITELIST = ["http://*", "https://*", "about:*", "data:*", "mailto:*", "tel:*", "sms:*"];
 
@@ -26,7 +29,20 @@ const ORIGIN_WHITELIST = ["http://*", "https://*", "about:*", "data:*", "mailto:
  * Memoized on purpose: it re-renders only when what it must load changes, never while the page
  * navigates by itself or other tabs update.
  */
-export const WebTab = memo(function WebTab({ id, loadUrl, loadSeq, resumeUrl, upgradedFrom, isPrivate, active, background, bottomInset, onScroll, onLinkMenu }: WebTabProps) {
+export const WebTab = memo(function WebTab({
+  id,
+  loadUrl,
+  loadSeq,
+  resumeUrl,
+  upgradedFrom,
+  isPrivate,
+  active,
+  background,
+  bottomInset,
+  onScroll,
+  onLinkMenu,
+  onPasswordCapture,
+}: WebTabProps) {
   const actions = useBrowserActions();
   const ref = useRef<WebViewHandle | null>(null);
   const [generation, setGeneration] = useState(0);
@@ -35,6 +51,7 @@ export const WebTab = memo(function WebTab({ id, loadUrl, loadSeq, resumeUrl, up
   const activeRef = useRef(active);
   activeRef.current = active;
   const lastMenu = useRef(0);
+  const lastPasswordPrompt = useRef(0);
   /** The page committed last, followed from the WebView's own navigation events. */
   const currentUrl = useRef(resumeUrl);
   /**
@@ -96,8 +113,16 @@ export const WebTab = memo(function WebTab({ id, loadUrl, loadSeq, resumeUrl, up
   const onMessage = useEvent((event: { nativeEvent: { data: string } }) => {
     // Untrusted page input: validated, rate limited, and only for the tab on screen.
     if (!activeRef.current) return;
-    const request: LinkMenuRequest | null = parseLinkMenuMessage(event.nativeEvent.data);
     const now = Date.now();
+    // A login capture: its origin is this tab's page, never one the message names (ADR-025).
+    const capture = isPrivate ? null : parsePasswordMessage(event.nativeEvent.data, currentUrl.current);
+    if (capture) {
+      if (now - lastPasswordPrompt.current < PASSWORD_PROMPT_COOLDOWN_MS) return;
+      lastPasswordPrompt.current = now;
+      onPasswordCapture?.(id, capture);
+      return;
+    }
+    const request: LinkMenuRequest | null = parseLinkMenuMessage(event.nativeEvent.data);
     if (!request || now - lastMenu.current < LINK_MENU_COOLDOWN_MS) return;
     lastMenu.current = now;
     onLinkMenu(id, request);
@@ -149,7 +174,7 @@ export const WebTab = memo(function WebTab({ id, loadUrl, loadSeq, resumeUrl, up
         onScroll={onScrollEvent}
         onContentProcessDidTerminate={revive}
         onRenderProcessGone={revive}
-        injectedJavaScript={INJECTED}
+        injectedJavaScript={isPrivate ? INJECTED : INJECTED_WITH_PASSWORDS}
         injectedJavaScriptForMainFrameOnly
         // Security. iOS: each private tab gets its own non-persistent data store. Android's
         // `incognito` wipes the cookies of every tab (global CookieManager), so it is not used

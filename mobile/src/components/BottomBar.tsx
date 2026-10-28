@@ -35,6 +35,9 @@ interface Props {
   onLongPressAddress: () => void;
   /** Tap on the lock: site info sheet (ADR-021). */
   onSiteInfo: () => void;
+  /** Passwords are saved for the page (ADR-025): the key button lists them to fill the form. */
+  hasPasswords: boolean;
+  onPasswords: () => void;
   onBack: () => void;
   onForward: () => void;
   onShare: () => void;
@@ -202,6 +205,9 @@ export const BottomBar = memo(function BottomBar(props: Props) {
               <Text style={[styles.pillText, { color: label ? colors.text : colors.textMuted }]} numberOfLines={1}>
                 {label || (isPrivate ? "Recherche privée" : "Rechercher ou saisir une adresse")}
               </Text>
+              {props.hasPasswords && (
+                <IconButton icon="key" label="Remplir un mot de passe enregistré" size={17} color={colors.accentText} onPress={props.onPasswords} style={styles.pillAction} testID="passwords" />
+              )}
               {tab?.url ? (
                 <IconButton
                   icon={loading ? "close" : "reload"}

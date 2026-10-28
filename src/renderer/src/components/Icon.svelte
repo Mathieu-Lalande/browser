@@ -115,6 +115,11 @@
   import FolderOpen from "@lucide/svelte/icons/folder-open";
   import FolderPlus from "@lucide/svelte/icons/folder-plus";
   import LayoutGrid from "@lucide/svelte/icons/layout-grid";
+  import Eye from "@lucide/svelte/icons/eye";
+  import EyeOff from "@lucide/svelte/icons/eye-off";
+  import Pencil from "@lucide/svelte/icons/pencil";
+  import Ban from "@lucide/svelte/icons/ban";
+  import FileDown from "@lucide/svelte/icons/file-down";
 
   type LucideIcon = Component<Record<string, unknown>>;
 
@@ -209,6 +214,13 @@
     // Extensions (ADR-024).
     extension: Puzzle,
     "file-archive": FileArchive,
+    // Passwords (ADR-025).
+    eye: Eye,
+    "eye-off": EyeOff,
+    pencil: Pencil,
+    ban: Ban,
+    "file-down": FileDown,
+    "copy-text": Copy,
   } satisfies Record<string, LucideIcon> & Record<CommandIcon, LucideIcon>;
 
   /** Space icons: their stored names are Lucide's own. */

@@ -7,10 +7,13 @@ const win = (name: string, isPrivate = false) => ({ name, isPrivate });
 
 describe("private windows never persist", () => {
   it("record no history: visits and page titles/favicons are not passed on", () => {
-    const hooks: TabManagerHooks = { onVisit: vi.fn(), onPageInfo: vi.fn(), isBookmarked: vi.fn(() => true) };
+    const hooks: TabManagerHooks = { onVisit: vi.fn(), onPageInfo: vi.fn(), isBookmarked: vi.fn(() => true), pageReady: vi.fn(), hasPasswords: vi.fn(() => true) };
     const hooksForPrivate = tabHooksFor(hooks, true);
     expect(hooksForPrivate.onVisit).toBeUndefined();
     expect(hooksForPrivate.onPageInfo).toBeUndefined();
+    // Login forms are not watched (no save prompt), saved passwords can still be filled.
+    expect(hooksForPrivate.pageReady).toBeUndefined();
+    expect(hooksForPrivate.hasPasswords?.("https://example.com/")).toBe(true);
     // The bookmark star still shows.
     expect(hooksForPrivate.isBookmarked?.("https://example.com/")).toBe(true);
     // Normal windows keep everything.

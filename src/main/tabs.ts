@@ -105,6 +105,10 @@ export interface TabManagerHooks {
   isFavorite?(url: string): boolean;
   /** The user right-clicked the tab's page (native context menu, ADR-021). */
   contextMenu?(tabId: TabId, params: Electron.ContextMenuParams): void;
+  /** A new document of the tab's page is ready (dom-ready): password form watching, ADR-025. */
+  pageReady?(tabId: TabId, contents: WebContents): void;
+  /** Saved passwords exist for the URL's origin (reading only: also in private windows). */
+  hasPasswords?(url: string): boolean;
 }
 
 /** User preferences TabManager follows (see `configure`). */
@@ -198,6 +202,7 @@ export class TabManager {
         isBookmarked: this.isBookmarked(tab.state.url),
         isFavorite: tab.state.url !== "" && (this.hooks.isFavorite?.(tab.state.url) ?? false),
         isAsleep: isDiscarded(tab),
+        hasPasswords: showsWebPage(tab.state.url) && (this.hooks.hasPasswords?.(tab.state.url) ?? false),
       })),
       activeTabId: this.activeId,
       split: this.split && { ...this.split, tabIds: [...this.split.tabIds] },
@@ -1136,6 +1141,7 @@ export class TabManager {
       this.applyZoom(tab);
       refresh();
     });
+    on("dom-ready", () => this.hooks.pageReady?.(tab.id, contents));
     // Ctrl+wheel and pinch: same steps as the zoom commands, remembered per site.
     on("zoom-changed", (_event, direction) => this.zoom(tab.id, direction === "in" ? 1 : -1));
     on("context-menu", (_event, params) => {

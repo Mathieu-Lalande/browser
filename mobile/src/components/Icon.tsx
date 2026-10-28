@@ -70,6 +70,9 @@ import Smartphone from "lucide-react-native/icons/smartphone";
 import QrCode from "lucide-react-native/icons/qr-code";
 import Unlink from "lucide-react-native/icons/unlink";
 import KeyRound from "lucide-react-native/icons/key-round";
+import Ban from "lucide-react-native/icons/ban";
+import Eye from "lucide-react-native/icons/eye";
+import EyeOff from "lucide-react-native/icons/eye-off";
 import ScanLine from "lucide-react-native/icons/scan-line";
 import Archive from "lucide-react-native/icons/archive";
 import ArchiveRestore from "lucide-react-native/icons/archive-restore";
@@ -124,6 +127,10 @@ const ui = {
   folderInput: FolderInput,
   folderPlus: FolderPlus,
   favorite: LayoutGrid,
+  // Passwords (ADR-025).
+  ban: Ban,
+  eye: Eye,
+  eyeOff: EyeOff,
 } satisfies Record<string, LucideIcon>;
 
 /** Space icons: their stored names (src/shared/spaces.ts) are Lucide's own. */

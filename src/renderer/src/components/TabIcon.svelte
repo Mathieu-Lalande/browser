@@ -7,7 +7,7 @@
   let { tab }: { tab: TabState } = $props();
 
   // Internal pages have no favicon: they get the icon of their section.
-  const INTERNAL_ICONS: Record<string, IconName> = { settings: "settings", downloads: "download", archive: "archive", extensions: "extension" };
+  const INTERNAL_ICONS: Record<string, IconName> = { settings: "settings", downloads: "download", archive: "archive", extensions: "extension", passwords: "key" };
   const internal = $derived(internalPageOf(tab.url));
 </script>
 

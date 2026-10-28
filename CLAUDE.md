@@ -46,3 +46,7 @@
   `src/main/organize.ts`. Le téléphone a sa version (`mobile/src/lib/organize.ts`, dossiers dans `tabs.ts`).
 - Extensions (ADR-024) : `src/main/extensions/` (`installExtensions(session)` via `hardenSession`, idempotente),
   `browser://extensions`, `extensions.json` ; l'interface vit dans sa propre session `src/main/ui-session.ts`.
+- Mots de passe (ADR-025) : modèle `src/shared/passwords.ts`, main `src/main/passwords/` (coffre `safeStorage`,
+  capture/remplissage par scripts en monde isolé, jamais de preload), `browser://passwords`, popovers overlay
+  « password-save »/« password-fill » ; mobile `mobile/src/lib/passwords.ts` (`expo-secure-store`). Jamais d'invite
+  en fenêtre privée ; un mot de passe ne traverse l'IPC que par `passwords:reveal`.

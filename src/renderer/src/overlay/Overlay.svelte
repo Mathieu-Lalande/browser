@@ -5,6 +5,7 @@
   import { applyTheme } from "../lib/theme";
   import CommandPalette from "./CommandPalette.svelte";
   import DownloadsPanel from "./DownloadsPanel.svelte";
+  import PasswordPanel from "./PasswordPanel.svelte";
   import SiteInfoPanel from "./SiteInfoPanel.svelte";
 
   // Root of the overlay layer (src/main/overlay.ts): a transparent page above the tab views,
@@ -87,6 +88,10 @@
         <DownloadsPanel anchor={current.request.anchor} onClose={close} />
       {:else if current.request.kind === "site-info" && current.request.tabId}
         <SiteInfoPanel anchor={current.request.anchor} tabId={current.request.tabId} onClose={close} />
+      {:else if current.request.kind === "password-save"}
+        <PasswordPanel kind="save" anchor={current.request.anchor} captureId={current.request.captureId} onClose={close} />
+      {:else if current.request.kind === "password-fill"}
+        <PasswordPanel kind="fill" anchor={current.request.anchor} tabId={current.request.tabId} onClose={close} />
       {/if}
     </div>
   {/key}

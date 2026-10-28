@@ -1,5 +1,6 @@
 import { getCommand, type CommandId } from "@shared/commands";
 import { isFavoriteTab, isFavoriteUrl, type Favorite } from "@shared/favorites";
+import { originLabel, type PasswordCapture } from "@shared/passwords";
 import { cycleSpace, FALLBACK_SPACE_ICON } from "@shared/spaces";
 import type { SpaceInfo } from "@shared/types";
 import { displayUrl } from "@shared/url";
@@ -19,6 +20,7 @@ import type { SheetItem } from "../lib/searchSheet";
 import { connectionLabel, mobileSiteInfo, SITE_DATA_NOTE } from "../lib/siteInfo";
 import { activeTab, isPrivateTab, liveTabIds, mountUrl, orderedTabs, swipeTarget, type MobileFolder, type MobileTab } from "../lib/tabs";
 import { useBrowserActions, useBrowserState, useEvent } from "../state/BrowserProvider";
+import { passwords, usePasswords } from "../state/passwords";
 import { useTheme } from "../state/theme";
 import { ActionSheet, type MenuItem, type MenuSpec } from "./ActionSheet";
 import { BottomBar, COLLAPSED_HEIGHT, EXPANDED_HEIGHT } from "./BottomBar";
@@ -53,6 +55,9 @@ export function BrowserScreen() {
   const tab = activeTab(model);
   const tabs = useMemo(() => orderedTabs(model), [model]);
   const tabBookmarked = tab ? isBookmarked(bookmarks, tab.url) : false;
+  const vault = usePasswords();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const tabPasswords = useMemo(() => (tab && !tab.interstitial ? passwords.forUrl(tab.url) : []), [vault, tab?.url, tab?.interstitial]);
 
   useEffect(() => {
     SystemUI.setBackgroundColorAsync(colors.bg).catch(() => {});
@@ -316,6 +321,59 @@ export function BrowserScreen() {
     setMenu({ title: request.text || displayUrl(request.url), subtitle: request.url, siteUrl: request.url, items });
   });
 
+  /** A login was submitted in a normal tab (ADR-025): offer to save or update its password. */
+  const onPasswordCapture = useEvent((tabId: string, capture: PasswordCapture) => {
+    const target = model.tabs.find((candidate) => candidate.id === tabId);
+    if (!target || isPrivateTab(target) || tabId !== tab?.id || menu || overlay !== "none") return;
+    const outcome = passwords.outcome(capture);
+    if (outcome !== "new" && outcome !== "update") return;
+    const site = originLabel(capture.origin);
+    const verb = outcome === "update" ? "Mettre à jour" : "Enregistrer";
+    haptic("light");
+    setMenu({
+      title: `${verb} le mot de passe pour ${site} ?`,
+      subtitle: capture.username || "Sans identifiant",
+      note: "Chiffré et enregistré sur cet appareil uniquement.",
+      items: [
+        {
+          key: "save",
+          label: verb,
+          icon: "key",
+          onPress: () => {
+            void passwords.save(capture);
+            haptic("success");
+          },
+        },
+        { key: "never", label: "Jamais pour ce site", icon: "ban", onPress: () => void passwords.never(capture.origin) },
+        { key: "later", label: "Plus tard", icon: "close", onPress: () => {} },
+      ],
+    });
+  });
+
+  /** Accounts saved for the page (key button, page menu): a tap fills the login form. */
+  const passwordsMenu = useEvent((): MenuSpec | null => {
+    if (!tab || tabPasswords.length === 0) return null;
+    return {
+      title: `Mots de passe pour ${originLabel(tabPasswords[0].origin)}`,
+      siteUrl: tab.url,
+      items: tabPasswords.map((entry) => ({
+        key: entry.id,
+        label: entry.username || "Sans identifiant",
+        icon: "key" as const,
+        onPress: () => {
+          actions.fillPassword(entry);
+          // "Last used" is not recorded from a private tab.
+          if (!isPrivateTab(tab)) void passwords.used(entry.id);
+        },
+      })),
+    };
+  });
+
+  const showPasswords = useEvent(() => {
+    const spec = passwordsMenu();
+    if (spec) setMenu(spec);
+  });
+
   /** Site info sheet (tap on the lock, ADR-021): connection, host, copy link, clear the site's data. */
   const siteInfoMenu = useEvent((): MenuSpec | null => {
     const info = tab ? mobileSiteInfo(tab.url) : null;
@@ -375,6 +433,7 @@ export function BrowserScreen() {
         },
         { key: "copy", label: "Copier le lien", icon: "link", onPress: () => copy(tab.url) },
         ...(mobileSiteInfo(tab.url) ? [{ key: "site-info", label: "Infos sur le site", icon: "info" as const, onPress: () => siteInfoMenu() ?? undefined }] : []),
+        ...(tabPasswords.length ? [{ key: "passwords", label: "Remplir le mot de passe", icon: "key" as const, onPress: () => passwordsMenu() ?? undefined }] : []),
         { key: "pin", label: tab.isPinned ? "Désépingler l'onglet" : "Épingler l'onglet", icon: "pin", onPress: () => actions.setPinned(tab.id, !tab.isPinned) },
         { key: "duplicate", label: "Dupliquer l'onglet", icon: "copy", onPress: () => void actions.duplicate(tab.id) },
       );
@@ -622,6 +681,7 @@ export function BrowserScreen() {
               bottomInset={contentInset}
               onScroll={onPageScroll}
               onLinkMenu={onLinkMenu}
+              onPasswordCapture={onPasswordCapture}
             />
           ))}
           {showStart && (
@@ -659,6 +719,8 @@ export function BrowserScreen() {
           onExpand={expand}
           onLongPressAddress={addressMenu}
           onSiteInfo={showSiteInfo}
+          hasPasswords={tabPasswords.length > 0}
+          onPasswords={showPasswords}
           onBack={goBack}
           onForward={goForward}
           onShare={shareActive}

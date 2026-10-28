@@ -5,6 +5,7 @@ import { isSettingsSection } from "@shared/settings";
 import { isArchiveId } from "@shared/archive";
 import { isExtensionId } from "@shared/extensions";
 import { isFavoriteUrl } from "@shared/favorites";
+import { isPasswordEdit, isPasswordId, isPasswordOrigin, isPromptAnswer, type PasswordEdit, type PromptAnswer } from "@shared/passwords";
 import { isFolderId, isFolderInput, type FolderInput } from "@shared/folders";
 import { isSpaceId, isSpaceInput } from "@shared/spaces";
 import { isSiteName } from "@shared/site-info";
@@ -55,6 +56,22 @@ import {
   setExtensionEnabled,
   setExtensionPrivateAllowed,
 } from "./extensions";
+import {
+  accountsFor,
+  answerPrompt,
+  copyPassword,
+  exportPasswords,
+  fillPassword,
+  listPasswords,
+  neverList,
+  passwordPrompt,
+  removeNever,
+  removePassword,
+  revealPassword,
+  showFillPopover,
+  updatePassword,
+} from "./passwords";
+import { passwordsStatus } from "./passwords/vault";
 import { startImage } from "./start-image";
 import { registerSyncIpc } from "./sync/ipc";
 import { showTabMenu } from "./tab-menu";
@@ -352,6 +369,30 @@ export function registerIpc(): void {
   );
   withController(Channels.extensionsRemove, (args) => isExtensionId(args[0]), (c, extensionId) =>
     c.isPrivate ? undefined : removeExtension(extensionId as string),
+  );
+
+  // Passwords (ADR-025): the UI names entries by id and tabs of its own window; main reads the
+  // tab's URL. A password only crosses IPC through `reveal` (the UI confirms first).
+  const passwordId = (args: unknown[]) => isPasswordId(args[0]);
+  withController(Channels.passwordsStatus, none, () => passwordsStatus());
+  withController(Channels.passwordsList, none, () => listPasswords());
+  withController(Channels.passwordsNeverList, none, () => neverList());
+  withController(Channels.passwordsReveal, passwordId, (_c, entryId) => revealPassword(entryId as string));
+  withController(Channels.passwordsCopy, passwordId, (_c, entryId) => copyPassword(entryId as string));
+  withController(Channels.passwordsUpdate, (args) => isPasswordId(args[0]) && isPasswordEdit(args[1]), (_c, entryId, edit) =>
+    updatePassword(entryId as string, edit as PasswordEdit),
+  );
+  withController(Channels.passwordsRemove, passwordId, (_c, entryId) => removePassword(entryId as string));
+  withController(Channels.passwordsRemoveNever, (args) => isPasswordOrigin(args[0]), (_c, origin) => removeNever(origin as string));
+  withController(Channels.passwordsExport, none, (c) => exportPasswords(c));
+  on(Channels.passwordsShowFill, (args) => isBounds(args[0]), (c, anchor) => showFillPopover(c, anchor as Bounds));
+  withController(Channels.passwordsAccounts, id, (c, tabId) => accountsFor(c, tabId as string));
+  withController(Channels.passwordsFill, (args) => isString(args[0]) && isPasswordId(args[1]), (c, tabId, entryId) =>
+    fillPassword(c, tabId as string, entryId as string),
+  );
+  withController(Channels.passwordsPrompt, passwordId, (c, captureId) => passwordPrompt(c, captureId as string));
+  withController(Channels.passwordsAnswer, (args) => isPasswordId(args[0]) && isPromptAnswer(args[1]), (c, captureId, answer) =>
+    answerPrompt(c, captureId as string, answer as PromptAnswer),
   );
 
   registerSyncIpc();

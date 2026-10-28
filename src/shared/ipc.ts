@@ -2,6 +2,15 @@ import type { ArchivedTab } from "./archive";
 import type { CommandId } from "./commands";
 import type { ExtensionInfo, ExtensionInstallResult } from "./extensions";
 import type { FolderId, FolderInput } from "./folders";
+import type {
+  PasswordAccounts,
+  PasswordEdit,
+  PasswordPrompt,
+  PasswordResult,
+  PasswordSummary,
+  PasswordsStatus,
+  PromptAnswer,
+} from "./passwords";
 import type { DownloadEntry, DownloadsChange } from "./downloads";
 import type { Settings, SettingsPatch, SettingsSection } from "./settings";
 import type { SiteDataEntry, SiteInfo } from "./site-info";
@@ -130,6 +139,21 @@ export const Channels = {
   extensionsSetPrivateAllowed: "extensions:set-private-allowed",
   extensionsRemove: "extensions:remove",
   extensionsChanged: "extensions:changed",
+  passwordsStatus: "passwords:status",
+  passwordsList: "passwords:list",
+  passwordsNeverList: "passwords:never-list",
+  passwordsReveal: "passwords:reveal",
+  passwordsCopy: "passwords:copy",
+  passwordsUpdate: "passwords:update",
+  passwordsRemove: "passwords:remove",
+  passwordsRemoveNever: "passwords:remove-never",
+  passwordsExport: "passwords:export",
+  passwordsChanged: "passwords:changed",
+  passwordsShowFill: "passwords:show-fill",
+  passwordsAccounts: "passwords:accounts",
+  passwordsFill: "passwords:fill",
+  passwordsPrompt: "passwords:prompt",
+  passwordsAnswer: "passwords:answer",
 } as const;
 
 /** Outcome of a sync action (errors are messages for the user: they do not cross IPC as exceptions). */
@@ -209,6 +233,33 @@ export interface BrowserApi {
     setPrivateAllowed(id: string, allowed: boolean): Promise<void>;
     remove(id: string): Promise<void>;
     onChanged(listener: () => void): () => void;
+  };
+  /**
+   * Password manager (ADR-025). Lists carry no password: one reaches the UI only through `reveal`,
+   * after the user confirmed; `copy` and `exportCsv` stay in main (clipboard, save dialog).
+   */
+  passwords: {
+    status(): Promise<PasswordsStatus>;
+    list(): Promise<PasswordSummary[]>;
+    neverList(): Promise<string[]>;
+    reveal(id: string): Promise<string | null>;
+    /** Copies the password to the clipboard (cleared after 30 s if still there). */
+    copy(id: string): Promise<boolean>;
+    update(id: string, edit: PasswordEdit): Promise<PasswordResult>;
+    remove(id: string): Promise<void>;
+    removeNever(origin: string): Promise<void>;
+    /** Asks main for a file (save dialog) and writes the CSV there. Null: cancelled. */
+    exportCsv(): Promise<PasswordResult | null>;
+    onChanged(listener: () => void): () => void;
+    /** Chrome UI: the fill popover for the active tab, hanging from `anchor` (the address bar's key). */
+    showFill(anchor: Bounds): void;
+    /** Usernames saved for the tab's page (main reads its URL). */
+    accounts(tabId: TabId): Promise<PasswordAccounts | null>;
+    /** Fills the tab's login form with an entry of the page's own origin. */
+    fill(tabId: TabId, id: string): Promise<boolean>;
+    /** Overlay: what the save prompt shows for a pending capture. */
+    prompt(captureId: string): Promise<PasswordPrompt | null>;
+    answer(captureId: string, answer: PromptAnswer): Promise<PasswordResult>;
   };
   spaces: {
     /** Creates a space (defaults for missing fields) and shows it in this window; null at the limit. */

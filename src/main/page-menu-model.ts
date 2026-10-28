@@ -34,6 +34,8 @@ export interface PageMenuContext {
   /** The split can take one more tab. */
   canSplit: boolean;
   engine: SearchEngine;
+  /** Passwords are saved for the page's origin (ADR-025): fields offer to fill them. */
+  hasPasswords?: boolean;
 }
 
 export type PageMenuEntry =
@@ -122,6 +124,8 @@ export function buildPageMenu(params: PageMenuParams, context: PageMenuContext):
     if (params.mediaType === "video") media.push({ id: "media-pip", label: "Image dans l'image", enabled: flags.canShowPictureInPicture });
     sections.push(media);
   }
+
+  if (editable && context.hasPasswords) sections.push([{ id: "password-fill", label: "Remplir le mot de passe" }]);
 
   if (editable) {
     const flags = params.editFlags;
