@@ -1,5 +1,6 @@
 import { app, BrowserWindow } from "electron";
-import { tabSleepDelayMs } from "@shared/settings";
+import { ARCHIVE_CHECK_MS } from "@shared/archive";
+import { tabArchiveDelayMs, tabSleepDelayMs } from "@shared/settings";
 import { registerAppScheme, serveAppScheme } from "./app-protocol";
 import { registerIpc } from "./ipc";
 import { installMenu } from "./menu";
@@ -9,6 +10,7 @@ import { applyNativeTheme, settings as currentSettings } from "./settings";
 import { startTabSleeper } from "./sleep";
 import { startSync } from "./sync";
 import { spaces } from "./spaces";
+import { startTabArchiver } from "./organize";
 import { showPageMenu } from "./page-menu";
 import { BrowserController, setPageMenu } from "./window";
 
@@ -17,6 +19,14 @@ import { BrowserController, setPageMenu } from "./window";
  * hooks are only honored by an unpackaged app (ADR-018, audit LOW-4).
  */
 const TEST_SLEEP_MS = (!app.isPackaged && Number(process.env.BROWSER_TEST_SLEEP_MS)) || 0;
+
+/** Test hook: `BROWSER_TEST_ARCHIVE_MS` replaces the archive delay (unless archiving is off), checked often. */
+const TEST_ARCHIVE_MS = (!app.isPackaged && Number(process.env.BROWSER_TEST_ARCHIVE_MS)) || 0;
+
+function archiveDelay(): number | null {
+  const delay = tabArchiveDelayMs(currentSettings());
+  return delay !== null && TEST_ARCHIVE_MS > 0 ? TEST_ARCHIVE_MS : delay;
+}
 
 function sleepDelay(): number | null {
   const delay = tabSleepDelayMs(currentSettings());
@@ -56,6 +66,12 @@ if (!app.requestSingleInstanceLock()) {
     startTabSleeper({
       targets: () => BrowserController.all().flatMap((controller) => controller.spaces.tabManagers()),
       idleMs: sleepDelay,
+    });
+    // Auto-archiving (ADR-022): idle tabs of normal windows are closed and kept in the archive.
+    startTabArchiver({
+      windows: () => BrowserController.all(),
+      idleMs: archiveDelay,
+      checkMs: TEST_ARCHIVE_MS > 0 ? 250 : ARCHIVE_CHECK_MS,
     });
     // Spaces are kept even when windows are not restored.
     spaces.init(previousSession?.spaces);

@@ -1,5 +1,16 @@
 import { randomUUID } from "node:crypto";
 import { WebContentsView, session as electronSession, type BaseWindow, type Session, type WebContents } from "electron";
+import {
+  addFolder,
+  moveFolder,
+  placeTab,
+  removeFolder,
+  updateFolder,
+  visualOrder,
+  type FolderId,
+  type FolderInput,
+  type TabFolder,
+} from "@shared/folders";
 import { INTERNAL_PAGES, internalPageOf, internalUrl, isInternalUrl, type InternalPage } from "@shared/internal";
 import type { CloseTabActivates, NewTabPosition } from "@shared/settings";
 import { clampRatio, splitLayout, splitWith, splitWithout } from "@shared/split";
@@ -90,6 +101,8 @@ export interface TabManagerHooks {
   /** The committed page reported its title or favicon. */
   onPageInfo?(url: string, info: { title?: string; favicon?: string | null }): void;
   isBookmarked?(url: string): boolean;
+  /** Whether the URL is the site of one of the favorites (ADR-022). */
+  isFavorite?(url: string): boolean;
   /** The user right-clicked the tab's page (native context menu, ADR-021). */
   contextMenu?(tabId: TabId, params: Electron.ContextMenuParams): void;
 }
@@ -148,6 +161,8 @@ export class TabManager {
   private bounds: Bounds = { x: 0, y: 0, width: 0, height: 0 };
   private attached = new Set<WebContentsView>();
   private split: SplitState | null = null;
+  /** Sidebar folders of this space (ADR-022); tabs point to them with `state.folderId`. */
+  private folders: TabFolder[] = [];
   private visible: boolean;
   private session: Session | undefined;
   private emitScheduled = false;
@@ -178,9 +193,15 @@ export class TabManager {
 
   getState(): TabsState {
     return {
-      tabs: this.tabs.map((tab) => ({ ...tab.state, isBookmarked: this.isBookmarked(tab.state.url), isAsleep: isDiscarded(tab) })),
+      tabs: this.tabs.map((tab) => ({
+        ...tab.state,
+        isBookmarked: this.isBookmarked(tab.state.url),
+        isFavorite: tab.state.url !== "" && (this.hooks.isFavorite?.(tab.state.url) ?? false),
+        isAsleep: isDiscarded(tab),
+      })),
       activeTabId: this.activeId,
       split: this.split && { ...this.split, tabIds: [...this.split.tabIds] },
+      folders: this.folders.map((folder) => ({ ...folder })),
     };
   }
 
@@ -193,8 +214,10 @@ export class TabManager {
     if (zoomChanged) for (const tab of this.tabs) this.applyZoom(tab);
   }
 
-  create(input = "", options: { activate?: boolean; index?: number } = {}): TabId {
-    const tab = this.insert({ url: "", title: START_TITLE, favicon: null, pinned: false }, options.index ?? this.newTabIndex());
+  create(input = "", options: { activate?: boolean; index?: number; folderId?: FolderId | null } = {}): TabId {
+    const folderId = options.folderId && this.folders.some((folder) => folder.id === options.folderId) ? options.folderId : undefined;
+    const tab = this.insert({ url: "", title: START_TITLE, favicon: null, pinned: false, folderId }, options.index ?? this.newTabIndex());
+    if (folderId) this.reorder();
     if (options.activate ?? true) this.activate(tab.id);
     this.navigate(tab.id, input);
     this.emit();
@@ -206,6 +229,7 @@ export class TabManager {
    * just the active one loads now, the others on first activation.
    */
   restore(saved: SessionTabList): void {
+    this.folders = (saved.folders ?? []).map((folder) => ({ ...folder }));
     const restored = saved.tabs.map((entry) => this.insert(entry, this.tabs.length));
     if (saved.split) {
       const tabIds = saved.split.tabIndexes.map((index) => restored[index]?.id).filter((id) => id !== undefined);
@@ -214,6 +238,7 @@ export class TabManager {
     // Pinned tabs always sit before unpinned ones.
     this.tabs.sort((a, b) => Number(b.state.isPinned) - Number(a.state.isPinned));
     const active = this.tabs[saved.activeIndex] ?? this.tabs[0];
+    this.reorder();
     if (active) this.activate(active.id);
     else this.create();
   }
@@ -223,10 +248,79 @@ export class TabManager {
     const indexOf = (id: TabId) => this.tabs.findIndex((tab) => tab.id === id);
     return {
       // Only small data: favicons go to session.json (ADR-018).
-      tabs: this.tabs.map(({ state }) => ({ url: state.url, title: state.title, favicon: storableFavicon(state.favicon), pinned: state.isPinned })),
+      tabs: this.tabs.map(({ state, lastSeenAt }) => {
+        const tab: SessionTab = { url: state.url, title: state.title, favicon: storableFavicon(state.favicon), pinned: state.isPinned };
+        if (state.folderId) tab.folderId = state.folderId;
+        // Tabs on screen are being seen right now (auto-archiving counts from when they left it).
+        tab.lastSeenAt = this.visible && this.shownTabs().some((shown) => shown.state.id === state.id) ? Date.now() : lastSeenAt;
+        return tab;
+      }),
       activeIndex: Math.max(0, indexOf(this.activeId ?? "")),
       split: this.split && { tabIndexes: this.split.tabIds.map(indexOf), ratioX: this.split.ratioX, ratioY: this.split.ratioY },
+      ...(this.folders.length ? { folders: this.folders.map((folder) => ({ ...folder })) } : {}),
     };
+  }
+
+  // --- Folders (ADR-022, model in @shared/folders) --------------------------------------------
+
+  /**
+   * Creates a folder (in `parentId`, or at the root), optionally moving tabs into it. Returns its
+   * id, or null at the limit / too deep.
+   */
+  createFolder(input: FolderInput = {}, parentId: FolderId | null = null, tabIds: readonly TabId[] = []): FolderId | null {
+    const id = randomUUID();
+    const next = addFolder(this.folders, id, parentId, input);
+    if (!next) return null;
+    this.folders = next;
+    for (const tabId of tabIds) this.placeTab(tabId, id, null);
+    this.reorder();
+    this.emit();
+    return id;
+  }
+
+  updateFolder(id: FolderId, input: FolderInput): void {
+    if (!this.folders.some((folder) => folder.id === id)) return;
+    this.folders = updateFolder(this.folders, id, input);
+    this.emit();
+  }
+
+  /** Deletes a folder and its sub-folders; their tabs are closed, or go back to the parent container. */
+  removeFolder(id: FolderId, closeTabs: boolean): void {
+    const parentId = this.folders.find((folder) => folder.id === id)?.parentId ?? null;
+    const { folders, removed } = removeFolder(this.folders, id);
+    if (!removed.size) return;
+    this.folders = folders;
+    const filed = this.tabs.filter((tab) => tab.state.folderId && removed.has(tab.state.folderId));
+    for (const tab of filed) tab.state.folderId = parentId;
+    this.reorder();
+    if (closeTabs) for (const tab of filed) this.close(tab.id);
+    this.emit();
+  }
+
+  moveFolder(id: FolderId, parentId: FolderId | null, index: number): void {
+    this.folders = moveFolder(this.folders, id, parentId, index);
+    this.reorder();
+    this.emit();
+  }
+
+  /** Moves a tab into a folder (null: the root), before `beforeId` or at the end of it. */
+  placeTab(tabId: TabId, folderId: FolderId | null, beforeId: TabId | null): void {
+    const items = this.tabs.map((tab) => ({ id: tab.id, pinned: tab.state.isPinned, folderId: tab.state.folderId ?? null }));
+    const placed = placeTab(items, this.folders, tabId, folderId, beforeId);
+    const byId = new Map(this.tabs.map((tab) => [tab.id, tab]));
+    this.tabs = placed.map((item) => {
+      const tab = byId.get(item.id)!;
+      tab.state.folderId = item.folderId;
+      return tab;
+    });
+    this.emit();
+  }
+
+  /** Keeps the flat list in the order the sidebar shows (Ctrl+Tab follows the screen). */
+  private reorder(): void {
+    const items = this.tabs.map((tab) => ({ id: tab.id, pinned: tab.state.isPinned, folderId: tab.state.folderId ?? null }));
+    const byId = new Map(this.tabs.map((tab) => [tab.id, tab]));
+    this.tabs = visualOrder(items, this.folders).map((item) => byId.get(item.id)!);
   }
 
   /** Re-sends the state, e.g. after a bookmark change that affects `isBookmarked`. */
@@ -265,7 +359,8 @@ export class TabManager {
       ...released.memory,
       id: state.id,
       view: released.view,
-      state: { ...state },
+      // Folders belong to a space: the tab arrives at the root.
+      state: { ...state, folderId: null },
       lastSeenAt: Date.now(),
       inPageVisits: new InPageVisits(),
       faviconSeq: 0,
@@ -429,10 +524,13 @@ export class TabManager {
     const tab = this.find(id);
     if (!tab) return;
     tab.state.isPinned = !tab.state.isPinned;
+    // A pinned tab leaves its folder.
+    if (tab.state.isPinned) tab.state.folderId = null;
     // Pinned tabs always sit before unpinned ones: the tab joins the end of its new group.
     const index = this.tabs.indexOf(tab);
     this.tabs.splice(index, 1);
     this.tabs.splice(tabSlot(pinnedFlags(this.tabs), tab.state.isPinned, tab.state.isPinned ? this.tabs.length : 0), 0, tab);
+    this.reorder();
     this.emit();
   }
 
@@ -444,7 +542,7 @@ export class TabManager {
     const source = this.find(id);
     if (!source) return undefined;
     const { url, title, favicon } = source.state;
-    const copy = this.insert({ url, title, favicon, pinned: false }, this.tabs.indexOf(source) + 1);
+    const copy = this.insert({ url, title, favicon, pinned: false, folderId: source.state.folderId ?? undefined }, this.tabs.indexOf(source) + 1);
     const history = historyOf(source);
     if (history) {
       const view = this.ensureView(copy);
@@ -522,6 +620,7 @@ export class TabManager {
     if (from === -1) return;
     const [tab] = this.tabs.splice(from, 1);
     this.tabs.splice(tabSlot(pinnedFlags(this.tabs), tab.state.isPinned, toIndex), 0, tab);
+    this.reorder();
     this.emit();
   }
 
@@ -698,6 +797,7 @@ export class TabManager {
         canGoBack: false,
         canGoForward: false,
         isPinned: entry.pinned,
+        folderId: entry.pinned ? null : (entry.folderId ?? null),
         isBookmarked: false,
         blockedCount: 0,
         shieldsEnabled: shieldsEnabledFor(entry.url, this.session),
@@ -710,7 +810,8 @@ export class TabManager {
         find: null,
         blockedPopup: null,
       },
-      lastSeenAt: Date.now(),
+      // A restored tab keeps when it was last seen (auto-archiving, ADR-022).
+      lastSeenAt: entry.lastSeenAt ?? Date.now(),
       inPageVisits: new InPageVisits(),
       faviconSeq: 0,
     };
@@ -777,6 +878,8 @@ export class TabManager {
         devTools: contents?.isDevToolsOpened() ?? false,
         lastSeenAt: tab.lastSeenAt,
         pinned: tab.state.isPinned,
+        url: tab.state.url,
+        inSplit: !!this.split?.tabIds.includes(tab.id),
       };
     });
   }
@@ -949,7 +1052,8 @@ export class TabManager {
         // Defense in depth: hardenWebContents already only lets web pages and about:blank through.
         if (!isPageOpenableUrl(url)) return;
         const index = this.tabs.indexOf(tab) + 1;
-        this.create(url, { activate: foreground, index });
+        // A link opened from a filed tab stays in its folder.
+        this.create(url, { activate: foreground, index, folderId: tab.state.folderId });
       },
       popupBlocked: (url) => {
         // The notice keeps the last blocked popup of the page; "Ouvrir" opens it (openBlockedPopup).

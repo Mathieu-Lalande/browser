@@ -14,6 +14,8 @@ export type CloseTabActivates = "next" | "previous" | "recent";
 export type StartBackground = "theme" | "aurora" | "image";
 /** Idle time after which a background tab is put to sleep (its page unloaded), or never. */
 export type TabSleepDelay = "never" | "15m" | "30m" | "1h" | "2h";
+/** Idle time after which a tab is closed and kept in the archive (ADR-022), or never. */
+export type TabArchiveDelay = "never" | "12h" | "24h" | "7d" | "30d";
 
 export interface AppearanceSettings {
   mode: ThemeMode;
@@ -65,6 +67,8 @@ export interface BehaviorSettings {
   closeTabActivates: CloseTabActivates;
   /** Background tabs inactive for this long are put to sleep (ADR-014). */
   sleepTabsAfter: TabSleepDelay;
+  /** Tabs inactive for this long are archived: closed, listed in `browser://archive` (ADR-022). */
+  archiveTabsAfter: TabArchiveDelay;
 }
 
 export interface PrivacySettings {
@@ -140,7 +144,7 @@ export const DEFAULT_SETTINGS: Settings = {
   layout: { sidebarPosition: "left", sidebarWidth: 264, gutter: 8, zenMode: false },
   search: { engine: DEFAULT_SEARCH_ENGINE.id },
   startPage: { showClock: true, showTopSites: true, greetingName: "", background: "theme", backgroundImage: "" },
-  behavior: { restoreSession: true, newTabPosition: "end", closeTabActivates: "next", sleepTabsAfter: "30m" },
+  behavior: { restoreSession: true, newTabPosition: "end", closeTabActivates: "next", sleepTabsAfter: "30m", archiveTabsAfter: "7d" },
   privacy: { normalizeAcceptLanguage: false, blockThirdPartyCookies: false, thirdPartyCookieExceptions: [] },
   downloads: { folder: "", askWhere: false },
 };
@@ -241,6 +245,7 @@ const schema: Schema = {
     newTabPosition: oneOf("end", "next"),
     closeTabActivates: oneOf("next", "previous", "recent"),
     sleepTabsAfter: oneOf("never", "15m", "30m", "1h", "2h"),
+    archiveTabsAfter: oneOf("never", "12h", "24h", "7d", "30d"),
   },
   privacy: { normalizeAcceptLanguage: bool, blockThirdPartyCookies: bool, thirdPartyCookieExceptions: sanitizeSiteList },
   downloads: { folder: folderPath, askWhere: bool },
@@ -308,4 +313,27 @@ const SLEEP_DELAYS_MS: Record<TabSleepDelay, number | null> = {
 /** Idle time before a background tab sleeps, in ms; null when tabs never sleep. */
 export function tabSleepDelayMs(settings: Settings): number | null {
   return SLEEP_DELAYS_MS[settings.behavior.sleepTabsAfter];
+}
+
+const HOUR_MS = 60 * 60_000;
+const ARCHIVE_DELAYS_MS: Record<TabArchiveDelay, number | null> = {
+  never: null,
+  "12h": 12 * HOUR_MS,
+  "24h": 24 * HOUR_MS,
+  "7d": 7 * 24 * HOUR_MS,
+  "30d": 30 * 24 * HOUR_MS,
+};
+
+/** Choices of "Archiver les onglets inactifs après", in order, with their French labels. */
+export const ARCHIVE_DELAY_OPTIONS: readonly { value: TabArchiveDelay; label: string }[] = [
+  { value: "never", label: "Jamais" },
+  { value: "12h", label: "12 h" },
+  { value: "24h", label: "24 h" },
+  { value: "7d", label: "7 jours" },
+  { value: "30d", label: "30 jours" },
+];
+
+/** Idle time before a tab is archived, in ms; null when tabs are never archived. */
+export function tabArchiveDelayMs(settings: Settings): number | null {
+  return ARCHIVE_DELAYS_MS[settings.behavior.archiveTabsAfter];
 }

@@ -17,7 +17,7 @@ export interface MaybePrivate {
  * records visits nor updates titles/favicons in the history (so no top sites either).
  */
 export function tabHooksFor(hooks: TabManagerHooks, isPrivate: boolean): TabManagerHooks {
-  return isPrivate ? { isBookmarked: hooks.isBookmarked, contextMenu: hooks.contextMenu } : hooks;
+  return isPrivate ? { isBookmarked: hooks.isBookmarked, isFavorite: hooks.isFavorite, contextMenu: hooks.contextMenu } : hooks;
 }
 
 /** The windows that belong in session.json: never a private one. */

@@ -107,6 +107,12 @@
   import Square from "@lucide/svelte/icons/square";
   import Unplug from "@lucide/svelte/icons/unplug";
   import WifiOff from "@lucide/svelte/icons/wifi-off";
+  import Archive from "@lucide/svelte/icons/archive";
+  import ArchiveRestore from "@lucide/svelte/icons/archive-restore";
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
+  import FolderOpen from "@lucide/svelte/icons/folder-open";
+  import FolderPlus from "@lucide/svelte/icons/folder-plus";
+  import LayoutGrid from "@lucide/svelte/icons/layout-grid";
 
   type LucideIcon = Component<Record<string, unknown>>;
 
@@ -191,6 +197,13 @@
     certificate: BadgeCheck,
     "lock-open": LockOpen,
     link: Link,
+    // Organisation (ADR-022).
+    favorite: LayoutGrid,
+    archive: Archive,
+    "archive-restore": ArchiveRestore,
+    "chevron-right": ChevronRight,
+    "folder-open": FolderOpen,
+    "folder-plus": FolderPlus,
   } satisfies Record<string, LucideIcon> & Record<CommandIcon, LucideIcon>;
 
   /** Space icons: their stored names are Lucide's own. */

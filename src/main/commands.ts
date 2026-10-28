@@ -1,5 +1,6 @@
 import { clipboard, type MenuItemConstructorOptions } from "electron";
 import { commandAccelerator, getCommand, type CommandId } from "@shared/commands";
+import { toggleFavorite } from "./organize";
 import { profile } from "./profile";
 import { clearTabSiteData } from "./site-info";
 import { sleepTabNow, sleepTabs } from "./sleep";
@@ -87,6 +88,9 @@ const RUNNERS: Record<CommandId, Runner> = {
   "site-info": (c) => c.showSiteInfo(),
   // The tab's own session: a private window clears its in-memory data only.
   "clear-site-data": onActiveTab((c, id) => void clearTabSiteData(c, id)),
+  "toggle-favorite": onActiveTab(toggleFavorite),
+  "new-folder": (c) => void c.tabs.createFolder(),
+  "open-archive": (c) => c.openArchive(),
 };
 
 /** Commands that make sense without any window (macOS keeps the app running windowless). */

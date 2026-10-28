@@ -1,3 +1,4 @@
+import { isFolderId, sanitizeFolders, type FolderId, type TabFolder } from "@shared/folders";
 import { internalPageOf, internalUrl } from "@shared/internal";
 import type { SpaceId, SpaceInfo } from "@shared/types";
 import { DEFAULT_SPACE, isSpaceId, sanitizeSpace } from "@shared/spaces";
@@ -8,8 +9,10 @@ import { isNavigableUrl } from "@shared/url";
 /**
  * v1: `{ windows: [{ tabs, activeIndex }] }`.
  * v2: spaces — `{ spaces, windows: [{ activeSpaceId, spaces: [{ spaceId, tabs, activeIndex, split }] }] }`.
+ * v3: folders (ADR-022) — each space's tab list gains `folders`, its tabs `folderId` and
+ *     `lastSeenAt` (for auto-archiving). A v2 session is read as a v3 one without folders.
  */
-export const SESSION_VERSION = 2;
+export const SESSION_VERSION = 3;
 
 /** What is needed to bring a tab back without loading it. */
 export interface SessionTab {
@@ -18,6 +21,10 @@ export interface SessionTab {
   title: string;
   favicon: string | null;
   pinned: boolean;
+  /** Sidebar folder (v3); absent at the root. */
+  folderId?: FolderId;
+  /** Epoch ms when the tab was last on screen (v3), for auto-archiving. */
+  lastSeenAt?: number;
 }
 
 /** Tabs shown side by side, by index in their tab list. */
@@ -32,6 +39,8 @@ export interface SessionTabList {
   tabs: SessionTab[];
   activeIndex: number;
   split?: SessionSplit | null;
+  /** Sidebar folders of the space (v3); absent when there are none. */
+  folders?: TabFolder[];
 }
 
 export interface SessionSpaceTabs extends SessionTabList {
@@ -58,13 +67,17 @@ function sanitizeTab(value: unknown): SessionTab | null {
   // Never restore something a tab could not have loaded in the first place (file:, javascript:…).
   const internal = internalPageOf(t.url);
   if (t.url !== "" && !internal && !isNavigableUrl(t.url)) return null;
-  return {
+  const tab: SessionTab = {
     url: internal ? internalUrl(internal) : t.url,
     title: typeof t.title === "string" ? t.title.slice(0, MAX_TEXT) : "",
     // Small data: favicons only (ADR-018): the UI never fetches a remote favicon itself.
     favicon: storableFavicon(t.favicon),
     pinned: t.pinned === true,
   };
+  // Pinned tabs are never filed in a folder.
+  if (!tab.pinned && isFolderId(t.folderId)) tab.folderId = t.folderId;
+  if (typeof t.lastSeenAt === "number" && Number.isFinite(t.lastSeenAt) && t.lastSeenAt > 0) tab.lastSeenAt = Math.floor(t.lastSeenAt);
+  return tab;
 }
 
 /** Validates a tab list; indexes (active tab, split) follow the tabs through drops and reordering. */
@@ -81,6 +94,11 @@ function sanitizeTabList(value: unknown): SessionTabList | null {
   const list: SessionTabList = { tabs: kept.map((item) => item.tab), activeIndex: Math.max(0, newIndex(w.activeIndex)) };
   const split = sanitizeSplit(w.split, newIndex);
   if (split) list.split = split;
+  // A tab whose folder is gone goes back to the root.
+  const folders = sanitizeFolders(w.folders);
+  const folderIds = new Set(folders.map((folder) => folder.id));
+  for (const tab of list.tabs) if (tab.folderId && !folderIds.has(tab.folderId)) delete tab.folderId;
+  if (folders.length) list.folders = folders;
   return list;
 }
 
@@ -113,7 +131,8 @@ function sanitizeWindow(value: unknown, spaceIds: ReadonlySet<SpaceId>): Session
   return { activeSpaceId, spaces };
 }
 
-function parseV2(data: Record<string, unknown>): Session | null {
+/** v2 and v3 share their shape (v3 only adds optional fields): a v2 session is migrated as is. */
+function parseSpaces(data: Record<string, unknown>): Session | null {
   if (!Array.isArray(data.spaces) || !Array.isArray(data.windows)) return null;
   const spaces: SpaceInfo[] = [];
   for (const value of data.spaces) {
@@ -140,7 +159,7 @@ function migrateV1(data: Record<string, unknown>): Session | null {
 export function parseSession(data: unknown, version = SESSION_VERSION): Session | null {
   if (typeof data !== "object" || data === null) return null;
   const root = data as Record<string, unknown>;
-  return version < 2 ? migrateV1(root) : parseV2(root);
+  return version < 2 ? migrateV1(root) : parseSpaces(root);
 }
 
 /** The session of a first launch: one empty window in the default space. */

@@ -1,3 +1,4 @@
+import type { FolderId, TabFolder } from "./folders";
 import type { LoadError } from "./load-error";
 import type { SpaceIcon } from "./spaces";
 
@@ -13,6 +14,10 @@ export interface TabState {
   canGoBack: boolean;
   canGoForward: boolean;
   isPinned: boolean;
+  /** The sidebar folder holding the tab (ADR-022); null/absent at the root and for pinned tabs. */
+  folderId?: FolderId | null;
+  /** Whether the tab shows the site of one of the favorites (ADR-022). */
+  isFavorite?: boolean;
   /** Whether `url` is in the bookmarks. */
   isBookmarked: boolean;
   /** Requests blocked by the content blocker since the last main-frame navigation. */
@@ -96,6 +101,17 @@ export interface TabsState {
   activeTabId: TabId | null;
   /** Tabs shown side by side; visible while the active tab is one of them. */
   split: SplitState | null;
+  /** Sidebar folders of the space (ADR-022). */
+  folders?: TabFolder[];
+}
+
+/** A favorite as the sidebar shows it (ADR-022). */
+export interface FavoriteTile {
+  url: string;
+  title: string;
+  favicon: string | null;
+  /** A tab of this window shows the favorite's site. */
+  open: boolean;
 }
 
 export interface BrowserState extends TabsState {
@@ -104,6 +120,8 @@ export interface BrowserState extends TabsState {
   activeSpaceId: SpaceId;
   /** A private window: one ephemeral space, in-memory session, nothing written to disk (ADR-014). */
   isPrivate?: boolean;
+  /** The favorites grid, shared by every space (ADR-022). */
+  favorites?: FavoriteTile[];
 }
 
 export type SpaceId = string;

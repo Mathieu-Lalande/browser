@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_SPACE } from "@shared/spaces";
-import { parseSession, type SessionTabList } from "./session";
+import { SESSION_VERSION, parseSession, type SessionTabList } from "./session";
 
 const tab = (url: string, pinned = false) => ({ url, title: url, favicon: null, pinned });
 const space = (id: string, extra: Record<string, unknown> = {}) => ({ id, name: id, icon: "star", color: null, isolated: false, ...extra });
@@ -169,5 +169,69 @@ describe("parseSession v2", () => {
       ],
     });
     expect(lists?.[0].tabs.map((t) => t.favicon)).toEqual([null, png, null]);
+  });
+});
+
+describe("parseSession v3 (folders, ADR-022)", () => {
+  const folder = (id: string, parentId: string | null = null) => ({ id, name: id, icon: "folder", parentId, collapsed: false });
+  const filed = (url: string, folderId: string) => ({ ...tab(url), folderId });
+
+  it("is the current version", () => {
+    expect(SESSION_VERSION).toBe(3);
+  });
+
+  it("migrates a v2 session: same spaces and tabs, no folders", () => {
+    const v2 = {
+      spaces: [space("a")],
+      windows: [{ activeSpaceId: "a", spaces: [{ spaceId: "a", tabs: [tab("https://a.com/"), tab("")], activeIndex: 0 }] }],
+    };
+    const parsed = parseSession(v2, 2);
+    expect(parsed).toEqual(v2);
+    expect(parsed?.windows[0].spaces[0].folders).toBeUndefined();
+  });
+
+  it("keeps folders, filed tabs and last-seen times", () => {
+    const v3 = {
+      spaces: [space("a")],
+      windows: [
+        {
+          activeSpaceId: "a",
+          spaces: [
+            {
+              spaceId: "a",
+              tabs: [{ ...filed("https://a.com/", "f"), lastSeenAt: 1234 }, filed("https://b.com/", "g"), tab("https://c.com/")],
+              activeIndex: 0,
+              folders: [folder("f"), folder("g", "f")],
+            },
+          ],
+        },
+      ],
+    };
+    expect(parseSession(v3, 3)).toEqual(v3);
+  });
+
+  it("files tabs of unknown folders at the root, never files pinned tabs, and repairs folders", () => {
+    const parsed = parseSession(
+      {
+        spaces: [space("a")],
+        windows: [
+          {
+            activeSpaceId: "a",
+            spaces: [
+              {
+                spaceId: "a",
+                tabs: [filed("https://a.com/", "ghost"), { ...filed("https://p.com/", "f"), pinned: true }, { ...tab("https://b.com/"), lastSeenAt: -5 }],
+                activeIndex: 0,
+                folders: [folder("f", "f"), { id: "bad id" }],
+              },
+            ],
+          },
+        ],
+      },
+      3,
+    );
+    const list = parsed!.windows[0].spaces[0];
+    expect(list.tabs).toEqual([{ ...tab("https://p.com/"), pinned: true }, tab("https://a.com/"), tab("https://b.com/")]);
+    expect(list.folders).toEqual([folder("f")]);
   });
 });

@@ -36,6 +36,27 @@ const api: BrowserApi = {
     moveToSpace: (id, spaceId) => send(Channels.tabMoveToSpace, id, spaceId),
     openBlockedPopup: (id) => send(Channels.tabOpenBlockedPopup, id),
     dismissBlockedPopup: (id) => send(Channels.tabDismissBlockedPopup, id),
+    place: (id, folderId, beforeId) => send(Channels.tabPlace, id, folderId, beforeId),
+  },
+  folders: {
+    create: (input, parentId, tabIds) => send(Channels.folderCreate, input, parentId, tabIds),
+    update: (id, input) => send(Channels.folderUpdate, id, input),
+    remove: (id, closeTabs) => send(Channels.folderRemove, id, closeTabs),
+    move: (id, parentId, index) => send(Channels.folderMove, id, parentId, index),
+  },
+  favorites: {
+    add: (tabId, index) => send(Channels.favoritesAdd, tabId, index),
+    remove: (url) => send(Channels.favoritesRemove, url),
+    move: (url, index) => send(Channels.favoritesMove, url, index),
+    open: (url) => send(Channels.favoritesOpen, url),
+    contextMenu: (url) => send(Channels.favoritesContextMenu, url),
+  },
+  archive: {
+    list: (query) => ipcRenderer.invoke(Channels.archiveList, query),
+    restore: (id) => send(Channels.archiveRestore, id),
+    remove: (id) => send(Channels.archiveRemove, id),
+    clear: () => send(Channels.archiveClear),
+    onChanged: (listener) => subscribe<void>(Channels.archiveChanged, () => listener()),
   },
   spaces: {
     create: (input) => ipcRenderer.invoke(Channels.spaceCreate, input),

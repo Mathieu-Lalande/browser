@@ -1,6 +1,9 @@
 import { Menu, type MenuItemConstructorOptions } from "electron";
+import { folderDepth, type TabFolder } from "@shared/folders";
+import { isFavoriteUrl } from "@shared/favorites";
 import { MAX_SPLIT_TABS } from "@shared/split";
 import type { TabId } from "@shared/types";
+import { toggleFavorite } from "./organize";
 import { sleepTabNow } from "./sleep";
 import { spaces } from "./spaces";
 import type { BrowserController } from "./window";
@@ -18,7 +21,7 @@ export const tabActions = {
  * Built on demand from the current state, so its entries always match the tab.
  */
 export function buildTabMenu(c: BrowserController, tabId: TabId): Menu | null {
-  const { tabs, activeTabId, split } = c.tabs.getState();
+  const { tabs, activeTabId, split, folders = [] } = c.tabs.getState();
   const tab = tabs.find((item) => item.id === tabId);
   if (!tab) return null;
   const inSplit = !!split?.tabIds.includes(tabId);
@@ -49,6 +52,37 @@ export function buildTabMenu(c: BrowserController, tabId: TabId): Menu | null {
         click: () => c.spaces.moveTab(tabId, space.id),
       })),
     },
+    { type: "separator" },
+    {
+      // Keyboard alternative to dragging the tab onto a folder (ADR-022).
+      id: "move-folder",
+      label: "Déplacer vers le dossier…",
+      enabled: !tab.isPinned && (folders.length > 0 || !!tab.folderId),
+      submenu: [
+        ...(tab.folderId ? [{ id: "folder-none", label: "Hors dossier", click: () => c.tabs.placeTab(tabId, null, null) }, { type: "separator" as const }] : []),
+        ...folders.map((folder) => ({
+          id: `folder-${folder.id}`,
+          label: `${"    ".repeat(folderDepth(folders, folder.id) - 1)}${folder.name}`,
+          type: "checkbox" as const,
+          checked: folder.id === tab.folderId,
+          click: () => c.tabs.placeTab(tabId, folder.id, null),
+        })),
+      ],
+    },
+    {
+      id: "new-folder",
+      label: "Nouveau dossier avec cet onglet",
+      enabled: !tab.isPinned,
+      click: () => c.tabs.createFolder({}, tab.folderId && canNest(folders, tab.folderId) ? tab.folderId : null, [tabId]),
+    },
+    {
+      id: "favorite",
+      label: tab.isFavorite ? "Retirer de la grille des favoris" : "Ajouter à la grille des favoris",
+      // The grid is the profile's: read-only from a private window (ADR-014).
+      enabled: !c.isPrivate && isFavoriteUrl(tab.url),
+      click: () => toggleFavorite(c, tabId),
+    },
+    { type: "separator" },
     {
       id: "sleep",
       label: "Mettre en veille",
@@ -66,6 +100,9 @@ export function buildTabMenu(c: BrowserController, tabId: TabId): Menu | null {
   ];
   return Menu.buildFromTemplate(template);
 }
+
+/** A new folder fits inside `parentId` (nesting limit). */
+const canNest = (folders: readonly TabFolder[], parentId: string) => folderDepth(folders, parentId) < 4;
 
 export function showTabMenu(c: BrowserController, tabId: TabId): void {
   buildTabMenu(c, tabId)?.popup({ window: c.window });

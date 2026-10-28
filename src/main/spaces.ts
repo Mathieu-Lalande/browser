@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { session, type BaseWindow, type Session } from "electron";
 import { DEFAULT_SPACE, addSpace, cycleSpace, neighborSpace, removeSpace, spacePartition, updateSpace } from "@shared/spaces";
-import type { Bounds, BrowserState, SpaceId, SpaceInfo, SpaceInput, TabId } from "@shared/types";
+import type { Bounds, BrowserState, SpaceId, SpaceInfo, SpaceInput, TabId, TabState } from "@shared/types";
 import { hardenSession } from "./security";
 import type { SessionWindow } from "./storage/session";
 import { TabManager, type TabManagerHooks, type TabOptions } from "./tabs";
@@ -152,6 +152,28 @@ export class SpaceManager {
   /** Every TabManager of the window (shown space or not), e.g. for tab sleeping. */
   tabManagers(): TabManager[] {
     return [...this.managers.values()];
+  }
+
+  /** Each space's TabManager (spaces shown at least once, or restored). */
+  managerEntries(): [SpaceId, TabManager][] {
+    return [...this.managers.entries()];
+  }
+
+  /** Every tab of the window, space by space (the shown space first). */
+  allTabs(): { spaceId: SpaceId; manager: TabManager; tab: TabState }[] {
+    const ids = [this.activeId, ...[...this.managers.keys()].filter((id) => id !== this.activeId)];
+    return ids.flatMap((spaceId) => {
+      const manager = this.managers.get(spaceId);
+      return manager ? manager.getState().tabs.map((tab) => ({ spaceId, manager, tab })) : [];
+    });
+  }
+
+  /** Shows a tab of any space of this window (switching space if needed). */
+  showTab(spaceId: SpaceId, tabId: TabId): void {
+    const manager = this.managers.get(spaceId);
+    if (!manager) return;
+    this.switchTo(spaceId);
+    manager.activate(tabId);
   }
 
   /** The spaces this window can show: the shared list, or its own private space. */

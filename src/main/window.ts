@@ -4,10 +4,12 @@ import { internalUrl, type InternalPage } from "@shared/internal";
 import { Channels } from "@shared/ipc";
 import { PRIVATE_SPACE, privateSettings } from "@shared/private";
 import { pageRadius, searchEngineOf, type Settings } from "@shared/settings";
-import type { Bounds, UiCommand } from "@shared/types";
+import type { Bounds, BrowserState, UiCommand } from "@shared/types";
+import { matchesFavorite } from "@shared/favorites";
 import { uiUrl } from "./app-protocol";
 import { downloadViewerOf, isDownloadVisible, onDownloadsChanged } from "./downloads";
 import type { DownloadViewer } from "./downloads/list";
+import { favoriteFavicon, favoriteTiles, setArchiveNotifier, setFavoritesRefresh } from "./organize";
 import { Overlay } from "./overlay";
 import { createPrivateSession, wipePrivateSession } from "./private";
 import { persistentWindows, sessionOnClose, tabHooksFor } from "./private-guards";
@@ -32,6 +34,12 @@ function registerUi(contents: WebContents, controller: BrowserController): void 
   contents.once("destroyed", () => uiOwners.delete(id));
 }
 
+// Favorites changed: every window re-renders its grid; the archive changed: its pages re-list it.
+setFavoritesRefresh(() => BrowserController.refreshAll());
+setArchiveNotifier(() => {
+  for (const controller of controllers.values()) controller.send(Channels.archiveChanged);
+});
+
 /** Set once the app starts quitting: windows closing from then on stay in the saved session. */
 let quitting = false;
 app.on("before-quit", () => {
@@ -48,8 +56,10 @@ const tabHooks: TabManagerHooks = {
   onPageInfo: (url, info) => {
     const { history, saveHistory } = profile();
     if (history.updatePage(url, info)) saveHistory();
+    favoriteFavicon(url, info.favicon);
   },
   isBookmarked: (url) => profile().bookmarks.has(url),
+  isFavorite: (url) => matchesFavorite(profile().favorites.list(), url),
 };
 
 type PageMenu = (controller: BrowserController, tabId: string, params: Electron.ContextMenuParams) => void;
@@ -149,7 +159,8 @@ export class BrowserController {
 
     this.spaces = new SpaceManager(
       this.window,
-      (state) => {
+      (spaceState) => {
+        const state = this.withFavorites(spaceState);
         if (!this.window.isDestroyed()) this.window.webContents.send(Channels.state, state);
         this.overlay.send(Channels.state, state);
         // A tab view attached while the overlay is open must not cover it.
@@ -180,6 +191,13 @@ export class BrowserController {
         if (page) layers.push({ contents: page, bounds: this.tabs.viewBounds });
         return layers;
       },
+    });
+
+    // macOS three-finger swipe (when "Swipe between pages" allows it): previous/next space, like
+    // the two-finger swipe on the sidebar (ADR-022). Fingers to the left: the next space.
+    this.window.on("swipe", (_event, direction) => {
+      if (direction === "left") this.spaces.switchBy(1);
+      else if (direction === "right") this.spaces.switchBy(-1);
     });
 
     // The window controls show "restore" instead of "maximize" while maximized.
@@ -213,6 +231,20 @@ export class BrowserController {
 
     // app://browser/index.html (or the dev server, unpackaged only).
     void this.window.loadURL(uiUrl("index"));
+  }
+
+  /** What the browser UIs show: the shown space's tabs, the spaces, and the favorites grid. */
+  getState(): BrowserState {
+    return this.withFavorites(this.spaces.getState());
+  }
+
+  private withFavorites(state: BrowserState): BrowserState {
+    return { ...state, favorites: favoriteTiles(this) };
+  }
+
+  /** Shows `browser://archive` (ADR-022). */
+  openArchive(): void {
+    this.openInternal("archive");
   }
 
   /** Toggles the bookmark of the active tab's page, then refreshes `isBookmarked` everywhere. */

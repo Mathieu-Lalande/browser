@@ -1,3 +1,4 @@
+import { favoriteLocalId, favoriteRecord, mergeFavorites, sanitizeSyncedFavorite, type SyncedFavorite } from "@shared/favorites";
 import { MAX_SPACES } from "@shared/spaces";
 import type { CollectionAdapter } from "@shared/sync/engine";
 import {
@@ -99,6 +100,22 @@ function historyAdapter(now: () => number): CollectionAdapter<SyncedHistory> {
   };
 }
 
+/** The favorites grid (ADR-022): keyed by URL, with its position; favicons stay on each device. */
+function favoritesAdapter(): CollectionAdapter<SyncedFavorite> {
+  return {
+    name: "favorites",
+    snapshot: () => new Map(profile().favorites.list().map((favorite, index) => [favoriteLocalId(favorite.url), favoriteRecord(favorite, index)])),
+    sanitize: (value, id) => sanitizeSyncedFavorite(value, id),
+    apply: ({ upserts, deletes }) => {
+      const { favorites, saveFavorites } = profile();
+      if (favorites.replace(mergeFavorites(favorites.list(), upserts.map((change) => change.data), deletes))) {
+        saveFavorites();
+        BrowserController.refreshAll();
+      }
+    },
+  };
+}
+
 export function desktopAdapters(now: () => number = Date.now): CollectionAdapter[] {
-  return [settingsAdapter(), spacesAdapter(), bookmarksAdapter(), historyAdapter(now)] as CollectionAdapter[];
+  return [settingsAdapter(), spacesAdapter(), bookmarksAdapter(), historyAdapter(now), favoritesAdapter()] as CollectionAdapter[];
 }

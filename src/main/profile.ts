@@ -6,6 +6,7 @@ import { DOWNLOADS_VERSION, DownloadList } from "./downloads/list";
 import { BOOKMARKS_VERSION, Bookmarks, type BookmarksData } from "./storage/bookmarks";
 import { HISTORY_VERSION, History } from "@shared/history";
 import { JsonFile, flushAll } from "./storage/json-file";
+import { ARCHIVE_VERSION, Archive, FAVORITES_VERSION, Favorites } from "./storage/organize";
 import { SESSION_VERSION, parseSession, type Session } from "./storage/session";
 import { SiteZoom, ZOOM_VERSION } from "./zoom/levels";
 
@@ -17,6 +18,10 @@ export interface Profile {
   downloads: DownloadList;
   /** Zoom factor per site (`zoom.json`). */
   zoom: SiteZoom;
+  /** The favorites grid (`favorites.json`, ADR-022). */
+  favorites: Favorites;
+  /** Archived tabs (`archive.json`, ADR-022). */
+  archive: Archive;
   /** The session saved by the previous run (null on first launch or if it was unreadable). */
   previousSession: Session | null;
   /** Current user settings (always complete and valid). */
@@ -25,6 +30,8 @@ export interface Profile {
   saveBookmarks(): void;
   saveDownloads(): void;
   saveZoom(): void;
+  saveFavorites(): void;
+  saveArchive(): void;
   /** Replaces the settings and schedules their write. */
   saveSettings(next: Settings): void;
   /** Debounced: `snapshot` is taken when the write happens. */
@@ -35,7 +42,7 @@ export interface Profile {
   onChange(listener: (what: ProfileChange) => void): () => void;
 }
 
-export type ProfileChange = "history" | "bookmarks" | "session" | "settings";
+export type ProfileChange = "history" | "bookmarks" | "session" | "settings" | "favorites" | "archive";
 
 let current: Profile | null = null;
 
@@ -83,7 +90,22 @@ export function openProfile(dir = app.getPath("userData")): Profile {
     debounceMs: 500,
   });
 
+  const favoritesFile = new JsonFile({
+    path: join(dir, "favorites.json"),
+    version: FAVORITES_VERSION,
+    parse: (data) => Favorites.parse(data),
+    debounceMs: 300,
+  });
+  const archiveFile = new JsonFile({
+    path: join(dir, "archive.json"),
+    version: ARCHIVE_VERSION,
+    parse: (data) => Archive.parse(data),
+    debounceMs: 1000,
+  });
+
   const history = new History(historyFile.load() ?? []);
+  const favorites = new Favorites(favoritesFile.load() ?? []);
+  const archive = new Archive(archiveFile.load() ?? []);
   const bookmarks = new Bookmarks(bookmarksFile.load() ?? undefined);
   const downloads = new DownloadList(downloadsFile.load() ?? []);
   const zoom = new SiteZoom(zoomFile.load() ?? {});
@@ -98,6 +120,8 @@ export function openProfile(dir = app.getPath("userData")): Profile {
     bookmarks,
     downloads,
     zoom,
+    favorites,
+    archive,
     previousSession: sessionFile.load(),
     get settings() {
       return settings;
@@ -112,6 +136,14 @@ export function openProfile(dir = app.getPath("userData")): Profile {
     },
     saveDownloads: () => downloadsFile.scheduleSave(() => downloads.toJSON()),
     saveZoom: () => zoomFile.scheduleSave(() => zoom.toJSON()),
+    saveFavorites: () => {
+      favoritesFile.scheduleSave(() => favorites.toJSON());
+      changed("favorites");
+    },
+    saveArchive: () => {
+      archiveFile.scheduleSave(() => archive.toJSON());
+      changed("archive");
+    },
     saveSession: (snapshot) => {
       sessionFile.scheduleSave(snapshot);
       changed("session");
@@ -126,7 +158,7 @@ export function openProfile(dir = app.getPath("userData")): Profile {
       return () => listeners.delete(listener);
     },
     // Each store in its own try: one failure never keeps the others from being written.
-    flush: () => flushAll([historyFile, bookmarksFile, sessionFile, settingsFile, downloadsFile, zoomFile]),
+    flush: () => flushAll([historyFile, bookmarksFile, sessionFile, settingsFile, downloadsFile, zoomFile, favoritesFile, archiveFile]),
   };
   return current;
 }

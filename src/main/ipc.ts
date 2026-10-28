@@ -2,6 +2,9 @@ import { ipcMain, type IpcMainEvent, type IpcMainInvokeEvent } from "electron";
 import { isCommandId, type CommandId } from "@shared/commands";
 import { Channels } from "@shared/ipc";
 import { isSettingsSection } from "@shared/settings";
+import { isArchiveId } from "@shared/archive";
+import { isFavoriteUrl } from "@shared/favorites";
+import { isFolderId, isFolderInput, type FolderInput } from "@shared/folders";
 import { isSpaceId, isSpaceInput } from "@shared/spaces";
 import { isSiteName } from "@shared/site-info";
 import type { BookmarkInput, Bounds, PermissionKind, SpaceInput } from "@shared/types";
@@ -20,6 +23,16 @@ import {
   resumeDownload,
   showDownloadInFolder,
 } from "./downloads";
+import {
+  addFavoriteFromTab,
+  clearArchive,
+  moveFavorite,
+  openFavorite,
+  removeArchived,
+  removeFavorite,
+  restoreArchived,
+  showFavoriteMenu,
+} from "./organize";
 import { profile } from "./profile";
 import { resetSettingsSection, settings, updateSettings } from "./settings";
 import { spaces } from "./spaces";
@@ -92,7 +105,7 @@ function on(channel: string, guard: (args: unknown[]) => boolean, handler: Handl
 const id = (args: unknown[]) => isString(args[0]);
 
 export function registerIpc(): void {
-  ipcMain.handle(Channels.getState, (event) => BrowserController.fromUi(event.sender)?.spaces.getState() ?? null);
+  ipcMain.handle(Channels.getState, (event) => BrowserController.fromUi(event.sender)?.getState() ?? null);
 
   // No input: the "Nouvel onglet" button, which reuses an empty start-page tab (BrowserController.newTab).
   on(Channels.tabCreate, (args) => args[0] === undefined || isString(args[0]), (c, input) =>
@@ -126,6 +139,46 @@ export function registerIpc(): void {
   on(Channels.tabMoveToSpace, (args) => isString(args[0]) && isSpaceId(args[1]), (c, tabId, spaceId) =>
     c.spaces.moveTab(tabId as string, spaceId as string),
   );
+
+  // Folders (ADR-022): per space, in the TabManager of the space shown (private windows included:
+  // their tabs and folders are never saved).
+  const folderOrNull = (value: unknown) => value === null || isFolderId(value);
+  const isIndex = (value: unknown) => Number.isInteger(value) && (value as number) >= 0 && (value as number) <= 10_000;
+  on(Channels.tabPlace, (args) => isString(args[0]) && folderOrNull(args[1]) && (args[2] === null || isString(args[2])), (c, tabId, folderId, beforeId) =>
+    c.tabs.placeTab(tabId as string, folderId as string | null, beforeId as string | null),
+  );
+  on(
+    Channels.folderCreate,
+    (args) =>
+      (args[0] === undefined || isFolderInput(args[0])) &&
+      (args[1] === undefined || folderOrNull(args[1])) &&
+      (args[2] === undefined || (Array.isArray(args[2]) && args[2].length <= 100 && args[2].every(isString))),
+    (c, input, parentId, tabIds) => c.tabs.createFolder(input as FolderInput | undefined, (parentId as string | null | undefined) ?? null, (tabIds as string[] | undefined) ?? []),
+  );
+  on(Channels.folderUpdate, (args) => isFolderId(args[0]) && isFolderInput(args[1]), (c, folderId, input) => c.tabs.updateFolder(folderId as string, input as FolderInput));
+  on(Channels.folderRemove, (args) => isFolderId(args[0]) && isBoolean(args[1]), (c, folderId, closeTabs) => c.tabs.removeFolder(folderId as string, closeTabs as boolean));
+  on(Channels.folderMove, (args) => isFolderId(args[0]) && folderOrNull(args[1]) && isIndex(args[2]), (c, folderId, parentId, index) =>
+    c.tabs.moveFolder(folderId as string, parentId as string | null, index as number),
+  );
+
+  // Favorites (ADR-022): the UI names a tab of its window (main reads its URL) or a favorite by
+  // URL; a private window only reads and opens them (checked in ./organize).
+  const favoriteUrl = (args: unknown[]) => isFavoriteUrl(args[0]);
+  on(Channels.favoritesAdd, (args) => isString(args[0]) && (args[1] === undefined || isIndex(args[1])), (c, tabId, index) =>
+    addFavoriteFromTab(c, tabId as string, index as number | undefined),
+  );
+  on(Channels.favoritesRemove, favoriteUrl, (c, url) => removeFavorite(c, url as string));
+  on(Channels.favoritesMove, (args) => isFavoriteUrl(args[0]) && isIndex(args[1]), (c, url, index) => moveFavorite(c, url as string, index as number));
+  on(Channels.favoritesOpen, favoriteUrl, (c, url) => openFavorite(c, url as string));
+  on(Channels.favoritesContextMenu, favoriteUrl, (c, url) => showFavoriteMenu(c, url as string));
+
+  // Archived tabs (ADR-022).
+  handle(Channels.archiveList, (args) => args[0] === undefined || (isString(args[0]) && args[0].length <= MAX_QUERY_LENGTH), (query) =>
+    profile().archive.list((query as string | undefined) ?? ""),
+  );
+  on(Channels.archiveRestore, (args) => isArchiveId(args[0]), (c, archiveId) => restoreArchived(c, archiveId as string));
+  on(Channels.archiveRemove, (args) => isArchiveId(args[0]), (c, archiveId) => removeArchived(c, archiveId as string));
+  on(Channels.archiveClear, () => true, (c) => clearArchive(c));
 
   // Spaces are shared by every window; the one that creates a space shows it. A private window
   // only has its own ephemeral space: it cannot see nor edit the shared ones (ADR-014).

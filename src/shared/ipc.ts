@@ -1,4 +1,6 @@
+import type { ArchivedTab } from "./archive";
 import type { CommandId } from "./commands";
+import type { FolderId, FolderInput } from "./folders";
 import type { DownloadEntry, DownloadsChange } from "./downloads";
 import type { Settings, SettingsPatch, SettingsSection } from "./settings";
 import type { SiteDataEntry, SiteInfo } from "./site-info";
@@ -105,6 +107,21 @@ export const Channels = {
   siteDataList: "site-data:list",
   siteDataRemove: "site-data:remove",
   siteDataClearAll: "site-data:clear-all",
+  tabPlace: "tab:place",
+  folderCreate: "folder:create",
+  folderUpdate: "folder:update",
+  folderRemove: "folder:remove",
+  folderMove: "folder:move",
+  favoritesAdd: "favorites:add",
+  favoritesRemove: "favorites:remove",
+  favoritesMove: "favorites:move",
+  favoritesOpen: "favorites:open",
+  favoritesContextMenu: "favorites:context-menu",
+  archiveList: "archive:list",
+  archiveRestore: "archive:restore",
+  archiveRemove: "archive:remove",
+  archiveClear: "archive:clear",
+  archiveChanged: "archive:changed",
 } as const;
 
 /** Outcome of a sync action (errors are messages for the user: they do not cross IPC as exceptions). */
@@ -140,6 +157,35 @@ export interface BrowserApi {
     openBlockedPopup(id: TabId): void;
     /** Popup blocker notice: hides it. */
     dismissBlockedPopup(id: TabId): void;
+    /** Drag and drop (ADR-022): files the tab in `folderId` (null: root), before `beforeId` or at the end. */
+    place(id: TabId, folderId: FolderId | null, beforeId: TabId | null): void;
+  };
+  /** Sidebar folders of the space shown (ADR-022). */
+  folders: {
+    /** Creates a folder (in `parentId`, else at the root), moving `tabIds` into it. */
+    create(input?: FolderInput, parentId?: FolderId | null, tabIds?: TabId[]): void;
+    update(id: FolderId, input: FolderInput): void;
+    /** Deletes the folder and its sub-folders; their tabs are closed or go back to the parent. */
+    remove(id: FolderId, closeTabs: boolean): void;
+    move(id: FolderId, parentId: FolderId | null, index: number): void;
+  };
+  /** The favorites grid (ADR-022). Editing is refused from private windows. */
+  favorites: {
+    /** Adds the page of one of this window's tabs (main reads its URL). */
+    add(tabId: TabId, index?: number): void;
+    remove(url: string): void;
+    move(url: string, index: number): void;
+    /** Shows the favorite's tab, or opens it. */
+    open(url: string): void;
+    contextMenu(url: string): void;
+  };
+  /** Archived tabs (ADR-022). A private window can read and reopen them, not change the list. */
+  archive: {
+    list(query?: string): Promise<ArchivedTab[]>;
+    restore(id: string): void;
+    remove(id: string): void;
+    clear(): void;
+    onChanged(listener: () => void): () => void;
   };
   spaces: {
     /** Creates a space (defaults for missing fields) and shows it in this window; null at the limit. */

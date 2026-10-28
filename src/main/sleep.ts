@@ -25,6 +25,10 @@ export interface SleepCandidate {
   lastSeenAt: number;
   /** Pinned tabs may sleep too: they keep their place, only their page is unloaded. */
   pinned: boolean;
+  /** The tab's address (auto-archiving, ADR-022). */
+  url?: string;
+  /** Part of a split view (never archived). */
+  inSplit?: boolean;
 }
 
 export type SleepBlocker = "no-page" | "shown" | "audible" | "permission" | "devtools" | "recent";

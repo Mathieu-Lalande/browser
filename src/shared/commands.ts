@@ -42,7 +42,10 @@ export type CommandId =
   | "sleep-other-tabs"
   | "sync-now"
   | "site-info"
-  | "clear-site-data";
+  | "clear-site-data"
+  | "toggle-favorite"
+  | "new-folder"
+  | "open-archive";
 
 /** Icon names used by commands; the UI's Icon component must know each of them. */
 export type CommandIcon =
@@ -75,7 +78,10 @@ export type CommandIcon =
   | "moon"
   | "cloud"
   | "info"
-  | "cookie";
+  | "cookie"
+  | "favorite"
+  | "folder"
+  | "archive";
 
 /** What a command's label and availability may depend on. */
 export interface CommandContext {
@@ -88,7 +94,7 @@ export interface CommandDefinition {
   /** Label when the command would undo the active tab's current state (`toggles`). */
   activeLabel?: string;
   /** Which active-tab flag `activeLabel` follows. */
-  toggles?: "isPinned" | "isBookmarked" | "isMuted";
+  toggles?: "isPinned" | "isBookmarked" | "isMuted" | "isFavorite";
   /** Label in the application menu, when it differs (toggles have a neutral one). */
   menuLabel?: string;
   /** Extra search terms (synonyms, English names). */
@@ -279,6 +285,25 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
       detail: "Vous serez déconnecté de ce site, et la page sera rechargée. Les autres sites ne sont pas touchés.",
       action: "Effacer les données",
     },
+  },
+  "toggle-favorite": {
+    label: "Ajouter à la grille des favoris",
+    activeLabel: "Retirer de la grille des favoris",
+    toggles: "isFavorite",
+    menuLabel: "Ajouter/retirer de la grille des favoris",
+    keywords: ["favorite", "favori", "grille", "tuile", "accès rapide", "arc"],
+    icon: "favorite",
+    needsPage: true,
+  },
+  "new-folder": {
+    label: "Nouveau dossier",
+    keywords: ["folder", "dossier", "groupe", "ranger", "organiser"],
+    icon: "folder",
+  },
+  "open-archive": {
+    label: "Onglets archivés",
+    keywords: ["archive", "archivés", "anciens onglets", "restaurer", "inactifs"],
+    icon: "archive",
   },
 };
 
