@@ -110,6 +110,8 @@
   import Archive from "@lucide/svelte/icons/archive";
   import ArchiveRestore from "@lucide/svelte/icons/archive-restore";
   import ChevronRight from "@lucide/svelte/icons/chevron-right";
+  import Puzzle from "@lucide/svelte/icons/puzzle";
+  import FileArchive from "@lucide/svelte/icons/file-archive";
   import FolderOpen from "@lucide/svelte/icons/folder-open";
   import FolderPlus from "@lucide/svelte/icons/folder-plus";
   import LayoutGrid from "@lucide/svelte/icons/layout-grid";
@@ -204,6 +206,9 @@
     "chevron-right": ChevronRight,
     "folder-open": FolderOpen,
     "folder-plus": FolderPlus,
+    // Extensions (ADR-024).
+    extension: Puzzle,
+    "file-archive": FileArchive,
   } satisfies Record<string, LucideIcon> & Record<CommandIcon, LucideIcon>;
 
   /** Space icons: their stored names are Lucide's own. */

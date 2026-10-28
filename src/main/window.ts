@@ -8,6 +8,7 @@ import type { Bounds, BrowserState, UiCommand } from "@shared/types";
 import { matchesFavorite } from "@shared/favorites";
 import { uiUrl } from "./app-protocol";
 import { downloadViewerOf, isDownloadVisible, onDownloadsChanged } from "./downloads";
+import { setExtensionsNotifier } from "./extensions";
 import type { DownloadViewer } from "./downloads/list";
 import { favoriteFavicon, favoriteTiles, setArchiveNotifier, setFavoritesRefresh } from "./organize";
 import { Overlay } from "./overlay";
@@ -18,6 +19,7 @@ import { onSettingsChanged, settings, updateSettings, windowBackground } from ".
 import { SpaceManager, spaces } from "./spaces";
 import type { SessionWindow } from "./storage/session";
 import type { TabManager, TabManagerHooks } from "./tabs";
+import { uiSession } from "./ui-session";
 
 /** Browser windows, keyed by their chrome UI's webContents id. */
 const controllers = new Map<number, BrowserController>();
@@ -38,6 +40,10 @@ function registerUi(contents: WebContents, controller: BrowserController): void 
 setFavoritesRefresh(() => BrowserController.refreshAll());
 setArchiveNotifier(() => {
   for (const controller of controllers.values()) controller.send(Channels.archiveChanged);
+});
+// Extensions installed, switched or removed: `browser://extensions` re-lists them (ADR-024).
+setExtensionsNotifier(() => {
+  for (const controller of controllers.values()) controller.send(Channels.extensionsChanged);
 });
 
 /** Set once the app starts quitting: windows closing from then on stay in the saved session. */
@@ -150,6 +156,8 @@ export class BrowserController {
       ...(isMac ? { trafficLightPosition: { x: 16, y: 16 } } : { frame: false }),
       webPreferences: {
         preload: join(import.meta.dirname, "../preload/index.cjs"),
+        // Never a tab session: nothing installed there (extensions…) reaches the UI (ADR-024).
+        session: uiSession(),
         sandbox: true,
         contextIsolation: true,
         nodeIntegration: false,
@@ -245,6 +253,11 @@ export class BrowserController {
   /** Shows `browser://archive` (ADR-022). */
   openArchive(): void {
     this.openInternal("archive");
+  }
+
+  /** Shows `browser://extensions` (ADR-024). */
+  openExtensions(): void {
+    this.openInternal("extensions");
   }
 
   /** Toggles the bookmark of the active tab's page, then refreshes `isBookmarked` everywhere. */

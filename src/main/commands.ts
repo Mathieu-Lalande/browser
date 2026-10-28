@@ -91,6 +91,7 @@ const RUNNERS: Record<CommandId, Runner> = {
   "toggle-favorite": onActiveTab(toggleFavorite),
   "new-folder": (c) => void c.tabs.createFolder(),
   "open-archive": (c) => c.openArchive(),
+  "open-extensions": (c) => c.openExtensions(),
 };
 
 /** Commands that make sense without any window (macOS keeps the app running windowless). */

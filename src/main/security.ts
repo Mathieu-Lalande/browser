@@ -2,6 +2,7 @@ import { app, session, shell, type Session, type WebContents } from "electron";
 import { isNavigableUrl, isPageOpenableUrl } from "@shared/url";
 import { UserActivation, isActivatingInput } from "./activation";
 import { installDownloads } from "./downloads";
+import { forgetExtensionsSession, installExtensions } from "./extensions";
 import { acceptLanguages, reduceUserAgent } from "./fingerprint";
 import { installPrivacy, type PrivacyOptions } from "./privacy";
 import { onSettingsChanged, settings } from "./settings";
@@ -48,6 +49,8 @@ export function hardenSession(ses: Session = session.defaultSession, options: Pr
   // Downloads: tab pages only, no automatic opening, dangerous types confirmed first (ADR-013).
   // A private session's downloads are not recorded in the downloads history (ADR-014).
   installDownloads(ses, { ephemeral: options.ephemeral });
+  // Browser extensions (ADR-024): tab sessions only; a private one only gets those allowed there.
+  installExtensions(ses, { ephemeral: options.ephemeral });
   // Certificates of verified hosts, for the site info popover (records only, never changes trust: ADR-021).
   trackCertificates(ses);
   // A desktop-Chrome-like user agent: the default one advertises Electron and the app name,
@@ -70,6 +73,7 @@ export function hardenSession(ses: Session = session.defaultSession, options: Pr
 /** Forgets a session that is going away (a private window closed). */
 export function releaseSession(ses: Session): void {
   hardened.delete(ses);
+  forgetExtensionsSession(ses);
 }
 
 interface TabHooks {

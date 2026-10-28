@@ -3,6 +3,7 @@ import { isCommandId, type CommandId } from "@shared/commands";
 import { Channels } from "@shared/ipc";
 import { isSettingsSection } from "@shared/settings";
 import { isArchiveId } from "@shared/archive";
+import { isExtensionId } from "@shared/extensions";
 import { isFavoriteUrl } from "@shared/favorites";
 import { isFolderId, isFolderInput, type FolderInput } from "@shared/folders";
 import { isSpaceId, isSpaceInput } from "@shared/spaces";
@@ -46,6 +47,14 @@ import {
   resetSitePermission,
   siteInfoFor,
 } from "./site-info";
+import {
+  installFromFile,
+  installFromFolder,
+  listExtensions,
+  removeExtension,
+  setExtensionEnabled,
+  setExtensionPrivateAllowed,
+} from "./extensions";
 import { startImage } from "./start-image";
 import { registerSyncIpc } from "./sync/ipc";
 import { showTabMenu } from "./tab-menu";
@@ -327,6 +336,23 @@ export function registerIpc(): void {
   withController(Channels.siteDataList, none, (c) => (c.isPrivate ? null : listSiteData()));
   withController(Channels.siteDataRemove, (args) => isSiteName(args[0]), (c, site) => (c.isPrivate ? null : removeSiteData(site as string)));
   withController(Channels.siteDataClearAll, none, (c) => (c.isPrivate ? null : clearAllSiteData()));
+
+  // Extensions (ADR-024): the UI names them by id; folders and files are picked in main's dialogs.
+  // Installed in the profile: a private window may list them, not change them.
+  const privateRefusal = { ok: false, message: "Les extensions se gèrent depuis une fenêtre normale." } as const;
+  withController(Channels.extensionsList, none, () => listExtensions());
+  withController(Channels.extensionsInstallFolder, none, (c) => (c.isPrivate ? privateRefusal : installFromFolder(c.window)));
+  withController(Channels.extensionsInstallFile, none, (c) => (c.isPrivate ? privateRefusal : installFromFile(c.window)));
+  const idAndFlag = (args: unknown[]) => isExtensionId(args[0]) && isBoolean(args[1]);
+  withController(Channels.extensionsSetEnabled, idAndFlag, (c, extensionId, enabled) =>
+    c.isPrivate ? undefined : setExtensionEnabled(extensionId as string, enabled as boolean),
+  );
+  withController(Channels.extensionsSetPrivateAllowed, idAndFlag, (c, extensionId, allowed) =>
+    c.isPrivate ? undefined : setExtensionPrivateAllowed(extensionId as string, allowed as boolean),
+  );
+  withController(Channels.extensionsRemove, (args) => isExtensionId(args[0]), (c, extensionId) =>
+    c.isPrivate ? undefined : removeExtension(extensionId as string),
+  );
 
   registerSyncIpc();
 }

@@ -44,3 +44,5 @@
   (`src/shared/favorites.ts`, `favorites.json`, collection de synchro `favorites`), geste à deux doigts entre
   espaces (`src/shared/space-swipe.ts`), archivage (`src/shared/archive.ts`, `browser://archive`) ; côté main :
   `src/main/organize.ts`. Le téléphone a sa version (`mobile/src/lib/organize.ts`, dossiers dans `tabs.ts`).
+- Extensions (ADR-024) : `src/main/extensions/` (`installExtensions(session)` via `hardenSession`, idempotente),
+  `browser://extensions`, `extensions.json` ; l'interface vit dans sa propre session `src/main/ui-session.ts`.

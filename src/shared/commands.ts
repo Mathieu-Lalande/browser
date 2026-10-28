@@ -45,7 +45,8 @@ export type CommandId =
   | "clear-site-data"
   | "toggle-favorite"
   | "new-folder"
-  | "open-archive";
+  | "open-archive"
+  | "open-extensions";
 
 /** Icon names used by commands; the UI's Icon component must know each of them. */
 export type CommandIcon =
@@ -81,7 +82,8 @@ export type CommandIcon =
   | "cookie"
   | "favorite"
   | "folder"
-  | "archive";
+  | "archive"
+  | "extension";
 
 /** What a command's label and availability may depend on. */
 export interface CommandContext {
@@ -304,6 +306,11 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
     label: "Onglets archivés",
     keywords: ["archive", "archivés", "anciens onglets", "restaurer", "inactifs"],
     icon: "archive",
+  },
+  "open-extensions": {
+    label: "Extensions",
+    keywords: ["extensions", "modules", "add-ons", "plugins", "chrome web store", "crx", "installer une extension"],
+    icon: "extension",
   },
 };
 

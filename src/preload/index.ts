@@ -58,6 +58,15 @@ const api: BrowserApi = {
     clear: () => send(Channels.archiveClear),
     onChanged: (listener) => subscribe<void>(Channels.archiveChanged, () => listener()),
   },
+  extensions: {
+    list: () => ipcRenderer.invoke(Channels.extensionsList),
+    installFromFolder: () => ipcRenderer.invoke(Channels.extensionsInstallFolder),
+    installFromFile: () => ipcRenderer.invoke(Channels.extensionsInstallFile),
+    setEnabled: (id, enabled) => ipcRenderer.invoke(Channels.extensionsSetEnabled, id, enabled),
+    setPrivateAllowed: (id, allowed) => ipcRenderer.invoke(Channels.extensionsSetPrivateAllowed, id, allowed),
+    remove: (id) => ipcRenderer.invoke(Channels.extensionsRemove, id),
+    onChanged: (listener) => subscribe<void>(Channels.extensionsChanged, () => listener()),
+  },
   spaces: {
     create: (input) => ipcRenderer.invoke(Channels.spaceCreate, input),
     update: (id, input) => send(Channels.spaceUpdate, id, input),

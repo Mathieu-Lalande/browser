@@ -1,7 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { app, protocol, session } from "electron";
+import { app, protocol } from "electron";
 import { APP_SCHEME, CHROME_PAGE, OVERLAY_PAGE, mimeTypeOf, resolveAppFile } from "./app-files";
+import { uiSession } from "./ui-session";
 
 /**
  * The browser's own UI (chrome and overlay) is served from `app://browser/…` instead of `file://`
@@ -18,10 +19,10 @@ export function registerAppScheme(): void {
   ]);
 }
 
-/** Serves the renderer bundle on the default session (where the chrome UI and the overlay live). */
+/** Serves the renderer bundle on the UI's own session (where the chrome UI and the overlay live, ADR-024). */
 export function serveAppScheme(): void {
   const root = join(import.meta.dirname, "../renderer");
-  session.defaultSession.protocol.handle(APP_SCHEME, async (request) => {
+  uiSession().protocol.handle(APP_SCHEME, async (request) => {
     const file = resolveAppFile(root, request.url);
     const type = file && mimeTypeOf(file);
     if (!file || !type) return new Response("Not found", { status: 404 });

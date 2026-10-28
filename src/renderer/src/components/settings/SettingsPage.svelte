@@ -489,6 +489,7 @@
         </Row>
         <div class="archive-link">
           <button class="link" onclick={() => api.commands.run("open-archive")}><Icon name="archive" size={12} /> Voir les onglets archivés</button>
+          <button class="link" onclick={() => api.commands.run("open-extensions")}><Icon name="extension" size={12} /> Gérer les extensions</button>
         </div>
       </Section>
 
@@ -545,6 +546,8 @@
 <style>
   .archive-link {
     display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
     justify-content: flex-end;
     padding: 4px 0 0;
   }

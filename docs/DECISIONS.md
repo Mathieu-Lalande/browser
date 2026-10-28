@@ -1056,3 +1056,44 @@ dans la FAQ du site et les notes de release) ; pas de mises à jour automatiques
 le workflow n'a pas pu être exécuté hors de GitHub (YAML validé, entrées des actions vérifiées sur
 leurs `action.yml`). La CI de `master` (`npm run dist:dir`) construit désormais aussi les dossiers
 arm64 sous Windows et macOS (cibles communes).
+
+## ADR-024 — Extensions du navigateur (bureau)
+
+**Contexte.** ADR-001 promettait un support partiel des extensions Chrome. Electron 44 fournit
+`session.extensions` (`loadExtension`, `removeExtension`) : extensions non empaquetées seulement,
+pas de sessions en mémoire, une partie des API `chrome.*` (scripts de contenu, `runtime`, `storage`,
+`tabs` partiel, `scripting`…), pas d'interface (ni boutons d'action ni popups).
+
+**Décision.**
+- Installation depuis `browser://extensions` (commande « Extensions », lien dans Paramètres →
+  Comportement) : **dossier non empaqueté** (utilisé sur place, jamais copié ni supprimé) ou fichier
+  **.zip / .crx** décompressé dans `<profil>/extensions/<id>/`. CRX2/CRX3 : l'en-tête est retiré
+  (signature non vérifiée : c'est l'utilisateur qui choisit le fichier, comme « charger l'extension
+  non empaquetée » de Chrome). Lecteur ZIP maison (`src/main/extensions/unpack.ts`, sans dépendance) :
+  entrées stockées/deflate, ni ZIP64 ni chiffrement, CRC vérifié, tailles bornées, chemins contrôlés
+  (aucune écriture hors du dossier cible), dossier racine unique déballé.
+- Le manifeste est validé avant tout (`validateManifest`, `src/shared/extensions.ts`) : Manifest V2
+  ou V3, nom (y compris `__MSG_…__` de la langue par défaut), version au format Chrome ; sinon une
+  erreur en français. Chromium peut encore refuser l'extension au chargement : rien n'est alors gardé.
+- Liste dans `extensions.json` (id à la Chrome tiré au hasard, chemin, activée, autorisée en privé,
+  nom, version, description, icône en `data:` ≤ 64 Ko). L'interface ne voit jamais les chemins ; les
+  dossiers et fichiers sont choisis dans les boîtes de dialogue de main. Une fenêtre privée liste les
+  extensions mais ne peut pas les modifier (ADR-014).
+- Chargement : `installExtensions(session)` (`src/main/extensions/`), idempotente comme
+  `installDownloads`, appelée par `hardenSession` pour chaque session d'onglets (session par défaut,
+  partitions des espaces isolés, fenêtres privées). Activer/désactiver/retirer s'applique à toutes
+  les sessions connues ; la page doit être rechargée.
+- **L'interface quitte la session par défaut** : chrome et overlay vivent dans `browser-ui`
+  (`src/main/ui-session.ts`, en mémoire, protocole `app://` servi là, seule permission : écrire dans
+  le presse-papiers). Chromium y *liste* les extensions de la session par défaut (c'en est le côté
+  « incognito ») mais ne les y exécute jamais ; le test e2e le vérifie sur une URL web.
+- Fenêtres privées : seulement les extensions marquées « Autoriser en navigation privée » (désactivé
+  par défaut). Electron refusant de charger une extension dans une session en mémoire, l'option est
+  enregistrée mais sans effet pour l'instant (dit sur la page) : aucune extension ne s'exécute en privé.
+
+**Mobile.** Les WebView iOS/Android n'ont pas d'extensions : rien côté `mobile/`.
+
+**Suites possibles.** Boutons d'action et popups (`action`/`browser_action`) dans la barre latérale,
+via le calque overlay ; mise à jour d'une extension installée (aujourd'hui : la retirer puis la
+réinstaller, un nom déjà installé est refusé) ; installation depuis le Chrome Web Store ; extensions
+en navigation privée si Electron l'autorise un jour.

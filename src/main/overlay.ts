@@ -3,6 +3,7 @@ import { WebContentsView, type BaseWindow, type WebContents } from "electron";
 import { Channels } from "@shared/ipc";
 import { uiUrl } from "./app-protocol";
 import { isPopover, type Bounds, type OverlayRequest } from "@shared/types";
+import { uiSession } from "./ui-session";
 
 interface OverlayHooks {
   /** The overlay page was created: it must be accepted as this window's UI by the IPC layer. */
@@ -137,6 +138,8 @@ export class Overlay {
     const view = new WebContentsView({
       webPreferences: {
         preload: join(import.meta.dirname, "../preload/index.cjs"),
+        // Never a tab session: nothing installed there (extensions…) reaches the UI (ADR-024).
+        session: uiSession(),
         sandbox: true,
         contextIsolation: true,
         nodeIntegration: false,

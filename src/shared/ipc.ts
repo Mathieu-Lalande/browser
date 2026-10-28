@@ -1,5 +1,6 @@
 import type { ArchivedTab } from "./archive";
 import type { CommandId } from "./commands";
+import type { ExtensionInfo, ExtensionInstallResult } from "./extensions";
 import type { FolderId, FolderInput } from "./folders";
 import type { DownloadEntry, DownloadsChange } from "./downloads";
 import type { Settings, SettingsPatch, SettingsSection } from "./settings";
@@ -122,6 +123,13 @@ export const Channels = {
   archiveRemove: "archive:remove",
   archiveClear: "archive:clear",
   archiveChanged: "archive:changed",
+  extensionsList: "extensions:list",
+  extensionsInstallFolder: "extensions:install-folder",
+  extensionsInstallFile: "extensions:install-file",
+  extensionsSetEnabled: "extensions:set-enabled",
+  extensionsSetPrivateAllowed: "extensions:set-private-allowed",
+  extensionsRemove: "extensions:remove",
+  extensionsChanged: "extensions:changed",
 } as const;
 
 /** Outcome of a sync action (errors are messages for the user: they do not cross IPC as exceptions). */
@@ -185,6 +193,21 @@ export interface BrowserApi {
     restore(id: string): void;
     remove(id: string): void;
     clear(): void;
+    onChanged(listener: () => void): () => void;
+  };
+  /**
+   * Browser extensions (ADR-024). Paths never come from the UI: main asks with a file dialog.
+   * A private window can list them, not change them (they live in the profile).
+   */
+  extensions: {
+    list(): Promise<ExtensionInfo[]>;
+    /** Unpacked extension folder (used in place). Null: cancelled. */
+    installFromFolder(): Promise<ExtensionInstallResult>;
+    /** A .zip or .crx, unpacked into the profile. Null: cancelled. */
+    installFromFile(): Promise<ExtensionInstallResult>;
+    setEnabled(id: string, enabled: boolean): Promise<void>;
+    setPrivateAllowed(id: string, allowed: boolean): Promise<void>;
+    remove(id: string): Promise<void>;
     onChanged(listener: () => void): () => void;
   };
   spaces: {
