@@ -12,6 +12,7 @@ import type {
   PromptAnswer,
 } from "./passwords";
 import type { DownloadEntry, DownloadsChange } from "./downloads";
+import type { ReaderArticle } from "./reader";
 import type { Settings, SettingsPatch, SettingsSection } from "./settings";
 import type { SiteDataEntry, SiteInfo } from "./site-info";
 import type { SyncStatus } from "./sync/controller";
@@ -154,6 +155,7 @@ export const Channels = {
   passwordsFill: "passwords:fill",
   passwordsPrompt: "passwords:prompt",
   passwordsAnswer: "passwords:answer",
+  readerArticle: "reader:article",
 } as const;
 
 /** Outcome of a sync action (errors are messages for the user: they do not cross IPC as exceptions). */
@@ -260,6 +262,13 @@ export interface BrowserApi {
     /** Overlay: what the save prompt shows for a pending capture. */
     prompt(captureId: string): Promise<PasswordPrompt | null>;
     answer(captureId: string, answer: PromptAnswer): Promise<PasswordResult>;
+  };
+  /**
+   * Reader mode (ADR-026): main extracts and validates the article (command "toggle-reader"); the
+   * chrome UI draws it in place of the page.
+   */
+  reader: {
+    article(tabId: TabId): Promise<ReaderArticle | null>;
   };
   spaces: {
     /** Creates a space (defaults for missing fields) and shows it in this window; null at the limit. */

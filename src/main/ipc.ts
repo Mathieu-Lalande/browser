@@ -72,6 +72,7 @@ import {
   updatePassword,
 } from "./passwords";
 import { passwordsStatus } from "./passwords/vault";
+import { readerArticle } from "./reader";
 import { startImage } from "./start-image";
 import { registerSyncIpc } from "./sync/ipc";
 import { showTabMenu } from "./tab-menu";
@@ -394,6 +395,7 @@ export function registerIpc(): void {
   withController(Channels.passwordsAnswer, (args) => isPasswordId(args[0]) && isPromptAnswer(args[1]), (c, captureId, answer) =>
     answerPrompt(c, captureId as string, answer as PromptAnswer),
   );
+  withController(Channels.readerArticle, id, (c, tabId) => readerArticle(c, tabId as string));
 
   registerSyncIpc();
 }

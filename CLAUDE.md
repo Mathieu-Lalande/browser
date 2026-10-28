@@ -50,3 +50,6 @@
   capture/remplissage par scripts en monde isolé, jamais de preload), `browser://passwords`, popovers overlay
   « password-save »/« password-fill » ; mobile `mobile/src/lib/passwords.ts` (`expo-secure-store`). Jamais d'invite
   en fenêtre privée ; un mot de passe ne traverse l'IPC que par `passwords:reveal`.
+- Mode lecture et version mobile/ordinateur (ADR-026) : Readability en monde isolé (bureau) ou `injectJavaScript`
+  (mobile), arbre JSON assaini par `sanitizeReaderArticle` (`src/shared/reader.ts`, jamais d'HTML injecté) ;
+  `src/shared/readability-source.ts` est généré (`node scripts/gen-readability.mjs`).

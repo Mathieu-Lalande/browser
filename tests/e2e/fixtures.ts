@@ -132,6 +132,25 @@ function startServer(): Promise<{ server: Server; origin: string; log: ServerLog
       // What the browser sent (user agent, client hints, languages…), as JSON.
       res.setHeader("content-type", "application/json");
       res.end(JSON.stringify(req.headers));
+    } else if (path.startsWith("/article")) {
+      // A long article (reader mode, ADR-026) with hostile bits the reader must not carry over.
+      const paragraph = (n: number) =>
+        `<p>Paragraphe ${n} : la lecture sans distraction garde le texte, les liens et les images de l'article, ` +
+        `et laisse de côté les menus, les publicités et les scripts. Ce paragraphe est assez long pour que ` +
+        `Readability le compte comme du contenu, avec plusieurs phrases complètes et ponctuées.</p>`;
+      res.end(
+        `<!doctype html><html lang="fr"><head><title>Un article de test</title></head><body>` +
+          `<nav><a href="/">Accueil</a> <a href="/about">À propos</a></nav>` +
+          `<article><h1>Un article de test</h1><p class="byline">Par Ada Lovelace</p>` +
+          [1, 2, 3].map(paragraph).join("") +
+          `<p>Un <a href="/second">lien sûr</a> et un <a href="javascript:globalThis.__pwned=1">lien piégé</a>.</p>` +
+          `<img src="/icon.png" alt="Icône de test" width="64" height="64" onerror="globalThis.__pwned=1">` +
+          `<script>globalThis.__pwned = 1; document.body.dataset.ran = "1";</script>` +
+          `<img src="data:," onerror="globalThis.__pwned=1">` +
+          [4, 5, 6].map(paragraph).join("") +
+          `<p id="last">Phrase finale du test.</p></article>` +
+          `<footer>Pied de page</footer></body></html>`,
+      );
     } else if (path.startsWith("/login")) {
       // A plain login form (ADR-025); the POST lands on a welcome page.
       res.end(

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { acceptLanguages, chromeMajor, normalizeBrandList, normalizeClientHints, reduceUserAgent } from "./fingerprint";
+import { acceptLanguages, chromeMajor, mobileUserAgent, normalizeBrandList, normalizeClientHints, reduceUserAgent } from "./fingerprint";
 
 const ELECTRON_UA =
   "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) browser/0.2.0 Chrome/152.0.7977.167 Electron/44.9.3 Safari/537.36";
@@ -23,6 +23,16 @@ describe("reduceUserAgent", () => {
       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
     );
     expect(reduceUserAgent(ua, "My Browser!")).not.toMatch(/electron/i);
+  });
+});
+
+describe("mobileUserAgent", () => {
+  it("turns the desktop Chrome user agent into Chrome on Android", () => {
+    const desktop = reduceUserAgent(ELECTRON_UA, "Browser");
+    expect(mobileUserAgent(desktop)).toBe(
+      "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36",
+    );
+    expect(mobileUserAgent(mobileUserAgent(desktop))).toBe(mobileUserAgent(desktop));
   });
 });
 

@@ -29,6 +29,8 @@ import {
   shieldsEnabledFor,
 } from "./privacy";
 import { PageFind } from "./find";
+import { mobileUserAgent } from "./fingerprint";
+import { isPageReaderable } from "./reader/page";
 import { togglePictureInPicture } from "./media";
 import { webHostname } from "@shared/hosts";
 import { hardenWebContents } from "./security";
@@ -203,6 +205,7 @@ export class TabManager {
         isFavorite: tab.state.url !== "" && (this.hooks.isFavorite?.(tab.state.url) ?? false),
         isAsleep: isDiscarded(tab),
         hasPasswords: showsWebPage(tab.state.url) && (this.hooks.hasPasswords?.(tab.state.url) ?? false),
+        reader: this.showsReader(tab),
       })),
       activeTabId: this.activeId,
       split: this.split && { ...this.split, tabIds: [...this.split.tabIds] },
@@ -847,6 +850,7 @@ export class TabManager {
     view.setBackgroundColor("#ffffff");
     tab.view = view;
     this.wire(tab, view.webContents);
+    if (tab.state.mobileSite) this.applyUserAgent(tab, view.webContents);
     return view;
   }
 
@@ -955,7 +959,56 @@ export class TabManager {
 
   /** One entry per pane on screen: the view to show there, or null when the chrome UI draws it. */
   private paneViews(): (WebContentsView | null)[] {
-    return this.shownTabs().map((tab) => (showsWebPage(tab.state.url) && !tab.state.interstitial && !tab.state.loadError ? tab.view : null));
+    const shown = this.shownTabs();
+    return shown.map((tab) =>
+      showsWebPage(tab.state.url) && !tab.state.interstitial && !tab.state.loadError && !(shown.length === 1 && this.showsReader(tab)) ? tab.view : null,
+    );
+  }
+
+  /** Reader mode (ADR-026) is drawn by the chrome UI over a web page, outside split view only. */
+  private showsReader(tab: Tab): boolean {
+    return !!tab.state.reader && showsWebPage(tab.state.url) && !tab.state.interstitial && !tab.state.loadError && !(this.splitVisible && this.split?.tabIds.includes(tab.id));
+  }
+
+  /**
+   * Turns reader mode on (main extracted the article of `url`) or off. Refused when the tab moved
+   * on to another page meanwhile.
+   */
+  setReader(id: TabId, on: boolean, url?: string): boolean {
+    const tab = this.find(id);
+    const contents = tab && liveContents(tab);
+    if (!tab || (on && (!contents || contents.getURL() !== url || !showsWebPage(tab.state.url)))) return false;
+    if (!!tab.state.reader === on) return true;
+    tab.state.reader = on;
+    this.syncAttachment();
+    this.emit();
+    return true;
+  }
+
+  /** "Demander la version mobile" (ADR-026): a mobile user agent for this tab's page, then a reload. */
+  toggleMobileSite(id: TabId): void {
+    const tab = this.find(id);
+    const contents = tab && liveContents(tab);
+    if (!tab || !contents || !showsWebPage(tab.state.url)) return;
+    tab.state.mobileSite = !tab.state.mobileSite;
+    this.applyUserAgent(tab, contents);
+    contents.reload();
+    this.emit();
+  }
+
+  private applyUserAgent(tab: Tab, contents: WebContents): void {
+    const base = contents.session.getUserAgent();
+    contents.setUserAgent(tab.state.mobileSite ? mobileUserAgent(base) : base);
+  }
+
+  /** Readability's quick check, after each load: the address bar shows the reader button. */
+  private async checkReaderable(tab: Tab, contents: WebContents): Promise<void> {
+    if (!showsWebPage(tab.state.url)) return;
+    const url = contents.getURL();
+    const readerable = await isPageReaderable(contents);
+    if (contents.isDestroyed() || contents.getURL() !== url || readerable === !!tab.state.readerable) return;
+    tab.state.readerable = readerable;
+    this.emit();
   }
 
   /** Bounds of the attached views: the whole viewport, or the split's panes. */
@@ -1107,9 +1160,11 @@ export class TabManager {
       // A new page: fresh blocked counter, no blocked popup, and any interstitial gives way to it.
       tab.state.blockedCount = 0;
       tab.state.blockedPopup = null;
-      if (tab.state.interstitial || tab.state.loadError) {
+      tab.state.readerable = false;
+      if (tab.state.interstitial || tab.state.loadError || tab.state.reader) {
         tab.state.interstitial = null;
         tab.state.loadError = null;
+        tab.state.reader = false;
         this.syncAttachment();
       }
       this.emit();
@@ -1123,6 +1178,7 @@ export class TabManager {
     on("did-stop-loading", () => {
       tab.state.isLoading = false;
       refresh();
+      void this.checkReaderable(tab, contents);
     });
     on("did-navigate", (_event, url) => {
       // A new document: its favicon comes with it (or not at all).

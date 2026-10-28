@@ -92,6 +92,21 @@ export interface DownloadSettings {
   askWhere: boolean;
 }
 
+/** Reader mode (ADR-026): shared by the desktop and the phone. */
+export type ReaderFont = "serif" | "sans";
+export type ReaderWidth = "narrow" | "medium" | "wide";
+/** "auto" follows the app's theme. */
+export type ReaderTheme = "auto" | "sepia" | "dark";
+
+export interface ReaderSettings {
+  font: ReaderFont;
+  /** Text size, in px (`LIMITS.readerSize`). */
+  size: number;
+  /** Line length (desktop; the phone uses the screen width). */
+  width: ReaderWidth;
+  theme: ReaderTheme;
+}
+
 export interface Settings {
   appearance: AppearanceSettings;
   layout: LayoutSettings;
@@ -100,6 +115,7 @@ export interface Settings {
   behavior: BehaviorSettings;
   privacy: PrivacySettings;
   downloads: DownloadSettings;
+  reader: ReaderSettings;
 }
 
 export type SettingsSection = keyof Settings;
@@ -116,6 +132,7 @@ export const LIMITS = {
   greetingName: 40,
   url: 2048,
   path: 4096,
+  readerSize: { min: 14, max: 28 },
 } as const;
 
 /** Default page zoom choices, in %. */
@@ -153,6 +170,7 @@ export const DEFAULT_SETTINGS: Settings = {
   behavior: { restoreSession: true, newTabPosition: "end", closeTabActivates: "next", sleepTabsAfter: "30m", archiveTabsAfter: "7d" },
   privacy: { normalizeAcceptLanguage: false, blockThirdPartyCookies: false, thirdPartyCookieExceptions: [] },
   downloads: { folder: "", askWhere: false },
+  reader: { font: "serif", size: 19, width: "medium", theme: "auto" },
 };
 
 export const SETTINGS_SECTIONS = Object.keys(DEFAULT_SETTINGS) as SettingsSection[];
@@ -256,6 +274,12 @@ const schema: Schema = {
   },
   privacy: { normalizeAcceptLanguage: bool, blockThirdPartyCookies: bool, thirdPartyCookieExceptions: sanitizeSiteList },
   downloads: { folder: folderPath, askWhere: bool },
+  reader: {
+    font: oneOf("serif", "sans"),
+    size: integer(LIMITS.readerSize),
+    width: oneOf("narrow", "medium", "wide"),
+    theme: oneOf("auto", "sepia", "dark"),
+  },
 };
 
 /**

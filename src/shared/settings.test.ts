@@ -19,6 +19,22 @@ const custom = (patch: (s: Settings) => void): Settings => {
   return settings;
 };
 
+describe("reader settings (ADR-026)", () => {
+  it("defaults, validates and clamps the reader preferences", () => {
+    expect(sanitizeSettings({}).reader).toEqual({ font: "serif", size: 19, width: "medium", theme: "auto" });
+    const reader = sanitizeSettings({ reader: { font: "sans", size: 99, width: "wide", theme: "sepia" } }).reader;
+    expect(reader).toEqual({ font: "sans", size: 28, width: "wide", theme: "sepia" });
+    expect(sanitizeSettings({ reader: { size: 3 } }).reader.size).toBe(14);
+    const kept = sanitizeSettings({ reader: { font: "comic", width: 3, theme: "<script>", size: "big", extra: 1 } }).reader;
+    expect(kept).toEqual({ font: "serif", size: 19, width: "medium", theme: "auto" });
+  });
+
+  it("merges a partial reader patch", () => {
+    const base = sanitizeSettings({ reader: { theme: "dark" } });
+    expect(mergeSettings(base, { reader: { size: 22 } }).reader).toEqual({ font: "serif", size: 22, width: "medium", theme: "dark" });
+  });
+});
+
 describe("sanitizeSettings", () => {
   it("returns the defaults for anything that is not an object", () => {
     for (const value of [null, undefined, 42, "x", [], true]) expect(sanitizeSettings(value)).toEqual(DEFAULT_SETTINGS);

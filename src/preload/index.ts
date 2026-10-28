@@ -84,6 +84,9 @@ const api: BrowserApi = {
     prompt: (captureId) => ipcRenderer.invoke(Channels.passwordsPrompt, captureId),
     answer: (captureId, answer) => ipcRenderer.invoke(Channels.passwordsAnswer, captureId, answer),
   },
+  reader: {
+    article: (tabId) => ipcRenderer.invoke(Channels.readerArticle, tabId),
+  },
   spaces: {
     create: (input) => ipcRenderer.invoke(Channels.spaceCreate, input),
     update: (id, input) => send(Channels.spaceUpdate, id, input),

@@ -191,6 +191,21 @@
         {tab.zoom}&#8239;%
       </button>
     {/if}
+    {#if (tab?.readerable || tab?.reader) && isWebPage && !focused}
+      <!-- Reader mode (ADR-026): offered when Readability thinks the page is an article. -->
+      <button
+        type="button"
+        class="star"
+        class:on={tab.reader}
+        aria-pressed={!!tab.reader}
+        aria-label={tab.reader ? "Quitter le mode lecture" : "Mode lecture"}
+        title={platform.tip(tab.reader ? "Quitter le mode lecture" : "Mode lecture", "toggle-reader")}
+        onmousedown={(event) => event.preventDefault()}
+        onclick={() => api.commands.run("toggle-reader")}
+      >
+        <Icon name="reader" size={15} />
+      </button>
+    {/if}
     {#if tab?.hasPasswords && isWebPage && !focused}
       <!-- Saved passwords for this site (ADR-025): choose an account to fill the login form. -->
       <button

@@ -1,6 +1,7 @@
 import { getCommand, type CommandId } from "@shared/commands";
 import { isFavoriteTab, isFavoriteUrl, type Favorite } from "@shared/favorites";
 import { originLabel, type PasswordCapture } from "@shared/passwords";
+import type { ReaderArticle } from "@shared/reader";
 import { cycleSpace, FALLBACK_SPACE_ICON } from "@shared/spaces";
 import type { SpaceInfo } from "@shared/types";
 import { displayUrl } from "@shared/url";
@@ -15,6 +16,7 @@ import { scheduleOnRN } from "react-native-worklets";
 import { isBookmarked } from "../lib/bookmarks";
 import { initialCollapse, nextCollapse } from "../lib/gestures";
 import type { LinkMenuRequest } from "../lib/linkMenu";
+import { readerToken } from "../lib/reader";
 import type { Rect } from "../lib/overviewLayout";
 import type { SheetItem } from "../lib/searchSheet";
 import { connectionLabel, mobileSiteInfo, SITE_DATA_NOTE } from "../lib/siteInfo";
@@ -26,6 +28,7 @@ import { ActionSheet, type MenuItem, type MenuSpec } from "./ActionSheet";
 import { BottomBar, COLLAPSED_HEIGHT, EXPANDED_HEIGHT } from "./BottomBar";
 import { FolderNameSheet } from "./FolderNameSheet";
 import { HttpsOnlyPage } from "./HttpsOnlyPage";
+import { ReaderScreen } from "./ReaderScreen";
 import { SearchSheet } from "./SearchSheet";
 import { SettingsScreen } from "./SettingsScreen";
 import { SpaceEditor } from "./SpaceEditor";
@@ -51,6 +54,11 @@ export function BrowserScreen() {
   const [renamingFolder, setRenamingFolder] = useState<MobileFolder | null>(null);
   const [searchText, setSearchText] = useState("");
   const [overviewScroll, setOverviewScroll] = useState(0);
+  /** "Version ordinateur" tabs (ADR-026), for this run of the app. */
+  const [desktopTabs, setDesktopTabs] = useState<ReadonlySet<string>>(() => new Set());
+  /** Reader mode (ADR-026): the request sent to a page, then the article shown. */
+  const [readerRequest, setReaderRequest] = useState<{ tabId: string; token: string } | null>(null);
+  const [reader, setReader] = useState<{ tabId: string; article: ReaderArticle } | null>(null);
 
   const tab = activeTab(model);
   const tabs = useMemo(() => orderedTabs(model), [model]);
@@ -418,6 +426,24 @@ export function BrowserScreen() {
     if (spec) setMenu(spec);
   });
 
+  const toggleDesktopSite = useEvent((tabId: string) =>
+    setDesktopTabs((current) => {
+      const next = new Set(current);
+      if (!next.delete(tabId)) next.add(tabId);
+      return next;
+    }),
+  );
+
+  const onReaderArticle = useEvent((tabId: string, article: ReaderArticle | null) => {
+    setReaderRequest(null);
+    if (tabId !== tab?.id) return;
+    if (article) setReader({ tabId, article });
+    else Alert.alert("Mode lecture indisponible", "Aucun article n'a été trouvé sur cette page.");
+  });
+
+  /** Shown while its tab is on screen and still on the article's page. */
+  const readerShown = reader && overlay === "none" && reader.tabId === tab?.id && reader.article.url === tab.url ? reader.article : null;
+
   const pageMenu = useEvent(() => {
     const items: MenuItem[] = [];
     if (tab?.url) {
@@ -434,6 +460,13 @@ export function BrowserScreen() {
         { key: "copy", label: "Copier le lien", icon: "link", onPress: () => copy(tab.url) },
         ...(mobileSiteInfo(tab.url) ? [{ key: "site-info", label: "Infos sur le site", icon: "info" as const, onPress: () => siteInfoMenu() ?? undefined }] : []),
         ...(tabPasswords.length ? [{ key: "passwords", label: "Remplir le mot de passe", icon: "key" as const, onPress: () => passwordsMenu() ?? undefined }] : []),
+        { key: "reader", label: "Mode lecture", icon: "reader", onPress: () => setReaderRequest({ tabId: tab.id, token: readerToken() }) },
+        {
+          key: "desktop-site",
+          label: desktopTabs.has(tab.id) ? "Version mobile" : "Version ordinateur",
+          icon: desktopTabs.has(tab.id) ? "smartphone" : "laptop",
+          onPress: () => toggleDesktopSite(tab.id),
+        },
         { key: "pin", label: tab.isPinned ? "Désépingler l'onglet" : "Épingler l'onglet", icon: "pin", onPress: () => actions.setPinned(tab.id, !tab.isPinned) },
         { key: "duplicate", label: "Dupliquer l'onglet", icon: "copy", onPress: () => void actions.duplicate(tab.id) },
       );
@@ -618,12 +651,13 @@ export function BrowserScreen() {
       if (renamingFolder) return setRenamingFolder(null), true;
       if (overlay === "tabs") return closeOverview(), true;
       if (overlay !== "none") return setOverlay("none"), true;
+      if (readerShown) return setReader(null), true;
       if (tab?.interstitial) return actions.reload(), true;
       if (tab?.canGoBack) return actions.goBack(), true;
       return false;
     });
     return () => subscription.remove();
-  }, [menu, editingSpace, renamingFolder, overlay, tab, actions, closeOverview]);
+  }, [menu, editingSpace, renamingFolder, overlay, tab, actions, closeOverview, readerShown]);
 
   const canSwipe = useMemo(() => ({ previous: swipeTarget(model, -1) !== null, next: swipeTarget(model, 1) !== null }), [model]);
   const showStart = !tab || tab.url === "";
@@ -682,6 +716,9 @@ export function BrowserScreen() {
               onScroll={onPageScroll}
               onLinkMenu={onLinkMenu}
               onPasswordCapture={onPasswordCapture}
+              desktopSite={desktopTabs.has(candidate.id)}
+              readerToken={readerRequest?.tabId === candidate.id ? readerRequest.token : null}
+              onReaderArticle={onReaderArticle}
             />
           ))}
           {showStart && (
@@ -732,6 +769,18 @@ export function BrowserScreen() {
         />
       </Animated.View>
 
+      {readerShown && (
+        <View style={[StyleSheet.absoluteFill, { zIndex: 4 }]}>
+          <ReaderScreen
+            article={readerShown}
+            onClose={() => setReader(null)}
+            onOpenLink={(url) => {
+              setReader(null);
+              submit(url);
+            }}
+          />
+        </View>
+      )}
       {overlay === "search" && (
         <View style={[StyleSheet.absoluteFill, { zIndex: 4 }]}>
           <SearchSheet initialText={searchText} onSubmit={submit} onPick={pick} onClose={closeSearch} />

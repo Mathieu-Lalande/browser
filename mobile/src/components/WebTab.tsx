@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useRef, useState, type ComponentType, type Ref } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type Ref } from "react";
 import { Linking, Platform, StyleSheet, View } from "react-native";
 import { WebView as RNWebView } from "react-native-webview";
 import type { WebViewProps } from "react-native-webview/lib/WebView";
@@ -7,6 +7,7 @@ import { isNavigableUrl } from "@shared/url";
 import { LINK_MENU_COOLDOWN_MS, linkMenuScript, parseLinkMenuMessage, type LinkMenuRequest } from "../lib/linkMenu";
 import { decideNavigation, decideOpenWindow, isHttpsUpgradeFailure } from "../lib/navigation";
 import { PASSWORD_CAPTURE_SCRIPT, PASSWORD_PROMPT_COOLDOWN_MS, parsePasswordMessage } from "../lib/passwords";
+import { desktopUserAgent, parseReaderMessage, readerScript } from "../lib/reader";
 import { useBrowserActions, useEvent } from "../state/BrowserProvider";
 import { LoadError } from "./LoadError";
 import type { WebTabProps } from "./webTabTypes";
@@ -42,6 +43,9 @@ export const WebTab = memo(function WebTab({
   onScroll,
   onLinkMenu,
   onPasswordCapture,
+  desktopSite = false,
+  readerToken = null,
+  onReaderArticle,
 }: WebTabProps) {
   const actions = useBrowserActions();
   const ref = useRef<WebViewHandle | null>(null);
@@ -64,6 +68,21 @@ export const WebTab = memo(function WebTab({
   // in-page navigation never reloads.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const source = useMemo(() => ({ uri: start.current.seq === loadSeq ? start.current.uri : loadUrl }), [loadUrl, loadSeq, generation]);
+
+  // "Version ordinateur" toggled: reload with the new user agent (not on first render).
+  const appliedDesktop = useRef(desktopSite);
+  useEffect(() => {
+    if (appliedDesktop.current === desktopSite) return;
+    appliedDesktop.current = desktopSite;
+    ref.current?.reload();
+  }, [desktopSite]);
+
+  // Reader mode requested: run Readability in the page; the answer comes back through onMessage.
+  const readerTokenRef = useRef(readerToken);
+  readerTokenRef.current = readerToken;
+  useEffect(() => {
+    if (readerToken) ref.current?.injectJavaScript(readerScript(readerToken));
+  }, [readerToken]);
 
   const setRef = useCallback(
     (view: WebViewHandle | null) => {
@@ -114,6 +133,12 @@ export const WebTab = memo(function WebTab({
     // Untrusted page input: validated, rate limited, and only for the tab on screen.
     if (!activeRef.current) return;
     const now = Date.now();
+    // A reader answer: only for the pending request, checked against this tab's own page (ADR-026).
+    const article = parseReaderMessage(event.nativeEvent.data, readerTokenRef.current, currentUrl.current);
+    if (article !== undefined) {
+      if (readerTokenRef.current) onReaderArticle?.(id, article);
+      return;
+    }
     // A login capture: its origin is this tab's page, never one the message names (ADR-025).
     const capture = isPrivate ? null : parsePasswordMessage(event.nativeEvent.data, currentUrl.current);
     if (capture) {
@@ -176,6 +201,7 @@ export const WebTab = memo(function WebTab({
         onRenderProcessGone={revive}
         injectedJavaScript={isPrivate ? INJECTED : INJECTED_WITH_PASSWORDS}
         injectedJavaScriptForMainFrameOnly
+        userAgent={desktopSite ? desktopUserAgent(Platform.OS) : undefined}
         // Security. iOS: each private tab gets its own non-persistent data store. Android's
         // `incognito` wipes the cookies of every tab (global CookieManager), so it is not used
         // there: private tabs skip cache, form data and history but share cookies (ADR-016).

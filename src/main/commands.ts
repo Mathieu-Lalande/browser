@@ -2,6 +2,7 @@ import { clipboard, type MenuItemConstructorOptions } from "electron";
 import { commandAccelerator, getCommand, type CommandId } from "@shared/commands";
 import { toggleFavorite } from "./organize";
 import { profile } from "./profile";
+import { toggleReader } from "./reader";
 import { clearTabSiteData } from "./site-info";
 import { sleepTabNow, sleepTabs } from "./sleep";
 import { spaces } from "./spaces";
@@ -93,6 +94,8 @@ const RUNNERS: Record<CommandId, Runner> = {
   "open-archive": (c) => c.openArchive(),
   "open-extensions": (c) => c.openExtensions(),
   "open-passwords": (c) => c.openPasswords(),
+  "toggle-reader": onActiveTab((c, id) => void toggleReader(c, id)),
+  "toggle-mobile-site": onActiveTab((c, id) => c.tabs.toggleMobileSite(id)),
 };
 
 /** Commands that make sense without any window (macOS keeps the app running windowless). */

@@ -1173,3 +1173,62 @@ et mobile. À faire avec un miroir lui-même chiffré (ou des hachés à clé) e
 « Plus tard ») ni des formulaires en plusieurs étapes (identifiant puis mot de passe sur deux pages) ;
 pas de génération de mot de passe ; pas d'import CSV ; pas de verrouillage par le mot de passe du système
 avant « Afficher » (confirmation dans l'interface seulement).
+
+
+## ADR-026 — Mode lecture et version mobile/ordinateur des sites
+
+**Contexte.** Lire un article sans le reste de la page, sur le bureau et le téléphone, sans revenir sur
+ADR-003 (pas de preload ni d'IPC pour les pages) ni sur la CSP de l'interface (`img-src 'self' data:`,
+ADR-018) ; et pouvoir demander la version mobile (bureau) ou ordinateur (téléphone) d'un site.
+
+**Extraction.** `@mozilla/readability` (Mozilla, celle de Firefox), en dépendance de développement :
+son source est recopié tel quel dans `src/shared/readability-source.ts` par `scripts/gen-readability.mjs`
+(module généré, commun à Vite et Metro ; un test vérifie qu'il correspond au paquet installé). Le script
+de page (`READER_EXTRACT_SCRIPT`, `src/shared/reader.ts`) fait tourner Readability sur un **clone** du
+document (la page n'est pas modifiée ; un document sans contexte de navigation ne charge rien) et renvoie
+un **arbre JSON** (balise, enfants, `href`/`src`/`alt` absolus), jamais du HTML.
+
+- **Bureau** : monde isolé 1006 (`src/main/reader/`), comme ADR-025 : la page ne voit ni ne modifie
+  Readability. `isProbablyReaderable` tourne à chaque fin de chargement (`TabState.readerable`, y compris
+  en fenêtre privée : lecture seule) et affiche le bouton livre de la barre d'adresse ; commande
+  « Mode lecture » (`toggle-reader`, Ctrl+Alt+R / ⌥⌘R, menu Affichage, palette).
+- **Téléphone** : pas de monde isolé exploitable ; `injectJavaScript` à la demande (menu de la page), la
+  réponse revient par le pont existant, que toute page peut imiter : elle doit porter le jeton de la
+  demande en cours, est bornée en taille et l'URL est celle de l'onglet (`mobile/src/lib/reader.ts`).
+
+**Assainissement : liste blanche, pas d'HTML.** `sanitizeReaderArticle` (pur, testé, partagé) garde une
+liste fixe de balises (paragraphes, titres, listes, citations, code, tableaux, liens, images…), en renomme
+quelques-unes (`h1`→`h2`, `b`→`strong`…), déballe les inconnues, supprime avec leur contenu `script`,
+`style`, `iframe`, `svg`, formulaires, médias… ; aucun attribut hormis `href` (http(s) seulement, via
+`isPageOpenableUrl`) et `src`/`alt` des images (http(s)) ; bornes : 20 000 nœuds, profondeur 32,
+400 000 caractères, 40 images. Les interfaces dessinent l'arbre avec leurs propres éléments
+(`<svelte:element>` sur la liste fixe ; `Text` React Native) : aucun HTML n'est analysé ni injecté, donc
+pas de DOMPurify (et pas de DOM côté main ni sur le téléphone pour le faire tourner).
+
+**Rendu bureau.** L'interface dessine la vue lecture (`ReaderView.svelte`) à la place de la vue de la page,
+détachée comme pour une page interne (`TabManager.setReader`) ; jamais par l'origine de la page. Hors vue
+scindée seulement. Une navigation de la page quitte le mode lecture. Les liens naviguent l'onglet (Ctrl/clic
+milieu : nouvel onglet). **Images** : main récupère les 12 premières comme les favicons (session de
+l'onglet, boucliers, HTTPS-Only, `Sec-GPC`, image matricielle, 2 Mo et 5 s chacune) et les passe en
+`data:` ; les autres sont retirées. Choix : la CSP reste inchangée et aucune requête ne part hors de la
+session de l'onglet (fenêtre privée comprise).
+
+**Rendu téléphone.** Écran natif (`ReaderScreen`, `readerBlocks` pur et testé), sans WebView. Les images
+sont **remplacées par leur description** : un `Image` React Native les chargerait hors de la session (cookies,
+boucliers) de la WebView de l'onglet.
+
+**Préférences** (`settings.reader`, validées par `sanitizeSettings`, partagées avec le téléphone, non
+synchronisées) : police serif / sans serif, taille 14–28 px, largeur des lignes (bureau), thème « Thème »
+(suit l'application), « Sépia », « Sombre » (`readerColors`). Temps de lecture estimé à 230 mots/min.
+
+**Version mobile / ordinateur.** Bureau : « Demander la version mobile » (`toggle-mobile-site`, par onglet,
+non enregistré) remplace le user agent de la page par celui de Chrome Android (`mobileUserAgent`, même
+version réduite) puis recharge ; réappliqué si la vue est recréée (veille). Les indices client
+(`Sec-CH-UA-Mobile`) restent ceux du bureau : outil de test, pas d'émulation (ni viewport ni tactile).
+Téléphone : « Version ordinateur » (menu de la page, par onglet, durée de l'exécution) change le
+`userAgent` de la WebView (Safari macOS sur iOS, Chrome Linux sur Android) puis recharge.
+
+**Limites.** Readability peut se tromper (pages non-articles, contenu chargé tard) ; pas de mode lecture
+dans les iframes ni en vue scindée ; images absentes sur le téléphone ; le jeton mobile n'est pas secret
+pour la page (elle voit le script) : il ne fait que relier une réponse à la demande, la page ne pouvant de
+toute façon montrer que son propre contenu.

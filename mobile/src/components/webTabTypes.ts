@@ -1,4 +1,5 @@
 import type { PasswordCapture } from "@shared/passwords";
+import type { ReaderArticle } from "@shared/reader";
 import type { LinkMenuRequest } from "../lib/linkMenu";
 
 export interface WebTabProps {
@@ -18,4 +19,10 @@ export interface WebTabProps {
   onLinkMenu: (tabId: string, request: LinkMenuRequest) => void;
   /** A login form was submitted in a normal tab (ADR-025): offer to save the password. */
   onPasswordCapture?: (tabId: string, capture: PasswordCapture) => void;
+  /** "Version ordinateur" (ADR-026): a desktop user agent, applied with a reload. */
+  desktopSite?: boolean;
+  /** A pending reader mode request (ADR-026): set, the page runs Readability and answers with this token. */
+  readerToken?: string | null;
+  /** The answer to `readerToken`: the validated article, or null when the page has none. */
+  onReaderArticle?: (tabId: string, article: ReaderArticle | null) => void;
 }

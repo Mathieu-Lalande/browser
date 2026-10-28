@@ -9,6 +9,8 @@
   import ArrowLeft from "@lucide/svelte/icons/arrow-left";
   import ArrowRight from "@lucide/svelte/icons/arrow-right";
   import BookOpen from "@lucide/svelte/icons/book-open";
+  import Type from "@lucide/svelte/icons/type";
+  import MoveHorizontal from "@lucide/svelte/icons/move-horizontal";
   import Briefcase from "@lucide/svelte/icons/briefcase";
   import Calendar from "@lucide/svelte/icons/calendar";
   import Camera from "@lucide/svelte/icons/camera";
@@ -198,6 +200,10 @@
     qr: QrCode,
     unlink: Unlink,
     key: KeyRound,
+    // Reader mode (ADR-026).
+    reader: BookOpen,
+    "type": Type,
+    "move-horizontal": MoveHorizontal,
     // Site info (ADR-021).
     info: Info,
     cookie: Cookie,

@@ -47,7 +47,9 @@ export type CommandId =
   | "new-folder"
   | "open-archive"
   | "open-extensions"
-  | "open-passwords";
+  | "open-passwords"
+  | "toggle-reader"
+  | "toggle-mobile-site";
 
 /** Icon names used by commands; the UI's Icon component must know each of them. */
 export type CommandIcon =
@@ -85,7 +87,9 @@ export type CommandIcon =
   | "folder"
   | "archive"
   | "extension"
-  | "key";
+  | "key"
+  | "reader"
+  | "smartphone";
 
 /** What a command's label and availability may depend on. */
 export interface CommandContext {
@@ -98,7 +102,7 @@ export interface CommandDefinition {
   /** Label when the command would undo the active tab's current state (`toggles`). */
   activeLabel?: string;
   /** Which active-tab flag `activeLabel` follows. */
-  toggles?: "isPinned" | "isBookmarked" | "isMuted" | "isFavorite";
+  toggles?: "isPinned" | "isBookmarked" | "isMuted" | "isFavorite" | "reader" | "mobileSite";
   /** Label in the application menu, when it differs (toggles have a neutral one). */
   menuLabel?: string;
   /** Extra search terms (synonyms, English names). */
@@ -318,6 +322,24 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
     label: "Mots de passe",
     keywords: ["passwords", "mots de passe", "identifiants", "connexion", "login", "gestionnaire", "remplir"],
     icon: "key",
+  },
+  "toggle-reader": {
+    label: "Mode lecture",
+    activeLabel: "Quitter le mode lecture",
+    toggles: "reader",
+    keywords: ["reader", "lecture", "article", "lire", "readability", "vue simplifiée"],
+    accelerator: "CmdOrCtrl+Alt+R",
+    icon: "reader",
+    needsPage: true,
+  },
+  "toggle-mobile-site": {
+    label: "Demander la version mobile",
+    activeLabel: "Demander la version pour ordinateur",
+    toggles: "mobileSite",
+    menuLabel: "Version mobile du site",
+    keywords: ["mobile", "user agent", "téléphone", "responsive", "ordinateur", "desktop site"],
+    icon: "smartphone",
+    needsPage: true,
   },
 };
 

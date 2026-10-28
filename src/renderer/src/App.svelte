@@ -7,6 +7,7 @@
   import ArchivePage from "./components/folders/ArchivePage.svelte";
   import ExtensionsPage from "./components/extensions/ExtensionsPage.svelte";
   import PasswordsPage from "./components/passwords/PasswordsPage.svelte";
+  import ReaderView from "./components/reader/ReaderView.svelte";
   import FindBar from "./components/FindBar.svelte";
   import HttpsOnlyPage from "./components/HttpsOnlyPage.svelte";
   import LoadErrorPage from "./components/LoadErrorPage.svelte";
@@ -46,7 +47,9 @@
   const internalPage = $derived(internalPageOf(browser.activeTab?.url ?? ""));
   /** Find bar of the active tab, over web pages only. */
   const findState = $derived(
-    browser.activeTab?.find?.open && !showStartPage && !internalPage && !browser.activeTab.interstitial && !browser.activeTab.loadError ? browser.activeTab.find : null,
+    browser.activeTab?.find?.open && !showStartPage && !internalPage && !browser.activeTab.interstitial && !browser.activeTab.loadError && !browser.activeTab.reader
+      ? browser.activeTab.find
+      : null,
   );
   let findBar = $state<FindBar>();
   let findFocusPending = $state(false);
@@ -280,6 +283,8 @@
         <HttpsOnlyPage tab={browser.activeTab} />
       {:else if browser.activeTab?.loadError}
         <LoadErrorPage tab={browser.activeTab} error={browser.activeTab.loadError} />
+      {:else if browser.activeTab?.reader}
+        <ReaderView tab={browser.activeTab} />
       {/if}
     </main>
   </div>

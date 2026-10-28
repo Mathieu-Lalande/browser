@@ -35,17 +35,20 @@ export function forgetFavicons(ses: Session): void {
   caches.delete(ses);
 }
 
-/** GETs an image through `ses` (the tab's session: its cookies, cache, proxy) as a `data:` URL, or null. */
-async function fetchIcon(ses: Session, url: string): Promise<string | null> {
+/**
+ * GETs an image through `ses` (the tab's session: its cookies, cache, proxy) as a `data:` URL, or
+ * null: raster types only, at most `maxBytes`. Also used for reader mode images (ADR-026).
+ */
+export async function fetchImageDataUrl(ses: Session, url: string, maxBytes = MAX_FAVICON_BYTES, timeoutMs = FETCH_TIMEOUT_MS): Promise<string | null> {
   const response = await ses.fetch(url, {
     credentials: "include",
     // Main's own requests are invisible to the tab's webRequest pipeline: send GPC here (ADR-008).
     headers: { "Sec-GPC": "1" },
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   const type = faviconImageType(response.headers.get("content-type"));
   const announced = Number(response.headers.get("content-length") ?? 0);
-  if (!response.ok || !type || announced > MAX_FAVICON_BYTES || !response.body) {
+  if (!response.ok || !type || announced > maxBytes || !response.body) {
     await response.body?.cancel().catch(() => {});
     return null;
   }
@@ -56,7 +59,7 @@ async function fetchIcon(ses: Session, url: string): Promise<string | null> {
     const { done, value } = await reader.read();
     if (done) break;
     size += value.byteLength;
-    if (size > MAX_FAVICON_BYTES) {
+    if (size > maxBytes) {
       await reader.cancel().catch(() => {});
       return null;
     }
@@ -81,7 +84,7 @@ export async function loadFavicon(contents: WebContents, candidates: readonly st
     if (!url) continue;
     let icon = cache.get(url);
     if (icon === undefined) {
-      icon = await fetchIcon(contents.session, url).catch(() => null);
+      icon = await fetchImageDataUrl(contents.session, url).catch(() => null);
       remember(cache, url, icon);
     }
     if (icon) return icon;

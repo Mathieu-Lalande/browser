@@ -25,6 +25,15 @@ export function reduceUserAgent(userAgent: string, appName: string): string {
     .replace(/\bChrome\/(\d+)(?:\.\d+){1,3}\b/, "Chrome/$1.0.0.0");
 }
 
+/**
+ * "Demander la version mobile" (ADR-026): the same Chrome as an Android phone (Chrome's reduced
+ * Android platform token `Linux; Android 10; K`, and `Mobile` before `Safari/`).
+ */
+export function mobileUserAgent(desktopUserAgent: string): string {
+  const ua = desktopUserAgent.replace(/\([^)]*\)/, "(Linux; Android 10; K)");
+  return /\bMobile\b/.test(ua) ? ua : ua.replace(/\bSafari\//, "Mobile Safari/");
+}
+
 /** The Chrome major version advertised by a user agent, if any. */
 export function chromeMajor(userAgent: string): string | null {
   return /\bChrome\/(\d+)/.exec(userAgent)?.[1] ?? null;

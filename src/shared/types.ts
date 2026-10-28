@@ -22,6 +22,12 @@ export interface TabState {
   isBookmarked: boolean;
   /** Saved passwords exist for the page's origin (ADR-025): the address bar shows the key. */
   hasPasswords?: boolean;
+  /** The page looks like an article (Readability's check): the address bar offers reader mode (ADR-026). */
+  readerable?: boolean;
+  /** Reader mode is on: the chrome UI draws the article in place of the page view. */
+  reader?: boolean;
+  /** "Demander la version mobile": the page gets a mobile user agent (ADR-026). */
+  mobileSite?: boolean;
   /** Requests blocked by the content blocker since the last main-frame navigation. */
   blockedCount: number;
   /** False when the user turned protections off for this site. */

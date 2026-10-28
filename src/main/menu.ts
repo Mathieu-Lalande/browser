@@ -78,6 +78,8 @@ export function installMenu(): void {
         commandMenuItem("focus-address"),
         commandMenuItem("toggle-sidebar"),
         commandMenuItem("toggle-zen"),
+        commandMenuItem("toggle-reader"),
+        commandMenuItem("toggle-mobile-site"),
         { type: "separator" },
         commandMenuItem("reload"),
         commandMenuItem("reload", { accelerator: "F5", visible: false }),
