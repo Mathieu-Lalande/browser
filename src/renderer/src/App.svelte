@@ -3,12 +3,8 @@
   import { accentVariables } from "@shared/theme";
   import { cubicOut } from "svelte/easing";
   import { api, browser } from "./lib/browser.svelte";
-  import DownloadsPage from "./components/downloads/DownloadsPage.svelte";
-  import ArchivePage from "./components/folders/ArchivePage.svelte";
-  import ExtensionsPage from "./components/extensions/ExtensionsPage.svelte";
-  import PasswordsPage from "./components/passwords/PasswordsPage.svelte";
-  import BoostsPage from "./components/boosts/BoostsPage.svelte";
   import ReaderView from "./components/reader/ReaderView.svelte";
+  import InternalPage from "./components/InternalPage.svelte";
   import FindBar from "./components/FindBar.svelte";
   import HttpsOnlyPage from "./components/HttpsOnlyPage.svelte";
   import LoadErrorPage from "./components/LoadErrorPage.svelte";
@@ -23,7 +19,6 @@
   import SidebarResizer from "./components/SidebarResizer.svelte";
   import SplitView from "./components/split/SplitView.svelte";
   import StartPage from "./components/StartPage.svelte";
-  import SettingsPage from "./components/settings/SettingsPage.svelte";
 
   /** Delay before a revealed zen sidebar hides once the pointer left it. */
   const ZEN_HIDE_DELAY = 450;
@@ -270,18 +265,8 @@
         <SplitView tabs={browser.splitTabs} split={browser.state.split} />
       {:else if showStartPage}
         <StartPage />
-      {:else if internalPage === "settings"}
-        <SettingsPage />
-      {:else if internalPage === "downloads"}
-        <DownloadsPage />
-      {:else if internalPage === "archive"}
-        <ArchivePage />
-      {:else if internalPage === "extensions"}
-        <ExtensionsPage />
-      {:else if internalPage === "passwords"}
-        <PasswordsPage />
-      {:else if internalPage === "boosts"}
-        <BoostsPage />
+      {:else if internalPage}
+        <InternalPage page={internalPage} />
       {:else if browser.activeTab?.interstitial}
         <HttpsOnlyPage tab={browser.activeTab} />
       {:else if browser.activeTab?.loadError}
