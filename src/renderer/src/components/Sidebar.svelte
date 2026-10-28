@@ -16,13 +16,17 @@
   import SpaceSwitcher from "./spaces/SpaceSwitcher.svelte";
   import SplitGroup from "./split/SplitGroup.svelte";
 
-  /** `windowControls`: draw the window buttons at the end of the title bar (Windows/Linux, see App). */
+  /**
+   * `windowControls`: draw the window buttons in the title bar (Windows/Linux, see App): at its
+   * start with the sidebar on the left, at its end (the window's right edge) with it on the right.
+   */
   let { onToggle, windowControls = false }: { onToggle: () => void; windowControls?: boolean } = $props();
   let addressBar: AddressBar;
   let tabList = $state<HTMLElement>();
 
   const tab = $derived(browser.activeTab);
   // macOS traffic lights sit at the window's top-left: only a left sidebar makes room for them.
+  const controlsAtEnd = $derived(settings.current.layout.sidebarPosition === "right");
   const roomForTrafficLights = $derived(platform.isMac && settings.current.layout.sidebarPosition === "left");
   const zen = $derived(settings.current.layout.zenMode);
 
@@ -130,6 +134,7 @@
 
 <aside class="sidebar">
   <header class="titlebar drag" class:mac={roomForTrafficLights}>
+    {#if windowControls && !controlsAtEnd}<WindowControls />{/if}
     {#if browser.isPrivate}
       <div class="private-badge" title="Navigation privée : ni historique, ni cookies conservés après la fermeture de la fenêtre">
         <Icon name="mask" size={16} />
@@ -150,7 +155,7 @@
     <button class="icon no-drag" aria-label="Masquer la barre latérale" title={platform.tip("Masquer la barre latérale", "toggle-sidebar")} onclick={onToggle}>
       <Icon name="sidebar" />
     </button>
-    {#if windowControls}<WindowControls />{/if}
+    {#if windowControls && controlsAtEnd}<WindowControls />{/if}
   </header>
 
   <nav class="nav">
