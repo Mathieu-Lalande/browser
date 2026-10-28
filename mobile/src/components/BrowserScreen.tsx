@@ -28,6 +28,7 @@ import { ActionSheet, type MenuItem, type MenuSpec } from "./ActionSheet";
 import { BottomBar, COLLAPSED_HEIGHT, EXPANDED_HEIGHT } from "./BottomBar";
 import { FolderNameSheet } from "./FolderNameSheet";
 import { HttpsOnlyPage } from "./HttpsOnlyPage";
+import { PeekSheet, type PeekRequest } from "./PeekSheet";
 import { ReaderScreen } from "./ReaderScreen";
 import { SearchSheet } from "./SearchSheet";
 import { SettingsScreen } from "./SettingsScreen";
@@ -59,6 +60,8 @@ export function BrowserScreen() {
   /** Reader mode (ADR-026): the request sent to a page, then the article shown. */
   const [readerRequest, setReaderRequest] = useState<{ tabId: string; token: string } | null>(null);
   const [reader, setReader] = useState<{ tabId: string; article: ReaderArticle } | null>(null);
+  /** Link peek (ADR-027): the long-pressed link shown in a sheet. */
+  const [peek, setPeek] = useState<PeekRequest | null>(null);
 
   const tab = activeTab(model);
   const tabs = useMemo(() => orderedTabs(model), [model]);
@@ -310,9 +313,10 @@ export function BrowserScreen() {
   });
 
   const onLinkMenu = useEvent((_tabId: string, request: LinkMenuRequest) => {
-    if (menu || overlay !== "none") return;
+    if (menu || peek || overlay !== "none") return;
     haptic("medium");
     const items: MenuItem[] = [
+      { key: "peek", label: "Aperçu", icon: "eye", onPress: () => setPeek({ url: request.url, isPrivate, afterId: tab?.id }) },
       { key: "open", label: "Ouvrir dans un nouvel onglet", icon: "plus", onPress: () => void actions.openUrl(request.url, { private: isPrivate, afterId: tab?.id }) },
       {
         key: "background",
@@ -638,6 +642,7 @@ export function BrowserScreen() {
   const stop = useEvent(() => actions.stop());
   const shareActive = useEvent(() => tab?.url && share(tab.url, tab.title));
   const closeSearch = useEvent(() => setOverlay("none"));
+  const closePeek = useEvent(() => setPeek(null));
   const newTabHere = useEvent(() => newTab(isPrivate));
   const overviewDone = useEvent(() => closeOverview());
   const selectTab = useEvent((id: string) => closeOverview(id));
@@ -647,6 +652,7 @@ export function BrowserScreen() {
   useEffect(() => {
     const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
       if (menu) return setMenu(null), true;
+      if (peek) return setPeek(null), true;
       if (editingSpace) return setEditingSpace(null), true;
       if (renamingFolder) return setRenamingFolder(null), true;
       if (overlay === "tabs") return closeOverview(), true;
@@ -657,7 +663,7 @@ export function BrowserScreen() {
       return false;
     });
     return () => subscription.remove();
-  }, [menu, editingSpace, renamingFolder, overlay, tab, actions, closeOverview, readerShown]);
+  }, [menu, peek, editingSpace, renamingFolder, overlay, tab, actions, closeOverview, readerShown]);
 
   const canSwipe = useMemo(() => ({ previous: swipeTarget(model, -1) !== null, next: swipeTarget(model, 1) !== null }), [model]);
   const showStart = !tab || tab.url === "";
@@ -789,6 +795,11 @@ export function BrowserScreen() {
       {overlay === "settings" && (
         <View style={[StyleSheet.absoluteFill, { zIndex: 4 }]}>
           <SettingsScreen onClose={closeSearch} />
+        </View>
+      )}
+      {peek && (
+        <View style={[StyleSheet.absoluteFill, { zIndex: 5 }]} pointerEvents="box-none">
+          <PeekSheet peek={peek} onClose={closePeek} />
         </View>
       )}
       <View style={[StyleSheet.absoluteFill, { zIndex: 5 }]} pointerEvents="box-none">

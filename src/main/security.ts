@@ -1,6 +1,6 @@
 import { app, session, shell, type Session, type WebContents } from "electron";
 import { isNavigableUrl, isPageOpenableUrl } from "@shared/url";
-import { UserActivation, isActivatingInput } from "./activation";
+import { UserActivation, isActivatingInput, isPeekGesture } from "./activation";
 import { installDownloads } from "./downloads";
 import { forgetExtensionsSession, installExtensions } from "./extensions";
 import { acceptLanguages, reduceUserAgent } from "./fingerprint";
@@ -80,6 +80,8 @@ interface TabHooks {
   openTab(url: string, foreground: boolean): void;
   /** A page tried to open `url` without a recent user gesture (the popup blocker said no). */
   popupBlocked(url: string): void;
+  /** A Shift+click on a link (trusted input): preview it in the link peek (ADR-027). Absent: a new tab. */
+  peek?(url: string): void;
 }
 
 /** Schemes handed to the OS (mail and phone apps), after a user gesture only. */
@@ -102,16 +104,19 @@ export function hardenWebContents(contents: WebContents, hooks: TabHooks): void 
   // page's own claims (`disposition` follows modifiers a script can put on a synthetic click).
   // Touch input reaches pages as mouse/gesture events here.
   contents.on("before-mouse-event", (_event, mouse) => {
-    if (isActivatingInput(mouse)) tab.activation.record(Date.now());
+    if (isActivatingInput(mouse)) tab.activation.record(Date.now(), isPeekGesture(mouse));
   });
   contents.on("before-input-event", (_event, input) => {
     if (isActivatingInput(input)) tab.activation.record(Date.now());
   });
 
-  contents.setWindowOpenHandler(({ url, disposition }) => {
+  contents.setWindowOpenHandler(({ url, disposition, features }) => {
     // Never a top-level data: (or any non-web) document opened by a page.
     if (isPageOpenableUrl(url)) {
-      if (tab.activation.consumeOpen(Date.now())) tab.hooks.openTab(url, disposition !== "background-tab");
+      // Chromium opens a Shift+clicked link as a new window without features (window.open with
+      // features, e.g. a sign-in popup, keeps opening a tab); the click itself was a real one.
+      if (disposition === "new-window" && !features && tab.hooks.peek && tab.activation.consumePeek(Date.now())) tab.hooks.peek(url);
+      else if (tab.activation.consumeOpen(Date.now())) tab.hooks.openTab(url, disposition !== "background-tab");
       else tab.hooks.popupBlocked(url);
     } else if (isExternalUrl(url) && tab.activation.consumeExternal(Date.now())) {
       void shell.openExternal(url);

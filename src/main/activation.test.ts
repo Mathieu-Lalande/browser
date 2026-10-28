@@ -6,6 +6,7 @@ import {
   InPageVisits,
   UserActivation,
   isActivatingInput,
+  isPeekGesture,
 } from "./activation";
 
 const T = 1_000_000;
@@ -69,6 +70,32 @@ describe("isActivatingInput", () => {
     // Modifier keys alone do not activate a page (as in Chromium).
     expect(isActivatingInput({ type: "keyDown", key: "Shift" })).toBe(false);
     expect(isActivatingInput({ type: "keyDown", key: "Control" })).toBe(false);
+  });
+});
+
+describe("link peek gesture (ADR-027)", () => {
+  it("is a left click, with Shift alone when modifiers are known", () => {
+    expect(isPeekGesture({ type: "mouseDown", button: "left", modifiers: ["shift"] })).toBe(true);
+    expect(isPeekGesture({ type: "mouseDown", button: "left", modifiers: ["shift", "leftbuttondown"] })).toBe(true);
+    expect(isPeekGesture({ type: "mouseDown", button: "left", modifiers: [] })).toBe(false);
+    // Electron 44 reports no modifiers: Shift then comes from the `new-window` disposition.
+    expect(isPeekGesture({ type: "mouseDown", button: "left" })).toBe(true);
+    expect(isPeekGesture({ type: "mouseDown", button: "right" })).toBe(false);
+    expect(isPeekGesture({ type: "mouseDown", button: "left", modifiers: ["shift", "control"] })).toBe(false);
+    expect(isPeekGesture({ type: "mouseDown", button: "middle", modifiers: ["shift"] })).toBe(false);
+    expect(isPeekGesture({ type: "mouseUp", button: "left", modifiers: ["shift"] })).toBe(false);
+  });
+
+  it("is used up once, like any gesture, and only after a left click", () => {
+    const activation = new UserActivation();
+    activation.record(1000);
+    expect(activation.consumePeek(1001)).toBe(false);
+    activation.record(2000, true);
+    expect(activation.consumePeek(2001)).toBe(true);
+    expect(activation.consumePeek(2002)).toBe(false);
+    expect(activation.consumeOpen(2003)).toBe(false);
+    activation.record(5000, true);
+    expect(activation.consumePeek(5000 + ACTIVATION_WINDOW_MS + 1)).toBe(false);
   });
 });
 

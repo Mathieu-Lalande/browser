@@ -3,7 +3,7 @@ import { contrastRatio, parseCssColor } from "@shared/theme";
 import { SEARCH_ENGINES } from "@shared/url";
 import { isBookmarked, parseBookmarks, toggleBookmark } from "./bookmarks";
 import { appColors, colorsFor, resolveMode, toRnColor } from "./colors";
-import { initialCollapse, isSwipeUp, nextCollapse, resolveHorizontalSwipe, rubberBand, shouldDismissCard } from "./gestures";
+import { initialCollapse, isSwipeUp, nextCollapse, resolveHorizontalSwipe, rubberBand, shouldDismissCard, shouldDismissSheet } from "./gestures";
 import { linkMenuScript, parseLinkMenuMessage } from "./linkMenu";
 import { sanitizeMobileSettings } from "./mobileSettings";
 import { decideNavigation, decideOpenWindow, initialLoad, isHttpsUpgradeFailure, privateModeNotice, schemeOf } from "./navigation";
@@ -157,6 +157,16 @@ describe("gesture thresholds", () => {
     expect(scroll([0, 400, 20]).collapsed).toBe(false);
     // Bounce past the bottom changes nothing.
     expect(scroll([0, 100, 4200, 4250, 4190]).collapsed).toBe(true);
+  });
+});
+
+describe("link peek sheet (ADR-027)", () => {
+  it("closes past a quarter of its height or on a fling down, springs back otherwise", () => {
+    expect(shouldDismissSheet(100, 0, 600)).toBe(false);
+    expect(shouldDismissSheet(200, 0, 600)).toBe(true);
+    expect(shouldDismissSheet(20, 1500, 600)).toBe(true);
+    expect(shouldDismissSheet(300, -800, 600)).toBe(false);
+    expect(shouldDismissSheet(10, 0, 0)).toBe(false);
   });
 });
 

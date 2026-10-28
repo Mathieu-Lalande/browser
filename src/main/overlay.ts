@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { WebContentsView, type BaseWindow, type WebContents } from "electron";
 import { Channels } from "@shared/ipc";
 import { uiUrl } from "./app-protocol";
-import { isPopover, type Bounds, type OverlayRequest } from "@shared/types";
+import { isPopover, type Bounds, type OverlayKind, type OverlayRequest } from "@shared/types";
 import { uiSession } from "./ui-session";
 
 interface OverlayHooks {
@@ -13,6 +13,8 @@ interface OverlayHooks {
   chrome(): WebContents;
   /** What is visible below the overlay, bottom first, for the blurred backdrop. */
   backdrop(): { contents: WebContents; bounds: Bounds }[];
+  /** The overlay closed, or now shows something else than the link peek: the peek goes (ADR-027). */
+  dismissed?(): void;
 }
 
 /** Backdrop snapshots are downscaled this much (they are blurred anyway). */
@@ -36,6 +38,10 @@ export class Overlay {
   private pending: OverlayRequest | null = null;
   /** Counts openings, so a late backdrop is not sent to a later one. */
   private openings = 0;
+  /** What is shown (while attached). */
+  private kind: OverlayKind | null = null;
+  /** A native view kept above the overlay page while it is open: the link peek's page (ADR-027). */
+  private topView: WebContentsView | null = null;
 
   constructor(
     private readonly window: BaseWindow,
@@ -46,6 +52,20 @@ export class Overlay {
 
   get isOpen(): boolean {
     return this.attached;
+  }
+
+  /** What the overlay shows, null when closed. */
+  get shown(): OverlayKind | null {
+    return this.attached ? this.kind : null;
+  }
+
+  /**
+   * Keeps `view` above the overlay page while it is open (null: none). The caller attaches and
+   * removes the view itself; the overlay only keeps the stacking order when it raises itself.
+   */
+  setTopView(view: WebContentsView | null): void {
+    this.topView = view;
+    if (view && this.attached && !this.window.isDestroyed()) this.window.contentView.addChildView(view);
   }
 
   /** Creates and loads the overlay page ahead of time, so the first open is instant. */
@@ -59,6 +79,9 @@ export class Overlay {
     const chrome = this.hooks.chrome();
     const opening = !this.attached;
     if (opening) this.returnFocus = chrome.isFocused() ? chrome : this.hooks.focusTarget();
+    // Anything else replacing the link peek (Ctrl+K…) takes its place.
+    if (request.kind !== "link-peek") this.hooks.dismissed?.();
+    this.kind = request.kind;
     // The page renders the request while being attached: no visible delay. Before its first
     // load completes (opened right at startup), the request waits for it.
     if (this.ready) view.webContents.send(Channels.overlayShow, request);
@@ -101,6 +124,8 @@ export class Overlay {
     if (!this.attached || !this.view) return;
     this.window.contentView.removeChildView(this.view);
     this.attached = false;
+    this.kind = null;
+    this.hooks.dismissed?.();
     const target = restoreFocus && this.returnFocus && !this.returnFocus.isDestroyed() ? this.returnFocus : this.hooks.focusTarget();
     this.returnFocus = null;
     if (!target.isDestroyed()) target.focus();
@@ -109,9 +134,12 @@ export class Overlay {
   /** Keeps the overlay above the tab views (a newly attached tab view would cover it). */
   raise(): void {
     if (!this.view || this.window.isDestroyed()) return;
-    if (this.attached && this.window.contentView.children.at(-1) === this.view) return;
+    const children = this.window.contentView.children;
+    const top = this.topView;
+    if (this.attached && (top ? children.at(-2) === this.view && children.at(-1) === top : children.at(-1) === this.view)) return;
     // Re-adding a child view moves it to the top.
     this.window.contentView.addChildView(this.view);
+    if (top) this.window.contentView.addChildView(top);
     this.attached = true;
     this.layout();
   }

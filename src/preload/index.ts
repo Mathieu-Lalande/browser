@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
 import type { DownloadsChange } from "@shared/downloads";
 import { Channels, type BrowserApi } from "@shared/ipc";
+import type { PeekState } from "@shared/peek";
 import type { Settings } from "@shared/settings";
 import type { SyncStatus } from "@shared/sync/controller";
 import type { BrowserState, OverlayBackdrop, OverlayRequest, UiCommand } from "@shared/types";
@@ -86,6 +87,10 @@ const api: BrowserApi = {
   },
   reader: {
     article: (tabId) => ipcRenderer.invoke(Channels.readerArticle, tabId),
+  },
+  peek: {
+    onState: (listener) => subscribe<PeekState>(Channels.peekState, listener),
+    action: (action) => send(Channels.peekAction, action),
   },
   spaces: {
     create: (input) => ipcRenderer.invoke(Channels.spaceCreate, input),

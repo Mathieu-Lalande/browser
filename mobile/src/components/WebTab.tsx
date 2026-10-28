@@ -20,7 +20,7 @@ const INJECTED = linkMenuScript(Platform.OS);
 /** Normal tabs also watch login forms (ADR-025); private tabs never offer to save a password. */
 const INJECTED_WITH_PASSWORDS = INJECTED + PASSWORD_CAPTURE_SCRIPT;
 /** Only these schemes may ever reach the native view (navigation policy: `decideNavigation`). */
-const ORIGIN_WHITELIST = ["http://*", "https://*", "about:*", "data:*", "mailto:*", "tel:*", "sms:*"];
+export const WEBVIEW_ORIGIN_WHITELIST = ["http://*", "https://*", "about:*", "data:*", "mailto:*", "tel:*", "sms:*"];
 
 /**
  * One tab = one WebView. Hardened (see docs/DECISIONS.md, ADR-016): no file access, no mixed
@@ -188,7 +188,7 @@ export const WebTab = memo(function WebTab({
         ref={setRef}
         source={source}
         style={[styles.web, { backgroundColor: background }]}
-        originWhitelist={ORIGIN_WHITELIST}
+        originWhitelist={WEBVIEW_ORIGIN_WHITELIST}
         onShouldStartLoadWithRequest={onShouldStart}
         onNavigationStateChange={onNavigationStateChange}
         onLoadProgress={(event: { nativeEvent: { progress: number } }) => actions.reportProgress(id, event.nativeEvent.progress)}

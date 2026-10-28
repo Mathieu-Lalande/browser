@@ -79,6 +79,9 @@ function runEntry(id: string, c: BrowserController, tabId: TabId, contents: WebC
       if (opened) c.tabs.openSplit(opened);
       return;
     }
+    case "link-peek":
+      // The peek checks the URL again (isPeekableUrl, ADR-027).
+      return c.peek.open(tabId, params.linkURL);
     case "link-open-private":
       return openInPrivateWindow(params.linkURL);
     case "link-copy":

@@ -83,6 +83,7 @@ export function buildPageMenu(params: PageMenuParams, context: PageMenuContext):
     const items: PageMenuEntry[] = [];
     if (openable) {
       items.push(
+        { id: "link-peek", label: "Aperçu du lien" },
         { id: "link-open-tab", label: "Ouvrir dans un nouvel onglet" },
         { id: "link-open-background", label: "Ouvrir en arrière-plan" },
         { id: "link-open-split", label: "Ouvrir en vue scindée", enabled: context.canSplit },

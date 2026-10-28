@@ -12,6 +12,7 @@ import type {
   PromptAnswer,
 } from "./passwords";
 import type { DownloadEntry, DownloadsChange } from "./downloads";
+import type { PeekAction, PeekState } from "./peek";
 import type { ReaderArticle } from "./reader";
 import type { Settings, SettingsPatch, SettingsSection } from "./settings";
 import type { SiteDataEntry, SiteInfo } from "./site-info";
@@ -156,6 +157,8 @@ export const Channels = {
   passwordsPrompt: "passwords:prompt",
   passwordsAnswer: "passwords:answer",
   readerArticle: "reader:article",
+  peekState: "peek:state",
+  peekAction: "peek:action",
 } as const;
 
 /** Outcome of a sync action (errors are messages for the user: they do not cross IPC as exceptions). */
@@ -269,6 +272,15 @@ export interface BrowserApi {
    */
   reader: {
     article(tabId: TabId): Promise<ReaderArticle | null>;
+  };
+  /**
+   * Link peek (ADR-027): main owns the peeked page; the overlay layer draws the card around it
+   * and only names an action (never a URL).
+   */
+  peek: {
+    /** Overlay page only: the card's header and geometry changed (title, address, resize…). */
+    onState(listener: (state: PeekState) => void): () => void;
+    action(action: PeekAction): void;
   };
   spaces: {
     /** Creates a space (defaults for missing fields) and shows it in this window; null at the limit. */

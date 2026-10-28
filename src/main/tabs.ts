@@ -111,6 +111,8 @@ export interface TabManagerHooks {
   pageReady?(tabId: TabId, contents: WebContents): void;
   /** Saved passwords exist for the URL's origin (reading only: also in private windows). */
   hasPasswords?(url: string): boolean;
+  /** A Shift+click on a link of the tab's page: preview it in the link peek (ADR-027). */
+  peekLink?(tabId: TabId, url: string): void;
 }
 
 /** User preferences TabManager follows (see `configure`). */
@@ -700,6 +702,47 @@ export class TabManager {
     else this.create(url, { index: this.indexAfterActive() });
   }
 
+  /**
+   * Makes a live page (the link peek's, ADR-027) a tab, without reloading it: it must use this
+   * manager's session. Returns null (the caller reopens the URL instead) when it does not, or when
+   * the page has no committed web address yet.
+   */
+  adoptPage(view: WebContentsView, options: { activate?: boolean; index?: number; favicons?: string[] } = {}): TabId | null {
+    const contents = view.webContents;
+    const url = contents.isDestroyed() ? "" : contents.getURL();
+    if (!showsWebPage(url) || contents.session !== this.sessionOf()) return null;
+    const tab = this.insert({ url, title: contents.getTitle(), favicon: null, pinned: false }, options.index ?? this.newTabIndex());
+    tab.view = view;
+    view.setBorderRadius(this.options.pageRadius);
+    tab.state.isLoading = contents.isLoading();
+    this.wire(tab, contents);
+    this.visit(tab, url, false);
+    this.updateHistory(tab);
+    this.applyZoom(tab);
+    if (options.favicons?.length) {
+      const seq = ++tab.faviconSeq;
+      void loadFavicon(contents, options.favicons, url).then((favicon) => {
+        if (seq !== tab.faviconSeq || contents.isDestroyed() || !showsWebPage(tab.state.url)) return;
+        tab.state.favicon = favicon;
+        if (favicon) this.hooks.onPageInfo?.(url, { favicon });
+        this.emit();
+      });
+    }
+    if (options.activate ?? true) this.activate(tab.id);
+    this.emit();
+    return tab.id;
+  }
+
+  /** Position of a tab in the list (-1 if unknown). */
+  indexOf(id: TabId): number {
+    return this.tabs.findIndex((tab) => tab.id === id);
+  }
+
+  /** The whole page area (every pane of a split), in window content coordinates. */
+  get area(): Bounds {
+    return { ...this.bounds };
+  }
+
   /** Where the active page is drawn, in window content coordinates (its pane in a split). */
   get viewBounds(): Bounds {
     const shown = this.shownTabs();
@@ -1113,6 +1156,7 @@ export class TabManager {
         // A link opened from a filed tab stays in its folder.
         this.create(url, { activate: foreground, index, folderId: tab.state.folderId });
       },
+      peek: this.hooks.peekLink && ((url) => this.hooks.peekLink?.(tab.id, url)),
       popupBlocked: (url) => {
         // The notice keeps the last blocked popup of the page; "Ouvrir" opens it (openBlockedPopup).
         if (!isPageOpenableUrl(url)) return;

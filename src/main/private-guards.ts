@@ -19,7 +19,14 @@ export interface MaybePrivate {
  */
 export function tabHooksFor(hooks: TabManagerHooks, isPrivate: boolean): TabManagerHooks {
   return isPrivate
-    ? { isBookmarked: hooks.isBookmarked, isFavorite: hooks.isFavorite, contextMenu: hooks.contextMenu, hasPasswords: hooks.hasPasswords }
+    ? {
+        isBookmarked: hooks.isBookmarked,
+        isFavorite: hooks.isFavorite,
+        contextMenu: hooks.contextMenu,
+        hasPasswords: hooks.hasPasswords,
+        // The link peek uses the window's private session and records nothing (ADR-027).
+        peekLink: hooks.peekLink,
+      }
     : hooks;
 }
 

@@ -1232,3 +1232,46 @@ Téléphone : « Version ordinateur » (menu de la page, par onglet, durée de l
 dans les iframes ni en vue scindée ; images absentes sur le téléphone ; le jeton mobile n'est pas secret
 pour la page (elle voit le script) : il ne fait que relier une réponse à la demande, la page ne pouvant de
 toute façon montrer que son propre contenu.
+
+## ADR-027 — Aperçu des liens (« link peek »)
+
+**Contexte.** Comme Arc : regarder un lien sans quitter la page, dans une carte flottante, puis le garder
+(onglet, vue scindée) ou le fermer. Sur le bureau, l'interface ne peut pas dessiner au-dessus des pages
+(ADR-010) et les pages n'ont ni preload ni IPC (ADR-003).
+
+**Bureau** (`src/main/peek.ts`, géométrie pure `src/shared/peek.ts`, carte `src/renderer/src/overlay/LinkPeekPanel.svelte`).
+- La page prévisualisée est une `WebContentsView` à part, durcie comme un onglet (sandbox, sans preload,
+  `hardenWebContents` : bloqueur de fenêtres, schémas web seulement ; `attachTabPrivacy` : boucliers,
+  HTTPS-Only, GPC) dans la **session de l'onglet source** (fenêtre privée : sa session privée ; espace isolé :
+  sa partition). Pas de barre d'autorisation dans la carte : toute demande de permission y est refusée.
+- Empilement : le calque overlay s'ouvre (`OverlayKind` « link-peek », voile assombri sans capture floutée)
+  et dessine la carte (≈ 80 % de la zone des pages, centrée, coins arrondis, ombre) avec son en-tête
+  (titre, adresse, « Ouvrir dans un onglet », « Ouvrir en vue scindée », « Fermer ») ; la vue de la page est
+  posée **au-dessus** de l'overlay, dans la carte sous l'en-tête (`Overlay.setTopView` garde cet ordre quand
+  l'overlay se remonte). L'overlay ne nomme qu'une action (IPC `peek:action`, validée) : main garde l'URL.
+- Déclencheurs : entrée « Aperçu du lien » du menu contextuel (ADR-021) et Maj+clic. Electron 44 ne donne
+  pas les modificateurs dans `before-mouse-event` : un Maj+clic se reconnaît à la disposition `new-window`
+  **sans `features`** que Chromium donne au lien, après un vrai clic gauche que main a vu (même geste que le
+  bloqueur, consommé une fois). Un script peut imiter la disposition, mais n'obtient alors qu'un aperçu,
+  moins qu'un onglet que le même geste ouvrirait ; `window.open` avec `features` (fenêtres de connexion) et
+  `target=_blank` gardent leur comportement (un onglet).
+- Toute URL passe par `isPeekableUrl` (= `isPageOpenableUrl` : http(s), about:blank). Une seule carte à la
+  fois ; fermer (Échap dans la page ou la carte, clic hors de la carte, autre UI de l'overlay comme Ctrl+K)
+  détruit la page. Focus rendu à la page source.
+- « Ouvrir dans un onglet » : la page vivante devient un onglet à côté de la source **sans rechargement**
+  (`TabManager.adoptPage`, même session ; historique de navigation conservé) ; si la page n'a pas encore
+  d'adresse validée, l'URL est rouverte. « Ouvrir en vue scindée » fait de même puis `openSplit`.
+- Historique : rien n'est enregistré pendant l'aperçu (ni historique, ni session) ; une fois promue en onglet
+  d'une fenêtre normale, la page compte comme une visite. Fenêtre privée : jamais rien.
+- Pas de commande de registre : la seule action utile (fermer) a déjà Échap, et la palette remplace l'aperçu.
+
+**Téléphone** (`mobile/src/components/PeekSheet.tsx`). L'appui long sur un lien propose « Aperçu » : une
+feuille du bas avec une seconde WebView (mêmes propriétés de sécurité et règles de navigation que l'onglet,
+même mode privé, **aucun** script injecté ni message accepté). En-tête : titre, adresse, « Ouvrir dans un
+onglet » (rouvre l'adresse affichée : une WebView ne change pas d'arbre), fermer ; glisser l'en-tête vers le
+bas (au-delà d'un quart de la hauteur ou lancé, `shouldDismissSheet`) ou toucher le fond ferme ; retour
+Android aussi. Animations Reanimated sur une seule valeur : `translateY` de la feuille, opacité du fond sur une
+vue séparée ; aucune animation de mise en page (entering/exiting) dans ce composant.
+
+**Limites.** Pas de menu contextuel, de recherche ni de zoom dans l'aperçu (bureau) ; un Maj+clic que Chromium
+ne transforme pas en `new-window` (lien `download`, certains liens d'iframes) garde son comportement.

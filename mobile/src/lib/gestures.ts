@@ -93,3 +93,18 @@ export function nextCollapse(state: CollapseState, y: number, contentHeight: num
   if (!goingDown && anchorY - y >= COLLAPSE_DELTA) collapsed = false;
   return { collapsed, anchorY, lastY: y };
 }
+
+/** Link peek sheet (ADR-027): dragged down past this share of its height, or flung down, it closes. */
+export const SHEET_DISMISS_RATIO = 0.25;
+export const SHEET_DISMISS_VELOCITY = 900;
+
+/**
+ * Whether releasing a downward drag of the link peek sheet (at `translationY`, moving at
+ * `velocityY` pt/s) dismisses it; otherwise it springs back. An upward fling always keeps it.
+ */
+export function shouldDismissSheet(translationY: number, velocityY: number, sheetHeight: number): boolean {
+  "worklet";
+  if (velocityY < -SHEET_DISMISS_VELOCITY / 2) return false;
+  if (velocityY > SHEET_DISMISS_VELOCITY) return true;
+  return sheetHeight > 0 && translationY > sheetHeight * SHEET_DISMISS_RATIO;
+}

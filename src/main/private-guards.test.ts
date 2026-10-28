@@ -7,8 +7,10 @@ const win = (name: string, isPrivate = false) => ({ name, isPrivate });
 
 describe("private windows never persist", () => {
   it("record no history: visits and page titles/favicons are not passed on", () => {
-    const hooks: TabManagerHooks = { onVisit: vi.fn(), onPageInfo: vi.fn(), isBookmarked: vi.fn(() => true), pageReady: vi.fn(), hasPasswords: vi.fn(() => true) };
+    const hooks: TabManagerHooks = { onVisit: vi.fn(), onPageInfo: vi.fn(), isBookmarked: vi.fn(() => true), pageReady: vi.fn(), hasPasswords: vi.fn(() => true), peekLink: vi.fn() };
     const hooksForPrivate = tabHooksFor(hooks, true);
+    // The link peek works in private windows (it records nothing itself, ADR-027).
+    expect(hooksForPrivate.peekLink).toBe(hooks.peekLink);
     expect(hooksForPrivate.onVisit).toBeUndefined();
     expect(hooksForPrivate.onPageInfo).toBeUndefined();
     // Login forms are not watched (no save prompt), saved passwords can still be filled.

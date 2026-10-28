@@ -73,6 +73,7 @@ import {
 } from "./passwords";
 import { passwordsStatus } from "./passwords/vault";
 import { readerArticle } from "./reader";
+import { isPeekAction, type PeekAction } from "@shared/peek";
 import { startImage } from "./start-image";
 import { registerSyncIpc } from "./sync/ipc";
 import { showTabMenu } from "./tab-menu";
@@ -230,7 +231,10 @@ export function registerIpc(): void {
     c.tabs.setSplitRatios(x as number, y as number),
   );
 
-  on(Channels.layoutBounds, (args) => isBounds(args[0]), (c, bounds) => c.spaces.setBounds(bounds as Bounds));
+  on(Channels.layoutBounds, (args) => isBounds(args[0]), (c, bounds) => {
+    c.spaces.setBounds(bounds as Bounds);
+    c.peek.layout();
+  });
 
   const none = () => true;
   on(Channels.windowMinimize, none, (c) => c.window.minimize());
@@ -271,6 +275,8 @@ export function registerIpc(): void {
   on(Channels.overlayClose, (args) => args[0] === undefined || typeof args[0] === "boolean", (c, restoreFocus) =>
     c.overlay.close(restoreFocus as boolean | undefined),
   );
+  // Link peek (ADR-027): the overlay names an action only; main knows the page and its URL.
+  on(Channels.peekAction, (args) => isPeekAction(args[0]), (c, action) => c.peek.act(action as PeekAction));
   // Settings: the patch is an untrusted object, validated field by field by `sanitizeSettings`.
   const isPatch = (value: unknown) =>
     typeof value === "object" && value !== null && !Array.isArray(value) && JSON.stringify(value).length <= MAX_SETTINGS_PATCH;

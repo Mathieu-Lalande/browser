@@ -53,3 +53,5 @@
 - Mode lecture et version mobile/ordinateur (ADR-026) : Readability en monde isolé (bureau) ou `injectJavaScript`
   (mobile), arbre JSON assaini par `sanitizeReaderArticle` (`src/shared/reader.ts`, jamais d'HTML injecté) ;
   `src/shared/readability-source.ts` est généré (`node scripts/gen-readability.mjs`).
+- Aperçu des liens (ADR-027) : `src/main/peek.ts` (une `WebContentsView` durcie au-dessus du calque overlay, session de
+  l'onglet source, rien d'enregistré), carte `LinkPeekPanel.svelte`, géométrie `src/shared/peek.ts` ; mobile `PeekSheet.tsx`.

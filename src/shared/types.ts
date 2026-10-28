@@ -1,5 +1,6 @@
 import type { FolderId, TabFolder } from "./folders";
 import type { LoadError } from "./load-error";
+import type { PeekState } from "./peek";
 import type { SpaceIcon } from "./spaces";
 
 export type TabId = string;
@@ -180,7 +181,7 @@ export interface Bounds {
 export type UiCommand = "focus-address" | "toggle-sidebar" | "focus-find";
 
 /** Floating UI shown in the overlay layer, above the page (see `src/main/overlay.ts`). */
-export type OverlayKind = "palette" | "downloads" | "site-info" | "password-save" | "password-fill";
+export type OverlayKind = "palette" | "downloads" | "site-info" | "password-save" | "password-fill" | "link-peek";
 
 export interface OverlayRequest {
   kind: OverlayKind;
@@ -190,6 +191,8 @@ export interface OverlayRequest {
   tabId?: TabId;
   /** Password save prompt: the pending capture main keeps (the password never reaches the UI). */
   captureId?: string;
+  /** Link peek (ADR-027): the card's header and geometry when it opens (updates: `peek.onState`). */
+  peek?: PeekState;
 }
 
 /** Popovers stay light: no dimmed, blurred backdrop behind them (the palette has one). */

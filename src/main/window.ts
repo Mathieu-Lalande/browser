@@ -12,6 +12,7 @@ import { setExtensionsNotifier } from "./extensions";
 import type { DownloadViewer } from "./downloads/list";
 import { favoriteFavicon, favoriteTiles, setArchiveNotifier, setFavoritesRefresh } from "./organize";
 import { Overlay } from "./overlay";
+import { LinkPeek } from "./peek";
 import { watchPasswordForms } from "./passwords";
 import { hasPasswordsFor, setPasswordsNotifier } from "./passwords/vault";
 import { createPrivateSession, wipePrivateSession } from "./private";
@@ -122,6 +123,8 @@ export class BrowserController {
   readonly spaces: SpaceManager;
   /** Floating UI above the pages (command palette). */
   readonly overlay: Overlay;
+  /** The link previewed in a floating card above the page, if any (ADR-027). */
+  readonly peek: LinkPeek;
   /**
    * Private window: never written to the profile (history, session, permissions…). Anything that
    * persists per window checks this; per-session hooks (downloads) use `isPrivateSession` (./private).
@@ -188,6 +191,7 @@ export class BrowserController {
           ...tabHooks,
           contextMenu: (tabId, params) => pageMenu?.(this, tabId, params),
           pageReady: (tabId, contents) => watchPasswordForms(this, tabId, contents),
+          peekLink: (tabId, url) => this.peek.open(tabId, url),
         },
         this.isPrivate,
       ),
@@ -214,7 +218,9 @@ export class BrowserController {
         if (page) layers.push({ contents: page, bounds: this.tabs.viewBounds });
         return layers;
       },
+      dismissed: () => this.peek.close(),
     });
+    this.peek = new LinkPeek(this);
 
     // macOS three-finger swipe (when "Swipe between pages" allows it): previous/next space, like
     // the two-finger swipe on the sidebar (ADR-022). Fingers to the left: the next space.

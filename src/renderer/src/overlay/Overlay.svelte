@@ -5,6 +5,7 @@
   import { applyTheme } from "../lib/theme";
   import CommandPalette from "./CommandPalette.svelte";
   import DownloadsPanel from "./DownloadsPanel.svelte";
+  import LinkPeekPanel from "./LinkPeekPanel.svelte";
   import PasswordPanel from "./PasswordPanel.svelte";
   import SiteInfoPanel from "./SiteInfoPanel.svelte";
 
@@ -79,7 +80,7 @@
     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
     <div
       class="scrim"
-      class:clear={isPopover(current.request.kind)}
+      class:clear={isPopover(current.request.kind) && current.request.kind !== "link-peek"}
       onmousedown={(event) => event.target === event.currentTarget && close(true)}
     >
       {#if current.request.kind === "palette"}
@@ -90,6 +91,8 @@
         <SiteInfoPanel anchor={current.request.anchor} tabId={current.request.tabId} onClose={close} />
       {:else if current.request.kind === "password-save"}
         <PasswordPanel kind="save" anchor={current.request.anchor} captureId={current.request.captureId} onClose={close} />
+      {:else if current.request.kind === "link-peek" && current.request.peek}
+        <LinkPeekPanel initial={current.request.peek} onClose={close} />
       {:else if current.request.kind === "password-fill"}
         <PasswordPanel kind="fill" anchor={current.request.anchor} tabId={current.request.tabId} onClose={close} />
       {/if}

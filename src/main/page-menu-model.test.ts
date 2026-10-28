@@ -50,7 +50,7 @@ describe("page context menu", () => {
   it("opens web links in every way, spaces included", () => {
     const menu = buildPageMenu(params({ linkURL: "https://example.com/a", linkText: "A" }), context());
     expect(ids(menu)).toEqual(
-      expect.arrayContaining(["link-open-tab", "link-open-background", "link-open-split", "link-open-space", "link-open-private", "link-copy", "link-copy-text"]),
+      expect.arrayContaining(["link-peek", "link-open-tab", "link-open-background", "link-open-split", "link-open-space", "link-open-private", "link-copy", "link-copy-text"]),
     );
     expect(item(menu, "link-open-space")?.submenu?.map((entry) => ("id" in entry ? entry.id : ""))).toEqual(["link-open-space:s2"]);
     expect(ids(menu)).not.toContain("page-back");
@@ -59,7 +59,7 @@ describe("page context menu", () => {
   it("never opens file:, javascript: or internal links", () => {
     for (const linkURL of ["file:///etc/passwd", "javascript:alert(1)", "browser://settings", "data:text/html,x"]) {
       const menu = ids(buildPageMenu(params({ linkURL, linkText: "x" }), context()));
-      expect(menu.filter((id) => id.startsWith("link-open"))).toEqual([]);
+      expect(menu.filter((id) => id.startsWith("link-open") || id === "link-peek")).toEqual([]);
     }
     expect(ids(buildPageMenu(params({ linkURL: "javascript:alert(1)" }), context()))).not.toContain("link-copy");
   });

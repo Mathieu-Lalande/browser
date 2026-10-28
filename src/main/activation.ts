@@ -18,6 +18,10 @@ export interface InputLike {
   type: string;
   key?: string;
   isAutoRepeat?: boolean;
+  /** Mouse events: "left", "middle", "right". */
+  button?: string;
+  /** Electron's modifier names ("shift", "control", "meta"…). */
+  modifiers?: string[];
 }
 
 const ACTIVATING = new Set(["mouseDown", "keyDown", "rawKeyDown", "touchStart", "gestureTap", "gestureTapDown"]);
@@ -29,16 +33,40 @@ export function isActivatingInput(input: InputLike): boolean {
   return !(input.key && MODIFIERS.has(input.key));
 }
 
+const OTHER_MODIFIERS = new Set(["control", "ctrl", "alt", "meta", "command", "cmd"]);
+
+/**
+ * Whether a trusted input may be the Shift+click of a link peek (ADR-027): a left press. Electron's
+ * `before-mouse-event` carries no modifiers (checked with Electron 44): Shift itself is then known
+ * from Chromium's `new-window` disposition, which is safe here since a peek can do less than the
+ * tab the same gesture could open anyway. Should modifiers be reported, they must be Shift alone.
+ */
+export function isPeekGesture(input: InputLike): boolean {
+  if (input.type !== "mouseDown" || input.button !== "left") return false;
+  if (!input.modifiers) return true;
+  const modifiers = input.modifiers.map((name) => name.toLowerCase());
+  return modifiers.includes("shift") && !modifiers.some((name) => OTHER_MODIFIERS.has(name));
+}
+
 /** The last trusted input of one tab, and what it was already used for. */
 export class UserActivation {
   private at = Number.NEGATIVE_INFINITY;
   private used = 0;
   private lastExternal = Number.NEGATIVE_INFINITY;
+  private peek = false;
 
-  /** A trusted press reached the page: a fresh gesture. */
-  record(now: number): void {
+  /** A trusted press reached the page: a fresh gesture (`peek`: a Shift+click, `isPeekGesture`). */
+  record(now: number, peek = false): void {
     this.at = now;
     this.used = 0;
+    this.peek = peek;
+  }
+
+  /** May the fresh gesture (a left click, `isPeekGesture`) open a link peek? Uses the gesture up. */
+  consumePeek(now: number): boolean {
+    if (!this.peek || !this.available(now)) return false;
+    this.used++;
+    return true;
   }
 
   /** May the page open a tab now? Uses the gesture up. */
