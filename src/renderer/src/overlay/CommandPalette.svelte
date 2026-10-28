@@ -2,6 +2,7 @@
   import { commandAccelerator, shortcutKeys, type CommandDefinition } from "@shared/commands";
   import { buildPalette, type PaletteItem } from "@shared/palette";
   import { mergeSuggestions, type Suggestion } from "@shared/search";
+  import type { ArchivedTab } from "@shared/archive";
   import type { Bookmark } from "@shared/types";
   import { api, browser } from "../lib/browser.svelte";
   import { sync } from "../lib/sync.svelte";
@@ -23,6 +24,7 @@
   /** A destructive command waiting for confirmation (replaces the results). */
   let confirming = $state<CommandDefinition | null>(null);
   let bookmarks: Bookmark[] = [];
+  let archived = $state<ArchivedTab[]>([]);
   let request = 0;
 
   const activeTab = $derived(browser.activeTab);
@@ -35,6 +37,7 @@
       context: { activeTab },
       // Private windows open them like any link, but the list itself is the account's.
       remoteTabs: sync.remoteTabs,
+      archivedTabs: archived,
     }),
   );
   /** Sections with the flat index of their first row (keyboard selection is flat). */
@@ -53,6 +56,8 @@
 
   // Bookmarks are few: fetched once per opening (the palette is remounted), filtered locally while typing.
   api.bookmarks.list().then((list) => (bookmarks = list), () => {});
+  // The archive too (ADR-022): searched locally, the palette is remounted at each opening.
+  api.archive.list().then((list) => (archived = list), () => {});
 
   $effect(() => {
     input?.focus();
@@ -92,6 +97,9 @@
     switch (item.kind) {
       case "tab":
         api.tabs.activate(item.tab.id);
+        break;
+      case "archived":
+        api.archive.restore(item.archiveId);
         break;
       case "command":
         if (item.command.confirm) {
@@ -165,6 +173,7 @@
     history: "Ouvrir",
     navigate: "Ouvrir",
     remote: "Ouvrir",
+    archived: "Restaurer",
     search: "Rechercher",
   };
 </script>
@@ -237,7 +246,7 @@
                   <Icon name="cloud" size={16} />
                 {:else if item.kind === "tab"}
                   <Favicon src={item.tab.favicon} loading={item.tab.isLoading} />
-                {:else if item.kind === "bookmark" || item.kind === "history"}
+                {:else if item.kind === "bookmark" || item.kind === "history" || item.kind === "archived"}
                   <Favicon src={item.favicon} />
                 {/if}
               </span>
@@ -249,6 +258,8 @@
               </span>
               {#if item.kind === "bookmark"}
                 <span class="badge" title="Favori"><Icon name="star" size={12} filled /></span>
+              {:else if item.kind === "archived"}
+                <span class="badge" title="Onglet archivé"><Icon name="archive" size={12} /></span>
               {/if}
               {#if item.kind === "command" && shortcut(item.command).length}
                 <span class="keys" aria-label="Raccourci">

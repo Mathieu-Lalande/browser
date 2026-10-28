@@ -4,6 +4,7 @@
   import { cubicOut } from "svelte/easing";
   import { api, browser } from "./lib/browser.svelte";
   import DownloadsPage from "./components/downloads/DownloadsPage.svelte";
+  import ArchivePage from "./components/folders/ArchivePage.svelte";
   import FindBar from "./components/FindBar.svelte";
   import HttpsOnlyPage from "./components/HttpsOnlyPage.svelte";
   import LoadErrorPage from "./components/LoadErrorPage.svelte";
@@ -267,6 +268,8 @@
         <SettingsPage />
       {:else if internalPage === "downloads"}
         <DownloadsPage />
+      {:else if internalPage === "archive"}
+        <ArchivePage />
       {:else if browser.activeTab?.interstitial}
         <HttpsOnlyPage tab={browser.activeTab} />
       {:else if browser.activeTab?.loadError}

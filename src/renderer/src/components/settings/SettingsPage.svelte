@@ -11,9 +11,12 @@
     type SidebarPosition,
     type StartBackground,
     type TabSleepDelay,
+    type TabArchiveDelay,
     type ThemeMode,
     type UiFont,
+    ARCHIVE_DELAY_OPTIONS,
   } from "@shared/settings";
+  import { api } from "../../lib/browser.svelte";
   import { FONT_STACKS, backdrop } from "@shared/theme";
   import { SEARCH_ENGINES } from "@shared/url";
   import { settings } from "../../lib/settings.svelte";
@@ -473,6 +476,20 @@
             onchange={(sleepTabsAfter) => update({ behavior: { sleepTabsAfter } })}
           />
         </Row>
+        <Row
+          label="Archiver les onglets inactifs après"
+          hint="L'onglet est fermé et rangé dans les onglets archivés, d'où il se restaure. Jamais pour un onglet épinglé, favori, qui joue du son ou dans une vue scindée."
+        >
+          <Segmented
+            label="Archiver les onglets inactifs après"
+            value={s.behavior.archiveTabsAfter}
+            options={ARCHIVE_DELAY_OPTIONS.map((option) => ({ value: option.value as TabArchiveDelay, label: option.label }))}
+            onchange={(archiveTabsAfter) => update({ behavior: { archiveTabsAfter } })}
+          />
+        </Row>
+        <div class="archive-link">
+          <button class="link" onclick={() => api.commands.run("open-archive")}><Icon name="archive" size={12} /> Voir les onglets archivés</button>
+        </div>
       </Section>
 
       <Section
@@ -526,6 +543,23 @@
 </div>
 
 <style>
+  .archive-link {
+    display: flex;
+    justify-content: flex-end;
+    padding: 4px 0 0;
+  }
+  .link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    color: var(--accent-text);
+    font-size: 12.5px;
+  }
+  .link:hover {
+    background: var(--surface-hover);
+  }
   .settings {
     display: flex;
     height: 100%;

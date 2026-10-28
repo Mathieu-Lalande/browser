@@ -1,3 +1,4 @@
+import type { ArchivedTab } from "./archive";
 import { COMMANDS, commandLabel, isCommandAvailable, type CommandContext, type CommandDefinition } from "./commands";
 import { fuzzyMatch, type Range } from "./fuzzy";
 import type { Suggestion } from "./search";
@@ -23,12 +24,14 @@ export type PaletteItem = Row &
     | { kind: "bookmark" | "history"; url: string; favicon: string | null }
     /** A tab open on another synced device (ADR-019). */
     | { kind: "remote"; url: string; device: string }
+    /** An archived tab (ADR-022): choosing it restores it. */
+    | { kind: "archived"; archiveId: string; url: string; favicon: string | null }
     /** "Aller à …" (the input is an address) or "Rechercher sur le web « … »". */
     | { kind: "navigate" | "search"; url: string }
   );
 
 export interface PaletteSection {
-  id: "go" | "tabs" | "commands" | "suggestions" | "remote" | "web";
+  id: "go" | "tabs" | "commands" | "suggestions" | "remote" | "archived" | "web";
   /** Null for sections without a header. */
   title: string | null;
   items: PaletteItem[];
@@ -43,6 +46,8 @@ export interface PaletteInput {
   context: CommandContext;
   /** Tabs of the user's other devices (sync), most recently updated device first. */
   remoteTabs?: readonly RemoteTabInput[];
+  /** Archived tabs, most recently archived first (ADR-022). */
+  archivedTabs?: readonly ArchivedTab[];
 }
 
 export interface RemoteTabInput {
@@ -52,6 +57,8 @@ export interface RemoteTabInput {
 }
 
 export const REMOTE_TABS_TITLE = "Onglets de mes autres appareils";
+export const ARCHIVED_TABS_TITLE = "Onglets archivés";
+const MAX_ARCHIVED = 4;
 
 const MAX_TABS = 6;
 const MAX_REMOTE = 6;
@@ -148,8 +155,25 @@ function remoteRows(query: string, remote: readonly RemoteTabInput[], open: Read
   return rows;
 }
 
+/** Archived tabs: the most recent ones before typing, ranked matches after. */
+function archivedRows(query: string, archived: readonly ArchivedTab[]): { item: PaletteItem; score: number }[] {
+  const rows: { item: PaletteItem; score: number }[] = [];
+  for (const entry of archived) {
+    const title = entry.title || displayUrl(entry.url);
+    const detail = shortUrl(entry.url);
+    const base = { kind: "archived" as const, key: `archived:${entry.id}`, archiveId: entry.id, url: entry.url, favicon: entry.favicon, title, detail };
+    if (!query) {
+      rows.push({ item: { ...base, titleRanges: noRanges, detailRanges: noRanges }, score: 0 });
+      continue;
+    }
+    const match = matchRow(query, title, detail);
+    if (match) rows.push({ item: { ...base, titleRanges: match.titleRanges, detailRanges: match.detailRanges }, score: match.score * DETAIL_WEIGHT });
+  }
+  return rows;
+}
+
 /** Sections to show: recent tabs and every action before typing, ranked matches after. */
-export function buildPalette({ query, tabs, activeTabId, suggestions, context, remoteTabs = [] }: PaletteInput): PaletteSection[] {
+export function buildPalette({ query, tabs, activeTabId, suggestions, context, remoteTabs = [], archivedTabs = [] }: PaletteInput): PaletteSection[] {
   const text = query.trim();
   const openUrls = new Set(tabs.map((tab) => tab.url));
   if (!text) {
@@ -161,6 +185,7 @@ export function buildPalette({ query, tabs, activeTabId, suggestions, context, r
     const sections: PaletteSection[] = [
       { id: "tabs", title: "Onglets récents", items: recent },
       { id: "remote", title: REMOTE_TABS_TITLE, items: remoteRows("", remoteTabs, openUrls).slice(0, MAX_REMOTE).map(({ item }) => item) },
+      { id: "archived", title: ARCHIVED_TABS_TITLE, items: archivedRows("", archivedTabs).slice(0, MAX_ARCHIVED).map(({ item }) => item) },
       { id: "commands", title: "Actions", items: commandRows("", context).map(({ item }) => item) },
     ];
     return sections.filter((section) => section.items.length > 0);
@@ -206,6 +231,7 @@ export function buildPalette({ query, tabs, activeTabId, suggestions, context, r
     { id: "commands" as const, title: "Actions", rows: commands },
     { id: "suggestions" as const, title: "Favoris et historique", rows: pages },
     { id: "remote" as const, title: REMOTE_TABS_TITLE, rows: remoteRows(text, remoteTabs, openUrls).sort(byScore).slice(0, MAX_REMOTE) },
+    { id: "archived" as const, title: ARCHIVED_TABS_TITLE, rows: archivedRows(text, archivedTabs).sort(byScore).slice(0, MAX_ARCHIVED) },
   ]
     .filter((section) => section.rows.length > 0)
     .map((section) => ({ ...section, best: Math.max(...section.rows.map((row) => row.score)) }))

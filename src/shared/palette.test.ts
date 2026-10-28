@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildPalette, type PaletteInput } from "./palette";
+import { ARCHIVED_TABS_TITLE, buildPalette, type PaletteInput } from "./palette";
 import type { TabState } from "./types";
 
 const tab = (id: string, title: string, url: string, lastActiveAt = 0): TabState => ({
@@ -100,5 +100,24 @@ describe("buildPalette", () => {
     const pages = sections.find((section) => section.id === "suggestions");
     expect(pages?.items).toHaveLength(1);
     expect(pages?.items[0]).toMatchObject({ kind: "history", url: "https://git-scm.com/", titleRanges: [[0, 3]] });
+  });
+});
+
+describe("archived tabs in the palette (ADR-022)", () => {
+  const archived = [
+    { id: "a1", url: "https://recettes.fr/crepes", title: "Recette des crêpes", favicon: null, spaceId: null, archivedAt: 2 },
+    { id: "a2", url: "https://docs.dev/api", title: "Documentation API", favicon: null, spaceId: null, archivedAt: 1 },
+  ];
+  const input = { tabs: [], activeTabId: null, suggestions: [], context: {}, archivedTabs: archived };
+
+  it("lists the most recent ones before typing, in their own section", () => {
+    const section = buildPalette({ ...input, query: "" }).find((candidate) => candidate.id === "archived");
+    expect(section?.title).toBe(ARCHIVED_TABS_TITLE);
+    expect(section?.items.map((item) => item.key)).toEqual(["archived:a1", "archived:a2"]);
+  });
+
+  it("ranks matches when typing", () => {
+    const section = buildPalette({ ...input, query: "documentation" }).find((candidate) => candidate.id === "archived");
+    expect(section?.items.map((item) => (item.kind === "archived" ? item.archiveId : ""))).toEqual(["a2"]);
   });
 });

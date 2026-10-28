@@ -1,6 +1,9 @@
 <script lang="ts">
   import { cubicOut } from "svelte/easing";
   import { fly } from "svelte/transition";
+  import { dropZone, resolveDrop, sidebarRows, type DragItem, type DropResult, type SidebarRow } from "@shared/folders";
+  import { isFavoriteUrl } from "@shared/favorites";
+  import { SpaceSwipe } from "@shared/space-swipe";
   import type { SpaceId, TabState } from "@shared/types";
   import { displayUrl } from "@shared/url";
   import { api, browser } from "../lib/browser.svelte";
@@ -15,6 +18,8 @@
   import SpaceEditor from "./spaces/SpaceEditor.svelte";
   import SpaceSwitcher from "./spaces/SpaceSwitcher.svelte";
   import SplitGroup from "./split/SplitGroup.svelte";
+  import FavoritesGrid from "./folders/FavoritesGrid.svelte";
+  import FolderEditor from "./folders/FolderEditor.svelte";
 
   /**
    * `windowControls`: draw the window buttons in the title bar (Windows/Linux, see App): at its
@@ -48,21 +53,217 @@
     previousIndex = index;
   });
 
-  /** Regular tabs, with the tabs of a split gathered in one entry (in pane order) at the place of its first tab. */
-  type Entry = { key: string; tab: TabState } | { key: string; split: TabState[] };
+  /**
+   * The tab tree (ADR-022): folders and regular tabs, depth first (in each container: sub-folders,
+   * then tabs). The tabs of a split are gathered in one entry (in pane order) at the place of its first tab.
+   */
+  const folders = $derived(browser.state.folders ?? []);
+  const rows = $derived(
+    sidebarRows(
+      browser.state.tabs.map((item) => ({ id: item.id, pinned: item.isPinned, folderId: item.folderId ?? null })),
+      folders,
+      browser.state.activeTabId,
+    ),
+  );
+  type Entry =
+    | { key: string; index: number; depth: number; tab: TabState }
+    | { key: string; index: number; depth: number; split: TabState[] }
+    | { key: string; index: number; depth: number; folder: Extract<SidebarRow, { kind: "folder" }> };
   const entries = $derived.by((): Entry[] => {
     const splitIds = browser.state.split?.tabIds ?? [];
     const members = splitIds.map((id) => browser.regularTabs.find((item) => item.id === id)).filter((item) => item !== undefined);
     const list: Entry[] = [];
     let placed = false;
-    for (const item of browser.regularTabs) {
-      if (!splitIds.includes(item.id) || members.length < 2) list.push({ key: item.id, tab: item });
+    rows.forEach((row, index) => {
+      if (row.kind === "folder") {
+        list.push({ key: `folder-${row.folder.id}`, index, depth: row.depth, folder: row });
+        return;
+      }
+      const item = browser.state.tabs.find((candidate) => candidate.id === row.id);
+      if (!item) return;
+      if (!splitIds.includes(item.id) || members.length < 2) list.push({ key: item.id, index, depth: row.depth, tab: item });
       else if (!placed) {
         placed = true;
-        list.push({ key: `split-${members[0].id}`, split: members });
+        list.push({ key: `split-${members[0].id}`, index, depth: row.depth, split: members });
       }
-    }
+    });
     return list;
+  });
+
+  /** Folder whose edit popover is open. */
+  let editingFolder = $state<string | null>(null);
+  const editedFolder = $derived(rows.find((row) => row.kind === "folder" && row.folder.id === editingFolder) as Extract<SidebarRow, { kind: "folder" }> | undefined);
+
+  // --- Drag and drop (pointer events): tabs and folders in the tree, tabs onto the favorites ----
+
+  /** Pixels the pointer must travel before a press becomes a drag. */
+  const DRAG_THRESHOLD = 5;
+  let press: { x: number; y: number; item: DragItem; pointerId: number; label: string } | null = null;
+  let drag = $state<{ item: DragItem; label: string; x: number; y: number } | null>(null);
+  let drop = $state<DropResult | null>(null);
+  let overFavorites = $state(false);
+  let favoritesArea = $state<HTMLElement>();
+  /** The click that ends a drag must not activate the row under the pointer. */
+  let swallowClick = false;
+
+  const draggedTab = $derived(drag?.item.kind === "tab" ? browser.state.tabs.find((item) => item.id === drag!.item.id) : undefined);
+  const canFavorite = $derived(!browser.isPrivate && !!draggedTab && isFavoriteUrl(draggedTab.url));
+
+  function onRowPointerDown(event: PointerEvent): void {
+    if (event.button !== 0 || drag) return;
+    const target = event.target as HTMLElement;
+    // Buttons inside a row (close, mute, chevron, more) keep their own click.
+    if (target.closest("button, input")) return;
+    const row = target.closest<HTMLElement>("[data-drag-kind]");
+    if (!row) return;
+    const kind = row.dataset.dragKind as DragItem["kind"];
+    press = { x: event.clientX, y: event.clientY, item: { kind, id: row.dataset.dragId! }, pointerId: event.pointerId, label: row.dataset.dragLabel ?? "" };
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", cancelDrag);
+    window.addEventListener("keydown", onDragKey, true);
+  }
+
+  function onPointerMove(event: PointerEvent): void {
+    if (!press || event.pointerId !== press.pointerId) return;
+    if (!drag) {
+      if (Math.hypot(event.clientX - press.x, event.clientY - press.y) < DRAG_THRESHOLD) return;
+      drag = { item: press.item, label: press.label, x: event.clientX, y: event.clientY };
+      editingFolder = null;
+    }
+    drag.x = event.clientX;
+    drag.y = event.clientY;
+    const grid = favoritesArea?.querySelector<HTMLElement>("[data-drop=favorites]")?.getBoundingClientRect();
+    overFavorites = canFavorite && !!grid && event.clientY >= grid.top - 4 && event.clientY <= grid.bottom + 4 && event.clientX >= grid.left && event.clientX <= grid.right;
+    drop = overFavorites ? null : dropAt(event.clientY);
+    autoScroll(event.clientY);
+  }
+
+  /** The drop under a vertical position of the tree. */
+  function dropAt(y: number): DropResult | null {
+    if (!drag || !tabList) return null;
+    const elements = [...tabList.querySelectorAll<HTMLElement>("[data-row-index]")];
+    for (const element of elements) {
+      const rect = element.getBoundingClientRect();
+      if (y < rect.top || y > rect.bottom) continue;
+      const index = Number(element.dataset.rowIndex);
+      const row = rows[index];
+      if (!row) return null;
+      const zone = dropZone(row, (y - rect.top) / Math.max(1, rect.height), drag.item.kind);
+      return resolveDrop(rows, folders, drag.item, index, zone);
+    }
+    const last = elements.at(-1)?.getBoundingClientRect();
+    if (last && y > last.bottom) return resolveDrop(rows, folders, drag.item, rows.length, "after");
+    const first = elements[0]?.getBoundingClientRect();
+    if (first && y < first.top && y > first.top - 24) return resolveDrop(rows, folders, drag.item, 0, "before");
+    return null;
+  }
+
+  function autoScroll(y: number): void {
+    if (!tabList) return;
+    const rect = tabList.getBoundingClientRect();
+    if (y < rect.top + 24) tabList.scrollTop -= 8;
+    else if (y > rect.bottom - 24) tabList.scrollTop += 8;
+  }
+
+  function onPointerUp(event: PointerEvent): void {
+    if (press && event.pointerId !== press.pointerId) return;
+    if (drag) {
+      swallowClick = true;
+      setTimeout(() => (swallowClick = false), 0);
+      const { item } = drag;
+      if (overFavorites && item.kind === "tab") api.favorites.add(item.id);
+      else if (drop?.kind === "tab") api.tabs.place(item.id, drop.folderId, drop.beforeId);
+      else if (drop?.kind === "folder") api.folders.move(item.id, drop.parentId, drop.index);
+    }
+    cancelDrag();
+  }
+
+  function onDragKey(event: KeyboardEvent): void {
+    if (event.key !== "Escape" || !drag) return;
+    event.preventDefault();
+    event.stopPropagation();
+    cancelDrag();
+  }
+
+  function cancelDrag(): void {
+    press = null;
+    drag = null;
+    drop = null;
+    overFavorites = false;
+    window.removeEventListener("pointermove", onPointerMove);
+    window.removeEventListener("pointerup", onPointerUp);
+    window.removeEventListener("pointercancel", cancelDrag);
+    window.removeEventListener("keydown", onDragKey, true);
+  }
+
+  function onTreeClickCapture(event: MouseEvent): void {
+    if (!swallowClick) return;
+    event.preventDefault();
+    event.stopPropagation();
+    swallowClick = false;
+  }
+
+  /** Where the insertion line goes, relative to the tree's content. */
+  const indicator = $derived.by(() => {
+    if (!drop || !tabList || drop.indicator.edge === "inside") return null;
+    void browser.state;
+    const element = tabList.querySelector<HTMLElement>(`[data-row-index="${drop.indicator.row}"]`);
+    if (!element) return null;
+    const depth = Number(element.dataset.depth ?? 0) + (drop.kind === "folder" && drop.indicator.edge === "after" && rows[drop.indicator.row]?.kind === "folder" && drop.parentId === (rows[drop.indicator.row] as Extract<SidebarRow, { kind: "folder" }>).folder.id ? 1 : 0);
+    const top = element.offsetTop + (drop.indicator.edge === "after" ? element.offsetHeight + 1 : -1);
+    return { top, depth };
+  });
+  const insideRow = $derived(drop?.indicator.edge === "inside" ? drop.indicator.row : -1);
+
+  // --- Two-finger swipe between spaces (ADR-022, logic in @shared/space-swipe) -----------------
+
+  let sidebarElement = $state<HTMLElement>();
+  let swipeOffset = $state(0);
+  let settling = $state(false);
+  const reduceMotion = $derived(settings.current.appearance.reduceMotion);
+
+  $effect(() => {
+    const element = sidebarElement;
+    if (!element) return;
+    const swipe = new SpaceSwipe({ width: element.clientWidth });
+    let endTimer: ReturnType<typeof setTimeout> | undefined;
+    const settle = () => {
+      settling = true;
+      swipeOffset = 0;
+      setTimeout(() => (settling = false), 220);
+    };
+    const onWheel = (event: WheelEvent) => {
+      swipe.setWidth(element.clientWidth);
+      const spaces = browser.state.spaces;
+      const index = spaces.findIndex((space) => space.id === browser.state.activeSpaceId);
+      const bounds = { previous: index > 0, next: index !== -1 && index < spaces.length - 1 };
+      const output = swipe.wheel(
+        { deltaX: event.deltaX, deltaY: event.deltaY, deltaMode: event.deltaMode, shiftKey: event.shiftKey, ctrlKey: event.ctrlKey, time: event.timeStamp },
+        bounds,
+      );
+      clearTimeout(endTimer);
+      endTimer = setTimeout(() => {
+        if (swipe.end(performance.now()).kind === "cancel") settle();
+      }, 160);
+      if (output.kind === "ignore") return;
+      event.preventDefault();
+      if (output.kind === "track") {
+        settling = false;
+        swipeOffset = reduceMotion ? 0 : output.offset;
+      } else if (output.kind === "commit") {
+        const target = spaces[index + output.direction];
+        swipeOffset = 0;
+        if (target) api.spaces.switchTo(target.id);
+      } else if (output.kind === "cancel") {
+        settle();
+      }
+    };
+    element.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      clearTimeout(endTimer);
+      element.removeEventListener("wheel", onWheel);
+    };
   });
 
   /** The tab list's single Tab stop (roving tabindex): the active tab, else the first one. */
@@ -132,7 +333,7 @@
   }
 </script>
 
-<aside class="sidebar">
+<aside class="sidebar" bind:this={sidebarElement}>
   <header class="titlebar drag" class:mac={roomForTrafficLights}>
     {#if windowControls && !controlsAtEnd}<WindowControls />{/if}
     {#if browser.isPrivate}
@@ -194,9 +395,19 @@
 
   <AddressBar bind:this={addressBar} />
 
-  <div class="space-area">
+  <div class="favorites-area" bind:this={favoritesArea}>
+    <FavoritesGrid dropping={overFavorites} dragActive={canFavorite} />
+  </div>
+
+  <div class="space-area" data-testid="space-area">
     {#key browser.state.activeSpaceId}
-      <div class="space-content" in:fly={{ x: direction * 36, duration: 240, easing: cubicOut, opacity: 0 }}>
+      <div
+        class="space-content"
+        class:settling
+        style:transform={swipeOffset ? `translateX(${swipeOffset}px)` : undefined}
+        style:opacity={swipeOffset ? 1 - Math.min(0.5, Math.abs(swipeOffset) / 600) : undefined}
+        in:fly={{ x: direction * 36, duration: 240, easing: cubicOut, opacity: 0 }}
+      >
         {#if browser.activeSpace && browser.state.spaces.length > 1}
           <div class="space-title" style:--dot={browser.activeSpace.color ?? "var(--accent)"}>
             <span class="space-icon"><Icon name={browser.activeSpace.icon} size={16} /></span>
@@ -230,26 +441,83 @@
 
         <div class="divider"></div>
 
-        <button class="new-tab" title={platform.tip("Nouvel onglet", "new-tab")} onclick={newTab}>
-          <Icon name="plus" size={16} /> Nouvel onglet
-        </button>
+        <div class="new-row">
+          <button class="new-tab" title={platform.tip("Nouvel onglet", "new-tab")} onclick={newTab}>
+            <Icon name="plus" size={16} /> Nouvel onglet
+          </button>
+          <button class="icon small" aria-label="Nouveau dossier" title="Nouveau dossier" onclick={() => api.folders.create()}>
+            <Icon name="folder-plus" />
+          </button>
+        </div>
 
+        <!-- Pointer drag and drop of rows; the keyboard has the tab menu's "Déplacer vers le dossier…". -->
         <div
           class="tabs"
+          class:dragging={drag}
           role="tablist"
           aria-label="Onglets"
           aria-orientation="vertical"
           tabindex="-1"
           bind:this={tabList}
           onkeydown={onTabsKeydown}
+          onpointerdown={onRowPointerDown}
+          onclickcapture={onTreeClickCapture}
         >
           {#each entries as entry (entry.key)}
             {#if "split" in entry}
-              <SplitGroup tabs={entry.split} {focusId} />
+              <div class="row" data-row-index={entry.index} data-depth={entry.depth} style:--depth={entry.depth} role="none">
+                <SplitGroup tabs={entry.split} {focusId} />
+              </div>
+            {:else if "folder" in entry}
+              {@const folder = entry.folder.folder}
+              <div
+                class="row folder-row"
+                class:drop-inside={insideRow === entry.index}
+                class:dragged={drag?.item.kind === "folder" && drag.item.id === folder.id}
+                data-row-index={entry.index}
+                data-depth={entry.depth}
+                data-drag-kind="folder"
+                data-drag-id={folder.id}
+                data-drag-label={folder.name}
+                data-folder-id={folder.id}
+                style:--depth={entry.depth}
+                role="none"
+                oncontextmenu={(event) => (event.preventDefault(), (editingFolder = folder.id))}
+              >
+                <button
+                  class="chevron"
+                  aria-expanded={!folder.collapsed}
+                  aria-label={folder.collapsed ? `Déplier le dossier ${folder.name}` : `Replier le dossier ${folder.name}`}
+                  onclick={() => api.folders.update(folder.id, { collapsed: !folder.collapsed })}
+                >
+                  <span class="chevron-icon" class:open={!folder.collapsed}><Icon name="chevron-right" size={12} /></span>
+                  <span class="folder-icon"><Icon name={folder.icon === "folder" && !folder.collapsed ? "folder-open" : folder.icon} size={16} /></span>
+                  <span class="folder-name">{folder.name}</span>
+                  {#if entry.folder.count}<span class="count">{entry.folder.count}</span>{/if}
+                </button>
+                <button class="icon small more" aria-label={`Modifier le dossier ${folder.name}`} title="Modifier le dossier" onclick={() => (editingFolder = editingFolder === folder.id ? null : folder.id)}>
+                  <Icon name="more" size={14} />
+                </button>
+              </div>
             {:else}
-              <TabItem tab={entry.tab} active={entry.tab.id === browser.state.activeTabId} focusable={entry.tab.id === focusId} />
+              <div
+                class="row"
+                class:dragged={drag?.item.kind === "tab" && drag.item.id === entry.tab.id}
+                data-row-index={entry.index}
+                data-depth={entry.depth}
+                data-drag-kind={entry.tab.isPinned ? undefined : "tab"}
+                data-drag-id={entry.tab.id}
+                data-drag-label={entry.tab.title}
+                style:--depth={entry.depth}
+                role="none"
+              >
+                <TabItem tab={entry.tab} active={entry.tab.id === browser.state.activeTabId} focusable={entry.tab.id === focusId} />
+              </div>
             {/if}
           {/each}
+          {#if indicator}
+            <div class="drop-line" style:top="{indicator.top}px" style:--depth={indicator.depth} aria-hidden="true"></div>
+          {/if}
         </div>
       </div>
     {/key}
@@ -257,6 +525,15 @@
 
   {#if editedSpace}
     <SpaceEditor space={editedSpace} onClose={() => (editing = null)} />
+  {/if}
+  {#if editedFolder && !editedSpace}
+    <FolderEditor folder={editedFolder.folder} count={editedFolder.count} onClose={() => (editingFolder = null)} />
+  {/if}
+  {#if drag}
+    <div class="drag-ghost" style:left="{drag.x + 12}px" style:top="{drag.y + 8}px" aria-hidden="true">
+      <Icon name={drag.item.kind === "folder" ? "folder" : overFavorites ? "favorite" : "file"} size={12} />
+      <span>{drag.label}</span>
+    </div>
   {/if}
   <footer class="footer">
     {#if browser.isPrivate}
@@ -462,6 +739,145 @@
   }
   .tabs:focus-visible {
     outline-offset: -2px;
+  }
+  .favorites-area {
+    position: relative;
+  }
+  /* No tiles: takes no room (and no gap), even while its floating drop zone shows. */
+  .favorites-area:not(:has(.tile)) {
+    height: 0;
+    margin-bottom: calc(-1 * var(--sidebar-gap));
+  }
+  .space-content.settling {
+    transition:
+      transform 0.2s var(--ease),
+      opacity 0.2s var(--ease);
+  }
+  .new-row {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .new-row .new-tab {
+    flex: 1;
+  }
+  .tabs {
+    position: relative;
+  }
+  .tabs.dragging {
+    cursor: grabbing;
+  }
+  .row {
+    flex: none;
+    padding-left: calc(var(--depth, 0) * 14px);
+  }
+  .row.dragged {
+    opacity: 0.4;
+  }
+  .folder-row {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    border-radius: var(--radius);
+  }
+  .folder-row:hover {
+    background: var(--surface-hover);
+  }
+  .folder-row.drop-inside {
+    background: color-mix(in oklab, var(--accent) 16%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent-text) 55%, transparent);
+  }
+  .chevron {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    height: calc(var(--tab-height) - 4px);
+    padding: 0 6px 0 4px;
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  .chevron:hover {
+    color: var(--text);
+  }
+  .chevron-icon {
+    display: grid;
+    place-items: center;
+    transition: transform 0.15s var(--ease);
+  }
+  .chevron-icon.open {
+    transform: rotate(90deg);
+  }
+  .folder-icon {
+    display: grid;
+    place-items: center;
+  }
+  .folder-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-align: left;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .count {
+    padding: 0 6px;
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text-faint);
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .folder-row .more {
+    opacity: 0;
+  }
+  .folder-row:hover .more,
+  .folder-row .more:focus-visible {
+    opacity: 1;
+  }
+  /* Insertion indicator: an accent line with a dot, indented to the target's level. */
+  .drop-line {
+    position: absolute;
+    right: 4px;
+    left: calc(6px + var(--depth, 0) * 14px);
+    height: 2px;
+    border-radius: 1px;
+    background: var(--accent-text);
+    pointer-events: none;
+  }
+  .drop-line::before {
+    position: absolute;
+    top: -3px;
+    left: -4px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-text);
+    content: "";
+  }
+  .drag-ghost {
+    position: fixed;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 220px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    background: var(--bg-elevated);
+    box-shadow:
+      0 0 0 1px var(--border),
+      0 8px 20px -6px rgb(0 0 0 / 0.5);
+    color: var(--text);
+    font-size: 12px;
+    pointer-events: none;
+  }
+  .drag-ghost span {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
   .footer {
     display: flex;
