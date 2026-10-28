@@ -286,6 +286,11 @@ export function registerIpc(): void {
     resetSettingsSection(section as Parameters<typeof resetSettingsSection>[0]),
   );
   on(Channels.settingsOpen, none, (c) => c.openSettings());
+  // Only the chrome UI (where the settings page lives) captures shortcuts, never the overlay.
+  ipcMain.on(Channels.shortcutCapture, (event, active: unknown) => {
+    const controller = BrowserController.fromUi(event.sender);
+    if (controller && event.sender === controller.window.webContents && isBoolean(active)) controller.capturingShortcut = active;
+  });
   // The URL comes from the settings, never from the renderer; private windows get nothing (ADR-018).
   ipcMain.handle(Channels.startImage, (event) => {
     const controller = BrowserController.fromUi(event.sender);

@@ -2,7 +2,7 @@
   import type { HistoryEntry } from "@shared/types";
   import { displayUrl } from "@shared/url";
   import { api, browser } from "../lib/browser.svelte";
-  import { commandShortcut, shortcutKeys, commandAccelerator, getCommand, type CommandId } from "@shared/commands";
+  import type { CommandId } from "@shared/commands";
   import { platform } from "../lib/platform.svelte";
   import { settings } from "../lib/settings.svelte";
   import Favicon from "./Favicon.svelte";
@@ -54,9 +54,7 @@
     { id: "toggle-sidebar", label: "barre latérale" },
   ];
   const hints = $derived(
-    HINTS.map((hint) => ({ ...hint, keys: shortcutKeys(commandAccelerator(getCommand(hint.id), platform.name) ?? "", platform.name) })).filter(
-      (hint) => commandShortcut(hint.id, platform.name),
-    ),
+    HINTS.map((hint) => ({ ...hint, keys: platform.keys(hint.id) })).filter((hint) => hint.keys.length > 0),
   );
 
   function submit(event: SubmitEvent): void {

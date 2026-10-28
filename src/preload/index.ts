@@ -3,6 +3,7 @@ import type { DownloadsChange } from "@shared/downloads";
 import { Channels, type BrowserApi } from "@shared/ipc";
 import type { PeekState } from "@shared/peek";
 import type { Settings } from "@shared/settings";
+import type { KeyPress } from "@shared/accelerators";
 import type { SyncStatus } from "@shared/sync/controller";
 import type { BrowserState, OverlayBackdrop, OverlayRequest, UiCommand } from "@shared/types";
 
@@ -141,6 +142,8 @@ const api: BrowserApi = {
     reset: (section) => ipcRenderer.invoke(Channels.settingsReset, section),
     onChanged: (listener) => subscribe<Settings>(Channels.settingsChanged, listener),
     open: () => send(Channels.settingsOpen),
+    captureShortcut: (active) => send(Channels.shortcutCapture, active),
+    onShortcutKey: (listener) => subscribe<KeyPress>(Channels.shortcutKey, listener),
     startImage: () => ipcRenderer.invoke(Channels.startImage),
   },
   find: {

@@ -1,3 +1,11 @@
+import {
+  acceleratorKeys,
+  acceleratorProblem,
+  acceleratorText,
+  normalizeAccelerator,
+  sameAccelerator,
+  type AcceleratorProblem,
+} from "./accelerators";
 import type { TabState } from "./types";
 
 /**
@@ -389,44 +397,188 @@ export function isCommandAvailable(command: CommandDefinition, context: CommandC
   return !command.needsPage || Boolean(tab?.url);
 }
 
-const MAC_SYMBOLS: Record<string, string> = { Cmd: "⌘", Ctrl: "⌃", Alt: "⌥", Shift: "⇧" };
-const OTHER_NAMES: Record<string, string> = { Cmd: "Ctrl", Ctrl: "Ctrl", Alt: "Alt", Shift: "Maj" };
-const KEY_NAMES: Record<string, string> = { "=": "+", Left: "←", Right: "→", Up: "↑", Down: "↓", Plus: "+", Enter: "↵", Escape: "Échap" };
-/** Conventional modifier order: ⌃⌥⇧⌘ on macOS, Ctrl+Alt+Maj elsewhere. */
-const MODIFIER_ORDER = ["Ctrl", "Alt", "Shift", "Cmd"];
-
 /** Keys to display for an accelerator: "CmdOrCtrl+Shift+C" → ["⇧", "⌘", "C"] or ["Ctrl", "Maj", "C"]. */
-export function shortcutKeys(accelerator: string, platform: string): string[] {
-  const parts = accelerator.split(/\+(?!$)/);
-  const key = parts.pop() ?? "";
-  const modifiers = parts.map((part) => {
-    if (/^(CmdOrCtrl|CommandOrControl)$/i.test(part)) return isMac(platform) ? "Cmd" : "Ctrl";
-    if (/^(Cmd|Command|Meta|Super)$/i.test(part)) return "Cmd";
-    if (/^(Ctrl|Control)$/i.test(part)) return "Ctrl";
-    if (/^(Alt|Option)$/i.test(part)) return "Alt";
-    return "Shift";
-  });
-  modifiers.sort((a, b) => MODIFIER_ORDER.indexOf(a) - MODIFIER_ORDER.indexOf(b));
-  const names = isMac(platform) ? MAC_SYMBOLS : OTHER_NAMES;
-  return [...modifiers.map((modifier) => names[modifier]), KEY_NAMES[key] ?? key.toUpperCase()];
-}
+export const shortcutKeys = acceleratorKeys;
 
 /**
  * A shortcut as shown in tooltips and hints, one convention everywhere: "Ctrl+Maj+B" (French
  * "Maj" for Shift) on Windows/Linux, "⇧⌘B" on macOS.
  */
-export function shortcutText(accelerator: string, platform: string): string {
-  return shortcutKeys(accelerator, platform).join(isMac(platform) ? "" : "+");
+export const shortcutText = acceleratorText;
+
+// --- User shortcuts (ADR-028) -----------------------------------------------------------------
+
+/** Groups of the "Raccourcis clavier" settings: every command exactly once. */
+export const COMMAND_GROUPS: readonly { label: string; ids: readonly CommandId[] }[] = [
+  {
+    label: "Onglets et fenêtres",
+    ids: [
+      "new-tab",
+      "new-window",
+      "new-private-window",
+      "close-tab",
+      "duplicate-tab",
+      "toggle-pin",
+      "toggle-mute",
+      "sleep-tab",
+      "sleep-other-tabs",
+      "new-folder",
+      "toggle-split",
+    ],
+  },
+  { label: "Navigation", ids: ["back", "forward", "reload", "focus-address", "copy-url", "find", "find-next", "find-previous"] },
+  {
+    label: "Affichage",
+    ids: [
+      "command-palette",
+      "toggle-sidebar",
+      "toggle-zen",
+      "toggle-reader",
+      "toggle-mobile-site",
+      "zoom-in",
+      "zoom-out",
+      "zoom-reset",
+      "picture-in-picture",
+      "devtools",
+    ],
+  },
+  { label: "Espaces", ids: ["new-space", "next-space", "previous-space"] },
+  {
+    label: "Bibliothèque et outils",
+    ids: [
+      "toggle-bookmark",
+      "toggle-favorite",
+      "open-archive",
+      "open-downloads",
+      "open-passwords",
+      "open-extensions",
+      "site-info",
+      "clear-site-data",
+      "clear-history",
+      "sync-now",
+      "open-settings",
+    ],
+  },
+];
+
+/** `settings.shortcuts`: per command, an accelerator replacing the default, or null for none. */
+export type ShortcutOverrides = Partial<Record<CommandId, string | null>>;
+
+/**
+ * The shortcut a command really has: the user's (possibly none), else the registry's. The menu,
+ * the palette and every hint read this, never `accelerator` directly.
+ */
+export function effectiveAccelerator(id: CommandId, platform: string, overrides: ShortcutOverrides = {}): string | undefined {
+  if (Object.hasOwn(overrides, id)) return overrides[id] ?? undefined;
+  return commandAccelerator(getCommand(id), platform);
+}
+
+/** Hidden extra accelerators of a few commands (F5 reloads too), per platform. */
+const ALIASES: Partial<Record<CommandId, { mac?: string[]; other?: string[] }>> = {
+  reload: { mac: ["F5"], other: ["F5"] },
+  // Ctrl+Plus (Shift+= on most layouts) zooms in too.
+  "zoom-in": { mac: ["CmdOrCtrl+Plus"], other: ["CmdOrCtrl+Plus"] },
+  // Ctrl+G / Ctrl+Shift+G, as in Chrome (macOS already uses Cmd+G as the main shortcut).
+  "find-next": { other: ["CmdOrCtrl+G"] },
+  "find-previous": { other: ["CmdOrCtrl+Shift+G"] },
+};
+
+/**
+ * Aliases still active: none once the user chose the command's shortcut, and never one that is
+ * another command's shortcut now.
+ */
+export function effectiveAliases(id: CommandId, platform: string, overrides: ShortcutOverrides = {}): string[] {
+  if (Object.hasOwn(overrides, id)) return [];
+  const aliases = ALIASES[id]?.[isMac(platform) ? "mac" : "other"] ?? [];
+  return aliases.filter((alias) => !findShortcutConflict(alias, id, platform, overrides));
+}
+
+/** App shortcuts outside the registry (edition, tab and space numbers): they cannot be taken. */
+export function fixedShortcuts(platform: string): { accelerator: string; label: string }[] {
+  return [
+    { accelerator: "CmdOrCtrl+Z", label: "Annuler" },
+    { accelerator: isMac(platform) ? "CmdOrCtrl+Shift+Z" : "CmdOrCtrl+Y", label: "Rétablir" },
+    { accelerator: "CmdOrCtrl+X", label: "Couper" },
+    { accelerator: "CmdOrCtrl+C", label: "Copier" },
+    { accelerator: "CmdOrCtrl+V", label: "Coller" },
+    { accelerator: "CmdOrCtrl+A", label: "Tout sélectionner" },
+    { accelerator: "Ctrl+Tab", label: "Onglet suivant" },
+    { accelerator: "Ctrl+Shift+Tab", label: "Onglet précédent" },
+    ...Array.from({ length: 9 }, (_, i) => ({ accelerator: `CmdOrCtrl+${i + 1}`, label: i === 8 ? "Dernier onglet" : `Onglet ${i + 1}` })),
+    ...Array.from({ length: 9 }, (_, i) => ({ accelerator: `CmdOrCtrl+Alt+${i + 1}`, label: i === 8 ? "Dernier espace" : `Espace ${i + 1}` })),
+  ];
+}
+
+/** The command (other than `except`) whose effective shortcut is `accelerator` on `platform`. */
+export function findShortcutConflict(
+  accelerator: string,
+  except: CommandId | null,
+  platform: string,
+  overrides: ShortcutOverrides = {},
+): CommandId | null {
+  for (const command of COMMANDS) {
+    if (command.id === except) continue;
+    const current = effectiveAccelerator(command.id, platform, overrides);
+    if (current && sameAccelerator(current, accelerator, platform)) return command.id;
+  }
+  return null;
+}
+
+export type ShortcutCheck =
+  | { ok: true; accelerator: string; conflict: CommandId | null }
+  | { ok: false; reason: AcceleratorProblem | "fixed"; label?: string };
+
+/**
+ * Whether `accelerator` can become `id`'s shortcut: refused when malformed, without modifier,
+ * kept by the OS or by a fixed app shortcut; otherwise names the command it would take it from.
+ */
+export function checkShortcut(id: CommandId, accelerator: string, platform: string, overrides: ShortcutOverrides = {}): ShortcutCheck {
+  const normalized = normalizeAccelerator(accelerator);
+  if (!normalized) return { ok: false, reason: "invalid" };
+  const problem = acceleratorProblem(normalized, platform);
+  if (problem) return { ok: false, reason: problem };
+  const fixed = fixedShortcuts(platform).find((entry) => sameAccelerator(entry.accelerator, normalized, platform));
+  if (fixed) return { ok: false, reason: "fixed", label: fixed.label };
+  return { ok: true, accelerator: normalized, conflict: findShortcutConflict(normalized, id, platform, overrides) };
+}
+
+/**
+ * Overrides once `id` takes `accelerator` (null: no shortcut), the command that had it losing it.
+ * A command given back its default shortcut loses its entry.
+ */
+export function assignShortcut(
+  overrides: ShortcutOverrides,
+  id: CommandId,
+  accelerator: string | null,
+  platform: string,
+): ShortcutOverrides {
+  const next: ShortcutOverrides = { ...overrides };
+  if (accelerator) {
+    const conflict = findShortcutConflict(accelerator, id, platform, overrides);
+    if (conflict) next[conflict] = null;
+  }
+  const fallback = commandAccelerator(getCommand(id), platform) ?? null;
+  const isDefault = accelerator === null ? fallback === null : fallback !== null && sameAccelerator(fallback, accelerator, platform);
+  if (isDefault) delete next[id];
+  else next[id] = accelerator;
+  return next;
+}
+
+/** Overrides with `id` back to its default shortcut. */
+export function resetShortcut(overrides: ShortcutOverrides, id: CommandId): ShortcutOverrides {
+  const next = { ...overrides };
+  delete next[id];
+  return next;
 }
 
 /** The displayed shortcut of a registry command on `platform` ("" when it has none). */
-export function commandShortcut(id: CommandId, platform: string): string {
-  const accelerator = commandAccelerator(getCommand(id), platform);
+export function commandShortcut(id: CommandId, platform: string, overrides: ShortcutOverrides = {}): string {
+  const accelerator = effectiveAccelerator(id, platform, overrides);
   return accelerator ? shortcutText(accelerator, platform) : "";
 }
 
 /** A tooltip naming a command's shortcut: "Nouvel onglet (Ctrl+T)", or the label alone. */
-export function withShortcut(label: string, id: CommandId, platform: string): string {
-  const shortcut = commandShortcut(id, platform);
+export function withShortcut(label: string, id: CommandId, platform: string, overrides: ShortcutOverrides = {}): string {
+  const shortcut = commandShortcut(id, platform, overrides);
   return shortcut ? `${label} (${shortcut})` : label;
 }

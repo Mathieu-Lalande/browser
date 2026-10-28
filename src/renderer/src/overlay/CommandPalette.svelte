@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { commandAccelerator, shortcutKeys, type CommandDefinition } from "@shared/commands";
+  import { effectiveAccelerator, shortcutKeys, type CommandDefinition } from "@shared/commands";
+  import { settings } from "../lib/settings.svelte";
   import { buildPalette, type PaletteItem } from "@shared/palette";
   import { mergeSuggestions, type Suggestion } from "@shared/search";
   import type { ArchivedTab } from "@shared/archive";
@@ -161,8 +162,9 @@
     if (moved) selected = position;
   }
 
+  /** The command's effective shortcut: the user's choice first (ADR-028). */
   function shortcut(command: CommandDefinition): string[] {
-    const accelerator = commandAccelerator(command, window.platform);
+    const accelerator = effectiveAccelerator(command.id, window.platform, settings.current.shortcuts);
     return accelerator ? shortcutKeys(accelerator, window.platform) : [];
   }
 

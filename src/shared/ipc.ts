@@ -15,6 +15,7 @@ import type { DownloadEntry, DownloadsChange } from "./downloads";
 import type { PeekAction, PeekState } from "./peek";
 import type { ReaderArticle } from "./reader";
 import type { Settings, SettingsPatch, SettingsSection } from "./settings";
+import type { KeyPress } from "./accelerators";
 import type { SiteDataEntry, SiteInfo } from "./site-info";
 import type { SyncStatus } from "./sync/controller";
 import type {
@@ -84,6 +85,8 @@ export const Channels = {
   settingsReset: "settings:reset",
   settingsChanged: "settings:changed",
   settingsOpen: "settings:open",
+  shortcutCapture: "settings:shortcut-capture",
+  shortcutKey: "settings:shortcut-key",
   startImage: "settings:start-image",
   tabToggleMute: "tab:toggle-mute",
   findQuery: "find:query",
@@ -351,6 +354,12 @@ export interface BrowserApi {
     onChanged(listener: (settings: Settings) => void): () => void;
     /** Shows `browser://settings` in this window (existing tab, or a new one). */
     open(): void;
+    /**
+     * Shortcut capture (ADR-028): while on, this window's key presses skip the menu accelerators
+     * and arrive through `onShortcutKey` instead.
+     */
+    captureShortcut(active: boolean): void;
+    onShortcutKey(listener: (press: KeyPress) => void): () => void;
     /**
      * The start page's background image as a data: URL, fetched by main (the UI loads no remote
      * image); null when there is none, it failed, or in a private window.

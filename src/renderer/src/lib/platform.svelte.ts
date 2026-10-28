@@ -1,4 +1,5 @@
-import { commandShortcut, withShortcut, type CommandId } from "@shared/commands";
+import { commandShortcut, effectiveAccelerator, shortcutKeys, withShortcut, type CommandId } from "@shared/commands";
+import { settings } from "./settings.svelte";
 
 /**
  * The OS the chrome UI is laid out for (`window.platform`, from the preload), mirrored on
@@ -17,13 +18,19 @@ class PlatformStore {
     }).observe(root, { attributes: true, attributeFilter: ["data-platform"] });
   }
 
-  /** "Nouvel onglet (Ctrl+T)": tooltips built from the command registry. */
+  /** "Nouvel onglet (Ctrl+T)": tooltips from the command registry and the user's shortcuts (ADR-028). */
   tip(label: string, id: CommandId): string {
-    return withShortcut(label, id, this.name);
+    return withShortcut(label, id, this.name, settings.current.shortcuts);
   }
 
   shortcut(id: CommandId): string {
-    return commandShortcut(id, this.name);
+    return commandShortcut(id, this.name, settings.current.shortcuts);
+  }
+
+  /** The command's effective shortcut as keys to draw (`<kbd>`), none when it has no shortcut. */
+  keys(id: CommandId): string[] {
+    const accelerator = effectiveAccelerator(id, this.name, settings.current.shortcuts);
+    return accelerator ? shortcutKeys(accelerator, this.name) : [];
   }
 }
 

@@ -132,6 +132,8 @@ export class BrowserController {
   readonly isPrivate: boolean;
   /** The in-memory session of a private window's pages, wiped when it closes. */
   private readonly privateSession: Session | null;
+  /** The settings are capturing a keyboard shortcut in the chrome UI (ADR-028). */
+  capturingShortcut = false;
 
   /** Whose downloads this window lists and may act on (its own only, for a private window). */
   get downloadViewer(): DownloadViewer {
@@ -206,6 +208,15 @@ export class BrowserController {
     // The chrome UI is a fixed app page: it never navigates nor opens windows.
     chrome.on("will-navigate", (event) => event.preventDefault());
     chrome.setWindowOpenHandler(() => ({ action: "deny" }));
+    // Shortcut capture in the settings (ADR-028): while it is on, key presses reach neither the
+    // menu accelerators nor the page; main hands them to the chrome UI instead.
+    chrome.on("before-input-event", (event, input) => {
+      if (!this.capturingShortcut || input.type !== "keyDown") return;
+      event.preventDefault();
+      const { key, code, control, alt, shift, meta } = input;
+      chrome.send(Channels.shortcutKey, { key, code, control, alt, shift, meta });
+    });
+    chrome.on("did-start-loading", () => (this.capturingShortcut = false));
 
     this.overlay = new Overlay(this.window, {
       onCreated: (contents) => registerUi(contents, this),

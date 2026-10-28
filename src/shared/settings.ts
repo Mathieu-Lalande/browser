@@ -1,3 +1,5 @@
+import { isReservedAnywhere, needsModifier, normalizeAccelerator, parseAccelerator } from "./accelerators";
+import { isCommandId, type ShortcutOverrides } from "./commands";
 import { sanitizeSiteList } from "./site-info";
 import { DEFAULT_SEARCH_ENGINE, SEARCH_ENGINES, type SearchEngine } from "./url";
 
@@ -116,6 +118,11 @@ export interface Settings {
   privacy: PrivacySettings;
   downloads: DownloadSettings;
   reader: ReaderSettings;
+  /**
+   * Keyboard shortcuts chosen by the user (desktop, ADR-028): only the commands that differ from
+   * the registry. A patch replaces the whole map.
+   */
+  shortcuts: ShortcutOverrides;
 }
 
 export type SettingsSection = keyof Settings;
@@ -171,6 +178,7 @@ export const DEFAULT_SETTINGS: Settings = {
   privacy: { normalizeAcceptLanguage: false, blockThirdPartyCookies: false, thirdPartyCookieExceptions: [] },
   downloads: { folder: "", askWhere: false },
   reader: { font: "serif", size: 19, width: "medium", theme: "auto" },
+  shortcuts: {},
 };
 
 export const SETTINGS_SECTIONS = Object.keys(DEFAULT_SETTINGS) as SettingsSection[];
@@ -179,7 +187,9 @@ export const SETTINGS_SECTIONS = Object.keys(DEFAULT_SETTINGS) as SettingsSectio
 
 /** A field validator returns the cleaned value, or undefined to keep the previous one. */
 type Field<T> = (value: unknown) => T | undefined;
-type Schema = { [S in SettingsSection]: { [K in keyof Settings[S]]-?: Field<Settings[S][K]> } };
+/** Sections made of fixed fields (`shortcuts` is a map, validated by `sanitizeShortcuts`). */
+type FieldSection = Exclude<SettingsSection, "shortcuts">;
+type Schema = { [S in FieldSection]: { [K in keyof Settings[S]]-?: Field<Settings[S][K]> } };
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
 
@@ -290,6 +300,10 @@ export function sanitizeSettings(value: unknown, base: Settings = DEFAULT_SETTIN
   const root = isRecord(value) ? value : {};
   const result = {} as Record<string, Record<string, unknown>>;
   for (const section of SETTINGS_SECTIONS) {
+    if (section === "shortcuts") {
+      result.shortcuts = isRecord(root.shortcuts) ? sanitizeShortcuts(root.shortcuts) : { ...base.shortcuts };
+      continue;
+    }
     const input = isRecord(root[section]) ? root[section] : {};
     const fields = schema[section] as Record<string, Field<unknown>>;
     const fallback = base[section] as unknown as Record<string, unknown>;
@@ -297,6 +311,30 @@ export function sanitizeSettings(value: unknown, base: Settings = DEFAULT_SETTIN
     for (const key of Object.keys(fields)) result[section][key] = fields[key](input[key]) ?? fallback[key];
   }
   return result as unknown as Settings;
+}
+
+/**
+ * Keyboard shortcut overrides (ADR-028): known commands only, accelerators normalized, null for
+ * "no shortcut". Dropped: malformed accelerators, keys without Ctrl/Alt/Cmd (except F-keys), keys
+ * the OS keeps on some platform, and a second command claiming the same accelerator.
+ */
+export function sanitizeShortcuts(value: unknown): ShortcutOverrides {
+  const result: ShortcutOverrides = {};
+  if (!isRecord(value)) return result;
+  const taken = new Set<string>();
+  for (const [id, accelerator] of Object.entries(value)) {
+    if (!isCommandId(id)) continue;
+    if (accelerator === null) {
+      result[id] = null;
+      continue;
+    }
+    const normalized = normalizeAccelerator(accelerator);
+    const parsed = normalized && parseAccelerator(normalized);
+    if (!normalized || !parsed || needsModifier(parsed) || isReservedAnywhere(normalized) || taken.has(normalized)) continue;
+    taken.add(normalized);
+    result[id] = normalized;
+  }
+  return result;
 }
 
 /** Applies a (validated) partial update. */

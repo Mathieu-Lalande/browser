@@ -1275,3 +1275,42 @@ vue séparée ; aucune animation de mise en page (entering/exiting) dans ce comp
 
 **Limites.** Pas de menu contextuel, de recherche ni de zoom dans l'aperçu (bureau) ; un Maj+clic que Chromium
 ne transforme pas en `new-window` (lien `download`, certains liens d'iframes) garde son comportement.
+
+## ADR-028 — Raccourcis clavier personnalisables
+
+**Contexte.** Les raccourcis venaient tous du registre des commandes (`src/shared/commands.ts`). L'utilisateur
+veut changer la combinaison d'une commande, ou la retirer, sans que menu, palette et infobulles divergent.
+
+**Décision.**
+- Modèle : `settings.shortcuts` (ADR-011) = carte `CommandId → accélérateur | null` (null : aucun raccourci),
+  **seulement** les commandes qui diffèrent du registre. Un correctif remplace toute la carte ; « Tout
+  réinitialiser » de la section (ou `reset("shortcuts")`) la vide. `sanitizeShortcuts` garde les commandes
+  connues, normalise les accélérateurs, et rejette : syntaxe invalide, touche sans Ctrl/Alt/Cmd (sauf F1–F24),
+  combinaison réservée par un OS **sur l'une des plateformes** (le validateur ignore la plateforme :
+  `CmdOrCtrl+Q` est Cmd+Q sur macOS, refusé partout ; un `Ctrl+Q` littéral passe), doublon.
+- Module pur `src/shared/accelerators.ts` : analyse/normalisation (ordre canonique `CmdOrCtrl, Cmd, Super,
+  Ctrl, Alt, Shift`, alias `Command`, `Option`, `Esc`, `+` → `Plus`…), résolution par plateforme (touches
+  physiques Ctrl/Alt/Maj/Méta : base des conflits), affichage (⌃⌥⇧⌘ sur macOS, « Ctrl+Maj+… » ailleurs,
+  « Win »/« Super »), touches réservées (Ctrl+Alt+Suppr, Alt+F4, Alt+Tab, Win+L, Cmd+Q, Cmd+Tab, Cmd+Espace,
+  captures d'écran macOS…), et accélérateur d'une touche capturée : depuis `code` (touche physique, car Alt et
+  Maj changent `key`), stocké **littéralement** pour cette machine (Ctrl reste `Ctrl`, Commande = `Cmd`, touche
+  Windows = `Super`) ; les raccourcis ne sont pas synchronisés, aucune portabilité à préserver.
+- Source unique : `effectiveAccelerator(id, plateforme, overrides)` = choix de l'utilisateur, sinon registre.
+  Le menu (`commandMenuItems`, `src/main/commands.ts`), la palette, la page d'accueil et les infobulles
+  (`platform.tip/shortcut/keys`) la lisent. Les alias cachés (F5, Ctrl+Plus, Ctrl+G, Ctrl+Maj+G) sont dans le
+  registre (`effectiveAliases`) : abandonnés quand la commande est personnalisée ou qu'une autre commande prend
+  la combinaison. Le menu est reconstruit quand `shortcuts` change. Aucun `before-input-event` ne déclenchait de
+  commande : rien d'autre à brancher.
+- Raccourcis fixes hors registre (Couper/Copier/Coller…, Ctrl+Tab, Ctrl+1…9, Ctrl+Alt+1…9) : `fixedShortcuts`,
+  impossibles à prendre.
+- Capture : cliquer sur un raccourci envoie `settings:shortcut-capture` (fenêtre de l'interface seulement, pas
+  l'overlay) ; tant qu'elle dure, le `before-input-event` de l'interface **annule** chaque touche (ni accélérateur
+  du menu, ni page) et la renvoie par `settings:shortcut-key`. Remise à zéro au rechargement de l'interface. Le
+  `keydown` du DOM sert de repli. Échap annule, Retour arrière retire le raccourci, une combinaison refusée
+  affiche la raison ; une combinaison déjà prise nomme la commande avec « Remplacer » (l'autre commande perd
+  son raccourci, `null`) / « Annuler ». Rétablir par ligne, recherche (libellé, mots-clés, raccourci), groupes
+  `COMMAND_GROUPS`.
+- Synchronisation : les réglages synchronisés sont une liste choisie de champs (ADR-019), sans les préférences
+  propres au bureau ; les raccourcis restent locaux.
+- Téléphone : non applicable. React Native n'expose pas les touches d'un clavier matériel hors d'un `TextInput`
+  (iPad `UIKeyCommand`, Android `onKeyDown` demandent du code natif, impossible dans Expo Go) : aucun code mobile.

@@ -1,5 +1,6 @@
 import { clipboard, type MenuItemConstructorOptions } from "electron";
-import { commandAccelerator, getCommand, type CommandId } from "@shared/commands";
+import { effectiveAccelerator, effectiveAliases, getCommand, type CommandId } from "@shared/commands";
+import { settings } from "./settings";
 import { toggleFavorite } from "./organize";
 import { profile } from "./profile";
 import { toggleReader } from "./reader";
@@ -112,20 +113,25 @@ export function runCommand(id: CommandId, controller: BrowserController): void {
   RUNNERS[id](controller);
 }
 
+function runFocused(id: CommandId): void {
+  const controller = BrowserController.focused();
+  if (controller) RUNNERS[id](controller);
+  else WINDOWLESS[id]?.();
+}
+
 /**
- * Menu item for a registry command, run against the focused window. Accelerators fire whichever
- * view (chrome UI, overlay or web page) has focus.
+ * Menu items for a registry command, run against the focused window: the visible one with the
+ * command's effective shortcut (the user's, ADR-028), then hidden ones for its aliases (F5…).
+ * Accelerators fire whichever view (chrome UI, overlay or web page) has focus.
  */
-export function commandMenuItem(id: CommandId, options: MenuItemConstructorOptions = {}): MenuItemConstructorOptions {
+export function commandMenuItems(id: CommandId, options: MenuItemConstructorOptions = {}): MenuItemConstructorOptions[] {
   const command = getCommand(id);
-  return {
-    label: command.menuLabel ?? command.label,
-    accelerator: commandAccelerator(command, process.platform),
-    click: () => {
-      const controller = BrowserController.focused();
-      if (controller) RUNNERS[id](controller);
-      else WINDOWLESS[id]?.();
-    },
-    ...options,
-  };
+  const overrides = settings().shortcuts;
+  const label = command.menuLabel ?? command.label;
+  return [
+    { label, accelerator: effectiveAccelerator(id, process.platform, overrides), click: () => runFocused(id), ...options },
+    ...effectiveAliases(id, process.platform, overrides).map(
+      (accelerator): MenuItemConstructorOptions => ({ label, accelerator, visible: false, click: () => runFocused(id) }),
+    ),
+  ];
 }

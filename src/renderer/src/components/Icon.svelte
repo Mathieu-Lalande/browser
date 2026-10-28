@@ -122,6 +122,7 @@
   import Pencil from "@lucide/svelte/icons/pencil";
   import Ban from "@lucide/svelte/icons/ban";
   import FileDown from "@lucide/svelte/icons/file-down";
+  import Keyboard from "@lucide/svelte/icons/keyboard";
 
   type LucideIcon = Component<Record<string, unknown>>;
 
@@ -227,6 +228,8 @@
     ban: Ban,
     "file-down": FileDown,
     "copy-text": Copy,
+    // Keyboard shortcuts (ADR-028).
+    keyboard: Keyboard,
   } satisfies Record<string, LucideIcon> & Record<CommandIcon, LucideIcon>;
 
   /** Space icons: their stored names are Lucide's own. */

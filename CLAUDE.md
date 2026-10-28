@@ -55,3 +55,5 @@
   `src/shared/readability-source.ts` est généré (`node scripts/gen-readability.mjs`).
 - Aperçu des liens (ADR-027) : `src/main/peek.ts` (une `WebContentsView` durcie au-dessus du calque overlay, session de
   l'onglet source, rien d'enregistré), carte `LinkPeekPanel.svelte`, géométrie `src/shared/peek.ts` ; mobile `PeekSheet.tsx`.
+- Raccourcis personnalisables (ADR-028) : `settings.shortcuts`, module pur `src/shared/accelerators.ts` ; tout raccourci
+  affiché ou installé passe par `effectiveAccelerator`/`effectiveAliases` (jamais `command.accelerator` directement).

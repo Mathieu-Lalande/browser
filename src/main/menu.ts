@@ -1,6 +1,14 @@
 import { Menu, app, type MenuItemConstructorOptions } from "electron";
-import { commandMenuItem } from "./commands";
+import { commandMenuItems } from "./commands";
+import { onSettingsChanged, settings } from "./settings";
 import { BrowserController } from "./window";
+
+/** Shortcuts the current menu was built with: the menu is rebuilt when the user changes them (ADR-028). */
+let builtShortcuts: string | null = null;
+
+onSettingsChanged((current) => {
+  if (builtShortcuts !== null && JSON.stringify(current.shortcuts) !== builtShortcuts) installMenu();
+});
 
 /** Run an action against the focused browser window, if any. */
 function withFocused(action: (controller: BrowserController) => void): () => void {
@@ -35,13 +43,13 @@ export function installMenu(): void {
     {
       label: "Fichier",
       submenu: [
-        commandMenuItem("new-tab"),
-        commandMenuItem("new-window"),
-        commandMenuItem("new-private-window"),
-        commandMenuItem("duplicate-tab"),
-        commandMenuItem("open-downloads"),
-        commandMenuItem("open-settings"),
-        commandMenuItem("close-tab"),
+        ...commandMenuItems("new-tab"),
+        ...commandMenuItems("new-window"),
+        ...commandMenuItems("new-private-window"),
+        ...commandMenuItems("duplicate-tab"),
+        ...commandMenuItems("open-downloads"),
+        ...commandMenuItems("open-settings"),
+        ...commandMenuItems("close-tab"),
         { type: "separator" },
         isMac ? { role: "close" } : { role: "quit", label: "Quitter" },
       ],
@@ -57,75 +65,65 @@ export function installMenu(): void {
         { role: "paste", label: "Coller" },
         { role: "selectAll", label: "Tout sélectionner" },
         { type: "separator" },
-        commandMenuItem("copy-url"),
+        ...commandMenuItems("copy-url"),
         { type: "separator" },
-        commandMenuItem("find"),
-        commandMenuItem("find-next"),
-        commandMenuItem("find-previous"),
-        // Ctrl+G / Ctrl+Shift+G, as in Chrome (macOS already uses Cmd+G as the main shortcut).
-        ...(isMac
-          ? []
-          : [
-              commandMenuItem("find-next", { accelerator: "CmdOrCtrl+G", visible: false }),
-              commandMenuItem("find-previous", { accelerator: "CmdOrCtrl+Shift+G", visible: false }),
-            ]),
+        ...commandMenuItems("find"),
+        ...commandMenuItems("find-next"),
+        ...commandMenuItems("find-previous"),
       ],
     },
     {
       label: "Affichage",
       submenu: [
-        commandMenuItem("command-palette"),
-        commandMenuItem("focus-address"),
-        commandMenuItem("toggle-sidebar"),
-        commandMenuItem("toggle-zen"),
-        commandMenuItem("toggle-reader"),
-        commandMenuItem("toggle-mobile-site"),
+        ...commandMenuItems("command-palette"),
+        ...commandMenuItems("focus-address"),
+        ...commandMenuItems("toggle-sidebar"),
+        ...commandMenuItems("toggle-zen"),
+        ...commandMenuItems("toggle-reader"),
+        ...commandMenuItems("toggle-mobile-site"),
         { type: "separator" },
-        commandMenuItem("reload"),
-        commandMenuItem("reload", { accelerator: "F5", visible: false }),
-        commandMenuItem("devtools"),
-        commandMenuItem("site-info"),
+        ...commandMenuItems("reload"),
+        ...commandMenuItems("devtools"),
+        ...commandMenuItems("site-info"),
         { type: "separator" },
-        commandMenuItem("toggle-split", { id: "toggle-split" }),
+        ...commandMenuItems("toggle-split", { id: "toggle-split" }),
         { type: "separator" },
-        commandMenuItem("zoom-reset"),
-        commandMenuItem("zoom-in"),
-        // Ctrl+Plus (Shift+= on most layouts) zooms in too.
-        commandMenuItem("zoom-in", { accelerator: "CmdOrCtrl+Plus", visible: false }),
-        commandMenuItem("zoom-out"),
+        ...commandMenuItems("zoom-reset"),
+        ...commandMenuItems("zoom-in"),
+        ...commandMenuItems("zoom-out"),
         { role: "togglefullscreen", label: "Plein écran" },
         { type: "separator" },
-        commandMenuItem("picture-in-picture"),
-        commandMenuItem("toggle-mute"),
+        ...commandMenuItems("picture-in-picture"),
+        ...commandMenuItems("toggle-mute"),
       ],
     },
     {
       label: "Navigation",
       submenu: [
-        commandMenuItem("back", { label: "Précédent" }),
-        commandMenuItem("forward", { label: "Suivant" }),
+        ...commandMenuItems("back", { label: "Précédent" }),
+        ...commandMenuItems("forward", { label: "Suivant" }),
         { type: "separator" },
         { label: "Onglet suivant", accelerator: "Ctrl+Tab", click: withFocused((c) => c.tabs.cycle(1)) },
         { label: "Onglet précédent", accelerator: "Ctrl+Shift+Tab", click: withFocused((c) => c.tabs.cycle(-1)) },
-        commandMenuItem("toggle-pin"),
-        commandMenuItem("sleep-tab"),
-        commandMenuItem("sleep-other-tabs"),
+        ...commandMenuItems("toggle-pin"),
+        ...commandMenuItems("sleep-tab"),
+        ...commandMenuItems("sleep-other-tabs"),
         ...tabNumbers,
       ],
     },
     {
       label: "Espaces",
       submenu: [
-        commandMenuItem("new-space", { id: "space-new" }),
+        ...commandMenuItems("new-space", { id: "space-new" }),
         { type: "separator" },
-        commandMenuItem("next-space", { id: "space-next" }),
-        commandMenuItem("previous-space", { id: "space-previous" }),
+        ...commandMenuItems("next-space", { id: "space-next" }),
+        ...commandMenuItems("previous-space", { id: "space-previous" }),
         ...spaceNumbers,
       ],
     },
     {
       label: "Favoris",
-      submenu: [commandMenuItem("toggle-bookmark")],
+      submenu: commandMenuItems("toggle-bookmark"),
     },
     ...(app.isPackaged
       ? []
@@ -133,4 +131,5 @@ export function installMenu(): void {
   ];
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+  builtShortcuts = JSON.stringify(settings().shortcuts);
 }

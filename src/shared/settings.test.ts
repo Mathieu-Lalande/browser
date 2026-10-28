@@ -212,6 +212,31 @@ describe("derived values", () => {
     expect(sanitizeSettings({ privacy: { normalizeAcceptLanguage: "yes" } }).privacy.normalizeAcceptLanguage).toBe(false);
   });
 
+  it("validates keyboard shortcut overrides (ADR-028)", () => {
+    expect(sanitizeSettings({}).shortcuts).toEqual({});
+    const shortcuts = sanitizeSettings({
+      shortcuts: {
+        "new-tab": "shift+ctrl+y",
+        "new-window": null,
+        reload: "F6",
+        "not-a-command": "Ctrl+J",
+        __proto__: "Ctrl+P",
+        "close-tab": "Ctrl+",
+        "copy-url": "Shift+A",
+        "toggle-zen": "CmdOrCtrl+Q",
+        "toggle-sidebar": 3,
+        "zoom-in": "Ctrl+Shift+Y",
+      },
+    }).shortcuts;
+    expect(shortcuts).toEqual({ "new-tab": "Ctrl+Shift+Y", "new-window": null, reload: "F6" });
+    // A patch replaces the map; no map keeps the previous one.
+    const base = mergeSettings(DEFAULT_SETTINGS, { shortcuts: { "new-tab": "Ctrl+Shift+Y" } });
+    expect(mergeSettings(base, { appearance: { radius: 4 } }).shortcuts).toEqual({ "new-tab": "Ctrl+Shift+Y" });
+    expect(mergeSettings(base, { shortcuts: {} }).shortcuts).toEqual({});
+    expect(resetSettings(base, "shortcuts").shortcuts).toEqual({});
+    expect(isSettingsSection("shortcuts")).toBe(true);
+  });
+
   it("recognizes section names", () => {
     expect(isSettingsSection("privacy")).toBe(true);
     expect(isSettingsSection("appearance")).toBe(true);

@@ -30,6 +30,7 @@
   import Row from "./Row.svelte";
   import Section from "./Section.svelte";
   import Segmented from "./Segmented.svelte";
+  import ShortcutsSection from "./ShortcutsSection.svelte";
   import SiteDataSection from "./SiteDataSection.svelte";
   import Slider from "./Slider.svelte";
   import SyncSection from "./SyncSection.svelte";
@@ -41,6 +42,7 @@
     { id: "search", label: "Recherche", icon: "search" },
     { id: "startPage", label: "Page d'accueil", icon: "home" },
     { id: "behavior", label: "Comportement", icon: "sliders" },
+    { id: "shortcuts", label: "Raccourcis clavier", icon: "keyboard" },
     { id: "privacy", label: "Confidentialité", icon: "shield" },
     { id: "siteData", label: "Données des sites", icon: "cookie" },
     { id: "downloads", label: "Téléchargements", icon: "download" },
@@ -491,6 +493,15 @@
           <button class="link" onclick={() => api.commands.run("open-archive")}><Icon name="archive" size={12} /> Voir les onglets archivés</button>
           <button class="link" onclick={() => api.commands.run("open-extensions")}><Icon name="extension" size={12} /> Gérer les extensions</button>
         </div>
+      </Section>
+
+      <Section
+        id="shortcuts"
+        icon="keyboard"
+        title="Raccourcis clavier"
+        description="Choisissez la combinaison de chaque commande, ou retirez-la."
+      >
+        <ShortcutsSection />
       </Section>
 
       <Section
