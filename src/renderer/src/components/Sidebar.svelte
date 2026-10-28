@@ -3,8 +3,8 @@
   import { fly } from "svelte/transition";
   import { dropZone, resolveDrop, sidebarRows, type DragItem, type DropResult, type SidebarRow } from "@shared/folders";
   import { isFavoriteUrl } from "@shared/favorites";
-  import { SpaceSwipe } from "@shared/space-swipe";
-  import type { SpaceId, TabState } from "@shared/types";
+  import { SpaceSwipe, type SwipeOutput } from "@shared/space-swipe";
+  import type { SpaceId, SpaceInfo, SpacePeek, TabState } from "@shared/types";
   import { displayUrl } from "@shared/url";
   import { api, browser } from "../lib/browser.svelte";
   import AddressBar from "./AddressBar.svelte";
@@ -217,54 +217,159 @@
   const insideRow = $derived(drop?.indicator.edge === "inside" ? drop.indicator.row : -1);
 
   // --- Two-finger swipe between spaces (ADR-022, logic in @shared/space-swipe) -----------------
+  //
+  // The tab area is a horizontal track: the shown space, with its neighbours (`peeks`, sent by
+  // main) laid beside it while a swipe is on. The track follows the fingers; on release it slides to
+  // the snapped position (SETTLE_MS), and only then is the space switched, without the switch's
+  // own slide: the neighbour already sits where the new content appears, so nothing jumps.
 
+  /** Room between the shown space and its neighbours on the track, px. */
+  const PEEK_GAP = 16;
+  const SETTLE_MS = 220;
   let sidebarElement = $state<HTMLElement>();
+  let spaceArea = $state<HTMLElement>();
   let swipeOffset = $state(0);
+  /** The track animates (release), instead of following the fingers. */
   let settling = $state(false);
+  /** The neighbours are drawn (from the first tracked event until the track is back at rest). */
+  let swiping = $state(false);
+  /** Space the release slid to, switched in main: its state arrives next. */
+  let switchingTo: SpaceId | null = null;
+  /** The next space switch replaces the content in place (no slide of its own). */
+  let instantSwitch = false;
   const reduceMotion = $derived(settings.current.appearance.reduceMotion);
+  const neighbours = $derived({
+    previous: browser.state.spaces[spaceIndex - 1],
+    next: browser.state.spaces[spaceIndex + 1],
+  });
+  const peekOf = (id: SpaceId | undefined) => browser.state.peeks?.find((peek) => peek.spaceId === id);
+  /** Share of the way to a neighbour (+1 next, -1 previous): the space chips' indicator follows. */
+  let trackWidth = $state(1);
+  const swipeProgress = $derived.by(() => {
+    const progress = -swipeOffset / (trackWidth + PEEK_GAP);
+    if ((progress > 0 && !neighbours.next) || (progress < 0 && !neighbours.previous)) return 0;
+    return Math.max(-1, Math.min(1, progress));
+  });
+
+  // The switch the release slid to arrived: drop the offset in the same update as the new content.
+  $effect.pre(() => {
+    const id = browser.state.activeSpaceId;
+    if (switchingTo !== null && id === switchingTo) {
+      switchingTo = null;
+      instantSwitch = true;
+      settling = false;
+      swiping = false;
+      swipeOffset = 0;
+    }
+  });
+
+  let settleTimer: ReturnType<typeof setTimeout> | undefined;
+  function settleTo(offset: number, then: () => void): void {
+    clearTimeout(settleTimer);
+    settling = true;
+    swipeOffset = offset;
+    settleTimer = setTimeout(then, reduceMotion ? 0 : SETTLE_MS);
+  }
+
+  function snapBack(): void {
+    settleTo(0, () => {
+      settling = false;
+      swiping = false;
+    });
+  }
+
+  function commitSwipe(direction: 1 | -1): void {
+    const target = direction === 1 ? neighbours.next : neighbours.previous;
+    if (!target) return snapBack();
+    if (reduceMotion) {
+      // No motion: the content is replaced in place.
+      swiping = false;
+      swipeOffset = 0;
+      instantSwitch = true;
+      api.spaces.switchTo(target.id);
+      return;
+    }
+    settleTo(-direction * (trackWidth + PEEK_GAP), () => {
+      switchingTo = target.id;
+      api.spaces.switchTo(target.id);
+      // Refused or lost: back to rest rather than stuck half-way.
+      settleTimer = setTimeout(() => {
+        if (switchingTo === target.id) {
+          switchingTo = null;
+          snapBack();
+        }
+      }, 600);
+    });
+  }
 
   $effect(() => {
     const element = sidebarElement;
     if (!element) return;
-    const swipe = new SpaceSwipe({ width: element.clientWidth });
+    const swipe = new SpaceSwipe({ width: spaceArea?.clientWidth ?? element.clientWidth });
     let endTimer: ReturnType<typeof setTimeout> | undefined;
-    const settle = () => {
-      settling = true;
-      swipeOffset = 0;
-      setTimeout(() => (settling = false), 220);
-    };
-    const onWheel = (event: WheelEvent) => {
-      swipe.setWidth(element.clientWidth);
-      const spaces = browser.state.spaces;
-      const index = spaces.findIndex((space) => space.id === browser.state.activeSpaceId);
-      const bounds = { previous: index > 0, next: index !== -1 && index < spaces.length - 1 };
-      const output = swipe.wheel(
-        { deltaX: event.deltaX, deltaY: event.deltaY, deltaMode: event.deltaMode, shiftKey: event.shiftKey, ctrlKey: event.ctrlKey, time: event.timeStamp },
-        bounds,
-      );
-      clearTimeout(endTimer);
-      endTimer = setTimeout(() => {
-        if (swipe.end(performance.now()).kind === "cancel") settle();
-      }, 160);
-      if (output.kind === "ignore") return;
-      event.preventDefault();
+    const bounds = () => ({ previous: !!neighbours.previous, next: !!neighbours.next });
+    const apply = (output: SwipeOutput) => {
       if (output.kind === "track") {
         settling = false;
-        swipeOffset = reduceMotion ? 0 : output.offset;
-      } else if (output.kind === "commit") {
-        const target = spaces[index + output.direction];
-        swipeOffset = 0;
-        if (target) api.spaces.switchTo(target.id);
-      } else if (output.kind === "cancel") {
-        settle();
-      }
+        clearTimeout(settleTimer);
+        if (reduceMotion) return;
+        swiping = true;
+        swipeOffset = output.offset;
+      } else if (output.kind === "commit") commitSwipe(output.direction);
+      else if (output.kind === "cancel") snapBack();
     };
-    element.addEventListener("wheel", onWheel, { passive: false });
+    const onWheel = (event: WheelEvent) => {
+      // A popover (space or folder editor) scrolls on its own; a drag owns the pointer.
+      if (drag || (event.target as HTMLElement).closest?.("[role=dialog]")) return;
+      // Sliding to a space: the rest of that gesture changes nothing.
+      if (settling && swipeOffset !== 0) {
+        if (swipe.active || Math.abs(event.deltaX) > Math.abs(event.deltaY)) event.preventDefault();
+        return;
+      }
+      trackWidth = spaceArea?.clientWidth || element.clientWidth;
+      swipe.setWidth(trackWidth);
+      const output = swipe.wheel(
+        { deltaX: event.deltaX, deltaY: event.deltaY, deltaMode: event.deltaMode, shiftKey: event.shiftKey, ctrlKey: event.ctrlKey, time: event.timeStamp },
+        bounds(),
+      );
+      clearTimeout(endTimer);
+      endTimer = setTimeout(() => apply(swipe.end(performance.now(), bounds())), swipe.endGapMs + 10);
+      if (output.kind === "ignore") return;
+      event.preventDefault();
+      apply(output);
+    };
+    // Capture: a swipe that starts over the tab list (or any scrolling child) is seen first.
+    element.addEventListener("wheel", onWheel, { passive: false, capture: true });
     return () => {
       clearTimeout(endTimer);
-      element.removeEventListener("wheel", onWheel);
+      clearTimeout(settleTimer);
+      element.removeEventListener("wheel", onWheel, { capture: true });
     };
   });
+
+  /** The space content's entrance: one slide for a click or shortcut, none after a swipe. */
+  function spaceIn(node: Element) {
+    if (instantSwitch) {
+      instantSwitch = false;
+      return { duration: 0 };
+    }
+    return fly(node, { x: direction * 36, duration: reduceMotion ? 0 : 240, easing: cubicOut, opacity: 0 });
+  }
+
+  /** A neighbour space's rows, as its own sidebar would list them (folders, then loose tabs). */
+  type PeekRow = { key: string; depth: number; tab: TabState } | { key: string; depth: number; folder: Extract<SidebarRow, { kind: "folder" }> };
+  function peekRows(peek: SpacePeek): PeekRow[] {
+    const tree = sidebarRows(
+      peek.tabs.map((item) => ({ id: item.id, pinned: item.isPinned, folderId: item.folderId ?? null })),
+      peek.folders ?? [],
+      peek.activeTabId,
+    );
+    return tree.flatMap((row): PeekRow[] => {
+      if (row.kind === "folder") return [{ key: `folder-${row.folder.id}`, depth: row.depth, folder: row }];
+      const item = peek.tabs.find((candidate) => candidate.id === row.id);
+      return item ? [{ key: item.id, depth: row.depth, tab: item }] : [];
+    });
+  }
 
   /** The tab list's single Tab stop (roving tabindex): the active tab, else the first one. */
   const focusId = $derived(
@@ -336,13 +441,15 @@
 <aside class="sidebar" bind:this={sidebarElement}>
   <header class="titlebar drag" class:mac={roomForTrafficLights}>
     {#if windowControls && !controlsAtEnd}<WindowControls />{/if}
-    {#if browser.isPrivate}
-      <div class="private-badge" title="Navigation privée : ni historique, ni cookies conservés après la fermeture de la fenêtre">
-        <Icon name="mask" size={16} />
-        <span>Navigation privée</span>
-      </div>
-    {/if}
-    <div class="spacer"></div>
+    <!-- The flexible part: it gives way (the badge folds to its icon), never the buttons. -->
+    <div class="title-slot">
+      {#if browser.isPrivate}
+        <div class="private-badge" title="Navigation privée : ni historique, ni cookies conservés après la fermeture de la fenêtre">
+          <Icon name="mask" size={16} />
+          <span class="private-label">Navigation privée</span>
+        </div>
+      {/if}
+    </div>
     <button
       class="icon no-drag"
       class:on={zen}
@@ -399,15 +506,17 @@
     <FavoritesGrid dropping={overFavorites} dragActive={canFavorite} />
   </div>
 
-  <div class="space-area" data-testid="space-area">
+  <div class="space-area" data-testid="space-area" bind:this={spaceArea}>
+    <div
+      class="space-track"
+      class:settling
+      style:--settle="{SETTLE_MS}ms"
+      style:--peek-gap="{PEEK_GAP}px"
+      style:transform={swipeOffset ? `translate3d(${swipeOffset}px, 0, 0)` : undefined}
+    >
+    {#if swiping && neighbours.previous}{@render peekView(neighbours.previous, peekOf(neighbours.previous.id), "previous")}{/if}
     {#key browser.state.activeSpaceId}
-      <div
-        class="space-content"
-        class:settling
-        style:transform={swipeOffset ? `translateX(${swipeOffset}px)` : undefined}
-        style:opacity={swipeOffset ? 1 - Math.min(0.5, Math.abs(swipeOffset) / 600) : undefined}
-        in:fly={{ x: direction * 36, duration: 240, easing: cubicOut, opacity: 0 }}
-      >
+      <div class="space-content" in:spaceIn>
         {#if browser.activeSpace && browser.state.spaces.length > 1}
           <div class="space-title" style:--dot={browser.activeSpace.color ?? "var(--accent)"}>
             <span class="space-icon"><Icon name={browser.activeSpace.icon} size={16} /></span>
@@ -443,7 +552,7 @@
 
         <div class="new-row">
           <button class="new-tab" title={platform.tip("Nouvel onglet", "new-tab")} onclick={newTab}>
-            <Icon name="plus" size={16} /> Nouvel onglet
+            <Icon name="plus" size={16} /> <span class="label">Nouvel onglet</span>
           </button>
           <button class="icon small" aria-label="Nouveau dossier" title="Nouveau dossier" onclick={() => api.folders.create()}>
             <Icon name="folder-plus" />
@@ -521,7 +630,50 @@
         </div>
       </div>
     {/key}
+    {#if swiping && neighbours.next}{@render peekView(neighbours.next, peekOf(neighbours.next.id), "next")}{/if}
+    </div>
   </div>
+
+  <!-- A neighbour space beside the shown one during a swipe: a still picture of its sidebar (inert). -->
+  {#snippet peekView(space: SpaceInfo, peek: SpacePeek | undefined, side: "previous" | "next")}
+    {@const pinned = peek?.tabs.filter((item) => item.isPinned) ?? []}
+    <div class="space-content peek {side}" inert aria-hidden="true" data-peek={side}>
+      <div class="space-title" style:--dot={space.color ?? "var(--accent)"}>
+        <span class="space-icon"><Icon name={space.icon} size={16} /></span>
+        <span class="space-name">{space.name}</span>
+        {#if space.isolated}<span class="badge">Isolé</span>{/if}
+        <span class="icon small"><Icon name="more" /></span>
+      </div>
+      {#if pinned.length}
+        <div class="pinned">
+          {#each pinned as item (item.id)}
+            <div class="pinned-tab" class:active={item.id === peek?.activeTabId}><TabIcon tab={item} /></div>
+          {/each}
+        </div>
+      {/if}
+      <div class="divider"></div>
+      <div class="new-row">
+        <div class="new-tab"><Icon name="plus" size={16} /> <span class="label">Nouvel onglet</span></div>
+        <span class="icon small"><Icon name="folder-plus" /></span>
+      </div>
+      <div class="tabs">
+        {#each peek ? peekRows(peek) : [] as entry (entry.key)}
+          <div class="row" class:folder-row={"folder" in entry} style:--depth={entry.depth}>
+            {#if "folder" in entry}
+              <div class="chevron">
+                <span class="chevron-icon" class:open={!entry.folder.folder.collapsed}><Icon name="chevron-right" size={12} /></span>
+                <span class="folder-icon"><Icon name={entry.folder.folder.icon === "folder" && !entry.folder.folder.collapsed ? "folder-open" : entry.folder.folder.icon} size={16} /></span>
+                <span class="folder-name">{entry.folder.folder.name}</span>
+                {#if entry.folder.count}<span class="count">{entry.folder.count}</span>{/if}
+              </div>
+            {:else}
+              <TabItem tab={entry.tab} active={entry.tab.id === peek?.activeTabId} focusable={false} />
+            {/if}
+          </div>
+        {/each}
+      </div>
+    </div>
+  {/snippet}
 
   {#if editedSpace}
     <SpaceEditor space={editedSpace} onClose={() => (editing = null)} />
@@ -542,7 +694,7 @@
         Effacée à la fermeture
       </p>
     {:else}
-      <SpaceSwitcher onEdit={(id) => (editing = editing === id ? null : id)} />
+      <SpaceSwitcher onEdit={(id) => (editing = editing === id ? null : id)} progress={swipeProgress} following={swiping && !settling} />
     {/if}
     <DownloadsButton />
     <button class="icon" aria-label="Paramètres" title={platform.tip("Paramètres", "open-settings")} onclick={() => api.settings.open()}>
@@ -559,16 +711,32 @@
     gap: var(--sidebar-gap);
     /* Never more than 45% of the window, whatever the saved width. */
     width: min(var(--sidebar-width), 45vw);
+    min-width: 0;
     height: 100%;
     padding: 0 8px 8px;
+    /* Narrow-sidebar rules of its parts (title bar, address bar, indentation) query this. */
+    container: sidebar / inline-size;
   }
   .titlebar {
     display: flex;
     flex: none;
     align-items: center;
     gap: 2px;
+    min-width: 0;
     height: 40px;
     margin-right: -4px;
+  }
+  .titlebar > :global(*) {
+    flex: none;
+  }
+  .titlebar > .title-slot {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    min-width: 0;
+    height: 100%;
+    overflow: hidden;
+    container-type: inline-size;
   }
   .titlebar.mac {
     padding-left: 72px;
@@ -579,9 +747,11 @@
   .nav {
     display: flex;
     gap: 2px;
+    min-width: 0;
   }
   .icon {
     display: grid;
+    flex: none;
     place-items: center;
     width: var(--icon-button);
     height: var(--icon-button);
@@ -626,6 +796,7 @@
   }
   .private-badge {
     display: flex;
+    flex: none;
     align-items: center;
     gap: 7px;
     margin-left: 6px;
@@ -638,6 +809,21 @@
     font-weight: 600;
     letter-spacing: 0.01em;
     white-space: nowrap;
+  }
+  /* Not enough room for the label: the icon alone (the tooltip and the accessible name stay). */
+  @container (max-width: 180px) {
+    .private-badge {
+      margin-left: 2px;
+      padding: 4px 5px;
+    }
+    .private-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
   }
   .private-hint {
     flex: 1;
@@ -657,12 +843,22 @@
   }
   .new-tab {
     display: flex;
+    min-width: 0;
     align-items: center;
     gap: 10px;
     height: calc(var(--tab-height) - 2px);
     padding: 0 11px;
     border-radius: var(--radius);
     color: var(--text-muted);
+  }
+  .new-tab .label {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .new-tab :global(svg) {
+    flex: none;
   }
   .new-tab:hover {
     background: var(--surface-hover);
@@ -671,6 +867,7 @@
   /* One column as wide as the sidebar: a long tab title must ellipsize, never widen (and shift) the area. */
   .space-area {
     display: grid;
+    grid-template-rows: minmax(0, 1fr);
     grid-template-columns: minmax(0, 1fr);
     flex: 1;
     min-height: 0;
@@ -693,11 +890,13 @@
   }
   .space-icon {
     display: grid;
+    flex: none;
     place-items: center;
     color: color-mix(in oklab, var(--dot) 70%, var(--text));
   }
   .space-name {
     flex: 1;
+    min-width: 0;
     overflow: hidden;
     color: color-mix(in oklab, var(--dot) 55%, var(--text));
     font-weight: 600;
@@ -706,6 +905,7 @@
     text-overflow: ellipsis;
   }
   .badge {
+    flex: none;
     padding: 1px 6px;
     border-radius: 6px;
     background: color-mix(in oklab, var(--dot) 18%, transparent);
@@ -744,14 +944,38 @@
     position: relative;
   }
   /* No tiles: takes no room (and no gap), even while its floating drop zone shows. */
-  .favorites-area:not(:has(.tile)) {
+  .favorites-area:not(:has(.tile, .empty-hint)) {
     height: 0;
     margin-bottom: calc(-1 * var(--sidebar-gap));
   }
-  .space-content.settling {
-    transition:
-      transform 0.2s var(--ease),
-      opacity 0.2s var(--ease);
+  /* The shown space and, while swiping, its neighbours one width (plus a gap) to each side. */
+  .space-track {
+    position: relative;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
+    min-height: 0;
+  }
+  .space-track.settling {
+    transition: transform var(--settle) cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .peek {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .peek.previous {
+    right: calc(100% + var(--peek-gap));
+  }
+  .peek.next {
+    left: calc(100% + var(--peek-gap));
+  }
+  .peek .tabs {
+    overflow: hidden;
   }
   .new-row {
     display: flex;
@@ -767,9 +991,14 @@
   .tabs.dragging {
     cursor: grabbing;
   }
+  /* Indentation narrows with the sidebar: four levels deep must not crush the titles. */
   .row {
     flex: none;
-    padding-left: calc(var(--depth, 0) * 14px);
+    min-width: 0;
+    padding-left: calc(var(--depth, 0) * var(--indent));
+  }
+  .sidebar {
+    --indent: clamp(8px, 5cqi, 14px);
   }
   .row.dragged {
     opacity: 0.4;
@@ -804,6 +1033,7 @@
   }
   .chevron-icon {
     display: grid;
+    flex: none;
     place-items: center;
     transition: transform 0.15s var(--ease);
   }
@@ -812,6 +1042,7 @@
   }
   .folder-icon {
     display: grid;
+    flex: none;
     place-items: center;
   }
   .folder-name {
@@ -823,6 +1054,7 @@
     text-overflow: ellipsis;
   }
   .count {
+    flex: none;
     padding: 0 6px;
     border-radius: 6px;
     background: var(--surface);
@@ -841,7 +1073,7 @@
   .drop-line {
     position: absolute;
     right: 4px;
-    left: calc(6px + var(--depth, 0) * 14px);
+    left: calc(6px + var(--depth, 0) * var(--indent));
     height: 2px;
     border-radius: 1px;
     background: var(--accent-text);
@@ -884,6 +1116,7 @@
     flex: none;
     align-items: center;
     gap: 2px;
+    min-width: 0;
     margin-top: auto;
     padding-top: 6px;
     border-top: 1px solid var(--border);

@@ -59,7 +59,9 @@ describe("sanitizeSettings", () => {
   it("clamps and rounds numbers", () => {
     const result = sanitizeSettings({ appearance: { radius: 99.6 }, layout: { sidebarWidth: 10, gutter: 3.4 } });
     expect(result.appearance.radius).toBe(18);
-    expect(result.layout.sidebarWidth).toBe(200);
+    expect(result.layout.sidebarWidth).toBe(232);
+    // Widths saved under the former 200px minimum are raised to the new one.
+    expect(sanitizeSettings({ layout: { sidebarWidth: 200 } }).layout.sidebarWidth).toBe(232);
     expect(result.layout.gutter).toBe(3);
     expect(sanitizeSettings({ appearance: { radius: Number.NaN } }).appearance.radius).toBe(DEFAULT_SETTINGS.appearance.radius);
     expect(sanitizeSettings({ appearance: { radius: -4 } }).appearance.radius).toBe(0);

@@ -284,6 +284,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    min-width: 0;
     height: var(--control-height);
     padding: 0 6px 0 10px;
     border: 1px solid transparent;
@@ -304,6 +305,7 @@
   }
   .status {
     display: grid;
+    flex: none;
     color: var(--text-faint);
   }
   .status.secure {
@@ -411,6 +413,7 @@
   }
   .star {
     display: grid;
+    flex: none;
     place-items: center;
     width: 24px;
     height: 24px;
@@ -484,6 +487,15 @@
     from {
       opacity: 0;
       transform: translateY(-3px);
+    }
+  }
+  /* Narrow sidebar: tighter spacing, and the copy button (Ctrl+Maj+C, palette) leaves the URL room. */
+  @container sidebar (max-width: 230px) {
+    .address {
+      gap: 4px;
+    }
+    .copy:not(.done) {
+      display: none;
     }
   }
 </style>

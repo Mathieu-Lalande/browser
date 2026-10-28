@@ -77,7 +77,7 @@ export function buildTabMenu(c: BrowserController, tabId: TabId): Menu | null {
     },
     {
       id: "favorite",
-      label: tab.isFavorite ? "Retirer de la grille des favoris" : "Ajouter à la grille des favoris",
+      label: tab.isFavorite ? "Retirer des favoris (tous les espaces)" : "Ajouter aux favoris (tous les espaces)",
       // The grid is the profile's: read-only from a private window (ADR-014).
       enabled: !c.isPrivate && isFavoriteUrl(tab.url),
       click: () => toggleFavorite(c, tabId),

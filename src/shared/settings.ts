@@ -44,6 +44,8 @@ export interface LayoutSettings {
   gutter: number;
   /** Distraction-free: sidebar hidden until the window edge is hovered, page edge to edge. */
   zenMode: boolean;
+  /** The empty favorites grid's drop-zone hint was dismissed (ADR-022). */
+  favoritesHintDismissed: boolean;
 }
 
 export interface SearchSettings {
@@ -105,7 +107,11 @@ export type SettingsPatch = { [S in SettingsSection]?: Partial<Settings[S]> };
 
 export const LIMITS = {
   radius: { min: 0, max: 18 },
-  sidebarWidth: { min: 200, max: 420 },
+  /**
+   * 232: the title bar must hold the Windows controls (3×36px), the private badge (icon only) and
+   * two buttons at the spacious density. Saved narrower widths are raised by the sanitizer's clamp.
+   */
+  sidebarWidth: { min: 232, max: 420 },
   gutter: { min: 0, max: 16 },
   greetingName: 40,
   url: 2048,
@@ -141,7 +147,7 @@ export const DEFAULT_SETTINGS: Settings = {
     pointerCursor: true,
     pageZoom: 100,
   },
-  layout: { sidebarPosition: "left", sidebarWidth: 264, gutter: 8, zenMode: false },
+  layout: { sidebarPosition: "left", sidebarWidth: 264, gutter: 8, zenMode: false, favoritesHintDismissed: false },
   search: { engine: DEFAULT_SEARCH_ENGINE.id },
   startPage: { showClock: true, showTopSites: true, greetingName: "", background: "theme", backgroundImage: "" },
   behavior: { restoreSession: true, newTabPosition: "end", closeTabActivates: "next", sleepTabsAfter: "30m", archiveTabsAfter: "7d" },
@@ -231,6 +237,7 @@ const schema: Schema = {
     sidebarWidth: integer(LIMITS.sidebarWidth),
     gutter: integer(LIMITS.gutter),
     zenMode: bool,
+    favoritesHintDismissed: bool,
   },
   search: { engine: oneOf(...SEARCH_ENGINES.map((engine) => engine.id)) },
   startPage: {

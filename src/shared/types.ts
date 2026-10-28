@@ -122,6 +122,16 @@ export interface BrowserState extends TabsState {
   isPrivate?: boolean;
   /** The favorites grid, shared by every space (ADR-022). */
   favorites?: FavoriteTile[];
+  /**
+   * The spaces just before and after the shown one, as the sidebar draws them beside it while a
+   * two-finger swipe slides between spaces (ADR-022). Capped: only what fits on screen.
+   */
+  peeks?: SpacePeek[];
+}
+
+/** Tabs and folders of a space not on screen (see `BrowserState.peeks`). */
+export interface SpacePeek extends TabsState {
+  spaceId: SpaceId;
 }
 
 export type SpaceId = string;

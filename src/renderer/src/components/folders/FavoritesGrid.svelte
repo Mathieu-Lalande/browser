@@ -1,7 +1,9 @@
 <script lang="ts">
   import { displayUrl } from "@shared/url";
   import { api, browser } from "../../lib/browser.svelte";
+  import { settings } from "../../lib/settings.svelte";
   import Favicon from "../Favicon.svelte";
+  import Icon from "../Icon.svelte";
 
   /**
    * Favorites grid at the top of the sidebar (ADR-022), shared by every space. A tile opens its
@@ -12,10 +14,12 @@
 
   const favorites = $derived(browser.state.favorites ?? []);
   const activeUrl = $derived(browser.activeTab?.url ?? "");
+  /** Empty grid: a dismissible drop zone says it exists and is shared by every space. */
+  const showHint = $derived(!favorites.length && !browser.isPrivate && !settings.current.layout.favoritesHintDismissed);
 </script>
 
-{#if favorites.length || (dragActive && !browser.isPrivate)}
-  <div class="favorites" class:dropping class:floating={!favorites.length} role="list" aria-label="Favoris" data-drop="favorites">
+{#if favorites.length || showHint || (dragActive && !browser.isPrivate)}
+  <div class="favorites" class:dropping class:floating={!favorites.length && !showHint} role="list" aria-label="Favoris" data-drop="favorites">
     {#each favorites as favorite (favorite.url)}
       <div role="listitem">
         <button
@@ -33,7 +37,20 @@
         </button>
       </div>
     {/each}
-    {#if dragActive && !browser.isPrivate}
+    {#if showHint}
+      <div class="empty-hint" role="listitem" data-testid="favorites-hint">
+        <Icon name="star" size={16} />
+        <span class="hint-text">Glissez un onglet ici pour l'épingler dans tous les espaces</span>
+        <button
+          class="dismiss"
+          aria-label="Masquer l'astuce des favoris"
+          title="Masquer"
+          onclick={() => settings.update({ layout: { favoritesHintDismissed: true } })}
+        >
+          <Icon name="close" size={14} />
+        </button>
+      </div>
+    {:else if dragActive && !browser.isPrivate}
       <div class="drop-hint" role="listitem">{favorites.length ? "" : "Déposez un onglet ici pour l'ajouter aux favoris"}</div>
     {/if}
   </div>
@@ -106,6 +123,45 @@
     color: var(--text-muted);
     font-size: 11.5px;
     text-align: center;
+  }
+  .empty-hint {
+    display: flex;
+    grid-column: 1 / -1;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    min-height: 40px;
+    padding: 4px 4px 4px 10px;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    color: var(--text-faint);
+    font-size: 11.5px;
+    line-height: 1.3;
+  }
+  .empty-hint > :global(svg) {
+    flex: none;
+  }
+  .favorites.dropping .empty-hint {
+    border-color: color-mix(in oklab, var(--accent-text) 60%, transparent);
+    color: var(--text);
+  }
+  .hint-text {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .dismiss {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    color: var(--text-faint);
+  }
+  .dismiss:hover {
+    background: var(--surface-hover);
+    color: var(--text);
   }
   .favorites:has(.tile) .drop-hint {
     display: none;

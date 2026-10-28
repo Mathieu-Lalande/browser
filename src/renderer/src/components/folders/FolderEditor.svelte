@@ -103,7 +103,6 @@
 
     <div class="actions">
       <button class="delete" onclick={deleteFolder}><Icon name="trash" size={12} /> Supprimer</button>
-      <span class="spacer"></span>
       <button class="secondary" disabled={!canNest} onclick={() => (api.folders.create({}, folder.id), onClose())}>
         <Icon name="folder-plus" size={12} /> Sous-dossier
       </button>
@@ -117,7 +116,7 @@
     position: absolute;
     right: 8px;
     bottom: 54px;
-    left: var(--gutter);
+    left: 8px;
     z-index: 5;
     display: flex;
     flex-direction: column;
@@ -128,6 +127,9 @@
     box-shadow:
       0 0 0 1px var(--border),
       0 18px 40px -12px rgb(0 0 0 / 0.55);
+    min-width: 0;
+    overflow: hidden auto;
+    max-height: calc(100% - 64px);
     animation: pop 0.16s var(--ease);
     transform-origin: bottom left;
   }
@@ -168,11 +170,13 @@
   }
   .icons {
     display: grid;
-    grid-template-columns: repeat(8, minmax(0, 1fr));
+    /* Fluid: as many 28px+ targets per row as the popover holds (never squeezed under 28px). */
+    grid-template-columns: repeat(auto-fill, minmax(28px, 1fr));
     gap: 2px;
   }
   .icons button {
     display: grid;
+    min-width: 28px;
     place-items: center;
     height: 28px;
     border-radius: 8px;
@@ -187,13 +191,19 @@
     box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent-text) 55%, transparent);
     color: var(--accent-text);
   }
+  /* On a narrow sidebar the buttons wrap onto a second row rather than overflow. */
   .actions {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
+    justify-content: flex-end;
     gap: 6px;
   }
-  .spacer {
-    flex: 1;
+  .actions button {
+    flex: none;
+  }
+  .actions .delete {
+    margin-right: auto;
   }
   .actions button,
   .choices button {
@@ -238,5 +248,11 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
+  }
+  .choices button {
+    height: auto;
+    min-height: 28px;
+    padding: 4px 10px;
+    text-align: center;
   }
 </style>

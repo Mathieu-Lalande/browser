@@ -210,6 +210,54 @@ test("a two-finger horizontal swipe on the sidebar changes space once; vertical 
   expect((await state(chrome)).activeSpaceId).toBe(spaces[0].id);
 });
 
+test("a swipe with a long momentum tail (macOS) switches space only once, sliding the neighbour in", async ({ chrome }) => {
+  await chrome.evaluate(async () => {
+    const browser = (globalThis as unknown as Global).browser;
+    await browser.spaces.create({ name: "Deux" });
+    await browser.spaces.create({ name: "Trois" });
+  });
+  const spaces = (await state(chrome)).spaces;
+  await chrome.evaluate((id) => (globalThis as unknown as Global).browser.spaces.switchTo(id), spaces[0].id);
+  await expect.poll(async () => (await state(chrome)).activeSpaceId).toBe(spaces[0].id);
+  await chrome.waitForTimeout(400);
+
+  // Fingers accelerate, then about a second of decaying momentum events, 16 ms apart; the active
+  // space is sampled all along: it must go from the first space to the second, never further.
+  const seen = await chrome.evaluate(async (deltas) => {
+    type Target = { dispatchEvent(event: unknown): boolean };
+    const page = globalThis as unknown as {
+      document: { querySelector(selector: string): Target | null };
+      WheelEvent: new (type: string, init: Record<string, unknown>) => unknown;
+      browser: BrowserApi;
+    };
+    const target = page.document.querySelector("[data-testid=space-area] .tabs")!;
+    const ids: string[] = [];
+    let peeked = false;
+    for (const deltaX of deltas) {
+      target.dispatchEvent(new page.WheelEvent("wheel", { deltaX, deltaY: 0, deltaMode: 0, bubbles: true, cancelable: true }));
+      peeked ||= !!page.document.querySelector("[data-peek=next]");
+      await new Promise((resolve) => setTimeout(resolve, 16));
+      ids.push((await page.browser.getState()).activeSpaceId);
+    }
+    return { ids: [...new Set(ids)], peeked };
+  }, momentum());
+  expect(seen.peeked).toBe(true);
+  expect(seen.ids.every((id) => id === spaces[0].id || id === spaces[1].id)).toBe(true);
+  await expect.poll(async () => (await state(chrome)).activeSpaceId).toBe(spaces[1].id);
+  await chrome.waitForTimeout(500);
+  expect((await state(chrome)).activeSpaceId).toBe(spaces[1].id);
+  // At rest: no neighbour drawn, the track back in place.
+  await expect(chrome.locator("[data-peek]")).toHaveCount(0);
+  await expect(chrome.locator(".space-track")).not.toHaveAttribute("style", /translate/);
+});
+
+/** A macOS two-finger swipe: accelerating deltas, then a long decaying tail. */
+function momentum(): number[] {
+  const deltas = [4, 9, 16, 24, 30, 32];
+  for (let delta = 30; delta >= 0.5; delta *= 0.93) deltas.push(Math.round(delta * 10) / 10);
+  return deltas;
+}
+
 test("idle tabs are archived (never pinned ones), listed in browser://archive and the palette, and restored", async ({ profile, server }) => {
   const app = await launch(profile, { BROWSER_TEST_ARCHIVE_MS: "1500" });
   try {

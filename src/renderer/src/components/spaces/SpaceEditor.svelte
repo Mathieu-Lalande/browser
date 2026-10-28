@@ -138,7 +138,7 @@
     position: absolute;
     right: 8px;
     bottom: 54px;
-    left: var(--gutter);
+    left: 8px;
     z-index: 5;
     display: flex;
     flex-direction: column;
@@ -149,6 +149,9 @@
     box-shadow:
       0 0 0 1px var(--border),
       0 18px 40px -12px rgb(0 0 0 / 0.55);
+    min-width: 0;
+    overflow: hidden auto;
+    max-height: calc(100% - 64px);
     animation: pop 0.16s var(--ease);
     transform-origin: bottom left;
   }
@@ -189,11 +192,13 @@
   }
   .icons {
     display: grid;
-    grid-template-columns: repeat(8, minmax(0, 1fr));
+    /* Fluid: as many 28px+ targets per row as the popover holds (never squeezed under 28px). */
+    grid-template-columns: repeat(auto-fill, minmax(28px, 1fr));
     gap: 2px;
   }
   .icons button {
     display: grid;
+    min-width: 28px;
     place-items: center;
     height: 28px;
     border-radius: 8px;
@@ -211,26 +216,40 @@
     box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent-text) 55%, transparent);
     color: var(--accent-text);
   }
+  /* Fluid too: the swatches wrap onto a second row on a narrow sidebar. */
   .colors {
-    display: flex;
-    justify-content: space-between;
-    padding: 0 2px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(28px, 1fr));
+    gap: 2px;
+    justify-items: center;
   }
+  /* A 28px target around a 20px dot. */
   .swatch {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+  }
+  .swatch::before {
     width: 20px;
     height: 20px;
     border-radius: 50%;
     background: var(--swatch);
     box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.15);
     transition: transform 0.12s var(--ease);
+    content: "";
   }
-  .swatch:hover {
+  .swatch:hover::before {
     transform: scale(1.12);
   }
-  .swatch.theme {
+  .swatch:focus-visible {
+    outline-offset: -2px;
+  }
+  .swatch.theme::before {
     background: conic-gradient(from 45deg, #8b7bff, #d77bff, #5aa9ff, #8b7bff);
   }
-  .swatch.selected {
+  .swatch.selected::before {
     box-shadow:
       0 0 0 2px var(--bg-elevated),
       0 0 0 4px var(--text-muted);
@@ -255,6 +274,7 @@
   }
   .actions button {
     display: flex;
+    flex: none;
     align-items: center;
     gap: 6px;
     height: 28px;

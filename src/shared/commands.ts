@@ -287,10 +287,10 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
     },
   },
   "toggle-favorite": {
-    label: "Ajouter à la grille des favoris",
-    activeLabel: "Retirer de la grille des favoris",
+    label: "Ajouter aux favoris (tous les espaces)",
+    activeLabel: "Retirer des favoris (tous les espaces)",
     toggles: "isFavorite",
-    menuLabel: "Ajouter/retirer de la grille des favoris",
+    menuLabel: "Ajouter/retirer des favoris (tous les espaces)",
     keywords: ["favorite", "favori", "grille", "tuile", "accès rapide", "arc"],
     icon: "favorite",
     needsPage: true,

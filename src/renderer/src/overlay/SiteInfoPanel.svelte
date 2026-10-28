@@ -93,7 +93,7 @@
   style:left="{position.left}px"
   style:top="{position.top}px"
   style:max-height="{position.maxHeight}px"
-  style:width="{WIDTH}px"
+  style:width="{Math.min(WIDTH, innerWidth - 2 * MARGIN)}px"
 >
   {#if info}
     <header>

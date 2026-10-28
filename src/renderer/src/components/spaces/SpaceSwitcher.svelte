@@ -6,8 +6,12 @@
   import { platform } from "../../lib/platform.svelte";
   import Icon from "../Icon.svelte";
 
-  /** `onEdit`: open the editor of a space (right-click, or right after creating one). */
-  let { onEdit }: { onEdit: (id: SpaceId) => void } = $props();
+  /**
+   * `onEdit`: open the editor of a space (right-click, or right after creating one). `progress`:
+   * share of the way to the next (+1) or previous (-1) space during a swipe; the active indicator
+   * slides along, 1:1 while `following` the fingers, eased otherwise.
+   */
+  let { onEdit, progress = 0, following = false }: { onEdit: (id: SpaceId) => void; progress?: number; following?: boolean } = $props();
 
   let list = $state<HTMLElement>();
   /** Which ends of the strip hide chips (faded with a mask). */
@@ -43,6 +47,24 @@
     const observer = new ResizeObserver(measure);
     observer.observe(list);
     return () => observer.disconnect();
+  });
+
+  /** The active indicator, between the active chip and the one the swipe goes to. */
+  let indicator = $state<{ left: number; color: string } | null>(null);
+  $effect(() => {
+    const index = browser.state.spaces.findIndex((space) => space.id === browser.state.activeSpaceId);
+    const chips = list ? [...list.querySelectorAll<HTMLElement>("[data-space-id]")] : [];
+    void compact;
+    const from = chips[index];
+    if (!from) {
+      indicator = null;
+      return;
+    }
+    const to = chips[index + Math.sign(progress)] ?? from;
+    const center = (chip: HTMLElement) => chip.offsetLeft + chip.offsetWidth / 2;
+    const left = center(from) + (center(to) - center(from)) * Math.abs(progress);
+    const space = browser.state.spaces[index];
+    indicator = { left, color: space.color ?? "var(--accent)" };
   });
 
   /** Vertical wheel scrolls the strip sideways. */
@@ -82,6 +104,9 @@
         <Icon name={space.icon} size={compact ? 14 : 16} />
       </button>
     {/each}
+    {#if indicator}
+      <span class="indicator" class:following style:left="{indicator.left}px" style:--dot={indicator.color} aria-hidden="true"></span>
+    {/if}
   </div>
   <button
     class="add"
@@ -103,6 +128,7 @@
     min-width: 0;
   }
   .spaces {
+    position: relative;
     display: flex;
     gap: 2px;
     min-width: 0;
@@ -155,14 +181,22 @@
     background: color-mix(in oklab, var(--dot) 18%, transparent);
     color: color-mix(in oklab, var(--dot) 70%, var(--text));
   }
-  .space.active::after {
+  /* One bar for the strip: it slides from chip to chip (with the fingers during a swipe). */
+  .indicator {
     position: absolute;
-    bottom: 1px;
+    bottom: 3px;
     width: 12px;
     height: 2px;
     border-radius: 2px;
     background: var(--dot);
-    content: "";
+    transform: translateX(-50%);
+    transition:
+      left 0.22s cubic-bezier(0.2, 0.8, 0.2, 1),
+      background 0.22s var(--ease);
+    pointer-events: none;
+  }
+  .indicator.following {
+    transition: none;
   }
   .add:disabled {
     opacity: 0.35;

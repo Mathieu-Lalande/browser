@@ -911,23 +911,35 @@ http(s) seulement), synchronisé comme **collection supplémentaire `favorites`*
 - Une tuile ouvre l'onglet de son site (même page d'abord, sinon le plus récent sur le même hôte,
   dans l'espace affiché puis les autres espaces de la fenêtre), sinon un nouvel onglet ; un point
   signale un onglet ouvert. Clic droit : ouvrir, ouvrir dans un nouvel onglet, retirer.
-- Ajout/retrait : menu contextuel d'onglet, glisser un onglet sur la grille (sans tuile, une zone de
-  dépôt flotte au-dessus de la liste pendant le glisser), commande « Ajouter à / Retirer de la
-  grille des favoris ». Le libellé « grille des favoris » la distingue des favoris (étoile, Ctrl+D).
+- Ajout/retrait : menu contextuel d'onglet, glisser un onglet sur la grille, commande « Ajouter aux
+  favoris (tous les espaces) » : la mention « tous les espaces » dit que la grille est commune, et la
+  distingue de l'étoile (Ctrl+D). Grille vide : une zone de dépôt discrète (« Glissez un onglet ici
+  pour l'épingler dans tous les espaces ») la fait découvrir ; masquée pour de bon par sa croix
+  (préférence locale `layout.favoritesHintDismissed`), elle ne revient alors que pendant un glisser,
+  flottant au-dessus de la liste.
 - Fenêtres privées : la grille est lisible et cliquable, jamais modifiable (refusé dans main).
 
-**Changer d'espace au geste.** Module pur `src/shared/space-swipe.ts` (testé) alimenté par les
-événements `wheel` de la barre latérale : les pavés tactiles de macOS et les pavés de précision de
-Windows livrent le défilement à deux doigts comme des `wheel` en pixels, l'horizontal dans `deltaX`.
-- Verrou d'axe sur les 8 premiers pixels : un geste où `|deltaX|` ne domine pas nettement
-  (`> 1,5 × |deltaY|`) reste un défilement jusqu'à sa fin ; une molette de souris (seulement
-  `deltaY`, ou en lignes) ne déclenche jamais rien, ni Maj+molette ni Ctrl+molette (zoom).
-- Le contenu de l'espace suit les doigts (`translateX`), avec un effet élastique à l'espace premier
-  et dernier, puis bascule au-delà de 30 % de la largeur ou sur un geste rapide (≥ 1,2 px/ms après
-  10 %). Défilement naturel : doigts vers la gauche, espace suivant.
-- **Un geste, un espace** : après une bascule, tous les événements du même geste (inertie de macOS
-  comprise) sont avalés jusqu'à une pause de 260 ms. Sans bascule, une pause de 140 ms ramène le
-  contenu en place. « Réduire les animations » garde le geste mais pas le suivi du doigt.
+**Changer d'espace au geste.** Module pur `src/shared/space-swipe.ts` (testé sur des séquences
+réalistes) alimenté par les événements `wheel` de toute la barre latérale, en phase de capture (un
+geste commencé sur la liste d'onglets ou un autre enfant défilant est vu en premier) : les pavés
+tactiles de macOS et les pavés de précision de Windows livrent le défilement à deux doigts comme des
+`wheel` en pixels, l'horizontal dans `deltaX`.
+- Verrou d'axe sur les 4 premiers pixels : horizontal si `|x| > 1,2 × |y|`, sinon le geste reste un
+  défilement jusqu'à sa fin ; une molette de souris (seulement `deltaY`, ou en lignes) ne déclenche
+  jamais rien, ni Maj+molette ni Ctrl+molette (zoom).
+- Suivi 1:1 : la zone des onglets est une piste horizontale où l'espace affiché a ses voisins à côté
+  (`BrowserState.peeks` : onglets et dossiers des espaces précédent et suivant, 40 onglets au plus,
+  dessinés inertes). Effet élastique au premier et au dernier espace ; l'indicateur des pastilles
+  d'espace glisse avec les doigts.
+- Décision au relâchement : fin du geste après 140 ms sans événement, ou dès que les deltas
+  décroissent (doigts levés : inertie de macOS, de Windows). Bascule au-delà de 25 % de la largeur ou
+  sur un geste vif (≥ 0,5 px/ms sur les 80 dernières ms, après 16 px). La piste glisse alors jusqu'à
+  la position calée (220 ms, ease-out) et seulement ensuite l'espace change, sans l'animation
+  d'entrée propre au changement (le voisin est déjà à sa place : ni saut ni flash). Clavier et clic
+  gardent une seule glissade. « Réduire les animations » garde le geste sans suivi ni glissade.
+- **Un geste, un espace** : après une bascule, la fin de la rafale (inertie) est avalée jusqu'à une
+  pause de 140 ms, sauf si un nouveau geste y commence nettement (deltas qui repartent à la hausse,
+  ou sens inverse) : un second balayage rapide n'est pas perdu.
 - **Sur la page**, rien n'est intercepté : l'écouteur vit dans l'interface, les pages n'ont ni
   preload ni écouteur ajouté. Par défaut, Electron n'ajoute pas la navigation précédent/suivant par
   balayage à deux doigts de Chrome (fonction de la couche `chrome/` ; l'API d'Electron 44 n'expose
@@ -936,8 +948,9 @@ Windows livrent le défilement à deux doigts comme des `wheel` en pixels, l'hor
   défaut est conservé, pas imité.
 - macOS : le balayage à trois doigts (événement `swipe` de `BrowserWindow`, « left »/« right »,
   quand « Balayer entre les pages » l'autorise) change aussi d'espace.
-- Test e2e : des `WheelEvent` synthétiques avec `deltaX` sur la barre latérale changent l'espace
-  exactement une fois ; une molette verticale ne change rien ; rien au-delà du premier espace.
+- Tests e2e : des `WheelEvent` synthétiques avec `deltaX` sur la barre latérale changent l'espace
+  exactement une fois ; une molette verticale ne change rien ; rien au-delà du premier espace ; une
+  longue traîne d'inertie ne change d'espace qu'une fois.
 
 **Archivage automatique.** Réglage « Archiver les onglets inactifs après » : Jamais, 12 h, 24 h,
 7 jours (défaut), 30 jours (`behavior.archiveTabsAfter`, non synchronisé). Politique pure partagée

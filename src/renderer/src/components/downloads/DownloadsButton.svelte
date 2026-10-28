@@ -48,6 +48,7 @@
   .downloads {
     position: relative;
     display: grid;
+    flex: none;
     place-items: center;
     width: var(--icon-button);
     height: var(--icon-button);

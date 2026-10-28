@@ -1,10 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { session, type BaseWindow, type Session } from "electron";
 import { DEFAULT_SPACE, addSpace, cycleSpace, neighborSpace, removeSpace, spacePartition, updateSpace } from "@shared/spaces";
-import type { Bounds, BrowserState, SpaceId, SpaceInfo, SpaceInput, TabId, TabState } from "@shared/types";
+import type { Bounds, BrowserState, SpaceId, SpaceInfo, SpaceInput, SpacePeek, TabId, TabState } from "@shared/types";
 import { hardenSession } from "./security";
 import type { SessionWindow } from "./storage/session";
 import { TabManager, type TabManagerHooks, type TabOptions } from "./tabs";
+
+/** Tabs of a neighbour space sent for the swipe preview. */
+const PEEK_TABS = 40;
 
 /** What changed in the space list, beyond names/icons/colors. */
 export interface SpaceChange {
@@ -195,8 +198,22 @@ export class SpaceManager {
   }
 
   getState(): BrowserState {
-    const state: BrowserState = { ...this.active.getState(), spaces: this.list(), activeSpaceId: this.activeId };
+    const list = this.list();
+    const state: BrowserState = { ...this.active.getState(), spaces: list, activeSpaceId: this.activeId, peeks: this.peeks(list) };
     return this.ephemeral ? { ...state, isPrivate: true } : state;
+  }
+
+  /** The neighbours of the shown space, for the swipe between spaces (a space never shown yet: empty). */
+  private peeks(list: SpaceInfo[]): SpacePeek[] {
+    const index = list.findIndex((space) => space.id === this.activeId);
+    return [list[index - 1], list[index + 1]]
+      .filter((space): space is SpaceInfo => space !== undefined)
+      .map((space) => {
+        const state = this.managers.get(space.id)?.getState();
+        // A sidebar shows a few dozen rows at most: enough for the slide, light on the state channel.
+        const tabs = (state?.tabs ?? []).slice(0, PEEK_TABS);
+        return { spaceId: space.id, tabs, activeTabId: state?.activeTabId ?? null, split: null, folders: state?.folders ?? [] };
+      });
   }
 
   snapshot(): SessionWindow {

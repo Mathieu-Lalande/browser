@@ -197,7 +197,7 @@
   style:--accent-text={spaceAccent?.["--accent-text"]}
   style:--on-accent={spaceAccent?.["--on-accent"]}
 >
-  {#if trafficLights}<div class="lights drag" data-testid="traffic-lights-band"></div>{/if}
+  {#if trafficLights}<div class="lights-band drag" data-testid="traffic-lights-band"></div>{/if}
   {#if showSidebar}
     <!-- Pointer tracking only (zen auto-hide); every control inside stays keyboard reachable. -->
     <div
@@ -352,7 +352,8 @@
     height: max(var(--gutter), 8px);
     margin-bottom: calc(-1 * var(--gutter));
   }
-  .lights {
+  /* Not `.lights`: that is the shell's own modifier class (it made the whole shell 36px tall). */
+  .lights-band {
     position: absolute;
     inset: 0 0 auto 0;
     height: 36px;
