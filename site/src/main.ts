@@ -1,8 +1,8 @@
 import "./style.css";
 
 const REPO = "Mathieu-Lalande/browser";
-const RELEASES_PAGE = `https://github.com/${REPO}/releases/latest`;
 const LATEST_API = `https://api.github.com/repos/${REPO}/releases/latest`;
+const DOWNLOAD_FALLBACK = "#telecharger";
 
 type Os = "windows" | "mac" | "linux" | "mobile" | "unknown";
 type AssetKey = "win-x64" | "win-arm64" | "win-zip" | "mac-arm64" | "mac-x64" | "linux-appimage" | "linux-deb" | "checksums";
@@ -151,7 +151,7 @@ async function setupDownloads(): Promise<void> {
   for (const link of document.querySelectorAll<HTMLAnchorElement>("a[data-asset]")) {
     const asset = assets[link.dataset.asset as AssetKey];
     if (asset) link.href = asset.browser_download_url;
-    else if (release) link.href = release.html_url;
+    else link.href = release?.html_url ?? DOWNLOAD_FALLBACK;
   }
 
   if (version) {
@@ -193,12 +193,12 @@ async function setupDownloads(): Promise<void> {
       const detail = key === "mac-arm64" ? "Apple Silicon" : key === "mac-x64" ? "Intel" : key === "win-arm64" ? "ARM" : key === "linux-appimage" ? "AppImage" : "64 bits";
       meta.textContent = `Version ${version} · ${detail} · ${formatSize(asset.size)}`;
     } else {
-      primary.href = release?.html_url ?? RELEASES_PAGE;
-      meta.textContent = release ? `Version ${version} sur GitHub` : "Page des versions sur GitHub";
+      primary.href = release?.html_url ?? DOWNLOAD_FALLBACK;
+      meta.textContent = release ? `Version ${version} sur GitHub` : "Téléchargements bientôt disponibles";
     }
   } else {
     // Phone, tablet or unknown system: point to the platform list instead of guessing.
-    primary.href = "#telecharger";
+    primary.href = DOWNLOAD_FALLBACK;
     label.textContent = "Choisir ma plateforme";
     meta.textContent = os === "mobile" ? "Pour ordinateur ; l'app mobile arrive bientôt" : "Windows, macOS ou Linux";
   }

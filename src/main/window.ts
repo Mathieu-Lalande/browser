@@ -235,10 +235,13 @@ export class BrowserController {
     });
     this.peek = new LinkPeek(this);
 
-    // macOS three-finger swipe (when "Swipe between pages" allows it): previous/next space, like
-    // the two-finger swipe on the sidebar (ADR-022). Fingers to the left: the next space.
+    // A native macOS swipe navigates the active page when possible. If there is no page history,
+    // retain the existing space-switching gesture.
     this.window.on("swipe", (_event, direction) => {
-      if (direction === "left") this.spaces.switchBy(1);
+      const active = this.tabs.getState().tabs.find((tab) => tab.id === this.tabs.activeTabId);
+      if (direction === "right" && active?.canGoBack) this.tabs.back(active.id);
+      else if (direction === "left" && active?.canGoForward) this.tabs.forward(active.id);
+      else if (direction === "left") this.spaces.switchBy(1);
       else if (direction === "right") this.spaces.switchBy(-1);
     });
 

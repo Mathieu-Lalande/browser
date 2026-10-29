@@ -1201,6 +1201,41 @@ export class TabManager {
     on("focus", () => {
       if (this.splitVisible && tab.id !== this.activeId && this.split?.tabIds.includes(tab.id)) this.activate(tab.id);
     });
+    // Precision touchpads on Windows report horizontal wheel deltas rather than Electron's
+    // macOS-only native `swipe` event. Require a clearly horizontal, precise gesture.
+    let horizontalGesture = 0;
+    let gestureReset: ReturnType<typeof setTimeout> | undefined;
+    const resetHorizontalGesture = () => {
+      horizontalGesture = 0;
+      if (gestureReset !== undefined) {
+        clearTimeout(gestureReset);
+        gestureReset = undefined;
+      }
+    };
+    on("input-event", (_event: Electron.Event, input: Electron.InputEvent) => {
+      if (input.type === "gestureScrollEnd") {
+        resetHorizontalGesture();
+        return;
+      }
+      if (input.type !== "mouseWheel") return;
+      const wheel = input as Electron.InputEvent & {
+        deltaX?: number;
+        deltaY?: number;
+        hasPreciseScrollingDeltas?: boolean;
+      };
+      const deltaX = wheel.deltaX ?? 0;
+      const deltaY = wheel.deltaY ?? 0;
+      if (!wheel.hasPreciseScrollingDeltas || Math.abs(deltaX) < Math.abs(deltaY) * 1.5) {
+        resetHorizontalGesture();
+        return;
+      }
+      horizontalGesture += deltaX;
+      gestureReset = setTimeout(resetHorizontalGesture, 250);
+      if (Math.abs(horizontalGesture) < 120) return;
+      if (horizontalGesture < 0) this.back(tab.id);
+      else this.forward(tab.id);
+      resetHorizontalGesture();
+    });
     on("did-start-navigation", (details) => {
       if (!details.isMainFrame || details.isSameDocument) return;
       // A new page: fresh blocked counter, no blocked popup, and any interstitial gives way to it.
