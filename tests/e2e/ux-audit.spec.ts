@@ -197,3 +197,15 @@ test("a space color goes through the contrast engine", async ({ chrome }) => {
   expect(light.accent).not.toBe("#fff200");
   expect(light.text).not.toBe(light.accent);
 });
+
+test("the Outils menu of the sidebar opens the internal pages", async ({ chrome }) => {
+  await chrome.getByRole("button", { name: "Outils" }).click();
+  const menu = chrome.getByRole("menu", { name: "Outils" });
+  await expect(menu.getByRole("menuitem")).toHaveText(["Mots de passe", "Boosts", "Extensions", "Onglets archivés"]);
+  await menu.getByRole("menuitem", { name: "Boosts" }).click();
+  await expect(menu).toHaveCount(0);
+  await expect(chrome.getByRole("combobox", { name: "Barre d'adresse" })).toHaveValue("browser://boosts");
+  await chrome.getByRole("button", { name: "Outils" }).click();
+  await chrome.keyboard.press("Escape");
+  await expect(menu).toHaveCount(0);
+});

@@ -9,6 +9,7 @@
   import { api, browser } from "../lib/browser.svelte";
   import AddressBar from "./AddressBar.svelte";
   import DownloadsButton from "./downloads/DownloadsButton.svelte";
+  import ToolsMenu from "./ToolsMenu.svelte";
   import { settings } from "../lib/settings.svelte";
   import Icon from "./Icon.svelte";
   import { platform } from "../lib/platform.svelte";
@@ -697,6 +698,7 @@
       <SpaceSwitcher onEdit={(id) => (editing = editing === id ? null : id)} progress={swipeProgress} following={swiping && !settling} />
     {/if}
     <DownloadsButton />
+    <ToolsMenu />
     <button class="icon" aria-label="Paramètres" title={platform.tip("Paramètres", "open-settings")} onclick={() => api.settings.open()}>
       <Icon name="settings" />
     </button>
