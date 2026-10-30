@@ -30,6 +30,10 @@ Vérifications : `npm run typecheck`, `npm test` et `npm run test:e2e` (tests de
 > Conseil : évite un dossier synchronisé par OneDrive pour le dépôt (ex. `C:\dev\browser`). OneDrive
 > verrouille parfois des fichiers de `node_modules` pendant `npm install` et ralentit tout.
 
+Dans l'application, `Alt` + `←` revient à la page précédente et `Alt` + `→` avance dans l'historique.
+Sur macOS, un balayage horizontal à deux ou trois doigts sur le pavé tactile déclenche les mêmes actions
+(balayage vers la droite pour revenir, vers la gauche pour avancer).
+
 ### Sur l'iPhone (ou Android), depuis le PC
 
 1. Installe **Expo Go** depuis l'App Store (ou le Play Store), version à jour (SDK 58).

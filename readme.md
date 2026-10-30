@@ -40,7 +40,7 @@ Un navigateur desktop **rapide, privé et entièrement personnalisable**, dans l
 ## Installer
 
 Téléchargez la dernière version sur le site **https://mathieu-lalande.github.io/browser/** ou dans les
-[releases GitHub](https://github.com/Mathieu-Lalande/browser/releases/latest) : installateur Windows
+[page de téléchargement](https://mathieu-lalande.github.io/browser/#telecharger) : installateur Windows
 (x64 et ARM, sans droits administrateur), version portable `.zip`, `.dmg` macOS (Apple Silicon et Intel),
 AppImage et `.deb` pour Linux, avec `SHA256SUMS.txt`. Les paquets ne sont pas encore signés (voir la FAQ du site).
 

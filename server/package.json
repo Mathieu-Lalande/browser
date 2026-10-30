@@ -14,7 +14,7 @@
     "start": "node dist/main.js",
     "dev": "npm run build && node dist/main.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "tsc -p tsconfig.json --noEmit && vitest run"
+    "test": "tsc -p tsconfig.json --noEmit && vitest run --config vitest.config.ts"
   },
   "devDependencies": {
     "@types/node": "22.20.5",
