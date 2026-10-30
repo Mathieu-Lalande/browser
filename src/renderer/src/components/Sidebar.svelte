@@ -9,6 +9,7 @@
   import { api, browser } from "../lib/browser.svelte";
   import AddressBar from "./AddressBar.svelte";
   import DownloadsButton from "./downloads/DownloadsButton.svelte";
+  import ToolsMenu from "./ToolsMenu.svelte";
   import { settings } from "../lib/settings.svelte";
   import { updates } from "../lib/updates.svelte";
   import Icon from "./Icon.svelte";
@@ -709,6 +710,7 @@
       </button>
     {/if}
     <DownloadsButton />
+    <ToolsMenu />
     <button class="icon" aria-label="Paramètres" title={platform.tip("Paramètres", "open-settings")} onclick={() => api.settings.open()}>
       <Icon name="settings" />
     </button>

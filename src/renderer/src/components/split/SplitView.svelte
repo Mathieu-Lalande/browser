@@ -2,7 +2,9 @@
   import { ratioAt, splitLayout, type SplitDivider } from "@shared/split";
   import type { SplitState, TabState } from "@shared/types";
   import { api, browser } from "../../lib/browser.svelte";
+  import { internalPageOf } from "@shared/internal";
   import HttpsOnlyPage from "../HttpsOnlyPage.svelte";
+  import InternalPage from "../InternalPage.svelte";
   import LoadErrorPage from "../LoadErrorPage.svelte";
   import StartPage from "../StartPage.svelte";
 
@@ -72,6 +74,7 @@
 <div class="split" class:dragging={dragged} bind:clientWidth={width} bind:clientHeight={height}>
   {#each tabs as tab, index (tab.id)}
     {@const rect = layout.panes[index]}
+    {@const page = internalPageOf(tab.url)}
     {#if rect}
       <!-- Pane backdrop: the page view covers it; clicks on chrome-drawn panes focus them. -->
       <div
@@ -82,7 +85,7 @@
         data-tab-id={tab.id}
         onpointerdown={() => tab.id !== browser.state.activeTabId && api.tabs.activate(tab.id)}
       >
-        {#if !tab.url}<StartPage />{:else if tab.interstitial}<HttpsOnlyPage {tab} />{:else if tab.loadError}<LoadErrorPage {tab} error={tab.loadError} />{/if}
+        {#if !tab.url}<StartPage />{:else if page}<InternalPage {page} />{:else if tab.interstitial}<HttpsOnlyPage {tab} />{:else if tab.loadError}<LoadErrorPage {tab} error={tab.loadError} />{/if}
       </div>
     {/if}
   {/each}

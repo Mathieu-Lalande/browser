@@ -47,6 +47,7 @@
         <ul class="nav-links">
           <li><a href="#fonctionnalites">Fonctionnalités</a></li>
           <li><a href="#confidentialite">Confidentialité</a></li>
+          <li><a href="#documentation">Documentation</a></li>
           <li><a href="#mobile">Mobile</a></li>
           <li><a href="#faq">FAQ</a></li>
         </ul>
@@ -87,7 +88,7 @@
             palette de commandes, bloqueur intégré et synchronisation chiffrée avec votre téléphone.
           </p>
           <div class="cta">
-            <a class="btn btn-primary btn-large" id="dl-primary" href="https://github.com/Mathieu-Lalande/browser/releases/latest">
+            <a class="btn btn-primary btn-large" id="dl-primary" href="#telecharger">
               <i data-icon="download"></i>
               <span>
                 <span class="btn-label" id="dl-primary-label">Télécharger Browser</span>
@@ -279,45 +280,67 @@
           <header class="section-head">
             <p class="kicker">Télécharger</p>
             <h2 id="download-title">Installez Browser en une minute</h2>
-            <p id="download-version">Les installateurs sont publiés sur la page des versions GitHub.</p>
+            <p id="download-version">Les installateurs apparaîtront ici dès qu'une version publique sera publiée.</p>
           </header>
           <div class="platforms">
             <article class="platform" data-os="windows">
               <i data-icon="monitor"></i>
               <h3>Windows</h3>
               <p class="muted">Windows 10 et 11</p>
-              <a class="btn btn-primary" data-asset="win-x64" href="https://github.com/Mathieu-Lalande/browser/releases/latest">
+              <a class="btn btn-primary" data-asset="win-x64" href="#telecharger">
                 <i data-icon="download"></i><span>Installateur 64 bits</span>
               </a>
-              <a class="link" data-asset="win-arm64" href="https://github.com/Mathieu-Lalande/browser/releases/latest">Windows sur ARM</a>
-              <a class="link" data-asset="win-zip" href="https://github.com/Mathieu-Lalande/browser/releases/latest">Version portable (.zip)</a>
+              <a class="link" data-asset="win-arm64" href="#telecharger">Windows sur ARM</a>
+              <a class="link" data-asset="win-zip" href="#telecharger">Version portable (.zip)</a>
             </article>
             <article class="platform" data-os="mac">
               <i data-icon="laptop"></i>
               <h3>macOS</h3>
               <p class="muted">macOS 12 ou plus récent</p>
-              <a class="btn btn-primary" data-asset="mac-arm64" href="https://github.com/Mathieu-Lalande/browser/releases/latest">
+              <a class="btn btn-primary" data-asset="mac-arm64" href="#telecharger">
                 <i data-icon="download"></i><span>Apple Silicon (M1 et +)</span>
               </a>
-              <a class="link" data-asset="mac-x64" href="https://github.com/Mathieu-Lalande/browser/releases/latest">Mac Intel</a>
+              <a class="link" data-asset="mac-x64" href="#telecharger">Mac Intel</a>
             </article>
             <article class="platform" data-os="linux">
               <i data-icon="terminal"></i>
               <h3>Linux</h3>
               <p class="muted">64 bits, la plupart des distributions</p>
-              <a class="btn btn-primary" data-asset="linux-appimage" href="https://github.com/Mathieu-Lalande/browser/releases/latest">
+              <a class="btn btn-primary" data-asset="linux-appimage" href="#telecharger">
                 <i data-icon="download"></i><span>AppImage</span>
               </a>
-              <a class="link" data-asset="linux-deb" href="https://github.com/Mathieu-Lalande/browser/releases/latest">Paquet .deb (Debian, Ubuntu)</a>
+              <a class="link" data-asset="linux-deb" href="#telecharger">Paquet .deb (Debian, Ubuntu)</a>
             </article>
           </div>
           <p class="fineprint">
-            <a data-asset="checksums" href="https://github.com/Mathieu-Lalande/browser/releases/latest">Empreintes SHA-256</a>
+            <a data-asset="checksums" href="#telecharger">Empreintes SHA-256</a>
             ·
-            <a href="https://github.com/Mathieu-Lalande/browser/releases">Toutes les versions</a>
+            <a href="#telecharger">Toutes les versions</a>
             ·
             <a href="#faq-smartscreen">Avertissement de Windows à l'installation ?</a>
           </p>
+        </div>
+      </section>
+
+      <section class="documentation container" id="documentation" aria-labelledby="documentation-title">
+        <header class="section-head">
+          <p class="kicker">Documentation</p>
+          <h2 id="documentation-title">Prêt en quelques minutes</h2>
+          <p>Les étapes essentielles pour installer Browser et retrouver vos repères.</p>
+        </header>
+        <div class="cards">
+          <article class="card">
+            <i data-icon="download"></i>
+            <h3>Installer Browser</h3>
+            <p>Choisissez votre plateforme dans la section téléchargement. L'installateur conserve vos onglets, favoris et réglages lors des mises à jour.</p>
+            <a class="link" href="#telecharger">Voir les téléchargements <i data-icon="arrow-right"></i></a>
+          </article>
+          <article class="card">
+            <i data-icon="book-open"></i>
+            <h3>Navigation et raccourcis</h3>
+            <p>Utilisez <kbd>Alt</kbd> <kbd>←</kbd> et <kbd>Alt</kbd> <kbd>→</kbd> pour revenir en arrière ou avancer. Sur macOS, balayez la page avec deux ou trois doigts.</p>
+            <a class="link" href="#faq">Lire les réponses <i data-icon="arrow-right"></i></a>
+          </article>
         </div>
       </section>
 
@@ -419,7 +442,7 @@
         <ul class="footer-links">
           <li><a href="https://github.com/Mathieu-Lalande/browser">Code source</a></li>
           <li><a href="https://github.com/Mathieu-Lalande/browser/releases">Versions</a></li>
-          <li><a href="https://github.com/Mathieu-Lalande/browser/blob/master/docs/INSTALL.md">Documentation</a></li>
+          <li><a href="#documentation">Documentation</a></li>
         </ul>
         <p class="muted">© 2026 Mathieu Lalande</p>
       </div>

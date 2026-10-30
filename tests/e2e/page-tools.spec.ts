@@ -196,3 +196,15 @@ test("the picture-in-picture command pops the page's video out, and back", async
   await chrome.evaluate(`window.browser.commands.run("picture-in-picture")`);
   expect(await evalInTab(app, server.url("/novideo"), "document.pictureInPictureElement")).toBeNull();
 });
+
+test("an internal page shows in its split pane next to a web page", async ({ chrome, server }) => {
+  const otherUrl = server.url("/other");
+  await visit(chrome, otherUrl, "Page other");
+  await chrome.evaluate(`window.browser.tabs.create("browser://settings")`);
+  const otherId = await chrome.evaluate<string>(
+    `window.browser.getState().then((s) => s.tabs.find((t) => t.url === ${JSON.stringify(otherUrl)}).id)`,
+  );
+  await chrome.evaluate(`window.browser.split.open(${JSON.stringify(otherId)})`);
+  await expect(chrome.locator(".split .pane")).toHaveCount(2);
+  await expect(chrome.locator(".split .pane").getByRole("heading", { name: "Apparence" }).first()).toBeVisible();
+});

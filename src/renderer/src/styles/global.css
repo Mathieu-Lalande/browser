@@ -160,3 +160,11 @@ button {
   transition-duration: 0.01ms !important;
   scroll-behavior: auto !important;
 }
+
+/* Native select popups: Chromium on Windows draws the option list with these colors, not the
+   select's own (often translucent) background, which left light text on a light list. */
+select option,
+select optgroup {
+  background-color: var(--bg-elevated);
+  color: var(--text);
+}
