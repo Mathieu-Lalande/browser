@@ -5,6 +5,7 @@ import type { PeekState } from "@shared/peek";
 import type { Settings } from "@shared/settings";
 import type { KeyPress } from "@shared/accelerators";
 import type { SyncStatus } from "@shared/sync/controller";
+import type { UpdateStatus } from "@shared/updates";
 import type { BrowserState, OverlayBackdrop, OverlayRequest, UiCommand } from "@shared/types";
 
 function subscribe<T>(channel: string, listener: (payload: T) => void): () => void {
@@ -176,6 +177,17 @@ const api: BrowserApi = {
     chooseFolder: () => ipcRenderer.invoke(Channels.downloadsChooseFolder),
     showPanel: (anchor) => send(Channels.downloadsShowPanel, anchor),
     openPage: () => send(Channels.downloadsOpenPage),
+  },
+  updates: {
+    status: () => ipcRenderer.invoke(Channels.updatesStatus),
+    onChanged: (listener) => subscribe<UpdateStatus>(Channels.updatesChanged, listener),
+    check: () => send(Channels.updatesCheck),
+    download: () => send(Channels.updatesDownload),
+    install: () => send(Channels.updatesInstall),
+  },
+  theme: {
+    exportFile: (theme) => ipcRenderer.invoke(Channels.themeExportFile, theme),
+    importFile: () => ipcRenderer.invoke(Channels.themeImportFile),
   },
   sync: {
     status: () => ipcRenderer.invoke(Channels.syncStatus),

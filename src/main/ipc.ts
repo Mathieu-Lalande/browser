@@ -77,6 +77,7 @@ import { readerArticle } from "./reader";
 import { isPeekAction, type PeekAction } from "@shared/peek";
 import { startImage } from "./start-image";
 import { registerSyncIpc } from "./sync/ipc";
+import { registerThemeIpc } from "./theme-share";
 import { showTabMenu } from "./tab-menu";
 import { boostForTab, createBoostForTab, listBoosts, removeBoost, saveBoost, startZap, unzap } from "./boosts";
 import { BrowserController } from "./window";
@@ -423,4 +424,5 @@ export function registerIpc(): void {
   withController(Channels.readerArticle, id, (c, tabId) => readerArticle(c, tabId as string));
 
   registerSyncIpc();
+  registerThemeIpc();
 }

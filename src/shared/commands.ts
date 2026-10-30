@@ -59,7 +59,9 @@ export type CommandId =
   | "toggle-reader"
   | "toggle-mobile-site"
   | "open-boosts"
-  | "zap-elements";
+  | "zap-elements"
+  | "check-updates"
+  | "install-update";
 
 /** Icon names used by commands; the UI's Icon component must know each of them. */
 export type CommandIcon =
@@ -101,7 +103,8 @@ export type CommandIcon =
   | "reader"
   | "smartphone"
   | "rocket"
-  | "eraser";
+  | "eraser"
+  | "update";
 
 /** What a command's label and availability may depend on. */
 export interface CommandContext {
@@ -330,6 +333,18 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
     keywords: ["extensions", "modules", "add-ons", "plugins", "chrome web store", "crx", "installer une extension"],
     icon: "extension",
   },
+  "check-updates": {
+    label: "Rechercher des mises à jour",
+    keywords: ["update", "mise à jour", "version", "nouvelle version", "upgrade"],
+    icon: "update",
+  },
+  "install-update": {
+    label: "Redémarrer pour mettre à jour",
+    keywords: ["update", "mise à jour", "redémarrer", "installer"],
+    icon: "update",
+    // Only offered (menu, sidebar) once an update is downloaded.
+    palette: false,
+  },
   "open-passwords": {
     label: "Mots de passe",
     keywords: ["passwords", "mots de passe", "identifiants", "connexion", "login", "gestionnaire", "remplir"],
@@ -473,6 +488,7 @@ export const COMMAND_GROUPS: readonly { label: string; ids: readonly CommandId[]
       "clear-site-data",
       "clear-history",
       "sync-now",
+      "check-updates",
       "open-settings",
     ],
   },

@@ -59,6 +59,10 @@
   import Play from "@lucide/svelte/icons/play";
   import Plus from "@lucide/svelte/icons/plus";
   import Rocket from "@lucide/svelte/icons/rocket";
+  import CircleArrowUp from "@lucide/svelte/icons/circle-arrow-up";
+  import Share2 from "@lucide/svelte/icons/share-2";
+  import FileUp from "@lucide/svelte/icons/file-up";
+  import ClipboardPaste from "@lucide/svelte/icons/clipboard-paste";
   import RotateCcw from "@lucide/svelte/icons/rotate-ccw";
   import RotateCw from "@lucide/svelte/icons/rotate-cw";
   import Scan from "@lucide/svelte/icons/scan";
@@ -236,6 +240,11 @@
     rocket: Rocket,
     eraser: Eraser,
     undo: Undo2,
+    // Updates and shareable themes (ADR-030).
+    update: CircleArrowUp,
+    share: Share2,
+    "file-up": FileUp,
+    paste: ClipboardPaste,
   } satisfies Record<string, LucideIcon> & Record<CommandIcon, LucideIcon>;
 
   /** Space icons: their stored names are Lucide's own. */

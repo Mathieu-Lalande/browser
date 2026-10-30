@@ -9,6 +9,7 @@ import { hardenApp, hardenSession } from "./security";
 import { applyNativeTheme, settings as currentSettings } from "./settings";
 import { startTabSleeper } from "./sleep";
 import { startSync } from "./sync";
+import { startUpdates } from "./updates";
 import { spaces } from "./spaces";
 import { startTabArchiver } from "./organize";
 import { showPageMenu } from "./page-menu";
@@ -80,6 +81,8 @@ if (!app.requestSingleInstanceLock()) {
     else new BrowserController();
     // End-to-end encrypted sync (ADR-019): off unless an account was set up on this device.
     startSync();
+    // Auto-updates (ADR-030): packaged builds only, first check a little after startup.
+    void startUpdates();
 
     app.on("activate", () => {
       if (BrowserController.count() === 0) new BrowserController();

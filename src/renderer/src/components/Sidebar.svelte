@@ -10,6 +10,7 @@
   import AddressBar from "./AddressBar.svelte";
   import DownloadsButton from "./downloads/DownloadsButton.svelte";
   import { settings } from "../lib/settings.svelte";
+  import { updates } from "../lib/updates.svelte";
   import Icon from "./Icon.svelte";
   import { platform } from "../lib/platform.svelte";
   import TabIcon from "./TabIcon.svelte";
@@ -696,6 +697,17 @@
     {:else}
       <SpaceSwitcher onEdit={(id) => (editing = editing === id ? null : id)} progress={swipeProgress} following={swiping && !settling} />
     {/if}
+    {#if updates.ready}
+      <!-- A downloaded update (ADR-030): discreet, and also installed on quit anyway. -->
+      <button
+        class="icon update"
+        aria-label="Redémarrer pour mettre à jour"
+        title="Redémarrer pour mettre à jour (version {updates.status?.version})"
+        onclick={() => api.updates.install()}
+      >
+        <Icon name="update" />
+      </button>
+    {/if}
     <DownloadsButton />
     <button class="icon" aria-label="Paramètres" title={platform.tip("Paramètres", "open-settings")} onclick={() => api.settings.open()}>
       <Icon name="settings" />
@@ -1110,6 +1122,9 @@
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+  }
+  .update {
+    color: var(--accent-text);
   }
   .footer {
     display: flex;

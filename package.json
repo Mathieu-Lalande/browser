@@ -71,11 +71,25 @@
       "onlyLoadAppFromAsar": true,
       "grantFileProtocolExtraPrivileges": false
     },
-    "publish": null,
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Mathieu-Lalande",
+        "repo": "browser",
+        "releaseType": "release"
+      }
+    ],
     "mac": {
       "target": [
         {
           "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
           "arch": [
             "arm64",
             "x64"
@@ -138,6 +152,7 @@
   "dependencies": {
     "@ghostery/adblocker": "2.20.1",
     "@noble/ciphers": "2.4.0",
-    "@noble/hashes": "2.4.0"
+    "@noble/hashes": "2.4.0",
+    "electron-updater": "6.8.11"
   }
 }

@@ -10,6 +10,7 @@ import { sleepTabNow, sleepTabs } from "./sleep";
 import { spaces } from "./spaces";
 import { toggleSplit } from "./split";
 import { syncController } from "./sync";
+import { checkForUpdates, installUpdate } from "./updates";
 import { BrowserController } from "./window";
 
 type Runner = (controller: BrowserController) => void;
@@ -100,12 +101,19 @@ const RUNNERS: Record<CommandId, Runner> = {
   "toggle-mobile-site": onActiveTab((c, id) => c.tabs.toggleMobileSite(id)),
   "open-boosts": (c) => c.openBoosts(),
   "zap-elements": onActiveTab(startZap),
+  // Shows the settings, where the update status is.
+  "check-updates": (c) => {
+    c.openSettings();
+    checkForUpdates();
+  },
+  "install-update": () => installUpdate(),
 };
 
 /** Commands that make sense without any window (macOS keeps the app running windowless). */
 const WINDOWLESS: Partial<Record<CommandId, () => void>> = {
   "new-window": () => new BrowserController(),
   "new-private-window": () => openPrivateWindow(),
+  "install-update": () => installUpdate(),
 };
 
 function openPrivateWindow(): BrowserController {

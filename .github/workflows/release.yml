@@ -72,7 +72,9 @@ jobs:
       matrix:
         include:
           # Targets and architectures come from the `build` key of package.json:
-          # NSIS + zip (x64, arm64), dmg (arm64, x64), AppImage + deb (x64).
+          # NSIS + zip (x64, arm64), dmg + zip (arm64, x64), AppImage + deb (x64).
+          # Each OS also writes its auto-update metadata (latest.yml, latest-mac.yml,
+          # latest-linux.yml) and the .blockmap files used for differential downloads (ADR-030).
           - os: windows-latest
             platform: --win
           - os: macos-latest
@@ -137,6 +139,8 @@ jobs:
             release/*.dmg
             release/*.AppImage
             release/*.deb
+            release/latest*.yml
+            release/*.blockmap
           retention-days: 7
           if-no-files-found: error
 
@@ -182,10 +186,16 @@ jobs:
             Les paquets ne sont pas encore signés : Windows SmartScreen affiche « Windows a protégé votre
             ordinateur » (« Informations complémentaires » puis « Exécuter quand même ») et macOS demande
             un clic droit puis « Ouvrir ». Empreintes SHA-256 : `SHA256SUMS.txt`.
+
+            Mises à jour automatiques : Windows (installateur) et Linux (AppImage) se mettent à jour
+            depuis l'application. Sur macOS, tant que l'app n'est pas signée, la mise à jour se fait à la
+            main depuis cette page. Les fichiers `latest*.yml` et `.blockmap` servent à ces mises à jour.
           files: |
             dist/*.exe
             dist/*.zip
             dist/*.dmg
             dist/*.AppImage
             dist/*.deb
+            dist/latest*.yml
+            dist/*.blockmap
             dist/SHA256SUMS.txt

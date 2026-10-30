@@ -1,6 +1,7 @@
 import { Menu, app, type MenuItemConstructorOptions } from "electron";
 import { commandMenuItems } from "./commands";
 import { onSettingsChanged, settings } from "./settings";
+import { onUpdateStatus, updateService } from "./updates";
 import { BrowserController } from "./window";
 
 /** Shortcuts the current menu was built with: the menu is rebuilt when the user changes them (ADR-028). */
@@ -8,6 +9,14 @@ let builtShortcuts: string | null = null;
 
 onSettingsChanged((current) => {
   if (builtShortcuts !== null && JSON.stringify(current.shortcuts) !== builtShortcuts) installMenu();
+});
+
+/** Whether the menu shows "Redémarrer pour mettre à jour" (ADR-030): rebuilt when that changes. */
+let builtUpdateReady = false;
+const updateReady = () => updateService()?.status.phase === "ready";
+
+onUpdateStatus(() => {
+  if (builtShortcuts !== null && updateReady() !== builtUpdateReady) installMenu();
 });
 
 /** Run an action against the focused browser window, if any. */
@@ -49,6 +58,8 @@ export function installMenu(): void {
         ...commandMenuItems("duplicate-tab"),
         ...commandMenuItems("open-downloads"),
         ...commandMenuItems("open-settings"),
+        ...commandMenuItems("check-updates"),
+        ...(updateReady() ? commandMenuItems("install-update") : []),
         ...commandMenuItems("close-tab"),
         { type: "separator" },
         isMac ? { role: "close" } : { role: "quit", label: "Quitter" },
@@ -132,4 +143,5 @@ export function installMenu(): void {
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
   builtShortcuts = JSON.stringify(settings().shortcuts);
+  builtUpdateReady = updateReady();
 }

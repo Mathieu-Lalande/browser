@@ -109,6 +109,16 @@ export interface ReaderSettings {
   theme: ReaderTheme;
 }
 
+/** Desktop auto-updates (ADR-030). */
+export type UpdateChannel = "stable" | "beta";
+
+export interface UpdateSettings {
+  /** Download a found update in the background (otherwise: wait for "Télécharger"). */
+  autoDownload: boolean;
+  /** "beta" also offers pre-releases. */
+  channel: UpdateChannel;
+}
+
 export interface Settings {
   appearance: AppearanceSettings;
   layout: LayoutSettings;
@@ -118,6 +128,7 @@ export interface Settings {
   privacy: PrivacySettings;
   downloads: DownloadSettings;
   reader: ReaderSettings;
+  updates: UpdateSettings;
   /**
    * Keyboard shortcuts chosen by the user (desktop, ADR-028): only the commands that differ from
    * the registry. A patch replaces the whole map.
@@ -178,6 +189,7 @@ export const DEFAULT_SETTINGS: Settings = {
   privacy: { normalizeAcceptLanguage: false, blockThirdPartyCookies: false, thirdPartyCookieExceptions: [] },
   downloads: { folder: "", askWhere: false },
   reader: { font: "serif", size: 19, width: "medium", theme: "auto" },
+  updates: { autoDownload: true, channel: "stable" },
   shortcuts: {},
 };
 
@@ -290,7 +302,17 @@ const schema: Schema = {
     width: oneOf("narrow", "medium", "wide"),
     theme: oneOf("auto", "sepia", "dark"),
   },
+  updates: { autoDownload: bool, channel: oneOf("stable", "beta") },
 };
+
+/**
+ * One field through its validator: the cleaned value, or undefined when invalid (strict callers,
+ * such as theme import, compare it with the input to refuse rather than fix).
+ */
+export function validateSettingsField<S extends FieldSection, K extends keyof Settings[S]>(section: S, key: K, value: unknown): Settings[S][K] | undefined {
+  const fields = schema[section] as unknown as Record<PropertyKey, Field<Settings[S][K]>>;
+  return fields[key]?.(value);
+}
 
 /**
  * Validates anything (stored JSON, an IPC patch…) into complete settings: every invalid or

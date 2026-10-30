@@ -19,6 +19,8 @@ import type { Settings, SettingsPatch, SettingsSection } from "./settings";
 import type { KeyPress } from "./accelerators";
 import type { SiteDataEntry, SiteInfo } from "./site-info";
 import type { SyncStatus } from "./sync/controller";
+import type { SharedTheme, ThemeDecodeResult } from "./theme-share";
+import type { UpdateStatus } from "./updates";
 import type {
   Bookmark,
   BookmarkInput,
@@ -108,6 +110,13 @@ export const Channels = {
   downloadsChooseFolder: "downloads:choose-folder",
   downloadsShowPanel: "downloads:show-panel",
   downloadsOpenPage: "downloads:open-page",
+  updatesStatus: "updates:status",
+  updatesChanged: "updates:changed",
+  updatesCheck: "updates:check",
+  updatesDownload: "updates:download",
+  updatesInstall: "updates:install",
+  themeExportFile: "theme:export-file",
+  themeImportFile: "theme:import-file",
   syncStatus: "sync:status",
   syncChanged: "sync:changed",
   syncCreate: "sync:create",
@@ -428,6 +437,24 @@ export interface BrowserApi {
     showPanel(anchor: Bounds): void;
     /** Shows `browser://downloads` in this window. */
     openPage(): void;
+  };
+  /** Desktop auto-updates (ADR-030); status null until the updater has started. */
+  updates: {
+    status(): Promise<UpdateStatus | null>;
+    onChanged(listener: (status: UpdateStatus) => void): () => void;
+    /** "Rechercher des mises à jour". */
+    check(): void;
+    /** Downloads the update found (automatic download off). */
+    download(): void;
+    /** Restarts into the downloaded update. */
+    install(): void;
+  };
+  /** Shareable themes (ADR-030): `.browsertheme` files go through native dialogs in main. */
+  theme: {
+    /** Save dialog; resolves to false when cancelled or refused (private window). */
+    exportFile(theme: SharedTheme): Promise<boolean>;
+    /** Open dialog; null when cancelled, otherwise the validated theme or why it was refused. */
+    importFile(): Promise<ThemeDecodeResult | null>;
   };
   /** End-to-end encrypted sync (ADR-019). Account actions are refused from private windows. */
   sync: {
