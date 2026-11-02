@@ -68,6 +68,19 @@ export function fullPageClip(content: { width: number; height: number }): Captur
   return { x: 0, y: 0, width: size(content.width), height: size(content.height) };
 }
 
+/** Past this many output pixels (~256 MB of RGBA), a capture is scaled down instead of drawn whole. */
+export const MAX_CAPTURE_PIXELS = 64_000_000;
+
+/**
+ * The `scale` of a clip so the bitmap (CSS size × device pixel ratio × scale) stays within
+ * `MAX_CAPTURE_PIXELS`: 1 for ordinary captures, less for huge pages.
+ */
+export function captureScale(clip: { width: number; height: number }, devicePixelRatio = 1): number {
+  const ratio = Number.isFinite(devicePixelRatio) && devicePixelRatio > 0 ? devicePixelRatio : 1;
+  const pixels = clip.width * clip.height * ratio * ratio;
+  return pixels > MAX_CAPTURE_PIXELS ? Math.sqrt(MAX_CAPTURE_PIXELS / pixels) : 1;
+}
+
 /**
  * An element's box clipped to the document and rounded outwards to whole pixels; null when nothing
  * of it is inside the document (hidden, zero-sized).

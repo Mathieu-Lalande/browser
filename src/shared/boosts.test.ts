@@ -5,6 +5,7 @@ import {
   boostCss,
   boostRecord,
   boostsFor,
+  confirmBoostScript,
   defaultMatch,
   filterValue,
   isValidSelector,
@@ -154,6 +155,33 @@ describe("sync records", () => {
     const merged = mergeBoosts(local, [["a", record], ["new", sanitizeSyncedBoost({ match: "b.com" }, "new")!]], ["gone"]);
     expect(merged.map((b) => b.id)).toEqual(["a", "new"]);
     expect(merged[0]).toMatchObject({ css: "x{}", script: { code: "keep()", enabled: false } });
+  });
+
+  it("never syncs allowPrivate", () => {
+    const record = boostRecord(boost({ script: { enabled: true, code: "x()", allowPrivate: true } }));
+    expect(record.script).toEqual({ enabled: true, code: "x()", allowPrivate: false });
+    const local = [boost({ id: "a", script: { enabled: true, code: "x()", allowPrivate: true } })];
+    expect(mergeBoosts(local, [["a", record]], [])[0].script).toEqual({ enabled: true, code: "x()", allowPrivate: true });
+  });
+
+  it("asks before running a script received or changed through sync", () => {
+    const remote = boostRecord(boost({ script: { enabled: true, code: "evil()", allowPrivate: true } }));
+    const [received] = mergeBoosts([], [["a", remote]], []);
+    expect(received.script).toEqual({ enabled: false, code: "evil()", allowPrivate: false, pending: true });
+    expect(scriptAllowed(received, false)).toBe(false);
+    // Passed on as received (no echo turning it off elsewhere), and still pending on the next sync.
+    expect(boostRecord(received).script).toEqual(remote.script);
+    expect(mergeBoosts([received], [["a", remote]], [])[0].script.pending).toBe(true);
+    // Changed code on a device where the old one ran: off again until confirmed.
+    const local = [boost({ id: "a", script: { enabled: true, code: "old()", allowPrivate: true } })];
+    expect(mergeBoosts(local, [["a", remote]], [])[0].script).toEqual({ enabled: false, code: "evil()", allowPrivate: true, pending: true });
+    // Confirmed here: runs, and the same code coming back keeps it on.
+    const confirmed = confirmBoostScript(received, 9);
+    expect(confirmed).toMatchObject({ updatedAt: 9, script: { enabled: true, code: "evil()" } });
+    expect(confirmed.script).not.toHaveProperty("pending");
+    expect(mergeBoosts([confirmed], [["a", remote]], [])[0].script.enabled).toBe(true);
+    // A pending flag cannot be forged on an enabled script.
+    expect(sanitizeBoost({ ...boost(), script: { enabled: true, code: "x()", pending: true } })!.script).not.toHaveProperty("pending");
   });
 });
 

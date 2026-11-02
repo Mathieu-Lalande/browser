@@ -8,6 +8,7 @@ import type {
   PasswordEdit,
   PasswordPrompt,
   PasswordResult,
+  RevealResult,
   PasswordSummary,
   PasswordsStatus,
   PromptAnswer,
@@ -295,9 +296,10 @@ export interface BrowserApi {
     status(): Promise<PasswordsStatus>;
     list(): Promise<PasswordSummary[]>;
     neverList(): Promise<string[]>;
-    reveal(id: string): Promise<string | null>;
-    /** Copies the password to the clipboard (cleared after 30 s if still there). */
-    copy(id: string): Promise<boolean>;
+    /** Rate limited per window in main (`PASSWORD_ACCESS_LIMIT` reveals and copies a minute). */
+    reveal(id: string): Promise<RevealResult>;
+    /** Copies the password to the clipboard (cleared after 30 s if still there); rate limited like `reveal`. */
+    copy(id: string): Promise<PasswordResult>;
     update(id: string, edit: PasswordEdit): Promise<PasswordResult>;
     remove(id: string): Promise<void>;
     removeNever(origin: string): Promise<void>;

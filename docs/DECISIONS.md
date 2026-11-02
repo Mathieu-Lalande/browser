@@ -1153,6 +1153,12 @@ falsifier ; la capture est revalidée (`sanitizeCapture`). Polling et instantan�
   de passe par l'IPC), copier (fait par main, presse-papiers vidé après 30 s s'il n'a pas changé),
   modifier, supprimer, liste « Jamais », export CSV en clair après confirmation (boîte d'enregistrement de
   main, fichier 0600).
+- **Contrôles côté main (post-audit).** L'export demande en plus sa propre confirmation native
+  (`dialog.showMessageBox` de la fenêtre) : l'interface seule ne peut pas exporter. « Afficher » et « Copier »
+  sont limités à `PASSWORD_ACCESS_LIMIT` (10) par minute et par fenêtre (`takePasswordAccess`, fenêtre
+  glissante) ; au-delà, refus avec un message français affiché sur la page. Dans le CSV, nom, URL et
+  identifiant commençant par `= + - @`, tabulation ou retour chariot reçoivent un `'` (injection de formules
+  dans un tableur) ; le mot de passe reste tel quel (il doit se réimporter à l'identique).
 
 **Mobile** (`mobile/src/lib/passwords.ts`, testé avec Jest). Coffre dans `expo-secure-store` (Keychain
 `WHEN_UNLOCKED_THIS_DEVICE_ONLY`, Keystore ; disponible dans Expo Go), en morceaux de 1 800 caractères
@@ -1160,7 +1166,12 @@ falsifier ; la capture est revalidée (`sanitizeCapture`). Polling et instantan�
 le script de capture (onglets normaux seulement) poste un message par le pont existant, que **toute page
 peut imiter** ; il est donc traité comme une entrée non fiable : forme et tailles validées, **origine prise
 de l'URL de l'onglet**, jamais du message, onglet à l'écran seulement, une invite toutes les 3 s au plus,
-et l'invite (feuille d'actions) ne fait qu'enregistrer ce que la page possède déjà. Remplissage par
+et l'invite (feuille d'actions) ne fait qu'enregistrer ce que la page possède déjà. Un cadre (même d'une
+autre origine) peut poster sur ce pont : le script de capture n'est donc plus dans `injectedJavaScript`, mais
+injecté par l'app à chaque fin de chargement du cadre principal avec un **nonce aléatoire** (128 bits,
+`expo-crypto`) gardé dans sa fermeture ; `PasswordCaptureGuard` exige ce nonce sur chaque message, ignore tout
+message entre le début et la fin d'un chargement, et ceux dont l'URL (`nativeEvent.url`) ou celle de l'onglet
+n'est pas sur l'origine pour laquelle le script a été injecté. Remplissage par
 `injectJavaScript` au toucher d'un compte (bouton clé dans la barre, menu de la page), après vérification
 de l'origine côté app puis dans le script. Section « Mots de passe » des paramètres : recherche, afficher
 (confirmation), copier (presse-papiers vidé après 30 s), supprimer, liste « Jamais ».
@@ -1352,9 +1363,18 @@ bureau et le téléphone ; stocké dans `boosts.json` (bureau) et `browser.boost
 - Synchronisation (ADR-019) : collection `boosts`, clé = id du boost. Le script ne voyage que s'il est activé ;
   un enregistrement reçu sans script garde le script désactivé local (`mergeBoosts`), qui ne quitte donc jamais
   l'appareil. Rien de secret, mais chiffré comme le reste.
+- Consentement par appareil (post-audit) : un script reçu par la synchronisation, ou dont le code a changé
+  ailleurs, arrive **désactivé** et `script.pending` ; il ne s'exécute qu'une fois activé sur cet appareil
+  (« Script reçu d'un autre appareil — Activer ? » dans `browser://boosts` et la liste du téléphone,
+  `confirmBoostScript`). Un code que l'appareil a déjà (saisi ou accepté ici) suit l'état activé/désactivé
+  reçu. Un script en attente est retransmis tel que reçu (il ne désactive pas les autres appareils).
+  `allowPrivate` n'est jamais synchronisé (toujours faux dans l'enregistrement, valeur locale conservée).
 - Téléphone : `injectedJavaScriptBeforeContentLoaded` (cadre principal) pose une balise `<style>` avec le CSS
-  des boosts dont le motif correspond à `location.hostname` (mêmes règles que `matchesHost`) et lance les
-  scripts autorisés ; une modification est appliquée en direct par `injectJavaScript` (CSS seul). Limites
+  des boosts de l'hôte courant et lance les scripts autorisés. L'app filtre par hôte avant d'injecter
+  (`boostsForHost`) : une page ne reçoit jamais les boosts des autres sites. Le script de démarrage est
+  construit pour l'hôte suivi par les évènements de navigation et ne fait rien sur un autre hôte ; il est
+  réinjecté à chaque fin de chargement (pour un changement d'hôte), les scripts ne s'exécutant qu'une fois par
+  document. Une modification est appliquée en direct par `injectJavaScript` (CSS seul). Limites
   assumées : react-native-webview n'a pas de monde isolé, un script activé s'exécute donc dans le monde de la
   page (via `eval`, bloqué par une CSP qui l'interdit) — le texte des réglages le dit ; pas d'outil pour masquer
   des éléments (pas de survol au doigt, sélection peu fiable) : les éléments masqués viennent du bureau par la
@@ -1416,6 +1436,12 @@ pas (le site en dépend).
 bêta suit la dernière release GitHub, pre-release comprise ; revenir en stable n'installe pas de version plus
 ancienne (`allowDowngrade` coupé). Le workflow de release n'a pas pu être exécuté ici.
 
+**Intégrité des mises à jour (suite à donner, audit).** Sans signature, electron-updater ne vérifie que le
+SHA-512 de `latest*.yml`, servi par la même release GitHub : quiconque peut publier une release (compte ou jeton
+compromis) peut distribuer un binaire. Suite prévue : signer les builds (Authenticode sous Windows avec
+`build.win.publisherName` renseigné, pour qu'electron-updater vérifie l'éditeur du nouvel installateur ;
+*Developer ID* + notarisation sous macOS, que Squirrel.Mac vérifie) et protéger les secrets du workflow de release.
+
 ## ADR-031 — Options de la page, captures d'écran, enregistrement vidéo, balayage tactile
 
 **Barre d'adresse.** Les boutons d'action (copier le lien, lecture, clé, zoom, favori, protections, options) sont
@@ -1436,7 +1462,9 @@ page (`uqr`, dessiné localement). Chaque action est une commande du registre ex
 - page entière : protocole DevTools via `webContents.debugger` (`Page.getLayoutMetrics` puis
   `Page.captureScreenshot` avec `captureBeyondViewport` et un `clip` du document), sans faire défiler la page.
   Le débogueur n'est attaché que le temps de la capture (et pas détaché s'il l'était déjà) ; des DevTools ouverts
-  sont un autre client et ne gênent pas. Hauteur plafonnée à 16 384 px (limite de Chromium) ;
+  sont un autre client et ne gênent pas. Hauteur plafonnée à 16 384 px (limite de Chromium) ; au-delà de
+  64 mégapixels en sortie (taille CSS × densité de l'écran le plus dense × zoom), l'image est réduite
+  (`captureScale`, `scale` du `clip`) pour borner la mémoire, page entière comme élément ;
 - élément : un sélecteur en monde isolé (1009, comme l'outil des boosts) surligne l'élément survolé, intercepte le
   clic (événements de confiance seulement), Échap annule ; il renvoie le rectangle en coordonnées du document,
   validé et rogné par `elementClip` (`src/shared/capture.ts`), puis capture par le même `clip` CDP ;

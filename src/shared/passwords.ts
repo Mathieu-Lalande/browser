@@ -201,14 +201,20 @@ export function searchPasswords<T extends PasswordSummary>(entries: readonly T[]
 
 const csvCell = (value: string) => `"${value.replace(/"/g, '""')}"`;
 
+/** A spreadsheet would run a cell starting with one of these as a formula: it gets a leading `'`. */
+const csvText = (value: string) => csvCell(/^[=+\-@\t\r]/.test(value) ? `'${value}` : value);
+
 /**
  * CSV export in the columns Chrome and Firefox import (`name,url,username,password`). Every cell is
- * quoted; values are written as they are (a password is never altered, even one starting with "=").
+ * quoted; name, url and username are defused against formula injection; the password is written
+ * as it is (never altered, even one starting with "=": it must import back unchanged).
  */
 export function passwordsToCsv(entries: readonly PasswordEntry[]): string {
   const rows = [...entries]
     .sort((a, b) => a.origin.localeCompare(b.origin) || a.username.localeCompare(b.username))
-    .map((entry) => [originLabel(entry.origin).replace(/ \(http\)$/, ""), entry.origin, entry.username, entry.password].map(csvCell).join(","));
+    .map((entry) =>
+      [csvText(originLabel(entry.origin).replace(/ \(http\)$/, "")), csvText(entry.origin), csvText(entry.username), csvCell(entry.password)].join(","),
+    );
   return ["name,url,username,password", ...rows].join("\r\n") + "\r\n";
 }
 
@@ -223,6 +229,23 @@ export interface PasswordsStatus {
 }
 
 export type PasswordResult = { ok: true } | { ok: false; message: string };
+
+/** `reveal`'s answer: the password, or why main refused (French, for the UI). */
+export type RevealResult = { ok: true; password: string } | { ok: false; message: string };
+
+/** Reveals and copies per window and per minute: a compromised UI cannot dump the vault quickly. */
+export const PASSWORD_ACCESS_LIMIT = 10;
+export const PASSWORD_ACCESS_WINDOW_MS = 60_000;
+export const PASSWORD_ACCESS_REFUSED = "Trop de mots de passe affichés ou copiés en peu de temps. Réessayez dans une minute.";
+
+/**
+ * Sliding-window limit: the accesses still counted (oldest first) with this one added, or null
+ * when the limit is reached (nothing is added).
+ */
+export function takePasswordAccess(history: readonly number[], now: number): number[] | null {
+  const recent = history.filter((at) => now - at < PASSWORD_ACCESS_WINDOW_MS && at <= now);
+  return recent.length >= PASSWORD_ACCESS_LIMIT ? null : [...recent, now];
+}
 
 /** The save prompt's content: never the password itself. */
 export interface PasswordPrompt {

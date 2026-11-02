@@ -71,6 +71,12 @@
 
   const toggle = (boost: Boost, enabled: boolean) => api.boosts.save({ ...$state.snapshot(boost), enabled });
 
+  /** A script received from another device runs here only once the user turns it on (ADR-029). */
+  function confirmScript(boost: Boost): void {
+    const { pending: _pending, ...script } = $state.snapshot(boost).script;
+    void api.boosts.save({ ...$state.snapshot(boost), script: { ...script, enabled: true } });
+  }
+
   function summary(boost: Boost): string {
     const parts: string[] = [];
     if (filtersActive(boost.filters)) parts.push("filtres");
@@ -208,6 +214,14 @@
             <span class="text">
               <span class="title">{boost.name}</span>
               <span class="detail">{boost.match} · {summary(boost)}</span>
+              {#if boost.script.pending}
+                <span class="pending" data-testid="boost-script-pending">
+                  <Icon name="warning" size={12} /> Script reçu d'un autre appareil — Activer ?
+                  {#if !browser.isPrivate}
+                    <button class="small" onclick={() => confirmScript(boost)} aria-label={`Activer le script de ${boost.name}`}>Activer</button>
+                  {/if}
+                </span>
+              {/if}
             </span>
             {#if !browser.isPrivate}
               <Toggle label={`${boost.enabled ? "Désactiver" : "Activer"} ${boost.name}`} checked={boost.enabled} onchange={(enabled) => toggle(boost, enabled)} />
@@ -454,6 +468,13 @@
     font-size: 12px;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .pending {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text);
+    font-size: 12px;
   }
   .empty {
     display: flex;

@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { ClipboardItem, clipboard, dialog, nativeImage, type NativeImage, type WebContents } from "electron";
-import { captureFileName, elementClip, fullPageClip, isCaptureRect, type CaptureMode, type CaptureRect } from "@shared/capture";
+import { ClipboardItem, clipboard, dialog, nativeImage, screen, type NativeImage, type WebContents } from "electron";
+import { captureFileName, captureScale, elementClip, fullPageClip, isCaptureRect, type CaptureMode, type CaptureRect } from "@shared/capture";
 import type { Bounds } from "@shared/types";
 import { downloadsFolder } from "../downloads";
 import type { BrowserController } from "../window";
@@ -57,8 +57,12 @@ async function withDebugger<T>(contents: WebContents, run: (send: Send) => Promi
   }
 }
 
-async function screenshot(send: Send, clip: CaptureRect): Promise<NativeImage> {
-  const { data } = (await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true, clip: { ...clip, scale: 1 } })) as { data: string };
+async function screenshot(send: Send, clip: CaptureRect, contents: WebContents): Promise<NativeImage> {
+  // Huge pages are scaled down: the bitmap stays within MAX_CAPTURE_PIXELS (memory).
+  // Device pixel ratio: the densest display (conservative), times the page's zoom.
+  const ratio = Math.max(1, ...screen.getAllDisplays().map((display) => display.scaleFactor));
+  const scale = captureScale(clip, ratio * contents.getZoomFactor());
+  const { data } = (await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true, clip: { ...clip, scale } })) as { data: string };
   return nativeImage.createFromBuffer(Buffer.from(data, "base64"));
 }
 
@@ -67,7 +71,7 @@ const capturers: Record<CaptureMode, (contents: WebContents) => Promise<NativeIm
   full: (contents) =>
     withDebugger(contents, async (send) => {
       const metrics = (await send("Page.getLayoutMetrics")) as { cssContentSize: { width: number; height: number } };
-      return screenshot(send, fullPageClip(metrics.cssContentSize));
+      return screenshot(send, fullPageClip(metrics.cssContentSize), contents);
     }),
   element: async (contents) => {
     contents.focus();
@@ -76,7 +80,7 @@ const capturers: Record<CaptureMode, (contents: WebContents) => Promise<NativeIm
     const { rect, page } = picked as { rect?: unknown; page?: unknown };
     if (!isCaptureRect(rect) || !isCaptureRect({ x: 0, y: 0, ...(page as object) })) return null;
     const clip = elementClip(rect, page as { width: number; height: number });
-    return clip && !contents.isDestroyed() ? withDebugger(contents, (send) => screenshot(send, clip)) : null;
+    return clip && !contents.isDestroyed() ? withDebugger(contents, (send) => screenshot(send, clip, contents)) : null;
   },
 };
 

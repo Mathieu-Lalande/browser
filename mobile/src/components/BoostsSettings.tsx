@@ -1,5 +1,6 @@
 import { memo } from "react";
-import { Alert, StyleSheet, Switch, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Switch, Text, View } from "react-native";
+import { confirmBoostScript } from "@shared/boosts";
 import { useBrowserActions, useBrowserState } from "../state/BrowserProvider";
 import { useTheme } from "../state/theme";
 import { Icon } from "./Icon";
@@ -38,6 +39,19 @@ export const BoostsSettings = memo(function BoostsSettings() {
               {boost.zaps.length ? ` · ${boost.zaps.length} masqué${boost.zaps.length > 1 ? "s" : ""}` : ""}
               {boost.script.enabled ? " · JavaScript" : ""}
             </Text>
+            {boost.script.pending && (
+              <View style={styles.pending}>
+                <Text style={[styles.detail, styles.text, { color: colors.text }]}>Script reçu d'un autre appareil — Activer ?</Text>
+                <Pressable
+                  onPress={() => actions.setBoosts((list) => list.map((item) => (item.id === boost.id ? confirmBoostScript(item, Date.now()) : item)))}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Activer le script de ${boost.name}`}
+                  hitSlop={8}
+                >
+                  <Text style={[styles.detail, styles.confirm, { color: colors.accent }]}>Activer</Text>
+                </Pressable>
+              </View>
+            )}
           </View>
           <Switch
             value={boost.enabled}
@@ -65,4 +79,6 @@ const styles = StyleSheet.create({
   text: { flex: 1, minWidth: 0, gap: 2 },
   site: { fontSize: 15, fontWeight: "600" },
   detail: { fontSize: 13 },
+  pending: { flexDirection: "row", alignItems: "center", gap: 8 },
+  confirm: { fontWeight: "600" },
 });

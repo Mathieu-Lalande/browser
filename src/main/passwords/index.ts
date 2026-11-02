@@ -7,6 +7,9 @@ import {
   entriesFor,
   markUsed,
   originLabel,
+  PASSWORD_ACCESS_REFUSED,
+  takePasswordAccess,
+  type RevealResult,
   passwordOrigin,
   passwordsToCsv,
   removeEntry,
@@ -157,21 +160,35 @@ export function fillFromMenu(c: BrowserController, tabId: TabId): void {
 export const listPasswords = (): PasswordSummary[] => currentVault().entries.map(summarize);
 export const neverList = (): string[] => [...currentVault().never];
 
-export function revealPassword(id: string): string | null {
-  return currentVault().entries.find((entry) => entry.id === id)?.password ?? null;
+const findPassword = (id: string): string | null => currentVault().entries.find((entry) => entry.id === id)?.password ?? null;
+
+/** Recent reveals and copies, per window: limited even if the UI asks in a loop. */
+const accesses = new WeakMap<BrowserController, number[]>();
+
+function takeAccess(c: BrowserController): boolean {
+  const next = takePasswordAccess(accesses.get(c) ?? [], Date.now());
+  if (next) accesses.set(c, next);
+  return next !== null;
+}
+
+export function revealPassword(c: BrowserController, id: string): RevealResult {
+  const password = findPassword(id);
+  if (password === null) return { ok: false, message: "Ce mot de passe n'existe plus." };
+  return takeAccess(c) ? { ok: true, password } : { ok: false, message: PASSWORD_ACCESS_REFUSED };
 }
 
 const CLIPBOARD_CLEAR_MS = 30_000;
 
-export function copyPassword(id: string): boolean {
-  const password = revealPassword(id);
-  if (!password) return false;
+export function copyPassword(c: BrowserController, id: string): PasswordResult {
+  const password = findPassword(id);
+  if (!password) return { ok: false, message: "Ce mot de passe n'existe plus." };
+  if (!takeAccess(c)) return { ok: false, message: PASSWORD_ACCESS_REFUSED };
   clipboard.writeText(password);
   // Not left on the clipboard: cleared after a while, unless something else was copied since.
   setTimeout(async () => {
     if ((await clipboard.readText()) === password) clipboard.clear();
   }, CLIPBOARD_CLEAR_MS).unref();
-  return true;
+  return { ok: true };
 }
 
 export function updatePassword(id: string, edit: PasswordEdit): PasswordResult {
@@ -187,10 +204,24 @@ export function removeNever(origin: string): void {
   writeVault(setNever(currentVault(), origin, false));
 }
 
-/** Writes every password, in clear, to a CSV file the user picks (after a confirmation in the UI). */
+/**
+ * Writes every password, in clear, to a CSV file the user picks. Main asks itself (a native
+ * dialog owned by the window), on top of the UI's confirmation: the UI alone cannot export.
+ */
 export async function exportPasswords(c: BrowserController): Promise<PasswordResult | null> {
   const { entries } = currentVault();
   if (!entries.length) return { ok: false, message: "Aucun mot de passe à exporter." };
+  const { response } = await dialog.showMessageBox(c.window, {
+    type: "warning",
+    title: "Exporter les mots de passe",
+    message: `Exporter ${entries.length} mot${entries.length > 1 ? "s" : ""} de passe en clair ?`,
+    detail: "Le fichier CSV ne sera pas chiffré : toute personne ou application qui peut le lire verra vos mots de passe.",
+    buttons: ["Annuler", "Exporter"],
+    defaultId: 0,
+    cancelId: 0,
+    noLink: true,
+  });
+  if (response !== 1 || c.window.isDestroyed()) return null;
   const { canceled, filePath } = await dialog.showSaveDialog(c.window, {
     title: "Exporter les mots de passe",
     defaultPath: join(app.getPath("documents"), "mots-de-passe.csv"),

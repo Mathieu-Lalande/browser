@@ -3,11 +3,13 @@ import { Linking, Platform, StyleSheet, View } from "react-native";
 import { WebView as RNWebView } from "react-native-webview";
 import type { WebViewProps } from "react-native-webview/lib/WebView";
 import type { ShouldStartLoadRequest, WebViewNavigation } from "react-native-webview/lib/WebViewTypes";
+import { getRandomBytes } from "expo-crypto";
+import { boostHostOf } from "@shared/boosts";
 import { isNavigableUrl } from "@shared/url";
-import { boostScript, type BoostPayload } from "../lib/boosts";
+import { boostScript, boostsForHost, type BoostPayload } from "../lib/boosts";
 import { LINK_MENU_COOLDOWN_MS, linkMenuScript, parseLinkMenuMessage, type LinkMenuRequest } from "../lib/linkMenu";
 import { decideNavigation, decideOpenWindow, isHttpsUpgradeFailure } from "../lib/navigation";
-import { PASSWORD_CAPTURE_SCRIPT, PASSWORD_PROMPT_COOLDOWN_MS, parsePasswordMessage } from "../lib/passwords";
+import { PASSWORD_PROMPT_COOLDOWN_MS, PasswordCaptureGuard, captureNonce } from "../lib/passwords";
 import { desktopUserAgent, parseReaderMessage, readerScript } from "../lib/reader";
 import { useBrowserActions, useEvent } from "../state/BrowserProvider";
 import { LoadError } from "./LoadError";
@@ -19,8 +21,7 @@ const WebView = RNWebView as unknown as ComponentType<WebViewProps & { ref?: Ref
 
 const INJECTED = linkMenuScript(Platform.OS);
 const NO_BOOSTS: readonly BoostPayload[] = [];
-/** Normal tabs also watch login forms (ADR-025); private tabs never offer to save a password. */
-const INJECTED_WITH_PASSWORDS = INJECTED + PASSWORD_CAPTURE_SCRIPT;
+const newCaptureNonce = () => captureNonce(getRandomBytes);
 /** Only these schemes may ever reach the native view (navigation policy: `decideNavigation`). */
 export const WEBVIEW_ORIGIN_WHITELIST = ["http://*", "https://*", "about:*", "data:*", "mailto:*", "tel:*", "sms:*"];
 
@@ -80,14 +81,40 @@ export const WebTab = memo(function WebTab({
     ref.current?.reload();
   }, [desktopSite]);
 
-  // Boosts (ADR-029): at each document start, and restyled live when they change.
-  const boostBootstrap = useMemo(() => (boosts.length ? boostScript(boosts) : undefined), [boosts]);
+  // Boosts (ADR-029): only the current host's are ever sent to the page. At each document start
+  // (built for the host followed from navigation events), again after each load (the start
+  // script may have been built for the previous host; scripts still run once per document), and
+  // restyled live when they change.
+  const [boostHost, setBoostHost] = useState(() => boostHostOf(resumeUrl || loadUrl));
+  const boostHostRef = useRef(boostHost);
+  boostHostRef.current = boostHost;
+  const boostsRef = useRef(boosts);
+  boostsRef.current = boosts;
+  const boostBootstrap = useMemo(() => {
+    const matching = boostsForHost(boosts, boostHost);
+    return matching.length ? boostScript(matching, boostHost) : undefined;
+  }, [boosts, boostHost]);
   const appliedBoosts = useRef(boosts);
   useEffect(() => {
     if (appliedBoosts.current === boosts) return;
     appliedBoosts.current = boosts;
-    ref.current?.injectJavaScript(boostScript(boosts, true));
+    const host = boostHostRef.current;
+    ref.current?.injectJavaScript(boostScript(boostsForHost(boosts, host), host, true));
   }, [boosts]);
+
+  // Login capture (ADR-025): normal tabs only; a script with a fresh nonce per main-frame document.
+  const captureGuard = useRef<PasswordCaptureGuard | null>(null);
+  captureGuard.current ??= new PasswordCaptureGuard(newCaptureNonce);
+  const onLoadStart = useEvent(() => captureGuard.current?.loadStarted());
+  const onLoadEnd = useEvent((event: { nativeEvent: { url: string } }) => {
+    const { url } = event.nativeEvent;
+    const host = boostHostOf(url);
+    if (host !== boostHostRef.current) setBoostHost(host);
+    const matching = boostsForHost(boostsRef.current, host);
+    if (matching.length) ref.current?.injectJavaScript(boostScript(matching, host));
+    const capture = isPrivate ? null : captureGuard.current?.loadEnded(url);
+    if (capture) ref.current?.injectJavaScript(capture);
+  });
 
   // Reader mode requested: run Readability in the page; the answer comes back through onMessage.
   const readerTokenRef = useRef(readerToken);
@@ -123,6 +150,8 @@ export const WebTab = memo(function WebTab({
   const onNavigationStateChange = useEvent((navigation: WebViewNavigation) => {
     // Same rule as the tab model: about:blank (start-up) and refused schemes are not pages.
     if (isNavigableUrl(navigation.url) && navigation.url !== "about:blank") currentUrl.current = navigation.url;
+    const host = boostHostOf(navigation.url);
+    if (host && host !== boostHostRef.current) setBoostHost(host);
     actions.reportNavigation(id, {
       url: navigation.url,
       title: navigation.title,
@@ -141,7 +170,7 @@ export const WebTab = memo(function WebTab({
     }
   });
 
-  const onMessage = useEvent((event: { nativeEvent: { data: string } }) => {
+  const onMessage = useEvent((event: { nativeEvent: { data: string; url: string } }) => {
     // Untrusted page input: validated, rate limited, and only for the tab on screen.
     if (!activeRef.current) return;
     const now = Date.now();
@@ -151,8 +180,9 @@ export const WebTab = memo(function WebTab({
       if (readerTokenRef.current) onReaderArticle?.(id, article);
       return;
     }
-    // A login capture: its origin is this tab's page, never one the message names (ADR-025).
-    const capture = isPrivate ? null : parsePasswordMessage(event.nativeEvent.data, currentUrl.current);
+    // A login capture: from this document's script (nonce), credited to this tab's page, never to
+    // an origin the message names (ADR-025).
+    const capture = isPrivate ? null : (captureGuard.current?.parse(event.nativeEvent.data, event.nativeEvent.url, currentUrl.current) ?? null);
     if (capture) {
       if (now - lastPasswordPrompt.current < PASSWORD_PROMPT_COOLDOWN_MS) return;
       lastPasswordPrompt.current = now;
@@ -211,7 +241,9 @@ export const WebTab = memo(function WebTab({
         onScroll={onScrollEvent}
         onContentProcessDidTerminate={revive}
         onRenderProcessGone={revive}
-        injectedJavaScript={isPrivate ? INJECTED : INJECTED_WITH_PASSWORDS}
+        onLoadStart={onLoadStart}
+        onLoadEnd={onLoadEnd}
+        injectedJavaScript={INJECTED}
         injectedJavaScriptForMainFrameOnly
         injectedJavaScriptBeforeContentLoaded={boostBootstrap}
         injectedJavaScriptBeforeContentLoadedForMainFrameOnly

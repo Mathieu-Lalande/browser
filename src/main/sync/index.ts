@@ -20,9 +20,9 @@ import { nodeRandomBytes } from "./random";
  */
 
 const SYNC_STATE_VERSION = 1;
-/** Test hooks: faster debounce and periodic sync (e2e). */
-const TEST_DEBOUNCE_MS = Number(process.env.BROWSER_TEST_SYNC_DEBOUNCE_MS) || undefined;
-const TEST_INTERVAL_MS = Number(process.env.BROWSER_TEST_SYNC_INTERVAL_MS) || undefined;
+/** Test hooks: faster debounce and periodic sync (e2e); ignored once packaged (ADR-018). */
+const TEST_DEBOUNCE_MS = (!app.isPackaged && Number(process.env.BROWSER_TEST_SYNC_DEBOUNCE_MS)) || undefined;
+const TEST_INTERVAL_MS = (!app.isPackaged && Number(process.env.BROWSER_TEST_SYNC_INTERVAL_MS)) || undefined;
 
 type Listener = (status: SyncStatus) => void;
 const listeners = new Set<Listener>();

@@ -45,8 +45,13 @@ export const DEFAULT_FILTERS: BoostFilters = { invert: false, grayscale: 0, sepi
 export interface BoostScript {
   enabled: boolean;
   code: string;
-  /** Runs in private windows/tabs too (off: a private page gets the boost's CSS only). */
+  /** Runs in private windows/tabs too (off: a private page gets the boost's CSS only). Never synced. */
   allowPrivate: boolean;
+  /**
+   * Received through sync (new code, or code changed elsewhere) and not confirmed on this device
+   * yet: it stays off until the user turns it on here. Only set while `enabled` is false.
+   */
+  pending?: boolean;
 }
 
 export interface Boost {
@@ -192,6 +197,14 @@ export function sanitizeZaps(value: unknown): string[] {
   return [...new Set(value.filter(isValidSelector))].slice(0, MAX_ZAPS);
 }
 
+function sanitizeScript(script: Record<string, unknown>): BoostScript {
+  const enabled = script.enabled === true;
+  const code = cleanText(script.code, MAX_BOOST_SCRIPT);
+  const clean: BoostScript = { enabled, code, allowPrivate: script.allowPrivate === true };
+  if (script.pending === true && !enabled && code) clean.pending = true;
+  return clean;
+}
+
 /** A boost from storage, IPC or another device; null when it cannot be one (bad id or pattern). */
 export function sanitizeBoost(value: unknown): Boost | null {
   if (!isRecord(value) || !isBoostId(value.id)) return null;
@@ -207,7 +220,7 @@ export function sanitizeBoost(value: unknown): Boost | null {
     zaps: sanitizeZaps(value.zaps),
     font: isBoostFont(value.font) ? value.font : null,
     filters: sanitizeFilters(value.filters),
-    script: { enabled: script.enabled === true, code: cleanText(script.code, MAX_BOOST_SCRIPT), allowPrivate: script.allowPrivate === true },
+    script: sanitizeScript(script),
     updatedAt: clampInt(value.updatedAt, 0, Number.MAX_SAFE_INTEGER, 0),
   };
 }
@@ -261,6 +274,12 @@ export function removeZap(boost: Boost, selector: string, now: number): Boost {
   return { ...boost, zaps: boost.zaps.filter((item) => item !== selector), updatedAt: now };
 }
 
+/** The user turned on, on this device, a script received from another one. */
+export function confirmBoostScript(boost: Boost, now: number): Boost {
+  const { pending: _pending, ...script } = boost.script;
+  return { ...boost, script: { ...script, enabled: true }, updatedAt: now };
+}
+
 /** Whether the boost's script runs on a page (private: only when the boost allows it). */
 export function scriptAllowed(boost: Boost, isPrivate: boolean): boolean {
   return boost.enabled && boost.script.enabled && boost.script.code.trim() !== "" && (!isPrivate || boost.script.allowPrivate);
@@ -310,12 +329,18 @@ export function pageCss(boosts: readonly Boost[], url: string): string {
 
 // --- Sync (ADR-019) ----------------------------------------------------------------------------
 
-/** A synced boost: everything but its id (the record id). The script travels only while enabled. */
+/**
+ * A synced boost: everything but its id (the record id). The script travels only while enabled
+ * (or pending here: passed on as received, so this device does not turn it off elsewhere);
+ * `allowPrivate` never leaves the device.
+ */
 export type SyncedBoost = Omit<Boost, "id">;
 
 export function boostRecord(boost: Boost): SyncedBoost {
   const { id: _id, ...rest } = boost;
-  return { ...rest, script: boost.script.enabled ? { ...boost.script } : { enabled: false, code: "", allowPrivate: false }, zaps: [...boost.zaps], filters: { ...boost.filters } };
+  const travels = (boost.script.enabled || boost.script.pending === true) && boost.script.code !== "";
+  const script = travels ? { enabled: true, code: boost.script.code, allowPrivate: false } : { enabled: false, code: "", allowPrivate: false };
+  return { ...rest, script, zaps: [...boost.zaps], filters: { ...boost.filters } };
 }
 
 export function sanitizeSyncedBoost(value: unknown, localId: string): SyncedBoost | null {
@@ -325,16 +350,23 @@ export function sanitizeSyncedBoost(value: unknown, localId: string): SyncedBoos
 }
 
 /**
- * Applies synced boosts to a local list. A record without a script (disabled elsewhere) keeps the
- * local disabled code, so a script that is off never leaves the device but is not lost either.
+ * Applies synced boosts to a local list. A script needs consent on each device: one that is new
+ * here, or whose code changed elsewhere, lands off and `pending` until the user turns it on here.
+ * Code this device already has (typed or confirmed here) follows the record's on/off state. A
+ * record without a script (disabled elsewhere) keeps the local code, off, so it is not lost.
+ * `allowPrivate` is always the local one.
  */
 export function mergeBoosts(local: readonly Boost[], upserts: readonly [string, SyncedBoost][], deletes: readonly string[]): Boost[] {
   let boosts = local.filter((boost) => !deletes.includes(boost.id));
   for (const [id, record] of upserts) {
     const incoming = sanitizeBoost({ ...record, id });
     if (!incoming) continue;
-    const existing = boosts.find((boost) => boost.id === id);
-    if (existing && !incoming.script.enabled && !incoming.script.code) incoming.script = { ...existing.script, enabled: false };
+    const existing = boosts.find((boost) => boost.id === id)?.script;
+    const allowPrivate = existing?.allowPrivate ?? false;
+    const { code } = incoming.script;
+    if (!code) incoming.script = { enabled: false, code: existing?.code ?? "", allowPrivate };
+    else if (existing?.code === code) incoming.script = existing.pending ? { ...existing } : { enabled: incoming.script.enabled, code, allowPrivate };
+    else incoming.script = { enabled: false, code, allowPrivate, pending: true };
     boosts = upsertBoost(boosts, incoming);
   }
   return boosts;

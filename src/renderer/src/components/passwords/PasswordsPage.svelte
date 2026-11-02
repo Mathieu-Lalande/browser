@@ -47,8 +47,9 @@
   });
 
   async function reveal(id: string): Promise<void> {
-    const password = await api.passwords.reveal(id).catch(() => null);
-    if (password !== null) revealed = { ...revealed, [id]: password };
+    const result = await api.passwords.reveal(id).catch(() => ({ ok: false as const, message: "Le mot de passe n'a pas pu être affiché." }));
+    if (result.ok) revealed = { ...revealed, [id]: result.password };
+    else notice = { kind: "error", text: result.message };
   }
 
   function hide(id: string): void {
@@ -57,7 +58,11 @@
   }
 
   async function copy(id: string): Promise<void> {
-    if (!(await api.passwords.copy(id).catch(() => false))) return;
+    const result = await api.passwords.copy(id).catch(() => ({ ok: false as const, message: "Le mot de passe n'a pas pu être copié." }));
+    if (!result.ok) {
+      notice = { kind: "error", text: result.message };
+      return;
+    }
     copiedId = id;
     clearTimeout(copiedTimer);
     copiedTimer = setTimeout(() => (copiedId = null), 1600);

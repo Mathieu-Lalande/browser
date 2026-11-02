@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_CAPTURE_SIZE, captureFileName, captureSite, elementClip, formatDuration, fullPageClip, isCaptureRect } from "./capture";
+import { MAX_CAPTURE_PIXELS, MAX_CAPTURE_SIZE, captureFileName, captureScale, captureSite, elementClip, formatDuration, fullPageClip, isCaptureRect } from "./capture";
 
 describe("capture names", () => {
   const date = new Date(2026, 10, 2, 9, 5, 7);
@@ -38,6 +38,19 @@ describe("capture geometry", () => {
     expect(isCaptureRect({ x: 0, y: 0, width: Infinity, height: 1 })).toBe(false);
     expect(isCaptureRect({ x: "0", y: 0, width: 1, height: 1 })).toBe(false);
     expect(isCaptureRect(null)).toBe(false);
+  });
+
+  it("keeps ordinary captures at full size", () => {
+    expect(captureScale({ width: 1280, height: 16384 })).toBe(1);
+    expect(captureScale({ width: 1280, height: 5000 }, 2)).toBe(1);
+  });
+
+  it("scales huge captures down to the pixel budget", () => {
+    const clip = { width: 16384, height: 16384 };
+    const scale = captureScale(clip, 2);
+    expect(scale).toBeLessThan(1);
+    expect((clip.width * clip.height * (2 * scale) ** 2) / MAX_CAPTURE_PIXELS).toBeCloseTo(1, 6);
+    expect(captureScale(clip, Number.NaN)).toBe(captureScale(clip, 1));
   });
 });
 

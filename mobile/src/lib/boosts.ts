@@ -1,6 +1,7 @@
 import {
   BOOST_FONTS,
   boostCss,
+  matchesHost,
   matchSpecificity,
   newBoost,
   removeZap,
@@ -34,17 +35,27 @@ export function boostPayload(boosts: readonly Boost[], isPrivate: boolean): Boos
 }
 
 /**
- * The script run in pages. At document start (`injectedJavaScriptBeforeContentLoaded`) it puts the
- * matching boosts' CSS in a style element and runs their scripts once per document; with
- * `styleOnly` (a boost changed while the page is open) it only replaces the CSS. Matching happens
- * in the page against `location.hostname`, with the same rules as `matchesHost`.
+ * The boosts of one host, filtered in the app: a page never receives the CSS or scripts of the
+ * user's boosts for other sites. Null host (not a web page): none.
  */
-export function boostScript(payload: readonly BoostPayload[], styleOnly = false): string {
+export function boostsForHost(payload: readonly BoostPayload[], host: string | null): BoostPayload[] {
+  return host ? payload.filter((item) => matchesHost(item.match, host)) : [];
+}
+
+/**
+ * The script run in pages, built for one host's boosts (`boostsForHost`). At document start
+ * (`injectedJavaScriptBeforeContentLoaded`) and again after the load (the start script may have
+ * been built for the previous host), it puts the boosts' CSS in a style element and runs their
+ * scripts once per document; with `styleOnly` (a boost changed while the page is open) it only
+ * replaces the CSS. It does nothing in a document of another host; matching is checked again in
+ * the page against `location.hostname`, with the same rules as `matchesHost`.
+ */
+export function boostScript(payload: readonly BoostPayload[], host: string | null, styleOnly = false): string {
   return `(function () {
   try {
     var list = ${JSON.stringify(payload)};
     var host = String(location.hostname || "").toLowerCase();
-    if (!/^https?:$/.test(location.protocol)) return;
+    if (!/^https?:$/.test(location.protocol) || host !== ${JSON.stringify(host ?? "")}) return;
     var matches = function (pattern) {
       if (pattern.indexOf("*.") === 0) { var domain = pattern.slice(2); return host === domain || host.slice(-domain.length - 1) === "." + domain; }
       return host === pattern;
@@ -56,7 +67,8 @@ export function boostScript(payload: readonly BoostPayload[], styleOnly = false)
       if (!style) { style = document.createElement("style"); style.id = "__browser-boosts"; (document.head || document.documentElement).appendChild(style); }
       style.textContent = css.join("\\n");
     } else if (style) style.remove();
-    if (${styleOnly ? "true" : "false"}) return;
+    if (${styleOnly ? "true" : "false"} || window.__browserBoostScripts) return;
+    window.__browserBoostScripts = true;
     for (var j = 0; j < scripts.length; j++) { try { (0, eval)(scripts[j]); } catch (error) { console.warn("Boost:", error); } }
   } catch (error) {}
 })();

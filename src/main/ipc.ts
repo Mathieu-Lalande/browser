@@ -396,8 +396,8 @@ export function registerIpc(): void {
   withController(Channels.passwordsStatus, none, () => passwordsStatus());
   withController(Channels.passwordsList, none, () => listPasswords());
   withController(Channels.passwordsNeverList, none, () => neverList());
-  withController(Channels.passwordsReveal, passwordId, (_c, entryId) => revealPassword(entryId as string));
-  withController(Channels.passwordsCopy, passwordId, (_c, entryId) => copyPassword(entryId as string));
+  withController(Channels.passwordsReveal, passwordId, (c, entryId) => revealPassword(c, entryId as string));
+  withController(Channels.passwordsCopy, passwordId, (c, entryId) => copyPassword(c, entryId as string));
   withController(Channels.passwordsUpdate, (args) => isPasswordId(args[0]) && isPasswordEdit(args[1]), (_c, entryId, edit) =>
     updatePassword(entryId as string, edit as PasswordEdit),
   );

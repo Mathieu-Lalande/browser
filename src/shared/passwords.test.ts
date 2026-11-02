@@ -7,7 +7,10 @@ import {
   markUsed,
   originLabel,
   passwordOrigin,
+  PASSWORD_ACCESS_LIMIT,
+  PASSWORD_ACCESS_WINDOW_MS,
   passwordsToCsv,
+  takePasswordAccess,
   sanitizeCapture,
   sanitizeVault,
   saveCapture,
@@ -131,6 +134,16 @@ describe("stored vault", () => {
   });
 });
 
+describe("access limit", () => {
+  it("allows a few reveals per minute, then refuses until the window slides", () => {
+    let history: number[] = [];
+    for (let i = 0; i < PASSWORD_ACCESS_LIMIT; i++) history = takePasswordAccess(history, 1000 + i)!;
+    expect(takePasswordAccess(history, 2000)).toBeNull();
+    expect(takePasswordAccess(history, 1000 + PASSWORD_ACCESS_WINDOW_MS)).toHaveLength(PASSWORD_ACCESS_LIMIT);
+    expect(takePasswordAccess(history, 1000 + PASSWORD_ACCESS_WINDOW_MS + PASSWORD_ACCESS_LIMIT)).toEqual([1000 + PASSWORD_ACCESS_WINDOW_MS + PASSWORD_ACCESS_LIMIT]);
+  });
+});
+
 describe("CSV export", () => {
   it("writes Chrome's columns, every cell quoted and escaped", () => {
     let vault = saveCapture(empty(), capture({ username: 'a"b', password: "p,w\nx" }), 1, "a");
@@ -138,5 +151,14 @@ describe("CSV export", () => {
     expect(passwordsToCsv(vault.entries)).toBe(
       'name,url,username,password\r\n"127.0.0.1:8080","http://127.0.0.1:8080","","=1+1"\r\n"example.com","https://example.com","a""b","p,w\nx"\r\n',
     );
+  });
+
+  it("defuses formulas in text cells", () => {
+    const cells = ["=HYPERLINK(1)", "+1", "-1", "@SUM(1)", "\tx", "\rx"].map((username, index) => {
+      const vault = saveCapture(empty(), capture({ username, password: "=pw" }), 1, `id${index}`);
+      return passwordsToCsv(vault.entries).split("\r\n")[1];
+    });
+    expect(cells[0]).toBe('"example.com","https://example.com","\'=HYPERLINK(1)","=pw"');
+    for (const row of cells) expect(row).toMatch(/,"'[=+\-@\t\r]/);
   });
 });

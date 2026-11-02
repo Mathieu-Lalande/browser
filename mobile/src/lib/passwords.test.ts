@@ -1,4 +1,4 @@
-import { CHUNK_SIZE, PasswordStore, loadVault, parsePasswordMessage, passwordFillScript, saveVault, type SecretStore } from "./passwords";
+import { CHUNK_SIZE, PasswordCaptureGuard, PasswordStore, captureNonce, loadVault, parsePasswordMessage, passwordFillScript, saveVault, type SecretStore } from "./passwords";
 
 /** In-memory stand-in for expo-secure-store. */
 function memoryStore(): SecretStore & { data: Map<string, string> } {
@@ -93,22 +93,56 @@ describe("secure-store chunks", () => {
 });
 
 describe("WebView bridge", () => {
-  const message = (value: object) => JSON.stringify({ type: "password-capture", ...value });
+  const N = "n0nce";
+  const message = (value: object, nonce = N) => JSON.stringify({ type: "password-capture", nonce, ...value });
 
   it("takes the origin from the tab, never from the page", () => {
-    expect(parsePasswordMessage(message({ username: " bob ", password: "pw", origin: "https://bank.example" }), "https://example.com/login")).toEqual({
+    expect(parsePasswordMessage(message({ username: " bob ", password: "pw", origin: "https://bank.example" }), N, "https://example.com/login")).toEqual({
       origin: "https://example.com",
       username: "bob",
       password: "pw",
     });
   });
 
-  it("refuses malformed messages and non-web pages", () => {
-    expect(parsePasswordMessage(message({ username: "a", password: "" }), "https://example.com")).toBeNull();
-    expect(parsePasswordMessage(message({ username: 1, password: "pw" }), "https://example.com")).toBeNull();
-    expect(parsePasswordMessage(message({ username: "a", password: "pw" }), "about:blank")).toBeNull();
-    expect(parsePasswordMessage(JSON.stringify({ type: "link-menu", href: "https://x" }), "https://example.com")).toBeNull();
-    expect(parsePasswordMessage("not json", "https://example.com")).toBeNull();
+  it("refuses malformed messages, non-web pages and a wrong nonce", () => {
+    expect(parsePasswordMessage(message({ username: "a", password: "" }), N, "https://example.com")).toBeNull();
+    expect(parsePasswordMessage(message({ username: 1, password: "pw" }), N, "https://example.com")).toBeNull();
+    expect(parsePasswordMessage(message({ username: "a", password: "pw" }), N, "about:blank")).toBeNull();
+    expect(parsePasswordMessage(JSON.stringify({ type: "link-menu", href: "https://x" }), N, "https://example.com")).toBeNull();
+    expect(parsePasswordMessage("not json", N, "https://example.com")).toBeNull();
+    expect(parsePasswordMessage(message({ username: "a", password: "pw" }, "other"), N, "https://example.com")).toBeNull();
+    expect(parsePasswordMessage(JSON.stringify({ type: "password-capture", username: "a", password: "pw" }), N, "https://example.com")).toBeNull();
+    expect(parsePasswordMessage(message({ username: "a", password: "pw" }, ""), "", "https://example.com")).toBeNull();
+  });
+
+  it("accepts only the current document's script, from the tab's origin, outside loads", () => {
+    let count = 0;
+    const guard = new PasswordCaptureGuard(() => `nonce${++count}`);
+    const valid = (nonce: string) => message({ username: "a", password: "pw" }, nonce);
+    // Nothing before the first load ends (a frame posting early, or a guessed nonce).
+    expect(guard.parse(valid("nonce1"), "https://example.com/", "https://example.com/")).toBeNull();
+    const script = guard.loadEnded("https://example.com/login")!;
+    expect(script).toContain('"nonce1"');
+    expect(script).not.toContain("__browserPasswordCapture");
+    expect(guard.parse(valid("nonce1"), "https://example.com/login", "https://example.com/login")).toMatchObject({ origin: "https://example.com" });
+    // A frame (no nonce, or a made-up one) is refused.
+    expect(guard.parse(valid("forged"), "https://example.com/login", "https://example.com/login")).toBeNull();
+    // Another origin in the message's or the tab's URL.
+    expect(guard.parse(valid("nonce1"), "https://evil.example/", "https://example.com/login")).toBeNull();
+    expect(guard.parse(valid("nonce1"), "https://example.com/login", "https://evil.example/")).toBeNull();
+    // During a load, then the next document: the old nonce is dead.
+    guard.loadStarted();
+    expect(guard.parse(valid("nonce1"), "https://example.com/login", "https://example.com/login")).toBeNull();
+    guard.loadEnded("https://example.com/next");
+    expect(guard.parse(valid("nonce1"), "https://example.com/next", "https://example.com/next")).toBeNull();
+    expect(guard.parse(valid("nonce2"), "https://example.com/next", "https://example.com/next")).not.toBeNull();
+    // Not a web page: no script, nothing accepted.
+    expect(guard.loadEnded("about:blank")).toBeNull();
+    expect(guard.parse(valid("nonce2"), "about:blank", "about:blank")).toBeNull();
+  });
+
+  it("makes 128-bit hex nonces", () => {
+    expect(captureNonce((length) => new Uint8Array(length).fill(171))).toBe("ab".repeat(16));
   });
 
   it("fills only on the entry's origin, with escaped values", () => {

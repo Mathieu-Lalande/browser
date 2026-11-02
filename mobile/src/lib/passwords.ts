@@ -148,10 +148,11 @@ export class PasswordStore {
 const MAX_MESSAGE = 4096;
 
 /**
- * A login capture posted by the injected script, checked like any page input. The origin is the
- * tab's (`pageUrl`, from the WebView's navigation events), never one the page names.
+ * A login capture posted by the injected script, checked like any page input. It must carry the
+ * nonce of the script injected in this document (frames and earlier documents do not know it).
+ * The origin is the tab's (`pageUrl`, from the WebView's navigation events), never one the page names.
  */
-export function parsePasswordMessage(data: unknown, pageUrl: string): PasswordCapture | null {
+export function parsePasswordMessage(data: unknown, nonce: string, pageUrl: string): PasswordCapture | null {
   if (typeof data !== "string" || data.length > MAX_MESSAGE) return null;
   let value: unknown;
   try {
@@ -162,7 +163,7 @@ export function parsePasswordMessage(data: unknown, pageUrl: string): PasswordCa
   if (typeof value !== "object" || value === null) return null;
   const message = value as Record<string, unknown>;
   const origin = passwordOrigin(pageUrl);
-  if (message.type !== "password-capture" || !origin) return null;
+  if (message.type !== "password-capture" || !origin || !nonce || message.nonce !== nonce) return null;
   if (typeof message.username !== "string" || message.username.length > MAX_USERNAME) return null;
   if (typeof message.password !== "string" || !message.password || message.password.length > MAX_PASSWORD) return null;
   // eslint-disable-next-line no-control-regex
@@ -173,20 +174,57 @@ export function parsePasswordMessage(data: unknown, pageUrl: string): PasswordCa
 export const PASSWORD_PROMPT_COOLDOWN_MS = 3000;
 
 /**
- * Injected after each page load (main frame, normal tabs only). Watches trusted login
- * submissions (form submit, submit button, Enter in a password field) and posts the username and
- * password once per login. The page can read its own form anyway: nothing is exposed to it.
+ * Which capture messages a tab accepts (ADR-025). Each main-frame document gets the capture
+ * script with a fresh random nonce, kept in the script's closure: a frame (any origin can post to
+ * the native bridge) or an earlier document cannot produce it. Nothing is accepted while a load
+ * is in progress, nor when the message's or the tab's URL is not on the origin the script was
+ * injected for.
  */
-export const PASSWORD_CAPTURE_SCRIPT = `(function(){
+export class PasswordCaptureGuard {
+  private nonce: string | null = null;
+  private origin: string | null = null;
+
+  constructor(private readonly newNonce: () => string) {}
+
+  /** A main-frame load started: the previous document's script no longer counts. */
+  loadStarted(): void {
+    this.nonce = null;
+    this.origin = null;
+  }
+
+  /** A main-frame load ended on `url`: the script to inject there, or null (not a web page). */
+  loadEnded(url: string): string | null {
+    this.origin = passwordOrigin(url);
+    this.nonce = this.origin ? this.newNonce() : null;
+    return this.nonce ? passwordCaptureScript(this.nonce) : null;
+  }
+
+  /** A WebView message (`messageUrl`: the native event's URL; `pageUrl`: the tab's current page). */
+  parse(data: unknown, messageUrl: string, pageUrl: string): PasswordCapture | null {
+    if (!this.nonce || !this.origin) return null;
+    if (passwordOrigin(messageUrl) !== this.origin || passwordOrigin(pageUrl) !== this.origin) return null;
+    return parsePasswordMessage(data, this.nonce, pageUrl);
+  }
+}
+
+/**
+ * Injected by the app after each main-frame load (normal tabs only), with that document's nonce.
+ * Watches trusted login submissions (form submit, submit button, Enter in a password field) and
+ * posts the username and password once per login. The page can read its own form anyway: nothing
+ * is exposed to it. No global "already installed" flag: a newer injection's nonce is the only one
+ * accepted, so listeners left by an older one are ignored.
+ */
+export function passwordCaptureScript(nonce: string): string {
+  return `(function(nonce){
 var post=window.ReactNativeWebView&&window.ReactNativeWebView.postMessage.bind(window.ReactNativeWebView);
-if(!post||window.__browserPasswordCapture)return;window.__browserPasswordCapture=true;
+if(!post)return;
 var textual={"":1,text:1,email:1,tel:1},last="",lastAt=0;
 function snapshot(scope){var pw=[].slice.call(scope.querySelectorAll('input[type="password"]')).filter(function(e){return e.value;});
 if(!pw.length)return null;var n=pw.length;var p=n>=2&&pw[n-1].value===pw[n-2].value?pw[n-2]:pw[0];var user="";
 var tagged=scope.querySelector('input[autocomplete~="username"],input[autocomplete~="email"]');
 if(tagged&&tagged.value&&tagged.type!=="password")user=tagged.value;else{var all=[].slice.call(scope.querySelectorAll("input"));
 for(var i=all.indexOf(p)-1;i>=0;i--){if(textual[all[i].type]&&all[i].value){user=all[i].value;break;}}}
-return{type:"password-capture",username:String(user).slice(0,${MAX_USERNAME}),password:String(p.value).slice(0,${MAX_PASSWORD})};}
+return{type:"password-capture",nonce:nonce,username:String(user).slice(0,${MAX_USERNAME}),password:String(p.value).slice(0,${MAX_PASSWORD})};}
 function emit(scope){var s=snapshot(scope||document);if(!s)return;var key=s.username+"\\n"+s.password,now=Date.now();
 if(key===last&&now-lastAt<3000)return;last=key;lastAt=now;post(JSON.stringify(s));}
 function scopeOf(el){return(el&&el.form)||(el&&el.closest&&el.closest("form"))||document;}
@@ -194,7 +232,12 @@ document.addEventListener("submit",function(e){if(e.isTrusted)emit(e.target);},t
 document.addEventListener("click",function(e){if(!e.isTrusted||!e.target||!e.target.closest)return;
 var b=e.target.closest('button:not([type="button"]):not([type="reset"]),input[type="submit"]');if(b)emit(scopeOf(b));},true);
 document.addEventListener("keydown",function(e){var t=e.target;if(e.isTrusted&&e.key==="Enter"&&t&&t.type==="password")emit(scopeOf(t));},true);
-})();true;`;
+})(${JSON.stringify(nonce)});true;`;
+}
+
+/** 128 random bits, hex: one per injected capture script. */
+export const captureNonce = (randomBytes: (length: number) => Uint8Array): string =>
+  Array.from(randomBytes(16), (byte) => byte.toString(16).padStart(2, "0")).join("");
 
 /** Fills the page's login form, only if it is still on the entry's origin. Injected on the user's tap. */
 export function passwordFillScript(entry: Pick<PasswordEntry, "origin" | "username" | "password">): string {
