@@ -3,9 +3,9 @@
   import { api, browser } from "../../lib/browser.svelte";
   import { settings } from "../../lib/settings.svelte";
   import Icon from "../Icon.svelte";
-  import ConfirmButton from "./ConfirmButton.svelte";
-  import Row from "./Row.svelte";
-  import Toggle from "./Toggle.svelte";
+  import ConfirmButton from "../ui/ConfirmButton.svelte";
+  import Row from "../ui/Row.svelte";
+  import Toggle from "../ui/Toggle.svelte";
 
   /**
    * Cookies and site data of the profile (default session and isolated spaces), grouped by site,

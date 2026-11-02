@@ -4,7 +4,7 @@
   import { sync } from "../../lib/sync.svelte";
   import Icon from "../Icon.svelte";
   import QrCode from "./QrCode.svelte";
-  import Row from "./Row.svelte";
+  import Row from "../ui/Row.svelte";
 
   /**
    * Sync settings (ADR-019): set up an account on a self-hosted relay or pair with a code, then

@@ -1,7 +1,8 @@
 <script lang="ts">
+  import Card from "../ui/Card.svelte";
   import type { Snippet } from "svelte";
   import Icon, { type IconName } from "../Icon.svelte";
-  import ConfirmButton from "./ConfirmButton.svelte";
+  import ConfirmButton from "../ui/ConfirmButton.svelte";
 
   let {
     id,
@@ -31,9 +32,9 @@
       </ConfirmButton>
     {/if}
   </header>
-  <div class="card">
+  <Card as="div" variant="section">
     {@render children()}
-  </div>
+  </Card>
 </section>
 
 <style>
@@ -71,11 +72,5 @@
     margin: 1px 0 0;
     color: var(--text-muted);
     font-size: 12px;
-  }
-  .card {
-    overflow: hidden;
-    border: 1px solid var(--border);
-    border-radius: calc(var(--radius) + 4px);
-    background: color-mix(in oklab, var(--bg) 45%, var(--bg-elevated));
   }
 </style>

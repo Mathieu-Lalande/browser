@@ -6,6 +6,8 @@
   import { platform } from "../lib/platform.svelte";
   import { settings } from "../lib/settings.svelte";
   import Icon from "../components/Icon.svelte";
+  import Menu from "../components/ui/Menu.svelte";
+  import MenuItem from "../components/ui/MenuItem.svelte";
   import QrCode from "../components/settings/QrCode.svelte";
 
   /**
@@ -57,20 +59,9 @@
   }
 
   function onKeydown(event: KeyboardEvent): void {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      onClose(true);
-    } else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-      // Arrow keys walk the actions, like a menu.
-      const items = [...(panel?.querySelectorAll<HTMLElement>("button:not(:disabled)") ?? [])];
-      const index = items.indexOf(document.activeElement as HTMLElement);
-      const step = event.key === "ArrowDown" ? 1 : -1;
-      const next = index === -1 ? items.at(step === 1 ? 0 : -1) : items[(index + step + items.length) % items.length];
-      if (next) {
-        event.preventDefault();
-        next.focus();
-      }
-    }
+    if (event.key !== "Escape") return;
+    event.preventDefault();
+    onClose(true);
   }
 
   type Item = { id: CommandId; icon: CommandIcon; label: string; mode?: "close" | "stay" | "handoff"; hidden?: boolean };
@@ -112,12 +103,9 @@
     <header>
       <span class="host" title={tab.url}>{displayUrl(tab.url)}</span>
     </header>
-    <div class="body">
-      <button class="item" onclick={copyLink}>
-        <Icon name={copied ? "check" : "copy"} size={16} />
-        <span class="label">{copied ? "Lien copié" : "Copier le lien"}</span>
-        <span class="keys">{platform.shortcut("copy-url")}</span>
-      </button>
+    <!-- Arrow keys walk the actions, like a menu. -->
+    <Menu class="body" role="group">
+      <MenuItem icon={copied ? "check" : "copy"} label={copied ? "Lien copié" : "Copier le lien"} keys={platform.shortcut("copy-url")} onclick={copyLink} />
 
       {#if isWeb}
         <div class="zoom" role="group" aria-label="Zoom">
@@ -141,44 +129,28 @@
           </button>
         </div>
 
-        <button class="item" aria-expanded={captureOpen} onclick={() => (captureOpen = !captureOpen)}>
-          <Icon name="camera" size={16} />
-          <span class="label">Capture d'écran</span>
-          <span class="chevron" class:open={captureOpen}><Icon name="chevron-right" size={14} /></span>
-        </button>
+        <MenuItem icon="camera" label="Capture d'écran" expanded={captureOpen} onclick={() => (captureOpen = !captureOpen)} />
         {#if captureOpen}
           <div class="sub" role="group" aria-label="Capture d'écran">
             {#each captures as item (item.id)}
-              <button class="item" onclick={() => run(item.id, item.mode)}>
-                <Icon name={item.icon} size={15} />
-                <span class="label">{item.label}</span>
-                <span class="keys">{platform.shortcut(item.id)}</span>
-              </button>
+              <MenuItem icon={item.icon} iconSize={15} label={item.label} keys={platform.shortcut(item.id)} onclick={() => run(item.id, item.mode)} />
             {/each}
           </div>
         {/if}
       {/if}
 
       {#each items.filter((item) => !item.hidden) as item (item.id)}
-        <button class="item" onclick={() => run(item.id, item.mode)}>
-          <Icon name={item.icon} size={16} />
-          <span class="label">{item.label}</span>
-          <span class="keys">{platform.shortcut(item.id)}</span>
-        </button>
+        <MenuItem icon={item.icon} label={item.label} keys={platform.shortcut(item.id)} onclick={() => run(item.id, item.mode)} />
       {/each}
 
-      <button class="item" aria-expanded={qrOpen} onclick={() => (qrOpen = !qrOpen)}>
-        <Icon name="qr" size={16} />
-        <span class="label">Partager (code QR)</span>
-        <span class="chevron" class:open={qrOpen}><Icon name="chevron-right" size={14} /></span>
-      </button>
+      <MenuItem icon="qr" label="Partager (code QR)" expanded={qrOpen} onclick={() => (qrOpen = !qrOpen)} />
       {#if qrOpen}
         <div class="qr">
           <QrCode value={tab.url} size={168} label="Code QR de {displayUrl(tab.url)}" />
           <p>Scannez-le avec un téléphone pour ouvrir cette page.</p>
         </div>
       {/if}
-    </div>
+    </Menu>
   {/if}
 </div>
 
@@ -210,12 +182,9 @@
     white-space: nowrap;
     text-overflow: ellipsis;
   }
-  .body {
-    display: flex;
-    flex-direction: column;
+  .panel :global(.body) {
     padding: 4px;
   }
-  .item,
   .zoom {
     display: flex;
     align-items: center;
@@ -227,26 +196,9 @@
     font-size: 13px;
     text-align: left;
   }
-  .item:hover,
-  .item:focus-visible {
-    background: var(--surface-hover);
-    outline: none;
-  }
   .label {
     flex: 1;
     min-width: 0;
-  }
-  .keys {
-    color: var(--text-faint);
-    font-size: 11px;
-  }
-  .chevron {
-    display: grid;
-    color: var(--text-faint);
-    transition: transform 0.15s var(--ease);
-  }
-  .chevron.open {
-    transform: rotate(90deg);
   }
   .sub {
     display: flex;

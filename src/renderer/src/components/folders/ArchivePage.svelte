@@ -1,4 +1,6 @@
 <script lang="ts">
+  import ListRow from "../ui/ListRow.svelte";
+  import Card from "../ui/Card.svelte";
   import type { ArchivedTab } from "@shared/archive";
   import { displayUrl } from "@shared/url";
   import { api, browser } from "../../lib/browser.svelte";
@@ -60,9 +62,9 @@
     </label>
 
     {#if entries.length}
-      <ul class="card">
+      <Card as="ul">
         {#each entries as entry (entry.id)}
-          <li class="row" data-archive-id={entry.id}>
+          <ListRow dense data-archive-id={entry.id}>
             <Favicon src={entry.favicon} />
             <span class="text">
               <span class="title">{entry.title}</span>
@@ -76,9 +78,9 @@
                 <Icon name="trash" size={12} />
               </button>
             {/if}
-          </li>
+          </ListRow>
         {/each}
-      </ul>
+      </Card>
     {:else}
       <p class="empty">{query ? "Aucun onglet archivé ne correspond à cette recherche." : "Aucun onglet archivé pour l'instant."}</p>
     {/if}
@@ -179,27 +181,6 @@
     outline: 0;
     background: transparent;
     user-select: text;
-  }
-  .card {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    margin: 0;
-    padding: 4px;
-    list-style: none;
-    border: 1px solid var(--border);
-    border-radius: calc(var(--radius) + 2px);
-    background: var(--bg-elevated);
-  }
-  .row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 8px 10px;
-    border-radius: var(--radius);
-  }
-  .row:hover {
-    background: var(--surface-hover);
   }
   .text {
     display: flex;

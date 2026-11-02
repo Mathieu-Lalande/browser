@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import Icon from "./Icon.svelte";
+  import Icon from "../Icon.svelte";
 
   /** The app's checkbox (themed, Lucide check), in place of the native one. The label is the content. */
   let { checked, onchange, children }: { checked: boolean; onchange: (checked: boolean) => void; children: Snippet } = $props();

@@ -2,8 +2,8 @@
   import { api } from "../../lib/browser.svelte";
   import { settings } from "../../lib/settings.svelte";
   import Icon from "../Icon.svelte";
-  import Row from "./Row.svelte";
-  import Toggle from "./Toggle.svelte";
+  import Row from "../ui/Row.svelte";
+  import Toggle from "../ui/Toggle.svelte";
 
   const s = $derived(settings.current.downloads);
 

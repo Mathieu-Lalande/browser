@@ -1,4 +1,6 @@
 <script lang="ts">
+  import ListRow from "../ui/ListRow.svelte";
+  import Card from "../ui/Card.svelte";
   import {
     BOOST_FONTS,
     DEFAULT_FILTERS,
@@ -13,9 +15,9 @@
   } from "@shared/boosts";
   import { api, browser } from "../../lib/browser.svelte";
   import Icon from "../Icon.svelte";
-  import ConfirmButton from "../settings/ConfirmButton.svelte";
+  import ConfirmButton from "../ui/ConfirmButton.svelte";
   import Slider from "../settings/Slider.svelte";
-  import Toggle from "../settings/Toggle.svelte";
+  import Toggle from "../ui/Toggle.svelte";
 
   /**
    * `browser://boosts` (ADR-029): every boost, to switch on/off, edit or remove. The editor sends
@@ -108,7 +110,7 @@
     </p>
 
     {#if draft}
-      <form class="card editor" aria-label="Modifier le boost" onsubmit={(event) => (event.preventDefault(), void save())}>
+      <Card as="form" class="editor" aria-label="Modifier le boost" onsubmit={(event) => (event.preventDefault(), void save())}>
         <div class="fields">
           <label class="field">
             <span>Site</span>
@@ -203,13 +205,13 @@
           <button type="button" class="action" onclick={() => ((draft = null), (error = null))}>Annuler</button>
           <button type="submit" class="action primary">Enregistrer</button>
         </div>
-      </form>
+      </Card>
     {/if}
 
     {#if boosts.length}
-      <ul class="card">
+      <Card as="ul">
         {#each boosts as boost (boost.id)}
-          <li class="row" class:disabled={!boost.enabled} data-boost-id={boost.id}>
+          <ListRow disabled={!boost.enabled} data-boost-id={boost.id}>
             <span class="icon"><Icon name="rocket" size={16} /></span>
             <span class="text">
               <span class="title">{boost.name}</span>
@@ -230,9 +232,9 @@
                 <Icon name="trash" size={12} />
               </ConfirmButton>
             {/if}
-          </li>
+          </ListRow>
         {/each}
-      </ul>
+      </Card>
     {:else if loaded && !draft}
       <div class="empty">
         <Icon name="rocket" size={28} />
@@ -317,18 +319,7 @@
     color: var(--text-muted);
     font-size: 12px;
   }
-  .card {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    margin: 0;
-    padding: 4px;
-    list-style: none;
-    border: 1px solid var(--border);
-    border-radius: calc(var(--radius) + 2px);
-    background: var(--bg-elevated);
-  }
-  .editor {
+  :global(form.card.list.editor) {
     gap: 14px;
     padding: 16px;
   }
@@ -428,18 +419,8 @@
     justify-content: flex-end;
     gap: 8px;
   }
-  .row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px;
-    border-radius: var(--radius);
-  }
-  .row:hover {
-    background: var(--surface-hover);
-  }
-  .row.disabled .title,
-  .row.disabled .icon {
+  :global(.row.disabled) .title,
+  :global(.row.disabled) .icon {
     opacity: 0.55;
   }
   .icon {

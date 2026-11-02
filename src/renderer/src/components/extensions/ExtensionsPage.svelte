@@ -1,9 +1,11 @@
 <script lang="ts">
+  import ListRow from "../ui/ListRow.svelte";
+  import Card from "../ui/Card.svelte";
   import type { ExtensionInfo, ExtensionInstallResult } from "@shared/extensions";
   import { api, browser } from "../../lib/browser.svelte";
   import Icon from "../Icon.svelte";
-  import ConfirmButton from "../settings/ConfirmButton.svelte";
-  import Toggle from "../settings/Toggle.svelte";
+  import ConfirmButton from "../ui/ConfirmButton.svelte";
+  import Toggle from "../ui/Toggle.svelte";
 
   /**
    * `browser://extensions` (ADR-024): installed extensions, to switch on/off, allow in private
@@ -82,9 +84,9 @@
     {/if}
 
     {#if extensions.length}
-      <ul class="card">
+      <Card as="ul">
         {#each extensions as extension (extension.id)}
-          <li class="row" class:disabled={!extension.enabled} data-extension-id={extension.id}>
+          <ListRow align="start" disabled={!extension.enabled} data-extension-id={extension.id}>
             <span class="icon">
               {#if extension.icon}
                 <img src={extension.icon} alt="" width="28" height="28" />
@@ -125,9 +127,9 @@
                 <Icon name="trash" size={12} /> Retirer
               </ConfirmButton>
             {/if}
-          </li>
+          </ListRow>
         {/each}
-      </ul>
+      </Card>
     {:else if loaded}
       <div class="empty">
         <Icon name="extension" size={28} />
@@ -236,29 +238,8 @@
   .dismiss:hover {
     background: var(--surface-hover);
   }
-  .card {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    margin: 0;
-    padding: 4px;
-    list-style: none;
-    border: 1px solid var(--border);
-    border-radius: calc(var(--radius) + 2px);
-    background: var(--bg-elevated);
-  }
-  .row {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 10px;
-    border-radius: var(--radius);
-  }
-  .row:hover {
-    background: var(--surface-hover);
-  }
-  .row.disabled .icon,
-  .row.disabled .title {
+  :global(.row.disabled) .icon,
+  :global(.row.disabled) .title {
     opacity: 0.55;
   }
   .icon {

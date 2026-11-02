@@ -5,9 +5,9 @@
   import { settings } from "../../lib/settings.svelte";
   import { updates } from "../../lib/updates.svelte";
   import Icon from "../Icon.svelte";
-  import Row from "./Row.svelte";
-  import Segmented from "./Segmented.svelte";
-  import Toggle from "./Toggle.svelte";
+  import Row from "../ui/Row.svelte";
+  import Segmented from "../ui/Segmented.svelte";
+  import Toggle from "../ui/Toggle.svelte";
 
   const prefs = $derived(settings.current.updates);
   const status = $derived(updates.status);

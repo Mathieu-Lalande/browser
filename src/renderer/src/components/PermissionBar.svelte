@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { PermissionKind, PermissionPrompt, TabId } from "@shared/types";
   import { api, browser } from "../lib/browser.svelte";
-  import Checkbox from "./Checkbox.svelte";
+  import Checkbox from "./ui/Checkbox.svelte";
   import Icon from "./Icon.svelte";
 
   let { tabId, prompt }: { tabId: TabId; prompt: PermissionPrompt } = $props();

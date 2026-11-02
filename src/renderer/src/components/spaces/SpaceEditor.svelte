@@ -2,7 +2,7 @@
   import { SPACE_COLORS, SPACE_ICON_LABELS, SPACE_ICONS } from "@shared/spaces";
   import type { SpaceInfo, SpaceInput } from "@shared/types";
   import { api, browser } from "../../lib/browser.svelte";
-  import Checkbox from "../Checkbox.svelte";
+  import Checkbox from "../ui/Checkbox.svelte";
   import Icon from "../Icon.svelte";
 
   /** Edit popover of a space, inside the sidebar (above the space switcher). */

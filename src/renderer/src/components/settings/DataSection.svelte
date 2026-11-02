@@ -5,8 +5,8 @@
   import Favicon from "../Favicon.svelte";
   import Icon from "../Icon.svelte";
   import { platform } from "../../lib/platform.svelte";
-  import ConfirmButton from "./ConfirmButton.svelte";
-  import Row from "./Row.svelte";
+  import ConfirmButton from "../ui/ConfirmButton.svelte";
+  import Row from "../ui/Row.svelte";
 
   let bookmarks = $state<Bookmark[]>([]);
   let cleared = $state(false);

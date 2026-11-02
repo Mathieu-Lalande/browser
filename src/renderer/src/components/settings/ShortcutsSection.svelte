@@ -16,7 +16,8 @@
   import { platform } from "../../lib/platform.svelte";
   import { settings } from "../../lib/settings.svelte";
   import Icon from "../Icon.svelte";
-  import ConfirmButton from "./ConfirmButton.svelte";
+  import IconButton from "../ui/IconButton.svelte";
+  import ConfirmButton from "../ui/ConfirmButton.svelte";
 
   /**
    * "Raccourcis clavier" (ADR-028): every registry command with its effective shortcut. Clicking
@@ -158,15 +159,15 @@
         <span class="label" id="shortcut-{id}">{labelOf(id)}</span>
         <div class="control">
           {#if custom}
-            <button
-              class="icon"
+            <IconButton
+              size="row"
+              icon="reset"
+              iconSize={12}
               title="Raccourci par défaut"
-              aria-label="Rétablir le raccourci par défaut"
+              label="Rétablir le raccourci par défaut"
               aria-describedby="shortcut-{id}"
               onclick={() => ((pending = null), save(resetShortcut(overrides, id)))}
-            >
-              <Icon name="reset" size={12} />
-            </button>
+            />
           {/if}
           <button
             class="keys"
@@ -321,18 +322,6 @@
     font: inherit;
     font-size: 11px;
     text-align: center;
-  }
-  .icon {
-    display: grid;
-    place-items: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 7px;
-    color: var(--text-muted);
-  }
-  .icon:hover {
-    background: var(--surface-hover);
-    color: var(--text);
   }
   .note {
     display: flex;

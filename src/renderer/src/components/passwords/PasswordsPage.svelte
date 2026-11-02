@@ -1,8 +1,11 @@
 <script lang="ts">
+  import ListRow from "../ui/ListRow.svelte";
+  import Card from "../ui/Card.svelte";
   import { originLabel, searchPasswords, type PasswordSummary, type PasswordsStatus } from "@shared/passwords";
   import { api } from "../../lib/browser.svelte";
   import Icon from "../Icon.svelte";
-  import ConfirmButton from "../settings/ConfirmButton.svelte";
+  import IconButton from "../ui/IconButton.svelte";
+  import ConfirmButton from "../ui/ConfirmButton.svelte";
 
   /**
    * `browser://passwords` (ADR-025): saved passwords, searched by site or username. The list has
@@ -119,7 +122,7 @@
       <p class="notice {notice.kind}" role={notice.kind === "error" ? "alert" : "status"}>
         <Icon name={notice.kind === "error" ? "warning" : "check"} size={14} />
         <span>{notice.text}</span>
-        <button class="icon-button" aria-label="Fermer le message" onclick={() => (notice = null)}><Icon name="close" size={12} /></button>
+        <IconButton size="row" icon="close" iconSize={12} label="Fermer le message" onclick={() => (notice = null)} />
       </p>
     {/if}
 
@@ -128,9 +131,9 @@
         <Icon name="search" size={14} />
         <input bind:value={query} placeholder="Rechercher un site ou un identifiant" aria-label="Rechercher dans les mots de passe" spellcheck="false" />
       </label>
-      <ul class="card" aria-label="Mots de passe enregistrés">
+      <Card as="ul" aria-label="Mots de passe enregistrés">
         {#each shown as entry (entry.id)}
-          <li class="row" data-password-id={entry.id}>
+          <ListRow data-password-id={entry.id}>
             {#if editing?.id === entry.id}
               <form class="edit" onsubmit={saveEdit}>
                 <span class="site">{originLabel(entry.origin)}</span>
@@ -152,35 +155,38 @@
               </span>
               <span class="actions">
                 {#if entry.id in revealed}
-                  <button class="icon-button" title="Masquer" aria-label={`Masquer le mot de passe de ${originLabel(entry.origin)}`} onclick={() => hide(entry.id)}>
-                    <Icon name="eye-off" size={14} />
-                  </button>
+                  <IconButton size="row" icon="eye-off" iconSize={14} title="Masquer" label={`Masquer le mot de passe de ${originLabel(entry.origin)}`} onclick={() => hide(entry.id)} />
                 {:else}
                   <ConfirmButton question="Afficher le mot de passe ?" confirmLabel="Afficher" title={`Afficher le mot de passe de ${originLabel(entry.origin)}`} onconfirm={() => reveal(entry.id)}>
                     <Icon name="eye" size={14} />
                   </ConfirmButton>
                 {/if}
-                <button class="icon-button" title={copiedId === entry.id ? "Copié" : "Copier le mot de passe"} aria-label={`Copier le mot de passe de ${originLabel(entry.origin)}`} onclick={() => copy(entry.id)}>
-                  <Icon name={copiedId === entry.id ? "check" : "copy-text"} size={14} />
-                </button>
-                <button
-                  class="icon-button"
+                <IconButton
+                  size="row"
+                  icon={copiedId === entry.id ? "check" : "copy-text"}
+                  iconSize={14}
+                  title={copiedId === entry.id ? "Copié" : "Copier le mot de passe"}
+                  label={`Copier le mot de passe de ${originLabel(entry.origin)}`}
+                  onclick={() => copy(entry.id)}
+                />
+                <IconButton
+                  size="row"
+                  icon="pencil"
+                  iconSize={14}
                   title="Modifier"
-                  aria-label={`Modifier le mot de passe de ${originLabel(entry.origin)}`}
+                  label={`Modifier le mot de passe de ${originLabel(entry.origin)}`}
                   onclick={() => (editing = { id: entry.id, username: entry.username, password: "" })}
-                >
-                  <Icon name="pencil" size={14} />
-                </button>
+                />
                 <ConfirmButton question="Supprimer ce mot de passe ?" confirmLabel="Supprimer" title={`Supprimer le mot de passe de ${originLabel(entry.origin)}`} onconfirm={() => api.passwords.remove(entry.id)}>
                   <Icon name="trash" size={14} />
                 </ConfirmButton>
               </span>
             {/if}
-          </li>
+          </ListRow>
         {:else}
-          <li class="row empty-row">Aucun résultat pour « {query} ».</li>
+          <ListRow class="empty-row">Aucun résultat pour « {query} ».</ListRow>
         {/each}
-      </ul>
+      </Card>
     {:else if loaded}
       <div class="empty">
         <Icon name="key" size={28} />
@@ -191,14 +197,14 @@
 
     {#if never.length}
       <h2><Icon name="ban" size={14} /> Jamais enregistrés</h2>
-      <ul class="card" aria-label="Sites jamais enregistrés">
+      <Card as="ul" aria-label="Sites jamais enregistrés">
         {#each never as origin (origin)}
-          <li class="row">
+          <ListRow>
             <span class="text"><span class="site">{originLabel(origin)}</span></span>
             <button class="text-button" aria-label={`Retirer ${originLabel(origin)} de la liste`} onclick={() => api.passwords.removeNever(origin)}>Retirer</button>
-          </li>
+          </ListRow>
         {/each}
-      </ul>
+      </Card>
     {/if}
   </div>
 </div>
@@ -292,28 +298,7 @@
     color: var(--text);
     outline: none;
   }
-  .card {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    margin: 0;
-    padding: 4px;
-    list-style: none;
-    border: 1px solid var(--border);
-    border-radius: calc(var(--radius) + 2px);
-    background: var(--bg-elevated);
-  }
-  .row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px;
-    border-radius: var(--radius);
-  }
-  .row:hover {
-    background: var(--surface-hover);
-  }
-  .empty-row {
+  :global(.row.empty-row) {
     color: var(--text-muted);
   }
   .text {
@@ -347,18 +332,6 @@
     align-items: center;
     justify-content: flex-end;
     gap: 2px;
-  }
-  .icon-button {
-    display: grid;
-    place-items: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 7px;
-    color: var(--text-muted);
-  }
-  .icon-button:hover {
-    background: var(--surface-hover);
-    color: var(--text);
   }
   .text-button {
     height: 28px;

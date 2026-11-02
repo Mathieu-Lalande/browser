@@ -4,8 +4,8 @@
   import type { Bounds, TabBoost, TabId } from "@shared/types";
   import { api, browser } from "../lib/browser.svelte";
   import Icon from "../components/Icon.svelte";
-  import ConfirmButton from "../components/settings/ConfirmButton.svelte";
-  import Toggle from "../components/settings/Toggle.svelte";
+  import ConfirmButton from "../components/ui/ConfirmButton.svelte";
+  import Toggle from "../components/ui/Toggle.svelte";
 
   /**
    * Site info popover (ADR-021), hanging below the address bar's lock: connection and certificate,

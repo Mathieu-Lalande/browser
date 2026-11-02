@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Card from "../ui/Card.svelte";
   import { isActiveDownload, type DownloadEntry } from "@shared/downloads";
   import { api } from "../../lib/browser.svelte";
   import { downloads } from "../../lib/downloads.svelte";
@@ -59,11 +60,11 @@
       {#each groups as group (group.label)}
         <section aria-label={group.label}>
           <h2>{group.label}</h2>
-          <div class="card">
+          <Card as="div">
             {#each group.entries as entry (entry.id)}
               <DownloadRow {entry} showSource />
             {/each}
-          </div>
+          </Card>
         </section>
       {/each}
     {:else}
@@ -165,15 +166,6 @@
     font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.02em;
-  }
-  .card {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    padding: 4px;
-    border: 1px solid var(--border);
-    border-radius: calc(var(--radius) + 2px);
-    background: var(--bg-elevated);
   }
   .empty,
   .note {

@@ -13,6 +13,7 @@
   import { settings } from "../lib/settings.svelte";
   import { updates } from "../lib/updates.svelte";
   import Icon from "./Icon.svelte";
+  import IconButton from "./ui/IconButton.svelte";
   import { platform } from "../lib/platform.svelte";
   import TabIcon from "./TabIcon.svelte";
   import TabItem from "./TabItem.svelte";
@@ -491,54 +492,35 @@
         </div>
       {/if}
     </div>
-    <button
-      class="icon no-drag"
-      class:on={zen}
-      aria-label="Mode zen"
-      aria-pressed={zen}
-      title={platform.tip("Mode zen", "toggle-zen")}
-      onclick={() => settings.update({ layout: { zenMode: !zen } })}
-    >
-      <Icon name="zen" />
-    </button>
-    <button class="icon no-drag" aria-label="Masquer la barre latérale" title={platform.tip("Masquer la barre latérale", "toggle-sidebar")} onclick={onToggle}>
-      <Icon name="sidebar" />
-    </button>
+    <IconButton class="no-drag" icon="zen" label="Mode zen" command="toggle-zen" pressed={zen} onclick={() => settings.update({ layout: { zenMode: !zen } })} />
+    <IconButton class="no-drag" icon="sidebar" label="Masquer la barre latérale" command="toggle-sidebar" onclick={onToggle} />
     {#if windowControls && controlsAtEnd}<WindowControls />{/if}
   </header>
 
   <nav class="nav">
-    <button class="icon" aria-label="Précédent" title={platform.tip("Précédent", "back")} disabled={!tab?.canGoBack} onclick={() => tab && api.tabs.back(tab.id)}>
-      <Icon name="back" />
-    </button>
-    <button class="icon" aria-label="Suivant" title={platform.tip("Suivant", "forward")} disabled={!tab?.canGoForward} onclick={() => tab && api.tabs.forward(tab.id)}>
-      <Icon name="forward" />
-    </button>
+    <IconButton icon="back" label="Précédent" command="back" disabled={!tab?.canGoBack} onclick={() => tab && api.tabs.back(tab.id)} />
+    <IconButton icon="forward" label="Suivant" command="forward" disabled={!tab?.canGoForward} onclick={() => tab && api.tabs.forward(tab.id)} />
     {#if tab?.isLoading}
-      <button class="icon" aria-label="Arrêter" title="Arrêter le chargement" onclick={() => tab && api.tabs.stop(tab.id)}><Icon name="stop" /></button>
+      <IconButton icon="stop" label="Arrêter" title="Arrêter le chargement" onclick={() => tab && api.tabs.stop(tab.id)} />
     {:else}
-      <button class="icon" aria-label="Actualiser" title={platform.tip("Actualiser", "reload")} disabled={!tab?.url} onclick={() => tab && api.tabs.reload(tab.id)}>
-        <Icon name="reload" />
-      </button>
+      <IconButton icon="reload" label="Actualiser" command="reload" disabled={!tab?.url} onclick={() => tab && api.tabs.reload(tab.id)} />
     {/if}
     <div class="spacer"></div>
-    <button
-      class="icon"
-      class:on={browser.splitTabs.length > 1}
-      aria-label={browser.splitTabs.length > 1 ? "Quitter la vue scindée" : "Vue scindée"}
-      title={platform.tip(browser.splitTabs.length > 1 ? "Quitter la vue scindée" : "Vue scindée : afficher deux onglets côte à côte", "toggle-split")}
+    <IconButton
+      icon="split"
+      on={browser.splitTabs.length > 1}
+      label={browser.splitTabs.length > 1 ? "Quitter la vue scindée" : "Vue scindée"}
+      title={browser.splitTabs.length > 1 ? "Quitter la vue scindée" : "Vue scindée : afficher deux onglets côte à côte"}
+      command="toggle-split"
       onclick={() => api.commands.run("toggle-split")}
-    >
-      <Icon name="split" />
-    </button>
-    <button
-      class="icon"
-      aria-label="Palette de commandes"
-      title={platform.tip("Palette de commandes : onglets, pages et actions", "command-palette")}
+    />
+    <IconButton
+      icon="command"
+      label="Palette de commandes"
+      title="Palette de commandes : onglets, pages et actions"
+      command="command-palette"
       onclick={() => api.commands.run("command-palette")}
-    >
-      <Icon name="command" />
-    </button>
+    />
   </nav>
 
   <AddressBar bind:this={addressBar} />
@@ -563,9 +545,7 @@
             <span class="space-icon"><Icon name={browser.activeSpace.icon} size={16} /></span>
             <span class="space-name">{browser.activeSpace.name}</span>
             {#if browser.activeSpace.isolated}<span class="badge" title="Cookies et connexions séparés">Isolé</span>{/if}
-            <button class="icon small" aria-label="Modifier l'espace" title="Modifier l'espace" onclick={() => (editing = browser.state.activeSpaceId)}>
-              <Icon name="more" />
-            </button>
+            <IconButton size="sm" icon="more" label="Modifier l'espace" onclick={() => (editing = browser.state.activeSpaceId)} />
           </div>
         {/if}
 
@@ -595,9 +575,7 @@
           <button class="new-tab" title={platform.tip("Nouvel onglet", "new-tab")} onclick={newTab}>
             <Icon name="plus" size={16} /> <span class="label">Nouvel onglet</span>
           </button>
-          <button class="icon small" aria-label="Nouveau dossier" title="Nouveau dossier" onclick={() => api.folders.create()}>
-            <Icon name="folder-plus" />
-          </button>
+          <IconButton size="sm" icon="folder-plus" label="Nouveau dossier" onclick={() => api.folders.create()} />
         </div>
 
         <!-- Pointer drag and drop of rows; the keyboard has the tab menu's "Déplacer vers le dossier…". -->
@@ -645,9 +623,15 @@
                   <span class="folder-name">{folder.name}</span>
                   {#if entry.folder.count}<span class="count">{entry.folder.count}</span>{/if}
                 </button>
-                <button class="icon small more" aria-label={`Modifier le dossier ${folder.name}`} title="Modifier le dossier" onclick={() => (editingFolder = editingFolder === folder.id ? null : folder.id)}>
-                  <Icon name="more" size={14} />
-                </button>
+                <IconButton
+                  size="sm"
+                  class="more"
+                  icon="more"
+                  iconSize={14}
+                  label={`Modifier le dossier ${folder.name}`}
+                  title="Modifier le dossier"
+                  onclick={() => (editingFolder = editingFolder === folder.id ? null : folder.id)}
+                />
               </div>
             {:else}
               <div
@@ -683,7 +667,7 @@
         <span class="space-icon"><Icon name={space.icon} size={16} /></span>
         <span class="space-name">{space.name}</span>
         {#if space.isolated}<span class="badge">Isolé</span>{/if}
-        <span class="icon small"><Icon name="more" /></span>
+        <IconButton as="span" size="sm" icon="more" label="" />
       </div>
       {#if pinned.length}
         <div class="pinned">
@@ -695,7 +679,7 @@
       <div class="divider"></div>
       <div class="new-row">
         <div class="new-tab"><Icon name="plus" size={16} /> <span class="label">Nouvel onglet</span></div>
-        <span class="icon small"><Icon name="folder-plus" /></span>
+        <IconButton as="span" size="sm" icon="folder-plus" label="" />
       </div>
       <div class="tabs">
         {#each peek ? peekRows(peek) : [] as entry (entry.key)}
@@ -739,20 +723,17 @@
     {/if}
     {#if updates.ready}
       <!-- A downloaded update (ADR-030): discreet, and also installed on quit anyway. -->
-      <button
-        class="icon update"
-        aria-label="Redémarrer pour mettre à jour"
+      <IconButton
+        icon="update"
+        on
+        label="Redémarrer pour mettre à jour"
         title="Redémarrer pour mettre à jour (version {updates.status?.version})"
         onclick={() => api.updates.install()}
-      >
-        <Icon name="update" />
-      </button>
+      />
     {/if}
     <DownloadsButton />
     <ToolsMenu />
-    <button class="icon" aria-label="Paramètres" title={platform.tip("Paramètres", "open-settings")} onclick={() => api.settings.open()}>
-      <Icon name="settings" />
-    </button>
+    <IconButton icon="settings" label="Paramètres" command="open-settings" onclick={() => api.settings.open()} />
   </footer>
 </aside>
 
@@ -803,25 +784,6 @@
     display: flex;
     gap: 2px;
     min-width: 0;
-  }
-  .icon {
-    display: grid;
-    flex: none;
-    place-items: center;
-    width: var(--icon-button);
-    height: var(--icon-button);
-    border-radius: 8px;
-    color: var(--text-muted);
-  }
-  .icon.on {
-    color: var(--accent-text);
-  }
-  .icon:hover:not(:disabled) {
-    background: var(--surface-hover);
-    color: var(--text);
-  }
-  .icon:disabled {
-    opacity: 0.35;
   }
   /* Tiles share the row: few pinned tabs fill it, many wrap onto more rows. */
   .pinned {
@@ -970,10 +932,6 @@
     letter-spacing: 0.02em;
     text-transform: uppercase;
   }
-  .icon.small {
-    width: 26px;
-    height: 26px;
-  }
   /*
    * Rows keep their height and the list scrolls (never squeezes). The 2px padding keeps the
    * active tab's ring and shadow inside the scroll box; the gutter stays reserved so the rows do
@@ -1117,11 +1075,11 @@
     font-size: 11px;
     font-weight: 600;
   }
-  .folder-row .more {
+  .folder-row :global(.more) {
     opacity: 0;
   }
-  .folder-row:hover .more,
-  .folder-row .more:focus-visible {
+  .folder-row:hover :global(.more),
+  .folder-row :global(.more:focus-visible) {
     opacity: 1;
   }
   /* Insertion indicator: an accent line with a dot, indented to the target's level. */
@@ -1165,9 +1123,6 @@
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-  }
-  .update {
-    color: var(--accent-text);
   }
   .footer {
     display: flex;

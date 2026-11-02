@@ -15,7 +15,7 @@
   import Icon from "../Icon.svelte";
   import MiniBrowser from "./MiniBrowser.svelte";
   import QrCode from "./QrCode.svelte";
-  import Row from "./Row.svelte";
+  import Row from "../ui/Row.svelte";
 
   /** Theme gallery, export (code, file, QR) and import with a preview (ADR-030). */
 

@@ -22,21 +22,21 @@
   import { settings } from "../../lib/settings.svelte";
   import Icon, { type IconName } from "../Icon.svelte";
   import ColorPicker from "./ColorPicker.svelte";
-  import ConfirmButton from "./ConfirmButton.svelte";
+  import ConfirmButton from "../ui/ConfirmButton.svelte";
   import { platform } from "../../lib/platform.svelte";
   import DataSection from "./DataSection.svelte";
   import DownloadsSection from "./DownloadsSection.svelte";
   import MiniBrowser from "./MiniBrowser.svelte";
-  import Row from "./Row.svelte";
+  import Row from "../ui/Row.svelte";
   import Section from "./Section.svelte";
-  import Segmented from "./Segmented.svelte";
+  import Segmented from "../ui/Segmented.svelte";
   import ShortcutsSection from "./ShortcutsSection.svelte";
   import SiteDataSection from "./SiteDataSection.svelte";
   import Slider from "./Slider.svelte";
   import SyncSection from "./SyncSection.svelte";
   import ThemeShare from "./ThemeShare.svelte";
   import UpdatesSection from "./UpdatesSection.svelte";
-  import Toggle from "./Toggle.svelte";
+  import Toggle from "../ui/Toggle.svelte";
 
   const NAV: { id: string; label: string; icon: IconName }[] = [
     { id: "appearance", label: "Apparence", icon: "palette" },
