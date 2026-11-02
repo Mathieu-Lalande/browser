@@ -59,6 +59,7 @@ export type CommandId =
   | "open-passwords"
   | "toggle-reader"
   | "toggle-mobile-site"
+  | "translate-page"
   | "open-boosts"
   | "zap-elements"
   | "check-updates"
@@ -161,7 +162,7 @@ export interface CommandDefinition {
   /** Label when the command would undo the active tab's current state (`toggles`). */
   activeLabel?: string;
   /** Which active-tab flag `activeLabel` follows. */
-  toggles?: "isPinned" | "isBookmarked" | "isMuted" | "isFavorite" | "reader" | "mobileSite";
+  toggles?: "isPinned" | "isBookmarked" | "isMuted" | "isFavorite" | "reader" | "mobileSite" | "translated";
   /** Label in the application menu, when it differs (toggles have a neutral one). */
   menuLabel?: string;
   /** Extra search terms (synonyms, English names). */
@@ -419,6 +420,17 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
     icon: "smartphone",
     needsPage: true,
   },
+  "translate-page": {
+    label: "Traduire la page",
+    activeLabel: "Afficher l'original",
+    toggles: "translated",
+    menuLabel: "Traduire la page / afficher l'original",
+    keywords: ["translate", "traduction", "langue", "deepl", "libretranslate", "google"],
+    accelerator: "CmdOrCtrl+Alt+T",
+    icon: "languages",
+    needsPage: true,
+    opensOverlay: true,
+  },
   "open-boosts": {
     label: "Boosts",
     keywords: ["boosts", "personnaliser", "css", "style", "site", "thème du site", "arc"],
@@ -629,6 +641,7 @@ export const COMMAND_GROUPS: readonly { label: string; ids: readonly CommandId[]
       "toggle-fullscreen",
       "toggle-reader",
       "toggle-mobile-site",
+      "translate-page",
       "zoom-in",
       "zoom-out",
       "zoom-reset",

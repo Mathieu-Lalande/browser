@@ -54,7 +54,8 @@ describe("app menu", () => {
       "report-issue",
     ] as const;
     for (const id of expected) expect(ids).toContain(id);
-    expect(find(menu, "translate")).toMatchObject({ kind: "action", enabled: false, hint: "Bientôt" });
+    expect(ids).toContain("translate-page");
+    expect(nodeLabel(buildAppMenu({ ...context, activeTab: tab({ translated: true }) }).find((node) => node.kind === "command" && node.id === "translate-page")!)).toBe("Afficher l'original");
   });
 
   it("lists recent history and offers to reopen a closed tab", () => {

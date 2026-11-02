@@ -26,6 +26,7 @@ import { activeTab, isPrivateTab, liveTabIds, mountUrl, orderedTabs, swipeTarget
 import { newId, useBrowserActions, useBrowserState, useEvent } from "../state/BrowserProvider";
 import { passwords, usePasswords } from "../state/passwords";
 import { useTheme } from "../state/theme";
+import { usePageTranslation } from "../state/usePageTranslation";
 import { ActionSheet, type MenuItem, type MenuSpec } from "./ActionSheet";
 import { BottomBar, COLLAPSED_HEIGHT, EXPANDED_HEIGHT } from "./BottomBar";
 import { FolderNameSheet } from "./FolderNameSheet";
@@ -68,6 +69,8 @@ export function BrowserScreen() {
   /** Reader mode (ADR-026): the request sent to a page, then the article shown. */
   const [readerRequest, setReaderRequest] = useState<{ tabId: string; token: string } | null>(null);
   const [reader, setReader] = useState<{ tabId: string; article: ReaderArticle } | null>(null);
+  /** Page translation (ADR-036). */
+  const translation = usePageTranslation(() => setOverlay("settings"));
   /** Link peek (ADR-027): the long-pressed link shown in a sheet. */
   const [peek, setPeek] = useState<PeekRequest | null>(null);
 
@@ -532,6 +535,12 @@ export function BrowserScreen() {
         ...(tabPasswords.length ? [{ key: "passwords", label: "Remplir le mot de passe", icon: "key" as const, onPress: () => passwordsMenu() ?? undefined }] : []),
         { key: "reader", label: "Mode lecture", icon: "reader", onPress: () => setReaderRequest({ tabId: tab.id, token: readerToken() }) },
         {
+          key: "translate",
+          label: translation.translated.has(tab.id) ? "Afficher l'original" : "Traduire la page",
+          icon: "languages",
+          onPress: () => void translation.toggle(tab.id, isPrivateTab(tab)),
+        },
+        {
           key: "desktop-site",
           label: desktopTabs.has(tab.id) ? "Version mobile" : "Version ordinateur",
           icon: desktopTabs.has(tab.id) ? "smartphone" : "laptop",
@@ -793,6 +802,9 @@ export function BrowserScreen() {
               onReaderArticle={onReaderArticle}
               boosts={isPrivateTab(candidate) ? privateBoosts : normalBoosts}
               onMedia={onMedia}
+              translateRequest={translation.requests[candidate.id] ?? null}
+              onTranslateBatch={translation.batch}
+              onTranslateReset={translation.reset}
             />
           ))}
           {showStart && (

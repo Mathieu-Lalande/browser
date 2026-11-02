@@ -37,6 +37,8 @@ export interface PageMenuContext {
   engine: SearchEngine;
   /** Passwords are saved for the page's origin (ADR-025): fields offer to fill them. */
   hasPasswords?: boolean;
+  /** The page shows a translation (ADR-036): the entry offers the original back. */
+  translated?: boolean;
   /** The page is bookmarked (the bookmark entry offers to remove it). */
   isBookmarked?: boolean;
   /**
@@ -175,6 +177,7 @@ export function buildPageMenu(params: PageMenuParams, context: PageMenuContext):
       [
         { id: "page-save", label: "Enregistrer la page sous…", accelerator: key("save-page") },
         { id: "page-select-all", label: "Tout sélectionner", accelerator: "CmdOrCtrl+A" },
+        { id: "page-translate", label: context.translated ? "Afficher l'original" : "Traduire la page", accelerator: key("translate-page") },
         {
           id: "page-capture",
           label: "Capture d'écran",

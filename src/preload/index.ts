@@ -101,6 +101,16 @@ const api: BrowserApi = {
   reader: {
     article: (tabId) => ipcRenderer.invoke(Channels.readerArticle, tabId),
   },
+  translate: {
+    show: (anchor) => send(Channels.translateShow, anchor),
+    panel: (tabId) => ipcRenderer.invoke(Channels.translatePanel, tabId),
+    run: (tabId, from, to, consent) => ipcRenderer.invoke(Channels.translateRun, tabId, from, to, consent),
+    restore: (tabId) => send(Channels.translateRestore, tabId),
+    setRule: (tabId, rule, on) => ipcRenderer.invoke(Channels.translateRule, tabId, rule, on),
+    keys: () => ipcRenderer.invoke(Channels.translateKeys),
+    setKey: (provider, key) => ipcRenderer.invoke(Channels.translateSetKey, provider, key),
+    test: () => ipcRenderer.invoke(Channels.translateTest),
+  },
   peek: {
     onState: (listener) => subscribe<PeekState>(Channels.peekState, listener),
     action: (action) => send(Channels.peekAction, action),

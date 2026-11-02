@@ -4,6 +4,7 @@ import type { FolderId, TabFolder } from "./folders";
 import type { LoadError } from "./load-error";
 import type { PeekState } from "./peek";
 import type { SpaceIcon } from "./spaces";
+import type { TabTranslation } from "./translate/state";
 
 export type TabId = string;
 
@@ -31,6 +32,10 @@ export interface TabState {
   reader?: boolean;
   /** "Demander la version mobile": the page gets a mobile user agent (ADR-026). */
   mobileSite?: boolean;
+  /** Page translation (ADR-036): offer, progress, languages; null/absent when there is nothing to say. */
+  translation?: TabTranslation | null;
+  /** The page shows a translation ("Afficher l'original" undoes it). */
+  translated?: boolean;
   /** Requests blocked by the content blocker since the last main-frame navigation. */
   blockedCount: number;
   /** False when the user turned protections off for this site. */
@@ -214,7 +219,8 @@ export type OverlayKind =
   | "page-options"
   | "capture-result"
   | "app-menu"
-  | "page-swipe";
+  | "page-swipe"
+  | "translate";
 
 export interface OverlayRequest {
   kind: OverlayKind;

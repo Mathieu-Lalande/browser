@@ -12,6 +12,7 @@ import { registerHandlers, type ChannelName, type Entry } from "./registry";
 import { startSyncBroadcast, syncHandlers, themeHandlers, updateHandlers } from "./services";
 import { extensionHandlers, siteInfoHandlers } from "./site";
 import { tabHandlers } from "./tabs";
+import { translateHandlers } from "./translate";
 import { windowHandlers } from "./window";
 
 /** Channels main sends to the UI (the preload subscribes to them): no handler. */
@@ -58,6 +59,7 @@ const handlers = {
   ...updateHandlers,
   ...themeHandlers,
   ...mediaHandlers,
+  ...translateHandlers,
 } satisfies Record<RequestChannel, Entry> & { [C in EventChannel]?: never };
 
 export function registerIpc(): void {

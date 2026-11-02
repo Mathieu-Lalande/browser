@@ -1,6 +1,7 @@
 import type { MediaProbe } from "@shared/media";
 import type { PasswordCapture } from "@shared/passwords";
 import type { ReaderArticle } from "@shared/reader";
+import type { Segment } from "@shared/translate/segments";
 import type { BoostPayload } from "../lib/boosts";
 import type { LinkMenuRequest } from "../lib/linkMenu";
 
@@ -31,4 +32,10 @@ export interface WebTabProps {
   boosts?: readonly BoostPayload[];
   /** The page's media state (ADR-035), null when a new document starts loading. Private tabs too: nothing is kept. */
   onMedia?: (tabId: string, probe: MediaProbe | null) => void;
+  /** Page translation (ADR-036): a new `seq` starts translating the page, or restores the original. */
+  translateRequest?: { seq: number; action: "translate" | "restore" } | null;
+  /** Texts of the page to translate (validated): resolves to the translations to write back. */
+  onTranslateBatch?: (tabId: string, segments: Segment[]) => Promise<[number, string][]>;
+  /** A new document started loading: its translation (if any) is gone. */
+  onTranslateReset?: (tabId: string) => void;
 }

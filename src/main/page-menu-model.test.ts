@@ -49,6 +49,7 @@ describe("page context menu", () => {
       "page-bookmark",
       "page-save",
       "page-select-all",
+      "page-translate",
       "page-capture",
       "page-view-source",
       "page-copy-url",

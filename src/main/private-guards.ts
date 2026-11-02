@@ -34,6 +34,9 @@ export function tabHooksFor(hooks: TabManagerHooks, isPrivate: boolean): TabMana
         pageZoom: hooks.pageZoom,
         // The media hub keeps nothing beyond the pages' lifetime (ADR-035).
         media: hooks.media,
+        // Translation (ADR-036): only after the window's own consent, rules kept in memory.
+        translatePage: hooks.translatePage,
+        translation: hooks.translation,
       }
     : hooks;
 }

@@ -18,6 +18,8 @@ import type { MediaAction, MediaSource } from "./media";
 import type { OmniboxTab, OpenDisposition } from "./omnibox/types";
 import type { PeekAction, PeekState } from "./peek";
 import type { ReaderArticle } from "./reader";
+import type { TranslateProviderId } from "./translate/providers";
+import type { TranslateKeysStatus, TranslatePanelState, TranslateResultMessage, TranslateRuleChange } from "./translate/state";
 import type { Settings, SettingsPatch, SettingsSection } from "./settings";
 import type { KeyPress } from "./accelerators";
 import type { SiteDataEntry, SiteInfo } from "./site-info";
@@ -196,6 +198,14 @@ export const Channels = {
   passwordsPrompt: "passwords:prompt",
   passwordsAnswer: "passwords:answer",
   readerArticle: "reader:article",
+  translateShow: "translate:show",
+  translatePanel: "translate:panel",
+  translateRun: "translate:run",
+  translateRestore: "translate:restore",
+  translateRule: "translate:rule",
+  translateKeys: "translate:keys",
+  translateSetKey: "translate:set-key",
+  translateTest: "translate:test",
   boostsList: "boosts:list",
   boostsForTab: "boosts:for-tab",
   boostsCreateForTab: "boosts:create-for-tab",
@@ -345,6 +355,24 @@ export interface BrowserApi {
    */
   reader: {
     article(tabId: TabId): Promise<ReaderArticle | null>;
+  };
+  /**
+   * Page translation (ADR-036): main calls the provider and runs the page script in an isolated
+   * world; the UIs name tabs of their own window. API keys go in, never back out (only whether set).
+   */
+  translate: {
+    /** Chrome UI: the popover for the active tab, hanging from `anchor` (the address bar's button). */
+    show(anchor: Bounds): void;
+    panel(tabId: TabId): Promise<TranslatePanelState | null>;
+    /** `from` null: detected by the provider; `consent`: the privacy notice was just accepted. */
+    run(tabId: TabId, from: string | null, to: string, consent: boolean): Promise<TranslateResultMessage>;
+    restore(tabId: TabId): void;
+    setRule(tabId: TabId, rule: TranslateRuleChange, on: boolean): Promise<TranslatePanelState | null>;
+    keys(): Promise<TranslateKeysStatus>;
+    /** Saves a provider's key in the OS keychain (empty: removes it). Refused from a private window. */
+    setKey(provider: TranslateProviderId, key: string): Promise<TranslateResultMessage>;
+    /** Translates a short sample with the configured provider. */
+    test(): Promise<TranslateResultMessage>;
   };
   /**
    * Link peek (ADR-027): main owns the peeked page; the overlay layer draws the card around it

@@ -152,6 +152,8 @@ function runEntry(id: string, c: BrowserController, tabId: TabId, contents: WebC
     case "page-bookmark":
       if (c.tabs.activeTabId !== tabId) c.tabs.activate(tabId);
       return c.toggleBookmark();
+    case "page-translate":
+      return void c.translator.toggle(tabId);
     case "page-select-all":
       return contents.selectAll();
     case "page-capture-visible":
@@ -214,6 +216,7 @@ export function buildPageContextMenu(c: BrowserController, tabId: TabId, params:
     engine: searchEngineOf(settings()),
     hasPasswords: hasPasswordsFor(contents.getURL()),
     isBookmarked: tab.isBookmarked,
+    translated: !!tab.translated,
     devices: sendableDevices(c),
     shortcut: (command) => effectiveAccelerator(command, process.platform, settings().shortcuts),
   });

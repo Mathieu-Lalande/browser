@@ -2,6 +2,9 @@ import { isReservedAnywhere, needsModifier, normalizeAccelerator, parseAccelerat
 import { isCommandId, type ShortcutOverrides } from "./commands";
 import { sanitizeSiteList } from "./site-info";
 import { defaultWidgets, migrateLegacyStartPage, sanitizeWidgets, type StartWidget } from "./start-widgets";
+import { normalizeLanguage, sanitizeLanguageList } from "./translate/languages";
+import { normalizeServerUrl, type DeepLPlan, type TranslateProviderChoice } from "./translate/providers";
+import { sanitizeSiteKeys } from "./translate/rules";
 import { DEFAULT_SEARCH_ENGINE, SEARCH_ENGINES, type SearchEngine } from "./url";
 
 /** User preferences, persisted as `settings.json` and applied live in every window. */
@@ -123,6 +126,28 @@ export interface UpdateSettings {
   channel: UpdateChannel;
 }
 
+/**
+ * Page translation (ADR-036): off until a provider is chosen (the page's text is sent to it). API
+ * keys are not settings: main keeps them in the OS keychain (`safeStorage`), the phone in
+ * `expo-secure-store`.
+ */
+export interface TranslateSettings {
+  provider: TranslateProviderChoice;
+  deeplPlan: DeepLPlan;
+  /** LibreTranslate server (empty: none set). */
+  libreUrl: string;
+  /** Target language code; empty: the UI/system language. */
+  target: string;
+  /** Show the address bar button on pages in another language. */
+  offer: boolean;
+  /** The privacy notice ("le texte de la page est envoyé à …") was accepted. */
+  acknowledged: boolean;
+  alwaysLanguages: string[];
+  neverLanguages: string[];
+  /** Hosts without "www." (subdomains included). */
+  neverSites: string[];
+}
+
 export interface Settings {
   appearance: AppearanceSettings;
   layout: LayoutSettings;
@@ -133,6 +158,7 @@ export interface Settings {
   downloads: DownloadSettings;
   reader: ReaderSettings;
   updates: UpdateSettings;
+  translate: TranslateSettings;
   /**
    * Keyboard shortcuts chosen by the user (desktop, ADR-028): only the commands that differ from
    * the registry. A patch replaces the whole map.
@@ -194,6 +220,17 @@ export const DEFAULT_SETTINGS: Settings = {
   downloads: { folder: "", askWhere: false },
   reader: { font: "serif", size: 19, width: "medium", theme: "auto" },
   updates: { autoDownload: true, channel: "stable" },
+  translate: {
+    provider: "none",
+    deeplPlan: "free",
+    libreUrl: "",
+    target: "",
+    offer: true,
+    acknowledged: false,
+    alwaysLanguages: [],
+    neverLanguages: [],
+    neverSites: [],
+  },
   shortcuts: {},
 };
 
@@ -307,6 +344,17 @@ const schema: Schema = {
     theme: oneOf("auto", "sepia", "dark"),
   },
   updates: { autoDownload: bool, channel: oneOf("stable", "beta") },
+  translate: {
+    provider: oneOf("none", "deepl", "libretranslate", "google"),
+    deeplPlan: oneOf("free", "pro"),
+    libreUrl: (value) => (value === "" ? "" : (normalizeServerUrl(value) ?? undefined)),
+    target: (value) => (value === "" ? "" : (normalizeLanguage(value) ?? undefined)),
+    offer: bool,
+    acknowledged: bool,
+    alwaysLanguages: sanitizeLanguageList,
+    neverLanguages: sanitizeLanguageList,
+    neverSites: sanitizeSiteKeys,
+  },
 };
 
 /**

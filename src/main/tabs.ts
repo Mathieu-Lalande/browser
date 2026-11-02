@@ -15,6 +15,7 @@ import { INTERNAL_PAGES, internalPageOf, internalUrl, isInternalUrl, type Intern
 import type { CloseTabActivates, NewTabPosition } from "@shared/settings";
 import { clampRatio, splitLayout, splitWith, splitWithout } from "@shared/split";
 import type { Bounds, SplitState, TabId, TabState, TabsState } from "@shared/types";
+import type { TabTranslation } from "@shared/translate/state";
 import { storableFavicon } from "@shared/favicon";
 import { DEFAULT_SEARCH_ENGINE, displayUrl, isPageOpenableUrl, normalizeInput, type SearchEngine } from "@shared/url";
 import { InPageVisits } from "./activation";
@@ -122,6 +123,10 @@ export interface TabManagerHooks {
   pageWheel?(tabId: TabId, sample: PageWheelSample): void;
   /** Ctrl+wheel or a pinch asks to zoom the page (paced by the window, ADR-033). */
   pageZoom?(tabId: TabId, direction: 1 | -1): void;
+  /** A new document is ready (dom-ready): page translation reads its language (ADR-036). */
+  translatePage?(tabId: TabId, contents: WebContents): void;
+  /** What the UIs show about the tab's translation (ADR-036). */
+  translation?(tabId: TabId): TabTranslation | null;
   /** The page started or stopped playing media: the window's media hub follows it (ADR-035). */
   media?(tabId: TabId, contents: WebContents, playing: boolean): void;
 }
@@ -223,11 +228,18 @@ export class TabManager {
         isAsleep: isDiscarded(tab),
         hasPasswords: showsWebPage(tab.state.url) && (this.hooks.hasPasswords?.(tab.state.url) ?? false),
         reader: this.showsReader(tab),
+        ...this.translationOf(tab),
       })),
       activeTabId: this.activeId,
       split: this.split && { ...this.split, tabIds: [...this.split.tabIds] },
       folders: this.folders.map((folder) => ({ ...folder })),
     };
+  }
+
+  /** The tab's translation (ADR-036): web pages only. */
+  private translationOf(tab: Tab): Pick<TabState, "translation" | "translated"> {
+    const translation = showsWebPage(tab.state.url) ? (this.hooks.translation?.(tab.id) ?? null) : null;
+    return { translation, translated: translation?.status === "translated" || translation?.status === "translating" };
   }
 
   /** Updates preferences; already open page views pick up the new radius right away. */
@@ -1286,6 +1298,7 @@ export class TabManager {
       this.hooks.boostPage?.(contents);
       this.hooks.gesturePage?.(contents);
       this.hooks.pageReady?.(tab.id, contents);
+      this.hooks.translatePage?.(tab.id, contents);
     });
     // Ctrl+wheel and pinch: same steps as the zoom commands, remembered per site, paced by the window.
     on("zoom-changed", (_event, direction) => {

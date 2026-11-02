@@ -95,6 +95,7 @@
             <li><a href="#barre-universelle">Barre universelle</a></li>
             <li><a href="#apercu">Aperçu des liens</a></li>
             <li><a href="#lecture">Mode lecture</a></li>
+            <li><a href="#traduction">Traduction</a></li>
             <li><a href="#boosts">Boosts</a></li>
             <li><a href="#mots-de-passe">Mots de passe</a></li>
             <li><a href="#extensions">Extensions</a></li>
@@ -421,6 +422,34 @@
           </p>
         </section>
 
+        <!-- Translation -->
+        <section class="doc-section" id="traduction" aria-labelledby="t-traduction">
+          <h2 id="t-traduction"><i data-icon="languages"></i>Traduction</h2>
+          <p>
+            Désactivée par défaut : pour traduire, le texte de la page est envoyé à un service en ligne. Choisissez-le
+            dans Paramètres, « Traduction » : <strong>DeepL</strong> (clé d'API Free ou Pro),
+            <strong>LibreTranslate</strong> (votre serveur ou un serveur public, clé facultative) ou
+            <strong>Google Cloud Translation</strong> (clé d'API). « Tester » vérifie la configuration. Les clés sont
+            chiffrées par le système (trousseau) et ne sont jamais réaffichées.
+          </p>
+          <p>
+            Sur une page dans une autre langue, l'icône de traduction apparaît dans la barre d'adresse : choisissez les
+            langues (« Détecter » laisse le service reconnaître la langue), puis « Traduire ». La première fois, le
+            navigateur rappelle que le texte part vers le service choisi. Aussi : <kbd>Ctrl</kbd> <kbd>Alt</kbd>
+            <kbd>T</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>T</kbd>), le menu « … » ou le clic droit sur la page.
+          </p>
+          <ul>
+            <li>La partie visible est traduite d'abord, puis le reste et le contenu qui arrive ensuite ; le code, les
+              scripts, les champs de formulaire et les zones modifiables ne sont jamais envoyés.</li>
+            <li>« Afficher l'original » remet le texte exact de la page, sans la recharger.</li>
+            <li>« Toujours traduire cette langue » et « Jamais pour ce site » se retrouvent et se retirent dans les
+              paramètres.</li>
+            <li>Fenêtres privées : confirmation demandée à chaque fenêtre, règles gardées en mémoire seulement.</li>
+            <li>Sur le téléphone : menu de la page, « Traduire la page » puis « Afficher l'original » ; le service et
+              sa clé se règlent dans Paramètres, « Traduction ».</li>
+          </ul>
+        </section>
+
         <!-- Boosts -->
         <section class="doc-section" id="boosts" aria-labelledby="t-boosts">
           <h2 id="t-boosts"><i data-icon="wand-sparkles"></i>Boosts</h2>
@@ -625,6 +654,7 @@
                 <tr><td>Afficher le code source</td><td><kbd>Ctrl</kbd> <kbd>U</kbd></td><td><kbd>⌘</kbd> <kbd>U</kbd></td></tr>
                 <tr><td>Imprimer</td><td><kbd>Ctrl</kbd> <kbd>P</kbd></td><td><kbd>⌘</kbd> <kbd>P</kbd></td></tr>
                 <tr><td>Mode lecture</td><td><kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>R</kbd></td><td><kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>R</kbd></td></tr>
+                <tr><td>Traduire la page / afficher l'original</td><td><kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>T</kbd></td><td><kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>T</kbd></td></tr>
                 <tr><td>Options de la page</td><td><kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>O</kbd></td><td><kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>O</kbd></td></tr>
                 <tr><td>Outils de développement</td><td><kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>I</kbd></td><td><kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>I</kbd></td></tr>
                 <tr class="group"><th colspan="3" scope="rowgroup">Espaces</th></tr>

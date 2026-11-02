@@ -101,6 +101,7 @@ export function installMenu(): void {
         ...commandMenuItems("toggle-sidebar-position"),
         ...commandMenuItems("toggle-reader"),
         ...commandMenuItems("toggle-mobile-site"),
+        ...commandMenuItems("translate-page"),
         { type: "separator" },
         ...commandMenuItems("reload"),
         ...commandMenuItems("view-source"),

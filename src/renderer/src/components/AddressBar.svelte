@@ -88,6 +88,14 @@
     return () => clearInterval(timer);
   });
 
+  /** Translation (ADR-036): offered when the page's language differs from the target; kept in view while translated. */
+  const translation = $derived(tab?.translation ?? null);
+  const showTranslate = $derived(!!translation && (translation.offer || translation.status !== "idle"));
+  function showTranslatePanel(event: MouseEvent & { currentTarget: HTMLElement }): void {
+    const rect = event.currentTarget.getBoundingClientRect();
+    api.translate.show({ x: rect.x, y: rect.y, width: rect.width, height: rect.height });
+  }
+
   function showPasswords(event: MouseEvent & { currentTarget: HTMLElement }): void {
     const rect = event.currentTarget.getBoundingClientRect();
     api.passwords.showFill({ x: rect.x, y: rect.y, width: rect.width, height: rect.height });
@@ -259,6 +267,21 @@
       <div class="actions" bind:offsetWidth={actionsWidth}>
         {#if (tab?.readerable || tab?.reader) && isWebPage && !focused && !tab.reader}
           {@render readerButton()}
+        {/if}
+        {#if showTranslate && isWebPage && !focused}
+          <button
+            type=button
+            class="star act"
+            class:on={tab?.translated}
+            class:keep={tab?.translated}
+            aria-pressed={!!tab?.translated}
+            aria-label={tab?.translated ? "Page traduite" : "Traduire la page"}
+            title={platform.tip(tab?.translated ? "Page traduite" : "Traduire la page", "translate-page")}
+            onmousedown={(event) => event.preventDefault()}
+            onclick={showTranslatePanel}
+          >
+            <Icon name="languages" size={16} />
+          </button>
         {/if}
         {#if tab?.hasPasswords && isWebPage && !focused}
           <!-- Saved passwords for this site (ADR-025): choose an account to fill the login form. -->

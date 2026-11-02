@@ -1,5 +1,5 @@
 import { mkdtempSync, rmSync } from "node:fs";
-import { createServer, type Server } from "node:http";
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,6 +10,8 @@ export type { ElectronApplication };
 /** What the local server saw: favicon requests (with their headers), in order. */
 export interface ServerLog {
   icons: { url: string; cookie?: string; gpc?: string }[];
+  /** Texts the fake LibreTranslate server was asked to translate (ADR-036). */
+  translations: { q: string[]; source: string; target: string; cookie?: string }[];
 }
 
 type Fixtures = {
@@ -53,11 +55,28 @@ const SILENT_WAV = (() => {
 
 const query = (path: string, name: string) => new URL(path, "http://x").searchParams.get(name);
 
+/**
+ * A fake LibreTranslate (`POST /translate`): uppercases each text and reports English. It logs
+ * what it was sent, so tests can check what left the page (and that no cookie came along).
+ */
+function fakeLibreTranslate(req: IncomingMessage, res: ServerResponse, log: ServerLog): void {
+  let raw = "";
+  req.on("data", (chunk) => (raw += chunk));
+  req.on("end", () => {
+    const body = JSON.parse(raw || "{}") as { q?: string[] | string; source?: string; target?: string };
+    const q = Array.isArray(body.q) ? body.q : [String(body.q ?? "")];
+    log.translations.push({ q, source: body.source ?? "", target: body.target ?? "", cookie: req.headers.cookie });
+    res.setHeader("content-type", "application/json");
+    res.end(JSON.stringify({ translatedText: q.map((text) => text.toUpperCase()), detectedLanguage: q.map(() => ({ confidence: 90, language: "en" })) }));
+  });
+}
+
 /** Tiny local site so tests never touch the network. */
 function startServer(): Promise<{ server: Server; origin: string; log: ServerLog }> {
-  const log: ServerLog = { icons: [] };
+  const log: ServerLog = { icons: [], translations: [] };
   const server = createServer((req, res) => {
     const path = req.url ?? "/";
+    if (req.method === "POST" && path === "/translate") return fakeLibreTranslate(req, res, log);
     res.setHeader("content-type", "text/html; charset=utf-8");
     if (path.startsWith("/icon")) {
       log.icons.push({ url: path, cookie: req.headers.cookie, gpc: req.headers["sec-gpc"] as string | undefined });
@@ -183,6 +202,17 @@ function startServer(): Promise<{ server: Server; origin: string; log: ServerLog
           [4, 5, 6].map(paragraph).join("") +
           `<p id="last">Phrase finale du test.</p></article>` +
           `<footer>Pied de page</footer></body></html>`,
+      );
+    } else if (path.startsWith("/translate-page")) {
+      // Page translation (ADR-036): text to translate, and text that must stay as it is.
+      res.end(
+        `<!doctype html><html lang="${query(path, "lang") ?? "en"}"><head><title>Translate me</title></head><body>` +
+          `<h1 id="title">Hello world</h1><p id="text">The quick brown fox <b id="bold">jumps</b> over the dog.</p>` +
+          `<pre id="pre">keep this pre</pre><p>Inline <code id="code">keep.this.code()</code> here.</p>` +
+          `<script>globalThis.marker = "keep this script";</script><style>#title { color: #333 }</style>` +
+          `<input id="field" value="keep this input"><textarea id="area">keep this area</textarea>` +
+          `<div id="edit" contenteditable="true">keep this editable</div><p id="hidden" aria-hidden="true">keep this hidden</p>` +
+          `<p id="no" translate="no">keep this brand</p><div id="late"></div></body></html>`,
       );
     } else if (path.startsWith("/boost")) {
       // A page to customize (boosts, ADR-029): an element to zap and some text.

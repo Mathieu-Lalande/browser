@@ -194,7 +194,7 @@ describe("Omnibox", () => {
 describe("settings index", () => {
   it("names anchors that exist in the settings page", () => {
     const dir = resolve(import.meta.dirname, "../../renderer/src/components/settings");
-    const files = ["SettingsPage", "DataSection", "DownloadsSection", "SiteDataSection"].map((name) => readFileSync(`${dir}/${name}.svelte`, "utf8")).join("\n");
+    const files = ["SettingsPage", "DataSection", "DownloadsSection", "SiteDataSection", "TranslateSection"].map((name) => readFileSync(`${dir}/${name}.svelte`, "utf8")).join("\n");
     for (const entry of SETTINGS_INDEX) {
       const [section, row] = entry.anchor.split("/");
       expect(files, entry.anchor).toContain(`id="${section}"`);

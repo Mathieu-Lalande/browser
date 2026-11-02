@@ -38,6 +38,7 @@
   import SyncSection from "./SyncSection.svelte";
   import ThemeShare from "./ThemeShare.svelte";
   import UpdatesSection from "./UpdatesSection.svelte";
+  import TranslateSection from "./TranslateSection.svelte";
   import Toggle from "../ui/Toggle.svelte";
   import Button from "../ui/Button.svelte";
   import EmptyState from "../ui/EmptyState.svelte";
@@ -54,6 +55,7 @@
     { id: "shortcuts", label: "Raccourcis clavier", icon: "keyboard" },
     { id: "privacy", label: "Confidentialité", icon: "shield" },
     { id: "siteData", label: "Données des sites", icon: "cookie" },
+    { id: "translate", label: "Traduction", icon: "languages" },
     { id: "downloads", label: "Téléchargements", icon: "download" },
     { id: "data", label: "Données", icon: "database" },
     { id: "sync", label: "Synchronisation", icon: "cloud" },
@@ -613,6 +615,17 @@
 
       <Section id="siteData" icon="cookie" title="Données des sites" description="Cookies et stockage laissés par les sites, et cookies tiers.">
         <SiteDataSection />
+      </Section>
+
+      <Section
+        id="translate"
+        icon="languages"
+        title="Traduction"
+        description="Traduire les pages avec le service de votre choix : le texte de la page lui est envoyé."
+        keywords="translate deepl libretranslate google langue"
+        onReset={() => settings.reset("translate")}
+      >
+        <TranslateSection />
       </Section>
 
       <Section

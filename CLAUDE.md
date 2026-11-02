@@ -86,3 +86,7 @@
 - Pause des médias (ADR-035) : modèle pur `src/shared/media.ts`, `MediaHub` par fenêtre (`src/main/media/`, sonde en monde isolé 1011,
   relevé seulement pendant la lecture, pochette en `data:`), canaux `media:*`, `MiniPlayer.svelte` (barre latérale), commande
   `pause-all-media` ; mobile `mobile/src/lib/media.ts` (nonce par document) + `MiniBar.tsx`.
+- Traduction (ADR-036, désactivée par défaut) : cœur pur `src/shared/translate/` (services DeepL/LibreTranslate/Google,
+  découpage, walker `TRANSLATE_WALKER`, règles), main `src/main/translate/` (HTTP par main, clés `safeStorage`, monde isolé
+  1012, `PageTranslator` par fenêtre), popover overlay `translate`, commande `translate-page` ; mobile `mobile/src/lib/translate.ts`
+  (nonce par demande, clés `expo-secure-store`). Fenêtre privée : confirmation à chaque fenêtre, règles en mémoire.

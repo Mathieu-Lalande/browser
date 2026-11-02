@@ -13,6 +13,7 @@ import { PairingScanner } from "./PairingScanner";
 import { BoostsSettings } from "./BoostsSettings";
 import { PasswordsSettings } from "./PasswordsSettings";
 import { SyncSettings } from "./SyncSettings";
+import { TranslateSettings } from "./TranslateSettings";
 import { ThemeSettings } from "./ThemeSettings";
 import { THEME_QR_PREFIX } from "../lib/themeShare";
 import { IconButton, SiteIcon, Tap } from "./ui";
@@ -202,6 +203,10 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
 
         <Group title="Mots de passe" icon="key">
           <PasswordsSettings />
+        </Group>
+
+        <Group title="Traduction" icon="languages">
+          <TranslateSettings />
         </Group>
 
         <Group title="Boosts" icon="rocket">

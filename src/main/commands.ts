@@ -106,6 +106,7 @@ const RUNNERS: Record<CommandId, Runner> = {
   "open-passwords": (c) => c.openPasswords(),
   "toggle-reader": onActiveTab((c, id) => void toggleReader(c, id)),
   "toggle-mobile-site": onActiveTab((c, id) => c.tabs.toggleMobileSite(id)),
+  "translate-page": onActiveTab((c, id) => void c.translator.toggle(id)),
   "open-boosts": (c) => c.openBoosts(),
   "zap-elements": onActiveTab(startZap),
   // Shows the settings, where the update status is.

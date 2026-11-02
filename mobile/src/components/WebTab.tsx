@@ -12,6 +12,7 @@ import { decideNavigation, decideOpenWindow, isHttpsUpgradeFailure } from "../li
 import { PASSWORD_PROMPT_COOLDOWN_MS, PasswordCaptureGuard, captureNonce } from "../lib/passwords";
 import { MediaWatchGuard, newMediaNonce } from "../lib/media";
 import { desktopUserAgent, parseReaderMessage, readerScript } from "../lib/reader";
+import { TranslateBridge, translateNonce } from "../lib/translate";
 import { useBrowserActions, useEvent } from "../state/BrowserProvider";
 import { LoadError } from "./LoadError";
 import type { WebTabProps } from "./webTabTypes";
@@ -24,6 +25,7 @@ const INJECTED = linkMenuScript(Platform.OS);
 const NO_BOOSTS: readonly BoostPayload[] = [];
 const newCaptureNonce = () => captureNonce(getRandomBytes);
 const newWatchNonce = () => newMediaNonce(getRandomBytes);
+const newTranslateNonce = () => translateNonce(getRandomBytes);
 /** Only these schemes may ever reach the native view (navigation policy: `decideNavigation`). */
 export const WEBVIEW_ORIGIN_WHITELIST = ["http://*", "https://*", "about:*", "data:*", "mailto:*", "tel:*", "sms:*"];
 
@@ -53,6 +55,9 @@ export const WebTab = memo(function WebTab({
   onReaderArticle,
   boosts = NO_BOOSTS,
   onMedia,
+  translateRequest = null,
+  onTranslateBatch,
+  onTranslateReset,
 }: WebTabProps) {
   const actions = useBrowserActions();
   const ref = useRef<WebViewHandle | null>(null);
@@ -111,7 +116,12 @@ export const WebTab = memo(function WebTab({
   // Media watcher (ADR-035): same nonce-per-document rule, private tabs included (nothing is stored).
   const mediaGuard = useRef<MediaWatchGuard | null>(null);
   mediaGuard.current ??= new MediaWatchGuard(newWatchNonce);
+  // Translation (ADR-036): a nonce per request, messages accepted from this document only.
+  const translateBridge = useRef<TranslateBridge | null>(null);
+  translateBridge.current ??= new TranslateBridge(newTranslateNonce);
   const onLoadStart = useEvent(() => {
+    if (translateBridge.current?.active) onTranslateReset?.(id);
+    translateBridge.current?.loadStarted();
     captureGuard.current?.loadStarted();
     mediaGuard.current?.loadStarted();
     onMedia?.(id, null);
@@ -134,6 +144,15 @@ export const WebTab = memo(function WebTab({
   useEffect(() => {
     if (readerToken) ref.current?.injectJavaScript(readerScript(readerToken));
   }, [readerToken]);
+
+  // Translation requested (the menu): start the walker, or put the original text back.
+  useEffect(() => {
+    if (!translateRequest) return;
+    const bridge = translateBridge.current!;
+    const script = translateRequest.action === "translate" ? bridge.start(currentUrl.current) : bridge.restore();
+    if (script) ref.current?.injectJavaScript(script);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [translateRequest?.seq]);
 
   const setRef = useCallback(
     (view: WebViewHandle | null) => {
@@ -190,6 +209,20 @@ export const WebTab = memo(function WebTab({
     const article = parseReaderMessage(event.nativeEvent.data, readerTokenRef.current, currentUrl.current);
     if (article !== undefined) {
       if (readerTokenRef.current) onReaderArticle?.(id, article);
+      return;
+    }
+    // A batch of texts from this request's walker: translated by the app, written back as text.
+    const segments = translateBridge.current?.parse(event.nativeEvent.data, event.nativeEvent.url, currentUrl.current);
+    if (segments !== undefined) {
+      if (segments?.length && onTranslateBatch) {
+        onTranslateBatch(id, segments).then(
+          (pairs) => {
+            const script = translateBridge.current?.apply(pairs);
+            if (script) ref.current?.injectJavaScript(script);
+          },
+          () => {},
+        );
+      }
       return;
     }
     const media = mediaGuard.current?.parse(event.nativeEvent.data, event.nativeEvent.url, currentUrl.current);

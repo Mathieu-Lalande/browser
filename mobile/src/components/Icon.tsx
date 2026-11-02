@@ -6,6 +6,7 @@ import type { LucideIcon } from "lucide-react-native";
 // Lucide icons (https://lucide.dev), imported one by one so the bundle only holds the ones used.
 import ArrowUpLeft from "lucide-react-native/icons/arrow-up-left";
 import BookOpen from "lucide-react-native/icons/book-open";
+import Languages from "lucide-react-native/icons/languages";
 import Briefcase from "lucide-react-native/icons/briefcase";
 import Calendar from "lucide-react-native/icons/calendar";
 import TrendingUp from "lucide-react-native/icons/trending-up";
@@ -171,6 +172,8 @@ const ui = {
   // Reader mode (ADR-026).
   reader: BookOpen,
   textSize: Type,
+  // Translation (ADR-036).
+  languages: Languages,
   // Boosts (ADR-029).
   undo: Undo2,
 } satisfies Record<string, LucideIcon>;

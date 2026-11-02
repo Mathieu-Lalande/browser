@@ -141,7 +141,7 @@ export function buildAppMenu(context: AppMenuContext): MenuNode[] {
       separator,
       command("print"),
       command("save-page"),
-      { kind: "action", id: "translate", label: "Traduire la page", icon: "languages", enabled: false, hint: "Bientôt" },
+      command("translate-page", { label: tab?.translated ? "Afficher l'original" : "Traduire la page" }),
       command("find"),
       { kind: "zoom" },
       separator,

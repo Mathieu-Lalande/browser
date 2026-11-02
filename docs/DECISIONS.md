@@ -1549,7 +1549,7 @@ qui n'existe que dans un menu (liens d'historique/favoris, actions d'espace). No
 - **Menu « … »** (bouton en tête de la rangée de navigation) : popover `app-menu` du calque overlay (ADR-010), rendu
   par `MenuList.svelte` (récursif, sur `Menu`/`MenuItem`) : flèches dans un niveau, sous-menu au survol, → / Entrée,
   ← / Échap pour revenir. En-tête Synchronisation (état + « Se connecter »/« Synchroniser »), rangée Zoom (− % + et
-  plein écran, le menu reste ouvert). « Traduire la page » est grisé (« Bientôt ») tant qu'il n'y a pas de traduction.
+  plein écran, le menu reste ouvert). « Traduire la page » : commande `translate-page` depuis ADR-036 (grisé « Bientôt » avant).
   « Tout l'historique… » ouvre la barre universelle (pas de page d'historique) ; une commande qui ouvre sa propre UI
   flottante remplace le menu dans le calque (`command-palette` n'est plus une bascule que pour elle-même).
 - **Menus natifs** (comme ceux des onglets et des pages) : espace vide de la barre latérale (`sidebar:context-menu`)
@@ -1680,3 +1680,56 @@ lecture, `changedAt`), `miniPlayerSources` (sauf les onglets à l'écran, en lec
 pilotables (la source est affichée, ses boutons lecture et position désactivés ; le son se coupe depuis l.onglet) ;
 « Tout mettre en pause » ne les atteint pas. Une page peut annoncer des métadonnées fausses : elles ne servent qu'à
 l'affichage, en texte.
+
+## ADR-036 — Traduction des pages (bureau et téléphone)
+
+**Contexte.** Traduire une page sans moteur embarqué (des centaines de Mo par paire de langues) : il faut un service
+en ligne, donc **le texte de la page quitte l'appareil**. Choix par défaut (le propriétaire n'en a pas imposé) :
+**désactivée**, service choisi par l'utilisateur, avertissement clair dans les paramètres et à la première traduction.
+
+**Cœur pur partagé** (`src/shared/translate/`, testé, importé tel quel par le téléphone) :
+- `TranslationProvider` (construire la requête HTTP, analyser la réponse, aucune E/S) : `DeepLProvider` (`/v2/translate`
+  JSON, en-tête `DeepL-Auth-Key`, hôte Free ou Pro, cible `EN-US`/`PT-PT`), `LibreTranslateProvider` (`POST /translate`,
+  `q` en liste, `format: "text"`, clé facultative ; serveur https, ou http signalé « non chiffré »),
+  `GoogleTranslateProvider` (v2, clé dans l'en-tête `x-goog-api-key`, jamais dans l'URL, `format: "text"`). Statuts
+  401/403/456/429/400/5xx et réponses malformées → `TranslationError` au message français ; une réponse au nombre de
+  traductions différent est refusée (jamais de décalage).
+- `Translator` : découpe par nombre et taille (`chunkTexts`, limites propres à chaque service), requêtes une par une,
+  cache LRU (une page qui redessine le même texte ne coûte rien), `fitTranslation` (texte borné, sans caractères de
+  contrôle). **Segments HTML-sûrs** : seuls des nœuds texte partent, et la traduction est réécrite par `nodeValue`,
+  jamais en HTML : une réponse hostile reste du texte.
+- Langues : `<html lang>` puis `Content-Language` (`pageLanguage`, sous-étiquette primaire) ; rien de déclaré → source
+  « auto », détectée par le service (langue renvoyée affichée ensuite). Cible : réglage, sinon langue du système
+  (`app.getPreferredSystemLanguages`, `Intl` sur le téléphone), sinon français.
+- Règles (`rules.ts`) : toujours traduire / ne jamais traduire une langue (exclusives), jamais pour un site (hôte sans
+  « www. », sous-domaines compris) → `auto` / `offer` / `none`.
+- Script de page `TRANSLATE_WALKER` (source ES2018 en chaîne : Hermes ne garde pas le source des fonctions) : nœuds
+  texte du `body` hors `script`, `style`, `code`, `pre`, `kbd`, champs, `contenteditable`, `aria-hidden`,
+  `translate="no"`/`.notranslate`, SVG/MathML ; lots **partie visible d'abord** ; espaces autour conservés ; `apply` ne
+  réécrit qu'un nœud qui contient encore le texte envoyé ; `MutationObserver` (anti-rebond 400 ms, 20 000 nœuds au
+  plus) pour le contenu ajouté ; `restore` remet le texte exact d'origine (ce que la page a changé entre-temps reste).
+
+**Bureau.** Main fait les appels (`fetch` de Node : hors de toute session de navigation, donc ni cookies ni extensions
+ni cache ; délai 15 s, pas de redirection, réponse ≤ 2 Mo). Clés dans `translate-keys.json`, un bloc chiffré par
+`safeStorage` comme les mots de passe (ADR-025) ; sans chiffrement du système, rien n'est enregistré ; l'interface sait
+seulement quelles clés existent. Le script tourne dans le **monde isolé 1012** (rien d'exposé à la page, pas de preload,
+ADR-003) ; ses résultats reviennent comme valeurs de retour. `PageTranslator` (une par fenêtre) lit la langue à chaque
+`dom-ready`, applique les règles, mène la `TranslationRun` du document (annulée par un nouveau document ou « Afficher
+l'original », 200 vagues de contenu nouveau au plus) et publie `TabState.translation` / `translated`. Interface : bouton
+de la barre d'adresse (page dans une autre langue), popover overlay `translate` (langues, avertissement, règles,
+« Afficher l'original »), commande `translate-page` (Ctrl+Alt+T / ⌥⌘T, bascule), menu « … », menu contextuel de la
+page, section « Traduction » des paramètres (service, formule DeepL, serveur, clé, « Tester », langue cible, règles).
+**Consentement** : `settings.translate.acknowledged` (une fois) ; **fenêtres privées** : confirmation à chaque fenêtre,
+règles copiées puis gardées en mémoire, jamais écrites ; aucune clé ne s'y enregistre.
+
+**Téléphone.** Mêmes services ; clés dans `expo-secure-store`. Le walker partagé est injecté à la demande (menu de la page :
+« Traduire la page » / « Afficher l'original ») avec un **nonce aléatoire par demande** gardé dans sa fermeture ;
+`TranslateBridge` n'accepte que les lots portant ce nonce, venus de l'origine du cadre principal, jusqu'au chargement
+suivant (même règle que la capture des mots de passe d'ADR-025) ; les lots sont revalidés (`sanitizeSegments`) et
+traduits par l'application, réécrits en texte. Source détectée par le service.
+
+**Conséquences.** Le texte visible part chez un tiers (DeepL, Google ou le serveur LibreTranslate choisi), d'où
+l'option désactivée par défaut et l'avertissement. Pas de traduction des attributs (`title`, `alt`, `placeholder`) ni
+des iframes ; une phrase coupée par du balisage (`<b>`) est traduite morceau par morceau. Sur le téléphone, la page voit
+le script et peut lire le nonce : il ne sert qu'à écarter les autres cadres, une page ne pouvant de toute façon faire
+traduire que son propre texte.

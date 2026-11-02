@@ -15,6 +15,7 @@ import { favoriteFavicon, favoriteTiles, setArchiveNotifier, setFavoritesRefresh
 import { Overlay } from "./overlay";
 import { LinkPeek } from "./peek";
 import { MediaHub } from "./media";
+import { PageTranslator } from "./translate";
 import { boostPage } from "./boosts";
 import { watchPasswordForms } from "./passwords";
 import { hasPasswordsFor, setPasswordsNotifier } from "./passwords/vault";
@@ -134,6 +135,8 @@ export class BrowserController {
   readonly gestures: PageGestures = new PageGestures(this);
   /** Tabs playing media, for the sidebar's mini-player (ADR-035). */
   readonly media: MediaHub = new MediaHub(this);
+  /** Page translation of this window's tabs (ADR-036). */
+  readonly translator: PageTranslator = new PageTranslator(this);
   /**
    * Private window: never written to the profile (history, session, permissions…). Anything that
    * persists per window checks this; per-session hooks (downloads) use `isPrivateSession` (./private).
@@ -209,6 +212,8 @@ export class BrowserController {
           pageWheel: (tabId, sample) => this.gestures.feedPage(tabId, sample),
           pageZoom: (tabId, direction) => this.gestures.zoom(tabId, direction),
           media: (tabId, contents, playing) => this.media.report(tabId, contents, playing),
+          translatePage: (tabId, contents) => void this.translator.pageReady(tabId, contents),
+          translation: (tabId) => this.translator.stateOf(tabId),
         },
         this.isPrivate,
       ),
