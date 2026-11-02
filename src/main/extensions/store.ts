@@ -1,4 +1,5 @@
 import { isExtensionId, type ExtensionInfo } from "@shared/extensions";
+import { maxStr } from "../ipc/validators";
 
 /** `extensions.json` (ADR-024): the installed extensions and their switches. */
 export const EXTENSIONS_VERSION = 1;
@@ -21,14 +22,13 @@ export interface ExtensionRecord {
 const MAX_EXTENSIONS = 100;
 const MAX_ICON_LENGTH = 96 * 1024;
 
-const isString = (value: unknown, max: number): value is string => typeof value === "string" && value.length <= max;
 
 function parseRecord(value: unknown): ExtensionRecord | null {
   if (typeof value !== "object" || value === null) return null;
   const r = value as Record<string, unknown>;
-  if (!isExtensionId(r.id) || !isString(r.path, 4096) || !r.path || !isString(r.name, 200) || !r.name || !isString(r.version, 64)) return null;
+  if (!isExtensionId(r.id) || !maxStr(4096)(r.path) || !r.path || !maxStr(200)(r.name) || !r.name || !maxStr(64)(r.version)) return null;
   if (r.manifestVersion !== 2 && r.manifestVersion !== 3) return null;
-  const icon = isString(r.icon, MAX_ICON_LENGTH) && r.icon.startsWith("data:image/") ? r.icon : null;
+  const icon = maxStr(MAX_ICON_LENGTH)(r.icon) && r.icon.startsWith("data:image/") ? r.icon : null;
   return {
     id: r.id,
     path: r.path,
@@ -37,7 +37,7 @@ function parseRecord(value: unknown): ExtensionRecord | null {
     allowPrivate: r.allowPrivate === true,
     name: r.name,
     version: r.version,
-    description: isString(r.description, 1000) ? r.description : "",
+    description: maxStr(1000)(r.description) ? r.description : "",
     manifestVersion: r.manifestVersion,
     icon,
   };

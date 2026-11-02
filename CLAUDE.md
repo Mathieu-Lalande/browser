@@ -3,7 +3,9 @@
 - Stack : Electron 44 (process principal en TS), Svelte 5 runes (interface), electron-vite, Vitest, Playwright.
 - Lire `docs/DECISIONS.md` (modèle de sécurité) avant de toucher `src/main/security.ts`, le preload ou l'IPC.
 - Contrat IPC unique : `src/shared/ipc.ts` (`Channels` + `BrowserApi`). Tout nouveau canal : l'ajouter là,
-  l'exposer dans `src/preload/index.ts`, le valider dans `src/main/ipc.ts` (arguments vérifiés, émetteur = fenêtre connue).
+  l'exposer dans `src/preload/index.ts`, l'ajouter à la table de sa fonctionnalité dans `src/main/ipc/` (arguments vérifiés, émetteur = fenêtre connue).
+- Registre IPC : `src/main/ipc/registry.ts` (validateurs typés `str`, `opt(…)`…, `on`/`handle`/`onUi`/`handleUi`,
+  `defineHandlers`) ; `registerIpc` fusionne les tables et le compilateur exige un gestionnaire par canal de requête.
 - Les pages web ne reçoivent jamais de preload ni d'accès Node.
 - L'interface (chrome) ne peut pas dessiner au-dessus des pages (`WebContentsView` est natif) : un panneau
   doit soit réduire la zone `viewport`, soit masquer la vue active, soit vivre dans le calque overlay

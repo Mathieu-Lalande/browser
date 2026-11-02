@@ -1,4 +1,4 @@
-import { app, ipcMain } from "electron";
+import { app } from "electron";
 import { Channels } from "@shared/ipc";
 import type { UpdateStatus } from "@shared/updates";
 import { onSettingsChanged, settings } from "../settings";
@@ -43,24 +43,8 @@ function broadcast(status: UpdateStatus): void {
   for (const listener of listeners) listener(status);
 }
 
-/** Starts the updater (after the first window) and its IPC. */
+/** Starts the updater (after the first window); its IPC is in ../ipc/services. */
 export async function startUpdates(): Promise<void> {
-  const known = (event: Electron.IpcMainEvent | Electron.IpcMainInvokeEvent) => Boolean(BrowserController.fromUi(event.sender));
-  // Registered first: the UI may ask before the updater is ready.
-  ipcMain.handle(Channels.updatesStatus, (event) => {
-    if (!known(event)) throw new Error(`Rejected ${Channels.updatesStatus}`);
-    return service?.status ?? null;
-  });
-  ipcMain.on(Channels.updatesCheck, (event) => {
-    if (known(event)) void service?.check();
-  });
-  ipcMain.on(Channels.updatesDownload, (event) => {
-    if (known(event)) void service?.download();
-  });
-  ipcMain.on(Channels.updatesInstall, (event) => {
-    if (known(event)) installUpdate();
-  });
-
   const { updater, canInstall } = await pickUpdater();
   service = new UpdateService({
     updater,
@@ -83,4 +67,8 @@ export function installUpdate(): void {
 
 export function checkForUpdates(): void {
   void service?.check();
+}
+
+export function downloadUpdate(): void {
+  void service?.download();
 }

@@ -1,9 +1,8 @@
 import { readFile, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { app, dialog, ipcMain } from "electron";
-import { Channels } from "@shared/ipc";
+import { app, dialog } from "electron";
 import { MAX_THEME_FILE, parseThemeFile, themeFile, themeFileName, validateTheme, type ThemeDecodeResult } from "@shared/theme-share";
-import { BrowserController } from "./window";
+import type { BrowserController } from "./window";
 
 /**
  * `.browsertheme` files (ADR-030): main shows the native dialogs and does the file I/O; the theme
@@ -13,7 +12,7 @@ import { BrowserController } from "./window";
 
 const FILTERS = [{ name: "Thème Browser", extensions: ["browsertheme", "json"] }];
 
-async function exportTheme(c: BrowserController, input: unknown): Promise<boolean> {
+export async function exportTheme(c: BrowserController, input: unknown): Promise<boolean> {
   const checked = validateTheme(input);
   if (!checked.ok) return false;
   const { canceled, filePath } = await dialog.showSaveDialog(c.window, {
@@ -30,7 +29,7 @@ async function exportTheme(c: BrowserController, input: unknown): Promise<boolea
   }
 }
 
-async function importTheme(c: BrowserController): Promise<ThemeDecodeResult | null> {
+export async function importTheme(c: BrowserController): Promise<ThemeDecodeResult | null> {
   const { canceled, filePaths } = await dialog.showOpenDialog(c.window, { title: "Importer un thème", filters: FILTERS, properties: ["openFile"] });
   if (canceled || !filePaths[0]) return null;
   try {
@@ -40,17 +39,4 @@ async function importTheme(c: BrowserController): Promise<ThemeDecodeResult | nu
   } catch {
     return { ok: false, error: "Le fichier n'a pas pu être lu." };
   }
-}
-
-export function registerThemeIpc(): void {
-  ipcMain.handle(Channels.themeExportFile, (event, theme: unknown) => {
-    const controller = BrowserController.fromUi(event.sender);
-    if (!controller) throw new Error(`Rejected ${Channels.themeExportFile}`);
-    return exportTheme(controller, theme);
-  });
-  ipcMain.handle(Channels.themeImportFile, (event) => {
-    const controller = BrowserController.fromUi(event.sender);
-    if (!controller) throw new Error(`Rejected ${Channels.themeImportFile}`);
-    return importTheme(controller);
-  });
 }
