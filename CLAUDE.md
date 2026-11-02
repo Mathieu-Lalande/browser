@@ -13,7 +13,9 @@
 - Actions du navigateur : registre unique `src/shared/commands.ts` (libellé, mots-clés, raccourci) exécuté
   par `src/main/commands.ts` ; le menu et la palette s'en servent tous les deux.
 - Primitives d'interface : `src/renderer/src/components/ui/` (`IconButton`, `Card`, `ListRow`, `Menu`/`MenuItem`, `Toggle`,
-  `Row`, `Segmented`, `Checkbox`, `ConfirmButton`) ; durées d'animation via `--motion-fast`/`--motion-base` (0 si mouvements réduits).
+  `Row`, `Segmented`, `Checkbox`, `ConfirmButton`, `Button`, `EmptyState`, `Page` (cadre des pages internes), `SearchField`) ;
+  durées d'animation via `--motion-fast`/`--motion-base` (0 si mouvements réduits) ; échelles partagées dans `global.css`
+  (`--space-1…6`, `--radius-sm/md/lg`, `--text-xs…xl`, `--hit-min`, champ `.ui-field`), jamais de valeurs propres à un composant.
 - Texte d'interface en français ; code, identifiants et commentaires en anglais.
 - Vérifications avant commit : `npm run typecheck && npm test && npm run build && xvfb-run -a npx playwright test`
   (en root/conteneur, l'app est lancée avec `--no-sandbox`, déjà géré par les fixtures e2e).

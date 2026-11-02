@@ -83,7 +83,7 @@ test("a download goes straight to the downloads folder under a unique name, and 
       "report (1).pdf",
     );
     await chrome.getByRole("button", { name: "Effacer la liste" }).click();
-    await expect(chrome.getByText("Aucun téléchargement pour l'instant.")).toBeVisible();
+    await expect(chrome.getByText("Aucun téléchargement pour l'instant")).toBeVisible();
     expect(existsSync(saved)).toBe(true);
   } finally {
     await app.close();

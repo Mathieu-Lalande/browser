@@ -209,3 +209,53 @@ test("the Outils menu of the sidebar opens the internal pages", async ({ chrome 
   await chrome.keyboard.press("Escape");
   await expect(menu).toHaveCount(0);
 });
+
+type Box = { scrollWidth: number; clientWidth: number };
+
+test("at rest, the URL uses the whole address bar and its host is never clipped", async ({ chrome, server }) => {
+  await visit(chrome, server.url("/projets/2026/roadmap"), "Page projets/2026/roadmap");
+  await chrome.mouse.move(900, 600);
+  const display = chrome.getByTestId("address-display");
+  await expect(display).toBeVisible();
+  await expect(chrome.getByRole("button", { name: "Copier le lien" })).toHaveCSS("opacity", "0");
+  const host = await display.locator(".host").evaluate((element) => {
+    const box = element as unknown as Box;
+    return { scroll: box.scrollWidth, client: box.clientWidth };
+  });
+  expect(host.scroll).toBeLessThanOrEqual(host.client);
+  await expect(display.locator(".host")).toHaveText("127.0.0.1");
+  // The hidden buttons take no room: the URL spans the bar but for the lock and the padding.
+  const bar = (await chrome.locator(".address").boundingBox())!;
+  const url = (await display.boundingBox())!;
+  expect(url.width).toBeGreaterThanOrEqual(bar.width - 48);
+  // Hovering does not move the URL.
+  await chrome.locator(".address").hover();
+  await expect(chrome.getByRole("button", { name: "Copier le lien" })).toHaveCSS("opacity", "1");
+  expect((await display.boundingBox())!.x).toBe(url.x);
+});
+
+test("the theme gallery is a full-width grid, several cards per line", async ({ app, chrome }) => {
+  await setWindowSize(app, 1280, 800);
+  await chrome.getByRole("button", { name: "Paramètres" }).click();
+  const gallery = chrome.getByRole("group", { name: "Galerie de thèmes" });
+  await expect(gallery).toBeVisible();
+  const tops = await gallery
+    .getByRole("button")
+    .evaluateAll((cards) => cards.map((card) => Math.round((card as unknown as { getBoundingClientRect(): { top: number } }).getBoundingClientRect().top)));
+  expect(tops.filter((top) => top === tops[0]).length).toBeGreaterThanOrEqual(3);
+  // It spans the settings card, not just the right-hand control slot.
+  const row = (await chrome.locator(".settings .row", { has: gallery }).boundingBox())!;
+  expect((await gallery.boundingBox())!.width).toBeGreaterThanOrEqual(row.width - 40);
+});
+
+test("the settings search keeps only the matching rows", async ({ chrome }) => {
+  await chrome.getByRole("button", { name: "Paramètres" }).click();
+  const search = chrome.getByRole("searchbox", { name: "Rechercher un réglage" });
+  await search.fill("zen");
+  await expect(chrome.locator(".settings .row:visible .label")).toHaveText(["Mode zen"]);
+  await search.fill("introuvablexyz");
+  await expect(chrome.getByText("Aucun réglage trouvé")).toBeVisible();
+  await search.press("Escape");
+  await expect(search).toHaveValue("");
+  expect(await chrome.locator(".settings .row:visible").count()).toBeGreaterThan(10);
+});

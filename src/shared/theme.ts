@@ -172,10 +172,13 @@ export function derivePalette(accentHex: string, accent2Hex: string, mode: Resol
   const overlay = fromOklch({ l: dark ? 0.985 : 0.25, c: tint * 1.5, h });
   const alphas = dark ? { surface: 0.05, hover: 0.085, active: 0.125, border: 0.09 } : { surface: 0.045, hover: 0.075, active: 0.11, border: 0.1 };
   // Text must stay readable on every background it can sit on, the strongest surface included.
-  const grounds = [bg, bgElevated, blend(overlay, alphas.active, bg), blend(overlay, alphas.active, bgElevated)];
+  // The sidebar sits on the tinted backdrop (gradient or mesh, up to ~34% accent): its strongest
+  // tints count as backgrounds too, so muted labels stay readable over them.
+  const tinted = [blend(accentRgb, 0.34, bg), blend(accent2Rgb, 0.24, bg)];
+  const grounds = [bg, bgElevated, blend(overlay, alphas.active, bg), blend(overlay, alphas.active, bgElevated), ...tinted];
 
   const text = ensureContrast({ l: dark ? 0.955 : 0.2, c: tint * 0.6, h }, grounds, 7, toward);
-  const textMuted = ensureContrast({ l: dark ? 0.76 : 0.48, c: tint * 1.4, h }, grounds, CONTRAST.text, toward);
+  const textMuted = ensureContrast({ l: dark ? 0.76 : 0.48, c: tint * 1.4, h }, grounds, CONTRAST.text + 0.05, toward);
   const textFaint = ensureContrast({ l: dark ? 0.6 : 0.62, c: tint * 1.4, h }, grounds, CONTRAST.faint, toward);
   const accentText = ensureContrast(accent, [bg, bgElevated], CONTRAST.text, toward);
   const white: Rgb = { r: 1, g: 1, b: 1 };

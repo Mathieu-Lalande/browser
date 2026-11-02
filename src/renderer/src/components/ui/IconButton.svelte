@@ -54,12 +54,12 @@
 {/snippet}
 
 {#if as === "span"}
-  <span bind:this={element} class={["icon-button", size, className, { on: on || pressed }]} aria-hidden="true">{@render content()}</span>
+  <span bind:this={element} class={["icon-button", `size-${size}`, className, { on: on || pressed }]} aria-hidden="true">{@render content()}</span>
 {:else}
   <button
     bind:this={element}
     {...rest}
-    class={["icon-button", size, className, { on: on || pressed, active }]}
+    class={["icon-button", `size-${size}`, className, { on: on || pressed, active }]}
     aria-label={label}
     aria-pressed={pressed}
     title={tooltip}
@@ -78,11 +78,11 @@
     border-radius: 8px;
     color: var(--text-muted);
   }
-  .icon-button.sm {
+  .icon-button.size-sm {
     width: 26px;
     height: 26px;
   }
-  .icon-button.row {
+  .icon-button.size-row {
     width: 28px;
     height: 28px;
     border-radius: 7px;

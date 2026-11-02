@@ -6,6 +6,10 @@
   import Icon from "../Icon.svelte";
   import ConfirmButton from "../ui/ConfirmButton.svelte";
   import Toggle from "../ui/Toggle.svelte";
+  import Button from "../ui/Button.svelte";
+  import EmptyState from "../ui/EmptyState.svelte";
+  import IconButton from "../ui/IconButton.svelte";
+  import Page from "../ui/Page.svelte";
 
   /**
    * `browser://extensions` (ADR-024): installed extensions, to switch on/off, allow in private
@@ -48,38 +52,33 @@
   }
 </script>
 
-<div class="page" data-testid="extensions-page">
-  <div class="inner">
-    <header>
-      <span class="badge"><Icon name="extension" size={20} /></span>
-      <h1>Extensions</h1>
-      {#if !browser.isPrivate}
-        <div class="actions">
-          <button class="action" disabled={busy} onclick={() => install("folder")} title="Extension non empaquetée (dossier contenant manifest.json)">
-            <Icon name="folder-open" size={12} /> Charger un dossier
-          </button>
-          <button class="action" disabled={busy} onclick={() => install("file")} title="Archive .zip ou extension .crx">
-            <Icon name="file-archive" size={12} /> Installer un fichier
-          </button>
-        </div>
-      {/if}
-    </header>
+{#snippet subtitle()}
+  {#if browser.isPrivate}
+    Les extensions se gèrent depuis une fenêtre normale. Elles ne s'appliquent pas aux fenêtres privées.
+  {:else}
+    Extensions Chrome (Manifest V2 ou V3) appliquées aux pages de tous vos espaces. Le navigateur prend en charge une partie des API
+    d'extension : les scripts de contenu et la plupart des extensions simples fonctionnent, les boutons de barre d'outils ne sont pas
+    encore affichés.
+  {/if}
+{/snippet}
 
-    <p class="intro">
-      {#if browser.isPrivate}
-        Les extensions se gèrent depuis une fenêtre normale. Elles ne s'appliquent pas aux fenêtres privées.
-      {:else}
-        Extensions Chrome (Manifest V2 ou V3) appliquées aux pages de tous vos espaces. Le navigateur prend en charge une partie des API
-        d'extension : les scripts de contenu et la plupart des extensions simples fonctionnent, les boutons de barre d'outils ne sont pas
-        encore affichés.
-      {/if}
-    </p>
+<Page icon="extension" title="Extensions" {subtitle} testid="extensions-page">
+  {#snippet actions()}
+    {#if !browser.isPrivate}
+      <Button icon="folder-open" disabled={busy} onclick={() => install("folder")} title="Extension non empaquetée (dossier contenant manifest.json)">
+        Charger un dossier
+      </Button>
+      <Button variant="primary" icon="file-archive" disabled={busy} onclick={() => install("file")} title="Archive .zip ou extension .crx">
+        Installer un fichier
+      </Button>
+    {/if}
+  {/snippet}
 
     {#if notice}
       <p class="notice {notice.kind}" role={notice.kind === "error" ? "alert" : "status"}>
         <Icon name={notice.kind === "error" ? "warning" : "check"} size={14} />
         <span>{notice.text}</span>
-        <button class="dismiss" aria-label="Fermer le message" onclick={() => (notice = null)}><Icon name="close" size={12} /></button>
+        <IconButton size="row" icon="close" iconSize={14} label="Fermer le message" onclick={() => (notice = null)} />
       </p>
     {/if}
 
@@ -131,84 +130,15 @@
         {/each}
       </Card>
     {:else if loaded}
-      <div class="empty">
-        <Icon name="extension" size={28} />
-        <p>Aucune extension installée.</p>
-        {#if !browser.isPrivate}
-          <p class="detail">Chargez le dossier d'une extension (contenant manifest.json) ou installez une archive .zip ou .crx.</p>
-        {/if}
-      </div>
+      <EmptyState
+        icon="extension"
+        title="Aucune extension installée"
+        hint={browser.isPrivate ? undefined : "Chargez le dossier d'une extension (contenant manifest.json) ou installez une archive .zip ou .crx."}
+      />
     {/if}
-  </div>
-</div>
+</Page>
 
 <style>
-  .page {
-    height: 100%;
-    overflow-y: auto;
-    animation: rise var(--motion-base) var(--ease);
-  }
-  .inner {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 36px 32px 64px;
-  }
-  header {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px 12px;
-  }
-  .badge {
-    display: grid;
-    place-items: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 11px;
-    background: color-mix(in oklab, var(--accent) 16%, transparent);
-    color: var(--accent-text);
-  }
-  h1 {
-    flex: 1 1 auto;
-    min-width: 0;
-    margin: 0;
-    white-space: nowrap;
-    font-size: 22px;
-    font-weight: 650;
-    letter-spacing: -0.03em;
-  }
-  .actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-left: auto;
-  }
-  .action {
-    display: flex;
-    flex: none;
-    align-items: center;
-    gap: 7px;
-    height: 30px;
-    padding: 0 12px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--surface);
-    white-space: nowrap;
-  }
-  .action:hover:not(:disabled) {
-    background: var(--surface-hover);
-  }
-  .action:disabled {
-    opacity: 0.45;
-  }
-  .intro {
-    margin: 0;
-    color: var(--text-muted);
-    line-height: 1.5;
-  }
   .notice {
     display: flex;
     align-items: center;
@@ -225,18 +155,7 @@
   }
   .notice.error {
     border-color: color-mix(in oklab, var(--danger) 45%, transparent);
-    color: var(--danger);
-  }
-  .dismiss {
-    display: grid;
-    place-items: center;
-    width: 24px;
-    height: 24px;
-    border-radius: 6px;
-    color: var(--text-muted);
-  }
-  .dismiss:hover {
-    background: var(--surface-hover);
+    color: var(--danger-text);
   }
   :global(.row.disabled) .icon,
   :global(.row.disabled) .title {
@@ -270,22 +189,22 @@
   .version,
   .detail {
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--text-xs);
     font-weight: 400;
   }
   .error {
     display: flex;
     align-items: center;
     gap: 6px;
-    color: var(--danger);
-    font-size: 12px;
+    color: var(--danger-text);
+    font-size: var(--text-xs);
   }
   .private {
     display: flex;
     align-items: flex-start;
     gap: 10px;
     margin-top: 6px;
-    font-size: 12px;
+    font-size: var(--text-xs);
   }
   .private-label {
     display: flex;
@@ -293,23 +212,5 @@
   }
   .hint {
     color: var(--text-faint);
-  }
-  .empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    padding: 48px 0 8px;
-    color: var(--text-muted);
-    text-align: center;
-  }
-  .empty p {
-    margin: 0;
-  }
-  @keyframes rise {
-    from {
-      opacity: 0;
-      transform: translateY(4px);
-    }
   }
 </style>

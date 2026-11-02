@@ -99,6 +99,16 @@
     copied = false;
   });
 
+  /** Width of the floating buttons: the URL fades out under them while they show. */
+  let actionsWidth = $state(0);
+
+  /** The URL at rest: the readable host first, then the rest of the address, dimmed. */
+  const shown = $derived.by(() => {
+    if (!tab || !/^https?:/.test(tab.url) || tab.interstitial) return { host: label, rest: "" };
+    const slash = label.indexOf("/");
+    return slash < 0 ? { host: label, rest: "" } : { host: label.slice(0, slash), rest: label.slice(slash) };
+  });
+
   export function focus(): void {
     input.focus();
     input.select();
@@ -156,8 +166,48 @@
   }
 </script>
 
+{#snippet readerButton()}
+  <!-- Reader mode (ADR-026): offered when Readability thinks the page is an article; kept in view while on. -->
+  <button
+    type="button"
+    class="star act"
+    class:on={tab?.reader}
+    class:keep={tab?.reader}
+    aria-pressed={!!tab?.reader}
+    aria-label={tab?.reader ? "Quitter le mode lecture" : "Mode lecture"}
+    title={platform.tip(tab?.reader ? "Quitter le mode lecture" : "Mode lecture", "toggle-reader")}
+    onmousedown={(event) => event.preventDefault()}
+    onclick={() => api.commands.run("toggle-reader")}
+  >
+    <Icon name="reader" size={16} />
+  </button>
+{/snippet}
+
+{#snippet shieldButton()}
+  {#if tab}
+    <!-- Shields: a hover action while on, kept in view (struck out) while off on this site. -->
+    <button
+      type="button"
+      class="shield act"
+      class:off={!tab.shieldsEnabled}
+      class:keep={!tab.shieldsEnabled}
+      title={shieldTitle}
+      aria-label={shieldTitle}
+      aria-pressed={tab.shieldsEnabled}
+      onclick={() => tab && api.tabs.toggleShields(tab.id)}
+    >
+      <Icon name={tab.shieldsEnabled ? "shield" : "shield-off"} size={14} />
+      {#if tab.shieldsEnabled && tab.blockedCount > 0}<span class="count">{tab.blockedCount > 99 ? "99+" : tab.blockedCount}</span>{/if}
+    </button>
+  {/if}
+{/snippet}
+
 <div class="omnibox no-drag">
-  <!-- Action buttons fade in on hover or keyboard focus (ADR-031); they keep their room, so the URL never moves. -->
+  <!--
+    At rest the URL uses the whole bar: host first, path dimmed. The action buttons float over its
+    end and fade in on hover or keyboard focus (ADR-031), over a fade-out of the URL, which never
+    moves. Buttons showing an active state (reader on, shields off, zoom, recording) stay, in flow.
+  -->
   <form class="address" class:focused onsubmit={submit} bind:this={form}>
     {#if !open && isWebPage}
       <!-- The lock opens the site info popover (connection, cookies, permissions, shields, zoom). -->
@@ -170,7 +220,7 @@
         onmousedown={(event) => event.preventDefault()}
         onclick={showSiteInfo}
       >
-        <Icon name={isSecure ? "lock" : "warning"} size={12} />
+        <Icon name={isSecure ? "lock" : "warning"} size={14} />
       </button>
     {:else}
       <span
@@ -179,30 +229,97 @@
         title={open ? undefined : isInternal ? "Page du navigateur" : tab?.url ? "Connexion non chiffrée" : undefined}
       >
         <!-- While typing, the icon says what Enter will do (search or go), not the current page's security. -->
-        <Icon name={open ? (isSearch ? "search" : "globe") : !tab?.url ? "search" : isInternal ? "sparkle" : "warning"} size={12} />
+        <Icon name={open ? (isSearch ? "search" : "globe") : !tab?.url ? "search" : isInternal ? "sparkle" : "warning"} size={14} />
       </span>
     {/if}
-    <input
-      bind:this={input}
-      value={focused ? draft : label}
-      oninput={onInput}
-      onfocus={onFocus}
-      onblur={() => (focused = false)}
-      onkeydown={onKeydown}
-      placeholder="Rechercher ou saisir une adresse"
-      spellcheck="false"
-      autocomplete="off"
-      aria-label="Barre d'adresse"
-      role="combobox"
-      aria-expanded={open}
-      aria-controls="address-suggestions"
-      aria-autocomplete="list"
-      aria-activedescendant={open ? `suggestion-${selected}` : undefined}
-    />
+    <div class="url" style:--actions-w="{actionsWidth}px">
+      <input
+        bind:this={input}
+        class:masked={!focused && !!label}
+        value={focused ? draft : label}
+        oninput={onInput}
+        onfocus={onFocus}
+        onblur={() => (focused = false)}
+        onkeydown={onKeydown}
+        placeholder="Rechercher ou saisir une adresse"
+        spellcheck="false"
+        autocomplete="off"
+        aria-label="Barre d'adresse"
+        role="combobox"
+        aria-expanded={open}
+        aria-controls="address-suggestions"
+        aria-autocomplete="list"
+        aria-activedescendant={open ? `suggestion-${selected}` : undefined}
+      />
+      {#if !focused && label}
+        <span class="display" aria-hidden="true" data-testid="address-display"
+          ><span class="host">{shown.host}</span>{#if shown.rest}<span class="path">{shown.rest}</span>{/if}</span
+        >
+      {/if}
+      <div class="actions" bind:offsetWidth={actionsWidth}>
+        {#if (tab?.readerable || tab?.reader) && isWebPage && !focused && !tab.reader}
+          {@render readerButton()}
+        {/if}
+        {#if tab?.hasPasswords && isWebPage && !focused}
+          <!-- Saved passwords for this site (ADR-025): choose an account to fill the login form. -->
+          <button
+            type="button"
+            class="star act"
+            aria-label="Remplir un mot de passe enregistré"
+            title="Remplir un mot de passe enregistré"
+            onmousedown={(event) => event.preventDefault()}
+            onclick={showPasswords}
+          >
+            <Icon name="key" size={16} />
+          </button>
+        {/if}
+        {#if tab?.url && !focused && !isInternal}
+          <button
+            type="button"
+            class="star copy act"
+            class:done={copied}
+            aria-label={copied ? "Lien copié" : "Copier le lien"}
+            title={copied ? "Lien copié" : platform.tip("Copier le lien", "copy-url")}
+            onclick={copyLink}
+          >
+            {#key copied}
+              <span class="glyph"><Icon name={copied ? "check" : "link"} size={16} /></span>
+            {/key}
+          </button>
+          <button
+            type="button"
+            class="star act"
+            class:on={tab.isBookmarked}
+            aria-label={tab.isBookmarked ? "Retirer des favoris" : "Ajouter aux favoris"}
+            aria-pressed={tab.isBookmarked}
+            title={platform.tip(tab.isBookmarked ? "Retirer des favoris" : "Ajouter aux favoris", "toggle-bookmark")}
+            onclick={() => api.bookmarks.toggleActive()}
+          >
+            <Icon name="star" size={16} filled={tab.isBookmarked} />
+          </button>
+        {/if}
+        {#if tab && showShield && tab.shieldsEnabled}
+          {@render shieldButton()}
+        {/if}
+        {#if tab?.url && !focused && !isInternal}
+          <button
+            type="button"
+            class="star act more"
+            aria-label="Options de la page"
+            aria-haspopup="dialog"
+            title={platform.tip("Options de la page", "page-options")}
+            onmousedown={(event) => event.preventDefault()}
+            onclick={showPageOptions}
+          >
+            <Icon name="more" size={16} />
+          </button>
+        {/if}
+      </div>
+    </div>
     {#if tab && zoomed && !focused}
       <button
         type="button"
-        class="zoom act"
+        class="zoom"
         title="Zoom de ce site : {tab.zoom} %. Cliquer pour revenir à {defaultZoom} % ({platform.shortcut('zoom-reset')})."
         aria-label="Zoom {tab.zoom} %, revenir à {defaultZoom} %"
         onclick={() => api.commands.run("zoom-reset")}
@@ -210,87 +327,11 @@
         {tab.zoom}&#8239;%
       </button>
     {/if}
-    {#if (tab?.readerable || tab?.reader) && isWebPage && !focused}
-      <!-- Reader mode (ADR-026): offered when Readability thinks the page is an article. -->
-      <button
-        type="button"
-        class="star act"
-        class:on={tab.reader}
-        class:keep={tab.reader}
-        aria-pressed={!!tab.reader}
-        aria-label={tab.reader ? "Quitter le mode lecture" : "Mode lecture"}
-        title={platform.tip(tab.reader ? "Quitter le mode lecture" : "Mode lecture", "toggle-reader")}
-        onmousedown={(event) => event.preventDefault()}
-        onclick={() => api.commands.run("toggle-reader")}
-      >
-        <Icon name="reader" size={15} />
-      </button>
+    {#if tab?.reader && isWebPage && !focused}
+      {@render readerButton()}
     {/if}
-    {#if tab?.hasPasswords && isWebPage && !focused}
-      <!-- Saved passwords for this site (ADR-025): choose an account to fill the login form. -->
-      <button
-        type="button"
-        class="star act"
-        aria-label="Remplir un mot de passe enregistré"
-        title="Remplir un mot de passe enregistré"
-        onmousedown={(event) => event.preventDefault()}
-        onclick={showPasswords}
-      >
-        <Icon name="key" size={14} />
-      </button>
-    {/if}
-    {#if tab?.url && !focused && !isInternal}
-      <button
-        type="button"
-        class="star copy act"
-        class:done={copied}
-        aria-label={copied ? "Lien copié" : "Copier le lien"}
-        title={copied ? "Lien copié" : platform.tip("Copier le lien", "copy-url")}
-        onclick={copyLink}
-      >
-        {#key copied}
-          <span class="glyph"><Icon name={copied ? "check" : "link"} size={14} /></span>
-        {/key}
-      </button>
-      <button
-        type="button"
-        class="star act"
-        class:on={tab.isBookmarked}
-        aria-label={tab.isBookmarked ? "Retirer des favoris" : "Ajouter aux favoris"}
-        aria-pressed={tab.isBookmarked}
-        title={platform.tip(tab.isBookmarked ? "Retirer des favoris" : "Ajouter aux favoris", "toggle-bookmark")}
-        onclick={() => api.bookmarks.toggleActive()}
-      >
-        <Icon name="star" size={16} filled={tab.isBookmarked} />
-      </button>
-    {/if}
-    {#if tab && showShield}
-      <button
-        type="button"
-        class="shield act"
-        class:off={!tab.shieldsEnabled}
-        class:keep={!tab.shieldsEnabled}
-        title={shieldTitle}
-        aria-label={shieldTitle}
-        aria-pressed={tab.shieldsEnabled}
-        onclick={() => tab && api.tabs.toggleShields(tab.id)}
-      >
-        <Icon name={tab.shieldsEnabled ? "shield" : "shield-off"} size={12} />
-        {#if tab.shieldsEnabled && tab.blockedCount > 0}<span class="count">{tab.blockedCount > 99 ? "99+" : tab.blockedCount}</span>{/if}
-      </button>
-    {/if}
-    {#if tab?.url && !focused && !isInternal}
-      <button
-        type="button"
-        class="star act more"
-        aria-label="Options de la page"
-        aria-haspopup="dialog"
-        title={platform.tip("Options de la page", "page-options")}
-        onmousedown={(event) => event.preventDefault()}
-        onclick={showPageOptions}
-      >
-        <Icon name="more" size={15} />
-      </button>
+    {#if tab && showShield && !tab.shieldsEnabled}
+      {@render shieldButton()}
     {/if}
     {#if recording}
       <!-- Always visible while the window records a tab: red dot, timer, stop. -->
@@ -371,28 +412,83 @@
     gap: 8px;
     min-width: 0;
     height: var(--control-height);
-    padding: 0 6px 0 10px;
+    padding: 0 4px 0 10px;
     border: 1px solid transparent;
     border-radius: var(--radius);
     background: var(--surface);
     transition:
-      background 0.15s var(--ease),
-      border-color 0.15s var(--ease),
-      box-shadow 0.15s var(--ease);
+      background var(--motion-fast) var(--ease),
+      border-color var(--motion-fast) var(--ease),
+      box-shadow var(--motion-fast) var(--ease);
   }
   .address:hover {
     background: var(--surface-hover);
   }
-  /* Hidden until the bar is hovered or holds the keyboard focus; an active state (reader on,
-     shields off) stays. Opacity only: the buttons keep their room and the URL does not move. */
-  .act {
+  /* The URL's box: the input, the at-rest display over it, and the floating buttons. */
+  .url {
+    position: relative;
+    display: flex;
+    flex: 1;
+    align-items: center;
+    align-self: stretch;
+    min-width: 0;
+  }
+  .display {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    white-space: nowrap;
+    pointer-events: none;
+    font-size: 13px;
+    /* Fades the end of the URL out: 16px at rest (long URLs), under the buttons while they show. */
+    mask-image: linear-gradient(to left, transparent var(--url-fade), #000 calc(var(--url-fade) + 16px));
+    transition: --url-fade var(--motion-fast) var(--ease);
+  }
+  .host {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--text);
+    font-weight: 500;
+  }
+  /* The path gives way first: the host stays readable as long as it fits. */
+  .path {
+    flex: 0 1000 auto;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--text-muted);
+  }
+  input.masked {
+    color: transparent;
+  }
+  .actions {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  /* Hidden until the bar is hovered or holds the keyboard focus (a click is always a hover). */
+  .actions .act {
     opacity: 0;
-    transition: opacity 0.15s var(--ease);
+    transition: opacity var(--motion-fast) var(--ease);
   }
   .address:hover .act,
   .address:focus-within .act,
   .act.keep {
     opacity: 1;
+  }
+  .address:hover .display,
+  .address:focus-within .display {
+    --url-fade: var(--actions-w);
+  }
+  /* While typing, the text stops before the buttons still shown (shields). */
+  .focused input {
+    padding-right: var(--actions-w);
   }
   .recording {
     display: flex;
@@ -431,9 +527,6 @@
     }
   }
   @media (prefers-reduced-motion: reduce) {
-    .act {
-      transition: none;
-    }
     .recording .dot {
       animation: none;
     }
@@ -453,10 +546,11 @@
   }
   .site-info {
     place-items: center;
-    width: 22px;
-    height: 22px;
-    margin-left: -5px;
-    border-radius: 6px;
+    width: var(--hit-min);
+    height: var(--hit-min);
+    margin-left: -6px;
+    border-radius: var(--radius-sm);
+    transition: background var(--motion-fast) var(--ease);
   }
   .site-info:hover {
     background: var(--surface-active);
@@ -489,8 +583,8 @@
     pointer-events: none;
     transform: translateY(-3px);
     transition:
-      opacity 0.15s var(--ease),
-      transform 0.15s var(--ease);
+      opacity var(--motion-fast) var(--ease),
+      transform var(--motion-fast) var(--ease);
   }
   .copied.visible {
     opacity: 1;
@@ -518,11 +612,12 @@
     display: flex;
     flex: none;
     align-items: center;
+    justify-content: center;
     gap: 3px;
-    height: 24px;
-    margin-right: -4px;
+    min-width: var(--hit-min);
+    height: var(--hit-min);
     padding: 0 6px;
-    border-radius: 7px;
+    border-radius: var(--radius-sm);
     color: var(--accent-text);
     font-size: 11px;
     font-variant-numeric: tabular-nums;
@@ -555,10 +650,10 @@
     display: grid;
     flex: none;
     place-items: center;
-    width: 24px;
-    height: 24px;
-    border-radius: 6px;
-    color: var(--text-faint);
+    width: var(--hit-min);
+    height: var(--hit-min);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
   }
   .star:hover {
     background: var(--surface-active);
@@ -574,7 +669,7 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--bg-elevated);
-    animation: drop 0.12s var(--ease);
+    animation: drop var(--motion-fast) var(--ease);
   }
   li {
     display: flex;

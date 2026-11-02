@@ -16,6 +16,7 @@
   import MiniBrowser from "./MiniBrowser.svelte";
   import QrCode from "./QrCode.svelte";
   import Row from "../ui/Row.svelte";
+  import Button from "../ui/Button.svelte";
 
   /** Theme gallery, export (code, file, QR) and import with a preview (ADR-030). */
 
@@ -86,11 +87,11 @@
 
 <Row label="Partager le thème" hint="Un code à coller dans Browser, sur ordinateur ou sur téléphone. Aucune image ni adresse n'est incluse." stacked>
   <div class="share">
-    <input class="field code" readonly value={code} aria-label="Code du thème" spellcheck="false" onfocus={(event) => event.currentTarget.select()} />
+    <input class="ui-field code" readonly value={code} aria-label="Code du thème" spellcheck="false" onfocus={(event) => event.currentTarget.select()} />
     <div class="buttons">
-      <button class="secondary" onclick={copy}><Icon name={copied ? "check" : "copy-text"} size={12} /> {copied ? "Copié" : "Copier le code"}</button>
-      <button class="secondary" onclick={exportFile}><Icon name={exported ? "check" : "file-down"} size={12} /> {exported ? "Exporté" : "Exporter un fichier…"}</button>
-      <button class="secondary" aria-pressed={showQr} onclick={() => (showQr = !showQr)}><Icon name="qr" size={12} /> QR code</button>
+      <Button icon={copied ? "check" : "copy-text"} onclick={copy}>{copied ? "Copié" : "Copier le code"}</Button>
+      <Button icon={exported ? "check" : "file-down"} onclick={exportFile}>{exported ? "Exporté" : "Exporter un fichier…"}</Button>
+      <Button icon="qr" aria-pressed={showQr} onclick={() => (showQr = !showQr)}>QR code</Button>
     </div>
     {#if showQr}
       <QrCode value={code} size={176} label="QR code du thème" />
@@ -102,7 +103,7 @@
   <div class="share">
     <div class="buttons">
       <input
-        class="field code"
+        class="ui-field code"
         value={draft}
         placeholder="browser-theme:v1:…"
         aria-label="Code de thème à importer"
@@ -111,8 +112,8 @@
         oninput={(event) => ((draft = event.currentTarget.value), (error = null))}
         onkeydown={(event) => event.key === "Enter" && preview(draft)}
       />
-      <button class="secondary" disabled={!draft.trim()} onclick={() => preview(draft)}><Icon name="paste" size={12} /> Aperçu</button>
-      <button class="secondary" onclick={importFile}><Icon name="file-up" size={12} /> Depuis un fichier…</button>
+      <Button icon="paste" disabled={!draft.trim()} onclick={() => preview(draft)}>Aperçu</Button>
+      <Button icon="file-up" onclick={importFile}>Depuis un fichier…</Button>
     </div>
     {#if error}<p class="error" role="alert">{error}</p>{/if}
     {#if pending}
@@ -124,8 +125,8 @@
             <i style:background={pending.accent}></i><i style:background={pending.accent2}></i>
           </span>
           <div class="buttons">
-            <button class="primary" onclick={confirm}><Icon name="check" size={12} /> Appliquer</button>
-            <button class="secondary" onclick={cancel}>Annuler</button>
+            <Button variant="primary" icon="check" onclick={confirm}>Appliquer</Button>
+            <Button onclick={cancel}>Annuler</Button>
           </div>
         </div>
       </div>
@@ -134,33 +135,42 @@
 </Row>
 
 <style>
+  /* The gallery is a full-width grid under its label: as many cards per line as fit. */
   .gallery {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: var(--space-3);
   }
   .card {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--space-2);
     padding: 6px;
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     background: var(--surface);
     text-align: left;
+    transition:
+      background var(--motion-fast) var(--ease),
+      border-color var(--motion-fast) var(--ease),
+      transform var(--motion-fast) var(--ease);
   }
   .card:hover {
+    border-color: color-mix(in oklab, var(--accent) 40%, var(--border));
     background: var(--surface-hover);
   }
+  .card:active {
+    transform: scale(0.98);
+  }
   .card[aria-pressed="true"] {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 1px var(--accent);
+    border-color: var(--accent-text);
+    box-shadow: 0 0 0 1px var(--accent-text);
   }
   .frame {
     display: block;
-    height: 64px;
+    aspect-ratio: 16 / 9;
     overflow: hidden;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
   }
   .frame.large {
     width: 180px;
@@ -170,54 +180,50 @@
   .caption {
     display: flex;
     align-items: center;
-    gap: 5px;
-    font-size: 12px;
+    gap: 6px;
+    padding: 0 2px 2px;
+    font-size: var(--text-xs);
+    font-weight: 500;
+  }
+  .card[aria-pressed="true"] .caption {
+    color: var(--accent-text);
   }
   .share {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: var(--space-3);
+  }
+  .share > .code {
+    flex: none;
   }
   .buttons {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-  }
-  .field {
-    height: 32px;
-    padding: 0 10px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    outline: 0;
-    background: var(--surface);
-    user-select: text;
-  }
-  .field:focus {
-    border-color: color-mix(in oklab, var(--accent) 60%, transparent);
+    gap: var(--space-2);
   }
   .code {
     flex: 1 1 220px;
-    min-width: 0;
+    width: 100%;
     font-family: ui-monospace, monospace;
     font-size: 11px;
   }
   .preview {
     display: flex;
     flex-wrap: wrap;
-    gap: 14px;
-    padding: 10px;
+    gap: var(--space-4);
+    padding: var(--space-3);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     background: var(--surface);
   }
   .preview-text {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-2);
   }
   .swatches {
     display: flex;
-    gap: 4px;
+    gap: var(--space-1);
   }
   .swatches i {
     width: 16px;
@@ -227,30 +233,7 @@
   }
   .error {
     margin: 0;
-    color: var(--danger, #c62828);
-    font-size: 12px;
-  }
-  .primary,
-  .secondary {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    height: 32px;
-    padding: 0 12px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--surface);
-    white-space: nowrap;
-  }
-  .primary {
-    border-color: transparent;
-    background: var(--accent);
-    color: var(--on-accent);
-  }
-  .secondary:hover:not(:disabled) {
-    background: var(--surface-hover);
-  }
-  .secondary:disabled {
-    opacity: 0.5;
+    color: var(--danger-text);
+    font-size: var(--text-xs);
   }
 </style>

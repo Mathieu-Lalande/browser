@@ -59,6 +59,14 @@ describe("derivePalette", () => {
       }
       expect(contrastRatio(solid(palette.onAccent), solid(palette.accent))).toBeGreaterThanOrEqual(CONTRAST.text);
     });
+
+    it.each(ACCENTS)(`keeps muted text readable on the tinted backdrop in ${mode} mode with accent %s`, (accent) => {
+      const palette = derivePalette(accent, "#d77bff", mode);
+      // The strongest tint of the mesh backdrop behind the sidebar.
+      const tinted = blend(parseHex(palette.accent)!, 0.34, solid(palette.bg));
+      expect(contrastRatio(solid(palette.textMuted), tinted)).toBeGreaterThanOrEqual(CONTRAST.text);
+      expect(contrastRatio(solid(palette.text), tinted)).toBeGreaterThanOrEqual(CONTRAST.text);
+    });
   }
 
   it("keeps the chosen accents as they are and follows the mode", () => {
