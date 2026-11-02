@@ -105,11 +105,17 @@ import FolderPlus from "lucide-react-native/icons/folder-plus";
 import LayoutGrid from "lucide-react-native/icons/layout-grid";
 import Type from "lucide-react-native/icons/type";
 import Undo2 from "lucide-react-native/icons/undo-2";
+import Play from "lucide-react-native/icons/play";
+import Pause from "lucide-react-native/icons/pause";
+import AudioLines from "lucide-react-native/icons/audio-lines";
 
 const ui = {
   search: Search,
   plus: Plus,
   close: X,
+  play: Play,
+  pause: Pause,
+  "audio-lines": AudioLines,
   back: ChevronLeft,
   forward: ChevronRight,
   share: Share,

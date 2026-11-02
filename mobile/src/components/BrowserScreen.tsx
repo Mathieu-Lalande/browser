@@ -30,6 +30,7 @@ import { ActionSheet, type MenuItem, type MenuSpec } from "./ActionSheet";
 import { BottomBar, COLLAPSED_HEIGHT, EXPANDED_HEIGHT } from "./BottomBar";
 import { FolderNameSheet } from "./FolderNameSheet";
 import { HttpsOnlyPage } from "./HttpsOnlyPage";
+import { MiniBar } from "./MiniBar";
 import { PeekSheet, type PeekRequest } from "./PeekSheet";
 import { ReaderScreen } from "./ReaderScreen";
 import { SearchSheet } from "./SearchSheet";
@@ -38,6 +39,8 @@ import { SpaceEditor } from "./SpaceEditor";
 import { StartPage } from "./StartPage";
 import { initialScroll, overviewGeometry, overviewTarget, TabOverview } from "./TabOverview";
 import { WebTab } from "./WebTab";
+import { miniBarOf } from "../lib/media";
+import type { MediaProbe } from "@shared/media";
 
 /** WebViews kept alive besides the active one (unmounted tabs reload when shown again). */
 const MAX_LIVE_TABS = 4;
@@ -339,6 +342,23 @@ export function BrowserScreen() {
       { key: "share", label: "Partager le lien", icon: "share", onPress: () => share(request.url, request.text) },
     );
     setMenu({ title: request.text || displayUrl(request.url), subtitle: request.url, siteUrl: request.url, items });
+  });
+
+  // --- Mini-player (ADR-035): the media of the page on screen only -------------------------------
+  const [media, setMedia] = useState<{ tabId: string; probe: MediaProbe | null; dismissed: boolean } | null>(null);
+  const onMedia = useEvent((tabId: string, probe: MediaProbe | null) => {
+    setMedia((previous) => {
+      if (!probe) return previous?.tabId === tabId ? null : previous;
+      // "Fermer" holds until the page plays again.
+      const dismissed = previous?.tabId === tabId && previous.dismissed && probe.element?.paused !== false;
+      return { tabId, probe, dismissed };
+    });
+  });
+  const miniBar = tab && media?.tabId === tab.id && overlay === "none" ? miniBarOf(media.probe, tab, media.dismissed) : null;
+  const closeMiniBar = useEvent(() => {
+    if (!media) return;
+    actions.controlMedia(media.tabId, "pause");
+    setMedia({ ...media, dismissed: true });
   });
 
   /** A login was submitted in a normal tab (ADR-025): offer to save or update its password. */
@@ -772,6 +792,7 @@ export function BrowserScreen() {
               readerToken={readerRequest?.tabId === candidate.id ? readerRequest.token : null}
               onReaderArticle={onReaderArticle}
               boosts={isPrivateTab(candidate) ? privateBoosts : normalBoosts}
+              onMedia={onMedia}
             />
           ))}
           {showStart && (
@@ -794,6 +815,11 @@ export function BrowserScreen() {
         </Animated.View>
       </Animated.View>
 
+      {miniBar && !showStart && (
+        <View style={[styles.miniBar, { bottom: (collapsed ? collapsedBar : expandedBar) + 8 }]} pointerEvents="box-none">
+          <MiniBar {...miniBar} onToggle={() => actions.controlMedia(media!.tabId, "toggle")} onClose={closeMiniBar} />
+        </View>
+      )}
       <Animated.View style={[StyleSheet.absoluteFill, { zIndex: 3 }, barStyle]} pointerEvents={overlay === "none" ? "box-none" : "none"}>
         <BottomBar
           tab={tab}
@@ -867,4 +893,5 @@ export function BrowserScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   page: { position: "absolute", left: 0, overflow: "hidden", transformOrigin: "left top" },
+  miniBar: { position: "absolute", left: 0, right: 0, zIndex: 3 },
 });

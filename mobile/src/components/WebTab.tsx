@@ -10,6 +10,7 @@ import { boostScript, boostsForHost, type BoostPayload } from "../lib/boosts";
 import { LINK_MENU_COOLDOWN_MS, linkMenuScript, parseLinkMenuMessage, type LinkMenuRequest } from "../lib/linkMenu";
 import { decideNavigation, decideOpenWindow, isHttpsUpgradeFailure } from "../lib/navigation";
 import { PASSWORD_PROMPT_COOLDOWN_MS, PasswordCaptureGuard, captureNonce } from "../lib/passwords";
+import { MediaWatchGuard, newMediaNonce } from "../lib/media";
 import { desktopUserAgent, parseReaderMessage, readerScript } from "../lib/reader";
 import { useBrowserActions, useEvent } from "../state/BrowserProvider";
 import { LoadError } from "./LoadError";
@@ -22,6 +23,7 @@ const WebView = RNWebView as unknown as ComponentType<WebViewProps & { ref?: Ref
 const INJECTED = linkMenuScript(Platform.OS);
 const NO_BOOSTS: readonly BoostPayload[] = [];
 const newCaptureNonce = () => captureNonce(getRandomBytes);
+const newWatchNonce = () => newMediaNonce(getRandomBytes);
 /** Only these schemes may ever reach the native view (navigation policy: `decideNavigation`). */
 export const WEBVIEW_ORIGIN_WHITELIST = ["http://*", "https://*", "about:*", "data:*", "mailto:*", "tel:*", "sms:*"];
 
@@ -50,6 +52,7 @@ export const WebTab = memo(function WebTab({
   readerToken = null,
   onReaderArticle,
   boosts = NO_BOOSTS,
+  onMedia,
 }: WebTabProps) {
   const actions = useBrowserActions();
   const ref = useRef<WebViewHandle | null>(null);
@@ -105,7 +108,14 @@ export const WebTab = memo(function WebTab({
   // Login capture (ADR-025): normal tabs only; a script with a fresh nonce per main-frame document.
   const captureGuard = useRef<PasswordCaptureGuard | null>(null);
   captureGuard.current ??= new PasswordCaptureGuard(newCaptureNonce);
-  const onLoadStart = useEvent(() => captureGuard.current?.loadStarted());
+  // Media watcher (ADR-035): same nonce-per-document rule, private tabs included (nothing is stored).
+  const mediaGuard = useRef<MediaWatchGuard | null>(null);
+  mediaGuard.current ??= new MediaWatchGuard(newWatchNonce);
+  const onLoadStart = useEvent(() => {
+    captureGuard.current?.loadStarted();
+    mediaGuard.current?.loadStarted();
+    onMedia?.(id, null);
+  });
   const onLoadEnd = useEvent((event: { nativeEvent: { url: string } }) => {
     const { url } = event.nativeEvent;
     const host = boostHostOf(url);
@@ -114,6 +124,8 @@ export const WebTab = memo(function WebTab({
     if (matching.length) ref.current?.injectJavaScript(boostScript(matching, host));
     const capture = isPrivate ? null : captureGuard.current?.loadEnded(url);
     if (capture) ref.current?.injectJavaScript(capture);
+    const watch = mediaGuard.current?.loadEnded(url);
+    if (watch) ref.current?.injectJavaScript(watch);
   });
 
   // Reader mode requested: run Readability in the page; the answer comes back through onMessage.
@@ -178,6 +190,11 @@ export const WebTab = memo(function WebTab({
     const article = parseReaderMessage(event.nativeEvent.data, readerTokenRef.current, currentUrl.current);
     if (article !== undefined) {
       if (readerTokenRef.current) onReaderArticle?.(id, article);
+      return;
+    }
+    const media = mediaGuard.current?.parse(event.nativeEvent.data, event.nativeEvent.url, currentUrl.current);
+    if (media !== undefined) {
+      onMedia?.(id, media);
       return;
     }
     // A login capture: from this document's script (nonce), credited to this tab's page, never to

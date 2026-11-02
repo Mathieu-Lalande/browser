@@ -1636,3 +1636,47 @@ notes) et réinitialisation. Les anciens `showClock`/`showTopSites` sont migrés
 **Conséquences.** `MAX_SETTINGS_PATCH` passe à 96 Ko (notes et tâches dans les réglages). Les notes vivent dans
 `settings.json` (en clair, comme le reste des réglages). Un ancien appareil qui synchronise `showClock: false` sans
 liste de widgets peut réimposer la disposition par défaut sans horloge.
+
+## ADR-035 — Pause des médias (mini-lecteur)
+
+**Contexte.** Une musique ou une vidéo qui joue dans un onglet qu'on a quitté oblige à le retrouver pour la mettre en
+pause. Il fallait un mini-lecteur, sur le bureau et le téléphone, sans preload ni script dans le monde de la page.
+
+**Décision.** Un **modèle pur** `src/shared/media.ts` : `parseMediaProbe` (relevé non fiable de la page : textes
+nettoyés et bornés, durées finies, pochette choisie par `pickArtwork` parmi les URL http(s) ou `data:` matricielles),
+`buildSource`/`sameSource` (une source par onglet : titre, sous-titre, pochette, lecture, position et instant de
+lecture, `changedAt`), `miniPlayerSources` (sauf les onglets à l'écran, en lecture ou en pause depuis moins de
+5 minutes, la plus récente d'abord), `currentPosition`/`formatMediaTime`, `isMediaAction`.
+- **Main** (`src/main/media/`) : `MediaHub` par fenêtre. `TabManager` relaie `media-started-playing`/`media-paused`
+  (crochet `media`, gardé en fenêtre privée) ; le hub sonde alors la page dans le **monde isolé 1011** (`probe.ts` :
+  `navigator.mediaSession.metadata`, élément `<audio>`/`<video>` suivi — le dernier lancé, retenu par un écouteur
+  `play` en phase de capture dans le monde isolé —, durée, position, pause), puis toutes les secondes **tant que
+  quelque chose joue** seulement. La pochette est téléchargée par main avec la session de l'onglet (bouclier,
+  HTTPS-Only, GPC via `faviconRequestUrl`), 256 Ko au plus, et passée en `data:` (ADR-018) ; à défaut, le favicon.
+  N'est envoyé à l'interface (`media:changed`) que ce qui change ; l'interface extrapole la position.
+- **Commandes** (`media:*`, vérifiées par le registre IPC, émetteur = fenêtre connue) : lecture/pause, recul/avance
+  de 10 s, position, exécutées dans le monde isolé avec geste utilisateur ; son (`TabManager.toggleMute` de l'espace
+  de l'onglet) ; image dans l'image (script existant) ; « Aller à l'onglet » (change d'espace au besoin) ; fermer
+  (pause + masquée jusqu'à la prochaine lecture). Les gestionnaires `mediaSession.setActionHandler` de la page vivent
+  dans son monde : on ne peut pas les appeler sans y injecter de script (exclu, ADR-003). « Précédent/suivant »
+  deviennent donc **« Reculer/Avancer de 10 s »**. Les **touches multimédias** matérielles passent, elles, par le
+  service de session média de Chromium, qui vise la dernière session active : rien à ajouter (pas de
+  `globalShortcut`).
+- **« Tout mettre en pause »** (`pause-all-media`, <kbd>Ctrl/⌘ Alt P</kbd>, registre des commandes) : toutes les
+  sources de toutes les fenêtres.
+- **Interface** : `MiniPlayer.svelte` en bas de la barre latérale, au-dessus du pied (dans la barre, donc jamais
+  sous une vue native) : pochette, titre/artiste coupés par des points de suspension, barre de progression
+  (`input type=range`), lecture/pause, avancer, image dans l'image (vidéo), fermer ; avec plusieurs sources, un
+  compteur déplie la liste au-dessus de la carte. Mode compact : un bouton lecture/pause dans le rail. Icônes Lucide,
+  animations `--motion-*`.
+- **Fenêtres privées** : même fonctionnement, rien n'est écrit (le hub vit avec les pages).
+- **Téléphone** : seul l'onglet affiché joue (les autres WebView sont masquées et suspendues par le système), donc
+  pas de hub : `mobile/src/lib/media.ts` injecte après chaque chargement un guetteur avec un **nonce aléatoire par
+  document** (`MediaWatchGuard`, même règle que la capture des mots de passe d'ADR-025 : message refusé hors de
+  l'origine du document ou avec un autre nonce), validé par `parseMediaProbe`. `MiniBar.tsx` au-dessus de la barre
+  d'outils : lecture/pause et fermer (script injecté au toucher).
+
+**Conséquences.** Les médias dans un cadre d'une autre origine ou dans un objet `Audio` hors du DOM ne sont pas
+pilotables (la source est affichée, ses boutons lecture et position désactivés ; le son se coupe depuis l.onglet) ;
+« Tout mettre en pause » ne les atteint pas. Une page peut annoncer des métadonnées fausses : elles ne servent qu'à
+l'affichage, en texte.

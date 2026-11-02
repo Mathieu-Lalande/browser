@@ -77,6 +77,9 @@ const RUNNERS: Record<CommandId, Runner> = {
   "open-downloads": (c) => c.openDownloads(),
   "toggle-mute": onActiveTab((c, id) => c.tabs.toggleMute(id)),
   "picture-in-picture": onActiveTab((c, id) => c.tabs.pictureInPicture(id)),
+  "pause-all-media": () => {
+    for (const controller of BrowserController.all()) void controller.media.pauseAll();
+  },
   "toggle-split": (c) => toggleSplit(c.tabs),
   "new-space": (c) => {
     // A private window has a single ephemeral space (ADR-014).

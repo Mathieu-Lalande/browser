@@ -3,6 +3,7 @@ import type { Channels } from "@shared/ipc";
 import { installRecorder } from "../capture/record";
 import { BrowserController } from "../window";
 import { downloadHandlers } from "./downloads";
+import { mediaHandlers } from "./media";
 import { archiveHandlers, favoriteHandlers, folderHandlers, spaceHandlers } from "./organize";
 import { passwordHandlers } from "./passwords";
 import { boostHandlers, captureHandlers } from "./page";
@@ -31,6 +32,7 @@ type EventChannel = (typeof Channels)[
   | "passwordsChanged"
   | "boostsChanged"
   | "peekState"
+  | "mediaChanged"
   | "pageSwipeState"];
 
 /** Every channel the UI sends or invokes: the compiler checks each one has exactly one handler. */
@@ -55,6 +57,7 @@ const handlers = {
   ...syncHandlers,
   ...updateHandlers,
   ...themeHandlers,
+  ...mediaHandlers,
 } satisfies Record<RequestChannel, Entry> & { [C in EventChannel]?: never };
 
 export function registerIpc(): void {

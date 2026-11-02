@@ -4,6 +4,7 @@
   import Icon from "./Icon.svelte";
   import IconButton from "./ui/IconButton.svelte";
   import TabIcon from "./TabIcon.svelte";
+  import MediaRailButton from "./media/MediaRailButton.svelte";
 
   /**
    * Compact mode (ADR-033): the sidebar folded to a rail of tab icons. Hovering it unfolds the
@@ -46,6 +47,7 @@
       </button>
     {/each}
   </div>
+  <MediaRailButton />
   <IconButton icon="settings" label="Paramètres" title={platform.tip("Paramètres", "open-settings")} onclick={() => api.settings.open()} />
 </nav>
 

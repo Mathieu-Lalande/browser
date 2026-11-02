@@ -41,6 +41,7 @@ export type CommandId =
   | "open-downloads"
   | "toggle-mute"
   | "picture-in-picture"
+  | "pause-all-media"
   | "toggle-split"
   | "new-space"
   | "next-space"
@@ -108,6 +109,7 @@ export type CommandIcon =
   | "download"
   | "volume"
   | "pip"
+  | "pause"
   | "split"
   | "layers"
   | "mask"
@@ -296,6 +298,13 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
     keywords: ["picture in picture", "pip", "vidéo", "flottante", "lecteur"],
     icon: "pip",
     needsPage: true,
+  },
+  // Media hub (ADR-035): every tab of every window, whichever is on screen.
+  "pause-all-media": {
+    label: "Tout mettre en pause",
+    keywords: ["pause", "médias", "media", "musique", "vidéo", "audio", "silence", "lecteur"],
+    accelerator: "CmdOrCtrl+Alt+P",
+    icon: "pause",
   },
   "toggle-split": {
     label: "Vue scindée",
@@ -594,6 +603,7 @@ export const COMMAND_GROUPS: readonly { label: string; ids: readonly CommandId[]
       "duplicate-tab",
       "toggle-pin",
       "toggle-mute",
+      "pause-all-media",
       "sleep-tab",
       "sleep-other-tabs",
       "new-folder",

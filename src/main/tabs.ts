@@ -31,7 +31,7 @@ import {
 import { PageFind } from "./find";
 import { mobileUserAgent } from "./fingerprint";
 import { isPageReaderable } from "./reader/page";
-import { togglePictureInPicture } from "./media";
+import { togglePictureInPicture } from "./media/pip";
 import { webHostname } from "@shared/hosts";
 import { hardenWebContents } from "./security";
 import type { SleepCandidate } from "./sleep";
@@ -122,6 +122,8 @@ export interface TabManagerHooks {
   pageWheel?(tabId: TabId, sample: PageWheelSample): void;
   /** Ctrl+wheel or a pinch asks to zoom the page (paced by the window, ADR-033). */
   pageZoom?(tabId: TabId, direction: 1 | -1): void;
+  /** The page started or stopped playing media: the window's media hub follows it (ADR-035). */
+  media?(tabId: TabId, contents: WebContents, playing: boolean): void;
 }
 
 /** User preferences TabManager follows (see `configure`). */
@@ -1299,6 +1301,8 @@ export class TabManager {
       tab.state.isAudible = event.audible;
       this.emit();
     });
+    on("media-started-playing", () => this.hooks.media?.(tab.id, contents, true));
+    on("media-paused", () => this.hooks.media?.(tab.id, contents, false));
     // Listens through `on` too, so a tab moving to another space keeps a single finder (its query stays).
     tab.finder = new PageFind(contents, on, tab.state.find, (find) => {
       tab.state.find = find;

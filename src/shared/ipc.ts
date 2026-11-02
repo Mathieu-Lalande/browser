@@ -14,6 +14,7 @@ import type {
   PromptAnswer,
 } from "./passwords";
 import type { DownloadEntry, DownloadsChange } from "./downloads";
+import type { MediaAction, MediaSource } from "./media";
 import type { OmniboxTab, OpenDisposition } from "./omnibox/types";
 import type { PeekAction, PeekState } from "./peek";
 import type { ReaderArticle } from "./reader";
@@ -205,6 +206,13 @@ export const Channels = {
   boostsChanged: "boosts:changed",
   peekState: "peek:state",
   peekAction: "peek:action",
+  mediaList: "media:list",
+  mediaChanged: "media:changed",
+  mediaAction: "media:action",
+  mediaPictureInPicture: "media:picture-in-picture",
+  mediaFocus: "media:focus",
+  mediaMute: "media:mute",
+  mediaDismiss: "media:dismiss",
 } as const;
 
 /** Outcome of a sync action (errors are messages for the user: they do not cross IPC as exceptions). */
@@ -346,6 +354,21 @@ export interface BrowserApi {
     /** Overlay page only: the card's header and geometry changed (title, address, resize…). */
     onState(listener: (state: PeekState) => void): () => void;
     action(action: PeekAction): void;
+  };
+  /**
+   * Media hub (ADR-035): tabs of this window playing (or recently paused) media. Controls name a
+   * tab; main runs them in its page's isolated world.
+   */
+  media: {
+    list(): Promise<MediaSource[]>;
+    onChanged(listener: (sources: MediaSource[]) => void): () => void;
+    action(tabId: TabId, action: MediaAction): void;
+    pictureInPicture(tabId: TabId): void;
+    /** Shows the tab (switching space if needed). */
+    focus(tabId: TabId): void;
+    toggleMute(tabId: TabId): void;
+    /** Pauses the source and hides it until it plays again. */
+    dismiss(tabId: TabId): void;
   };
   spaces: {
     /** Creates a space (defaults for missing fields) and shows it in this window; null at the limit. */

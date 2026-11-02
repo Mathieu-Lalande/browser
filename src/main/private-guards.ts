@@ -32,6 +32,8 @@ export function tabHooksFor(hooks: TabManagerHooks, isPrivate: boolean): TabMana
         gesturePage: hooks.gesturePage,
         pageWheel: hooks.pageWheel,
         pageZoom: hooks.pageZoom,
+        // The media hub keeps nothing beyond the pages' lifetime (ADR-035).
+        media: hooks.media,
       }
     : hooks;
 }

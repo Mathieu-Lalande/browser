@@ -32,6 +32,25 @@ export const ICON_PNG = Buffer.from(
   "base64",
 );
 
+/** 30 s of silence (8 kHz, 8-bit mono WAV), generated: no media file in the repository. */
+const SILENT_WAV = (() => {
+  const samples = 8000 * 30;
+  const header = Buffer.alloc(44);
+  header.write("RIFF", 0);
+  header.writeUInt32LE(36 + samples, 4);
+  header.write("WAVEfmt ", 8);
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20); // PCM
+  header.writeUInt16LE(1, 22); // mono
+  header.writeUInt32LE(8000, 24);
+  header.writeUInt32LE(8000, 28);
+  header.writeUInt16LE(1, 32);
+  header.writeUInt16LE(8, 34);
+  header.write("data", 36);
+  header.writeUInt32LE(samples, 40);
+  return Buffer.concat([header, Buffer.alloc(samples, 128)]);
+})();
+
 const query = (path: string, name: string) => new URL(path, "http://x").searchParams.get(name);
 
 /** Tiny local site so tests never touch the network. */
@@ -125,6 +144,20 @@ function startServer(): Promise<{ server: Server; origin: string; log: ServerLog
           `<script>const c = document.getElementById("c"), g = c.getContext("2d"); let t = 0;` +
           `setInterval(() => { g.fillStyle = "hsl(" + (t++ * 9) % 360 + " 70% 50%)"; g.fillRect(0, 0, 160, 90); }, 40);` +
           `document.getElementById("v").srcObject = c.captureStream(25);</script>`,
+      );
+    } else if (path.startsWith("/silence.wav")) {
+      res.setHeader("content-type", "audio/wav");
+      res.end(SILENT_WAV);
+    } else if (path.startsWith("/media")) {
+      // Media hub (ADR-035): a looping silent track with media session metadata.
+      const title = query(path, "title") ?? "Morceau de test";
+      res.end(
+        `<title>Media</title><audio id="a" src="/silence.wav" loop autoplay></audio>` +
+          `<script>navigator.mediaSession.metadata = new MediaMetadata(${JSON.stringify({
+            title,
+            artist: "Testeur",
+            artwork: [{ src: "/icon.png", sizes: "96x96", type: "image/png" }],
+          })});</script>`,
       );
     } else if (path.startsWith("/file-link")) {
       res.end(`<title>File link</title><a id="file" href="file:///etc/hostname">file</a>`);

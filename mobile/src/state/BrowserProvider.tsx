@@ -1,4 +1,5 @@
 import { BOOSTS_VERSION, sanitizeBoosts, type Boost } from "@shared/boosts";
+import { mediaControlScript } from "../lib/media";
 import { addArchived, removeArchived, sanitizeArchive, type ArchivedTab } from "@shared/archive";
 import { addFavorite, favoriteTab, isFavoriteTab, removeFavorite, sanitizeFavorites, type Favorite } from "@shared/favorites";
 import { History } from "@shared/history";
@@ -96,6 +97,8 @@ export interface BrowserActions {
   updateSettings(patch: SettingsPatch): void;
   updateMobileSettings(patch: Partial<MobileSettings>): void;
   registerWebView(id: TabId, ref: WebViewHandle | null): void;
+  /** Mini-player (ADR-035): plays/pauses the media of the tab's page. */
+  controlMedia(id: TabId, action: "toggle" | "pause"): void;
   /** Favorites grid (ADR-022): never edited from private tabs (the caller checks). */
   toggleFavorite(tab: Pick<MobileTab, "url" | "title">): void;
   removeFavorite(url: string): void;
@@ -460,6 +463,9 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
       },
       stop() {
         webView(active()?.id)?.stopLoading();
+      },
+      controlMedia(id, action) {
+        webView(id)?.injectJavaScript(mediaControlScript(action));
       },
       reportNavigation(id, report) {
         const tab = latest.current.model.tabs.find((candidate) => candidate.id === id);

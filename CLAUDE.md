@@ -83,3 +83,6 @@
 - Nouvel onglet personnalisable (ADR-034) : modèle pur `src/shared/start-widgets.ts` (`settings.startPage.widgets`, catalogue,
   dispositions, notes/tâches jamais synchronisées), météo Open-Meteo `src/shared/weather.ts` demandée par main (`src/main/weather.ts`) ;
   bureau `src/renderer/src/components/start/` (`StartLayout`, mode édition), mobile `StartPage.tsx`/`StartWidgets.tsx`.
+- Pause des médias (ADR-035) : modèle pur `src/shared/media.ts`, `MediaHub` par fenêtre (`src/main/media/`, sonde en monde isolé 1011,
+  relevé seulement pendant la lecture, pochette en `data:`), canaux `media:*`, `MiniPlayer.svelte` (barre latérale), commande
+  `pause-all-media` ; mobile `mobile/src/lib/media.ts` (nonce par document) + `MiniBar.tsx`.

@@ -23,6 +23,7 @@
   import SplitGroup from "./split/SplitGroup.svelte";
   import FavoritesGrid from "./folders/FavoritesGrid.svelte";
   import FolderEditor from "./folders/FolderEditor.svelte";
+  import MiniPlayer from "./media/MiniPlayer.svelte";
 
   /**
    * `windowControls`: draw the window buttons in the title bar (Windows/Linux, see App): at its
@@ -539,7 +540,7 @@
   function onSidebarContextMenu(event: MouseEvent): void {
     if (event.defaultPrevented) return;
     const target = event.target as HTMLElement;
-    if (target.closest("button, input, a, [data-drag-kind], [data-tab-id], .favorites-area, .footer")) return;
+    if (target.closest("button, input, a, [data-drag-kind], [data-tab-id], .favorites-area, .footer, .mini-player")) return;
     event.preventDefault();
     api.sidebar.contextMenu();
   }
@@ -811,6 +812,7 @@
       <span>{drag.label}</span>
     </div>
   {/if}
+  <MiniPlayer />
   <footer class="footer">
     {#if browser.isPrivate}
       <!-- One ephemeral space per private window: no switcher (ADR-014). -->

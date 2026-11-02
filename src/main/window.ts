@@ -14,6 +14,7 @@ import { recordingOf } from "./capture/record";
 import { favoriteFavicon, favoriteTiles, setArchiveNotifier, setFavoritesRefresh } from "./organize";
 import { Overlay } from "./overlay";
 import { LinkPeek } from "./peek";
+import { MediaHub } from "./media";
 import { boostPage } from "./boosts";
 import { watchPasswordForms } from "./passwords";
 import { hasPasswordsFor, setPasswordsNotifier } from "./passwords/vault";
@@ -131,6 +132,8 @@ export class BrowserController {
   readonly peek: LinkPeek;
   /** Pinch zoom pacing and the two-finger swipe back/forward on pages (ADR-033). */
   readonly gestures: PageGestures = new PageGestures(this);
+  /** Tabs playing media, for the sidebar's mini-player (ADR-035). */
+  readonly media: MediaHub = new MediaHub(this);
   /**
    * Private window: never written to the profile (history, session, permissions…). Anything that
    * persists per window checks this; per-session hooks (downloads) use `isPrivateSession` (./private).
@@ -193,6 +196,7 @@ export class BrowserController {
         // A tab view attached while the overlay is open must not cover it.
         if (this.overlay.isOpen) this.overlay.raise();
         if (!this.isPrivate) BrowserController.saveSession();
+        this.media.sync();
       },
       tabHooksFor(
         {
@@ -204,6 +208,7 @@ export class BrowserController {
           gesturePage: (contents) => watchPageWheel(contents),
           pageWheel: (tabId, sample) => this.gestures.feedPage(tabId, sample),
           pageZoom: (tabId, direction) => this.gestures.zoom(tabId, direction),
+          media: (tabId, contents, playing) => this.media.report(tabId, contents, playing),
         },
         this.isPrivate,
       ),
@@ -272,6 +277,7 @@ export class BrowserController {
       if (outcome === "keep") BrowserController.saveSession(true);
       controllers.delete(chrome.id);
       if (outcome === "forget") BrowserController.saveSession();
+      this.media.destroy();
       try {
         this.spaces.destroy();
       } finally {

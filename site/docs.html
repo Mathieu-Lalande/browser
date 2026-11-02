@@ -99,7 +99,7 @@
             <li><a href="#mots-de-passe">Mots de passe</a></li>
             <li><a href="#extensions">Extensions</a></li>
             <li><a href="#captures">Options de la page, captures</a></li>
-            <li><a href="#pages">Téléchargements, recherche, zoom</a></li>
+            <li><a href="#pages">Téléchargements, zoom, médias</a></li>
             <li><a href="#confidentialite">Confidentialité</a></li>
             <li><a href="#apparence">Apparence et thèmes</a></li>
             <li><a href="#raccourcis">Raccourcis clavier</a></li>
@@ -190,6 +190,7 @@
             <li>Recherche plein écran (même moteur que la barre universelle du bureau), vue des onglets en grille par espace, dossiers, favoris et archivage.</li>
             <li>Navigation privée, HTTPS uniquement, mode lecture, version ordinateur d'un site, aperçu des liens par appui long.</li>
             <li>Mots de passe dans le trousseau du téléphone, boosts (sans l'outil de masquage), thèmes partageables.</li>
+            <li>Mini-lecteur au-dessus de la barre d'outils quand la page joue un média.</li>
             <li>Synchronisation chiffrée avec le bureau (jumelage par QR code).</li>
           </ul>
           <p class="muted">Le bloqueur de pubs mobile arrivera avec la version compilée (phase 2).</p>
@@ -512,7 +513,21 @@
             <li><strong>Téléchargements</strong> : enregistrés sans boîte de dialogue (ou toujours demander où, Paramètres, Téléchargements), avec pause, reprise et annulation. Les programmes et scripts attendent votre confirmation ; rien n'est ouvert automatiquement. Liste : <kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>J</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>L</kbd>) ou <code>browser://downloads</code>.</li>
             <li><strong>Rechercher dans la page</strong> : <kbd>Ctrl</kbd> <kbd>F</kbd>, puis <kbd>Entrée</kbd> / <kbd>Maj</kbd> <kbd>Entrée</kbd>, <kbd>F3</kbd> ou <kbd>Ctrl</kbd> <kbd>G</kbd> pour l'occurrence suivante. Le compteur et la casse sont gardés par onglet.</li>
             <li><strong>Zoom</strong> : <kbd>Ctrl</kbd> <kbd>+</kbd> / <kbd>-</kbd> / <kbd>0</kbd>, pincement ou <kbd>Ctrl</kbd> + molette, mémorisé par site ; zoom par défaut dans Paramètres, Apparence.</li>
-            <li><strong>Médias</strong> : <kbd>Ctrl</kbd> <kbd>M</kbd> coupe le son de l'onglet ; « Image dans l'image » détache la vidéo.</li>
+            <li><strong>Médias</strong> : <kbd>Ctrl</kbd> <kbd>M</kbd> coupe le son de l'onglet ; « Image dans l'image » détache la vidéo ; <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>P</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>P</kbd>) met tout en pause.</li>
+          </ul>
+          <h3 id="pause-medias">Pause des médias</h3>
+          <p>
+            Quand un autre onglet que celui affiché joue de la musique ou une vidéo, un mini-lecteur apparaît en bas de la
+            barre latérale : pochette, titre et artiste annoncés par le site, barre de progression cliquable, lecture/pause,
+            « Avancer de 10 s », image dans l'image pour une vidéo, et fermer (met en pause et masque le lecteur). Un clic sur
+            le titre affiche l'onglet, même dans un autre espace. Une source mise en pause reste proposée 5 minutes.
+          </p>
+          <ul>
+            <li><strong>Plusieurs sources</strong> : un compteur ouvre la liste de toutes, chacune avec lecture/pause, son et fermeture.</li>
+            <li><strong>« Tout mettre en pause »</strong> (palette, menu ou raccourci) arrête tous les onglets de toutes les fenêtres.</li>
+            <li><strong>Touches multimédias</strong> du clavier : elles pilotent le dernier lecteur actif.</li>
+            <li><strong>Mode compact</strong> : un bouton lecture/pause dans le rail. Fonctionne aussi en fenêtre privée, sans rien enregistrer.</li>
+            <li><strong>Téléphone</strong> : une barre au-dessus de la barre d'outils pour la page affichée (les onglets en arrière-plan sont suspendus par le système).</li>
           </ul>
         </section>
 

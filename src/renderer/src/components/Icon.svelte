@@ -73,6 +73,9 @@
   import Pin from "@lucide/svelte/icons/pin";
   import Plane from "@lucide/svelte/icons/plane";
   import Play from "@lucide/svelte/icons/play";
+  import Rewind from "@lucide/svelte/icons/rewind";
+  import FastForward from "@lucide/svelte/icons/fast-forward";
+  import AudioLines from "@lucide/svelte/icons/audio-lines";
   import Plus from "@lucide/svelte/icons/plus";
   import Rocket from "@lucide/svelte/icons/rocket";
   import CircleArrowUp from "@lucide/svelte/icons/circle-arrow-up";
@@ -239,6 +242,9 @@
     open: ExternalLink,
     pause: Pause,
     play: Play,
+    rewind: Rewind,
+    "fast-forward": FastForward,
+    "audio-lines": AudioLines,
     "chevron-up": ChevronUp,
     "chevron-down": ChevronDown,
     // Sync (ADR-019).

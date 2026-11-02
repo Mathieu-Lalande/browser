@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
 import type { DownloadsChange } from "@shared/downloads";
 import { Channels, type BrowserApi } from "@shared/ipc";
+import type { MediaSource } from "@shared/media";
 import type { PeekState } from "@shared/peek";
 import type { Settings } from "@shared/settings";
 import type { KeyPress } from "@shared/accelerators";
@@ -196,6 +197,15 @@ const api: BrowserApi = {
     chooseFolder: () => ipcRenderer.invoke(Channels.downloadsChooseFolder),
     showPanel: (anchor) => send(Channels.downloadsShowPanel, anchor),
     openPage: () => send(Channels.downloadsOpenPage),
+  },
+  media: {
+    list: () => ipcRenderer.invoke(Channels.mediaList),
+    onChanged: (listener) => subscribe<MediaSource[]>(Channels.mediaChanged, listener),
+    action: (tabId, action) => send(Channels.mediaAction, tabId, action),
+    pictureInPicture: (tabId) => send(Channels.mediaPictureInPicture, tabId),
+    focus: (tabId) => send(Channels.mediaFocus, tabId),
+    toggleMute: (tabId) => send(Channels.mediaMute, tabId),
+    dismiss: (tabId) => send(Channels.mediaDismiss, tabId),
   },
   updates: {
     status: () => ipcRenderer.invoke(Channels.updatesStatus),

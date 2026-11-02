@@ -1,3 +1,4 @@
+import type { MediaProbe } from "@shared/media";
 import type { PasswordCapture } from "@shared/passwords";
 import type { ReaderArticle } from "@shared/reader";
 import type { BoostPayload } from "../lib/boosts";
@@ -28,4 +29,6 @@ export interface WebTabProps {
   onReaderArticle?: (tabId: string, article: ReaderArticle | null) => void;
   /** Enabled boosts (ADR-029) for this kind of tab (scripts filtered for private tabs); keep the array stable. */
   boosts?: readonly BoostPayload[];
+  /** The page's media state (ADR-035), null when a new document starts loading. Private tabs too: nothing is kept. */
+  onMedia?: (tabId: string, probe: MediaProbe | null) => void;
 }
