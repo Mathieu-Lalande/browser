@@ -1,5 +1,5 @@
 import type { PermissionKind } from "@shared/types";
-import { JsonFileWriter, readJsonFile } from "./json-file";
+import { JsonFileWriter, readJsonFile } from "../storage/json-file";
 
 export type PermissionDecision = "allow" | "deny";
 type Decisions = Map<string, Map<PermissionKind, PermissionDecision>>;

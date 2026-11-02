@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "n
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { flushJsonWriters } from "./json-file";
+import { flushJsonWriters } from "../storage/json-file";
 import { PermissionStore } from "./permission-store";
 import { PermissionPrompts, permissionKinds } from "./permissions";
 import { ShieldsAllowList } from "./shields";

@@ -1,4 +1,4 @@
-import { JsonFileWriter, readJsonFile } from "./json-file";
+import { JsonFileWriter, readJsonFile } from "../storage/json-file";
 import { Emitter } from "@shared/emitter";
 
 /** Hostnames where the user turned protections off, persisted as `{ "disabledHosts": [...] }`. */

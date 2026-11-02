@@ -4,7 +4,7 @@ import { Worker } from "node:worker_threads";
 import { FiltersEngine, Request, adsAndTrackingLists, type RequestType } from "@ghostery/adblocker";
 import workerPath from "./blocker-worker?modulePath";
 import { ENGINE_CONFIG } from "./blocker-config";
-import { writeFileAtomic } from "./json-file";
+import { writeFileAtomic } from "../storage/json-file";
 
 const REFRESH_INTERVAL = 24 * 60 * 60 * 1000;
 const RETRY_DELAY = 30 * 60 * 1000;

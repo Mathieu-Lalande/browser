@@ -7,7 +7,7 @@ import { TabCosmetics } from "./cosmetics";
 import { webHostname } from "@shared/hosts";
 import { APP_SCHEME } from "../app-files";
 import { HttpsOnly } from "@shared/https-only";
-import { flushJsonWriters } from "./json-file";
+import { flushJsonWriters } from "../storage/json-file";
 import { PermissionStore } from "./permission-store";
 import { PermissionPrompts, permissionKinds } from "./permissions";
 import { ShieldsAllowList } from "./shields";
