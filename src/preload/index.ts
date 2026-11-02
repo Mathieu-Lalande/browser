@@ -199,6 +199,20 @@ const api: BrowserApi = {
     disconnect: () => ipcRenderer.invoke(Channels.syncDisconnect),
     reset: () => ipcRenderer.invoke(Channels.syncReset),
   },
+  pageOptions: {
+    show: (anchor) => send(Channels.pageOptionsShow, anchor),
+  },
+  capture: {
+    copy: (id) => ipcRenderer.invoke(Channels.captureCopy, id),
+    save: (id) => ipcRenderer.invoke(Channels.captureSave, id),
+    discard: (id) => send(Channels.captureDiscard, id),
+  },
+  recording: {
+    onControl: (listener) => subscribe<"start" | "stop">(Channels.recordingControl, listener),
+    started: () => send(Channels.recordingStarted),
+    failed: () => send(Channels.recordingFailed),
+    finish: (data) => ipcRenderer.invoke(Channels.recordingFinish, data),
+  },
   siteInfo: {
     show: (anchor) => send(Channels.siteInfoShow, anchor),
     get: (tabId) => ipcRenderer.invoke(Channels.siteInfoGet, tabId),

@@ -180,6 +180,12 @@ function startServer(): Promise<{ server: Server; origin: string; log: ServerLog
       res.end(ICON_PNG);
     } else if (path.startsWith("/embeds-third-party")) {
       res.end(`<title>Third party</title><img id="tp" src="${query(path, "src") ?? ""}">`);
+    } else if (path.startsWith("/long")) {
+      // Captures (ADR-031): a page much taller than the window, with a box of known size.
+      res.end(
+        `<title>Long</title><body style="margin:0"><div id="box" style="width:240px;height:120px;margin:40px;background:#2b8a3e">box</div>` +
+          `<div style="height:4000px;background:linear-gradient(#fff,#36c)">long</div></body>`,
+      );
     } else if (path.startsWith("/form")) {
       res.end(`<title>Form</title><form><input id="field" name="field" value=""><textarea id="notes"></textarea></form>`);
     } else {

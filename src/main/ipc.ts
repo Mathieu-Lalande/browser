@@ -80,6 +80,8 @@ import { registerSyncIpc } from "./sync/ipc";
 import { registerThemeIpc } from "./theme-share";
 import { showTabMenu } from "./tab-menu";
 import { boostForTab, createBoostForTab, listBoosts, removeBoost, saveBoost, startZap, unzap } from "./boosts";
+import { copyCapture, discardCapture, saveCapture, showPageOptions } from "./capture";
+import { finishRecording, installRecorder, isRecordingData, recordingFailed, recordingStarted } from "./capture/record";
 import { BrowserController } from "./window";
 
 type Handler = (controller: BrowserController, ...args: unknown[]) => void;
@@ -422,6 +424,15 @@ export function registerIpc(): void {
   withController(Channels.boostsUnzap, (args) => isString(args[0]) && isValidSelector(args[1]), (c, tabId, selector) => unzap(c, tabId as string, selector as string));
   on(Channels.boostsZap, id, (c, tabId) => startZap(c, tabId as string));
   withController(Channels.readerArticle, id, (c, tabId) => readerArticle(c, tabId as string));
+  // Page options and captures (ADR-031): images named by id (kept per window), recordings as bytes.
+  on(Channels.pageOptionsShow, (args) => isBounds(args[0]), (c, anchor) => showPageOptions(c, anchor as Bounds));
+  withController(Channels.captureCopy, id, (c, captureId) => copyCapture(c, captureId as string));
+  withController(Channels.captureSave, id, (c, captureId) => saveCapture(c, captureId as string));
+  on(Channels.captureDiscard, id, (c, captureId) => discardCapture(c, captureId as string));
+  on(Channels.recordingStarted, none, (c) => recordingStarted(c));
+  on(Channels.recordingFailed, none, (c) => recordingFailed(c));
+  withController(Channels.recordingFinish, (args) => isRecordingData(args[0]), (c, data) => finishRecording(c, data));
+  installRecorder();
 
   registerSyncIpc();
   registerThemeIpc();

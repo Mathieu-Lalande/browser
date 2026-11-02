@@ -64,3 +64,7 @@
   (`UpdateService` testable, adaptateur `electron-updater`, faux `BROWSER_TEST_UPDATER` en dev), `latest*.yml` publiés
   par le workflow de release ; codec `src/shared/theme-share.ts` (`browser-theme:v1:…`, `.browsertheme`, galerie),
   mobile `mobile/src/lib/themeShare.ts`.
+- Options de la page, captures, vidéo, balayage tactile (ADR-031) : popover overlay `page-options`, `src/main/capture/`
+  (capturePage, CDP `Page.captureScreenshot` via `webContents.debugger`, sélecteur en monde isolé 1009), enregistreur
+  `MediaRecorder` dans l'interface (`lib/recorder.ts`) dont la seule source est l'onglet accordé par main ; helpers purs
+  `src/shared/capture.ts`. Boutons de la barre d'adresse : masqués hors survol/focus (classe `act`, `keep` = état actif).

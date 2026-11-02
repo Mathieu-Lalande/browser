@@ -1415,3 +1415,53 @@ pas (le site en dépend).
 **Limites.** Pas de signature par défaut : mise à jour manuelle sur macOS, SmartScreen sur Windows. Le canal
 bêta suit la dernière release GitHub, pre-release comprise ; revenir en stable n'installe pas de version plus
 ancienne (`allowDowngrade` coupé). Le workflow de release n'a pas pu être exécuté ici.
+
+## ADR-031 — Options de la page, captures d'écran, enregistrement vidéo, balayage tactile
+
+**Barre d'adresse.** Les boutons d'action (copier le lien, lecture, clé, zoom, favori, protections, options) sont
+masqués par défaut et apparaissent en fondu au survol de la barre ou quand le focus clavier y est
+(`:hover`, `:focus-within`). Opacité seulement : ils gardent leur place, l'URL ne bouge pas. Un état actif reste
+visible (mode lecture actif, protections coupées, enregistrement en cours) ; le cadenas (infos sur le site) aussi,
+c'est l'indicateur de sécurité.
+
+**Options de la page.** Bouton « Options de la page » (Lucide `ellipsis`) au bout de la barre, commande
+`page-options` (Ctrl+Maj+O) : popover du calque overlay (ADR-010, `OverlayKind` `page-options`) sous la barre.
+Copier le lien, zoom en direct (− / % / +, le pourcentage remet le zoom par défaut, ADR-013), capture d'écran
+(sous-menu), enregistrer une vidéo, mode lecture, version mobile, boost du site, infos sur le site, code QR de la
+page (`uqr`, dessiné localement). Chaque action est une commande du registre exécutée par main sur l'onglet actif.
+
+**Captures d'écran** (`src/main/capture/`, commandes `screenshot-visible` Ctrl+Maj+S, `screenshot-full` Ctrl+Alt+S,
+`screenshot-element`) :
+- zone visible : `webContents.capturePage()` ;
+- page entière : protocole DevTools via `webContents.debugger` (`Page.getLayoutMetrics` puis
+  `Page.captureScreenshot` avec `captureBeyondViewport` et un `clip` du document), sans faire défiler la page.
+  Le débogueur n'est attaché que le temps de la capture (et pas détaché s'il l'était déjà) ; des DevTools ouverts
+  sont un autre client et ne gênent pas. Hauteur plafonnée à 16 384 px (limite de Chromium) ;
+- élément : un sélecteur en monde isolé (1009, comme l'outil des boosts) surligne l'élément survolé, intercepte le
+  clic (événements de confiance seulement), Échap annule ; il renvoie le rectangle en coordonnées du document,
+  validé et rogné par `elementClip` (`src/shared/capture.ts`), puis capture par le même `clip` CDP ;
+- résultat : popover overlay `capture-result` en bas à droite (aperçu JPEG réduit en `data:`, taille, « Copier »
+  via le presse-papiers d'Electron 44, « Enregistrer » : boîte de dialogue PNG, nom
+  `Capture <site> <date>.png` dans le dossier des téléchargements). L'image reste dans main, une par fenêtre,
+  oubliée à la fermeture du popover. Fenêtres privées : autorisé, rien n'est enregistré dans le profil.
+
+**Enregistrement vidéo** (commande `record-video`, Ctrl+Alt+V, bascule). L'approche la plus simple et robuste
+d'Electron 44 : la capture d'onglet de Chromium. L'interface (chrome) héberge un `MediaRecorder`
+(`src/renderer/src/lib/recorder.ts`) ; main lui demande de démarrer, elle appelle `getDisplayMedia()`, et le
+gestionnaire `setDisplayMediaRequestHandler` de la session de l'interface lui accorde une seule source : le
+`mainFrame` de l'onglet demandé (image et son de l'onglet seulement, à sa taille). Sans demande en attente de main
+pour cette fenêtre, la permission `media` (sans type caméra/micro) et la source sont refusées : aucune page, ni
+l'interface d'elle-même, ne peut capturer l'écran. WebM (VP9/VP8 + Opus) ; à l'arrêt (bouton, commande, onglet
+fermé), les octets reviennent à main (`recording:finish`, 1 Go au plus) qui propose
+`Enregistrement <site> <date>.webm`. Indicateur toujours visible dans la barre d'adresse pendant l'enregistrement :
+point rouge, minuteur (`formatDuration`), bouton d'arrêt (Lucide `circle-stop`). L'état vit dans main
+(`BrowserState.recording`). `desktopCapturer` et l'abonnement aux images (`beginFrameSubscription`) ont été écartés :
+le premier capture l'écran entier ou la fenêtre (interface comprise), le second est lourd (images brutes par IPC).
+
+**Balayage tactile entre espaces.** La machine de `src/shared/space-swipe.ts` (ADR-022) reçoit aussi les
+`PointerEvent` d'un doigt (`touchStart`/`touchMove`/`touchEnd`/`touchCancel`) : même verrouillage d'axe (sur 10 px,
+un doigt tremble), suivi 1:1, seuil de 25 % et lancer ; le relâchement est le doigt levé (pas de minuteur ni de
+traîne d'inertie), un doigt immobile avant de se lever n'est pas un lancer. `touch-action: pan-y` sur la barre
+latérale : le navigateur garde le défilement vertical de la liste (et annule le geste par `pointercancel`), les
+mouvements horizontaux nous reviennent. Les lignes ne se glissent-déposent plus au doigt (souris et stylet
+inchangés) : au doigt, l'horizontale est le geste d'espace et la verticale le défilement.

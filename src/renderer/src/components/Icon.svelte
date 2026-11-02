@@ -129,6 +129,11 @@
   import Keyboard from "@lucide/svelte/icons/keyboard";
   import Eraser from "@lucide/svelte/icons/eraser";
   import Undo2 from "@lucide/svelte/icons/undo-2";
+  import ScrollText from "@lucide/svelte/icons/scroll-text";
+  import SquareDashedMousePointer from "@lucide/svelte/icons/square-dashed-mouse-pointer";
+  import Video from "@lucide/svelte/icons/video";
+  import CircleStop from "@lucide/svelte/icons/circle-stop";
+  import Save from "@lucide/svelte/icons/save";
 
   type LucideIcon = Component<Record<string, unknown>>;
 
@@ -245,6 +250,13 @@
     share: Share2,
     "file-up": FileUp,
     paste: ClipboardPaste,
+    // Page options and captures (ADR-031).
+    camera: Camera,
+    "capture-full": ScrollText,
+    "capture-element": SquareDashedMousePointer,
+    video: Video,
+    "stop-recording": CircleStop,
+    save: Save,
   } satisfies Record<string, LucideIcon> & Record<CommandIcon, LucideIcon>;
 
   /** Space icons: their stored names are Lucide's own. */

@@ -12,6 +12,7 @@
   import WindowControls from "./components/WindowControls.svelte";
   import { settings } from "./lib/settings.svelte";
   import { applyTheme } from "./lib/theme";
+  import { installRecorder } from "./lib/recorder";
   import Icon from "./components/Icon.svelte";
   import PermissionBar from "./components/PermissionBar.svelte";
   import PopupBar from "./components/PopupBar.svelte";
@@ -99,6 +100,8 @@
 
   // Theme: every setting maps to CSS variables on :root, re-applied live.
   $effect(() => applyTheme(settings.current, settings.mode, browser.isPrivate));
+  // Tab recording (ADR-031): main starts and stops the recorder that lives in this page.
+  $effect(() => installRecorder());
 
   // Entering or leaving zen mode starts with the sidebar tucked away.
   $effect(() => {

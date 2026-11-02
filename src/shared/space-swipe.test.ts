@@ -128,3 +128,78 @@ describe("space swipe", () => {
     expect(commits(replay(new SpaceSwipe({ width: WIDTH }), repeat(20, [30, 0]), { step: 0 }))).toHaveLength(1);
   });
 });
+
+type Move = [dx: number, dy: number];
+const moves = (n: number, move: Move): Move[] => Array.from({ length: n }, () => move);
+
+/** A finger moving by (dx, dy) per step, `step` ms apart; lifted `hold` ms after the last move. */
+function touch(swipe: SpaceSwipe, steps: Move[], options: { step?: number; hold?: number; bounds?: SwipeBounds } = {}): SwipeOutput[] {
+  const { step = 16, hold = 0, bounds = both } = options;
+  let x = 200;
+  let y = 300;
+  let time = 1000;
+  swipe.touchStart({ x, y, time });
+  const outputs = steps.map(([dx, dy]) => {
+    x += dx;
+    y += dy;
+    time += step;
+    return swipe.touchMove({ x, y, time }, bounds);
+  });
+  outputs.push(swipe.touchEnd(time + hold, bounds));
+  return outputs;
+}
+
+describe("space swipe by touch", () => {
+  it("follows the finger 1:1 once past the slop, and switches past 25% on lift", () => {
+    // Slow (0.25 px/ms): no flick; 100 px left = 33%.
+    const outputs = touch(new SpaceSwipe({ width: WIDTH }), [[-6, 0], ...moves(10, [-10, 0]), [4, 0]], { step: 40 });
+    const offsets = tracked(outputs).map((o) => o.offset);
+    // Undecided under 10 px, then the content catches up with the finger.
+    expect(outputs[0]).toEqual({ kind: "ignore" });
+    expect(offsets[0]).toBe(-16);
+    expect(offsets.at(-1)).toBe(-102);
+    expect(outputs.slice(0, -1).some((o) => o.kind === "commit")).toBe(false);
+    expect(outputs.at(-1)).toEqual({ kind: "commit", direction: 1 });
+  });
+
+  it("goes to the previous space when the finger moves right", () => {
+    expect(commits(touch(new SpaceSwipe({ width: WIDTH }), moves(10, [10, 0]), { step: 40 }))).toEqual([{ kind: "commit", direction: -1 }]);
+  });
+
+  it("a short slow drag slides back", () => {
+    expect(touch(new SpaceSwipe({ width: WIDTH }), moves(5, [-10, 0]), { step: 40 }).at(-1)).toEqual({ kind: "cancel" });
+  });
+
+  it("a quick flick switches short of the threshold, unless the finger stopped first", () => {
+    const flick = moves(4, [-12, 0]);
+    expect(touch(new SpaceSwipe({ width: WIDTH }), flick).at(-1)).toEqual({ kind: "commit", direction: 1 });
+    expect(touch(new SpaceSwipe({ width: WIDTH }), flick, { hold: 200 }).at(-1)).toEqual({ kind: "cancel" });
+  });
+
+  it("leaves a vertical drag to the tab list (axis lock)", () => {
+    const outputs = touch(new SpaceSwipe({ width: WIDTH }), [[2, 8], [3, 12], [-20, 15], [-30, 10]]);
+    expect(outputs.every((o) => o.kind === "ignore")).toBe(true);
+  });
+
+  it("rubber-bands where there is no space; a cancelled touch goes back to rest", () => {
+    const swipe = new SpaceSwipe({ width: WIDTH });
+    const outputs = touch(swipe, moves(20, [-20, 0]), { bounds: { previous: true, next: false } });
+    expect(commits(outputs)).toHaveLength(0);
+    expect(Math.abs(tracked(outputs).at(-1)!.offset)).toBeLessThan(WIDTH * 0.4);
+
+    swipe.touchStart({ x: 0, y: 0, time: 0 });
+    swipe.touchMove({ x: -40, y: 0, time: 16 }, both);
+    expect(swipe.active).toBe(true);
+    expect(swipe.touchCancel()).toEqual({ kind: "cancel" });
+    expect(swipe.active).toBe(false);
+  });
+
+  it("is not released by the wheel timer while the finger is held still", () => {
+    const swipe = new SpaceSwipe({ width: WIDTH });
+    swipe.touchStart({ x: 0, y: 0, time: 0 });
+    swipe.touchMove({ x: -40, y: 0, time: 16 }, both);
+    expect(swipe.end(1000, both)).toEqual({ kind: "ignore" });
+    expect(swipe.wheel({ deltaX: 50, deltaY: 0, deltaMode: 0, time: 1001 }, both)).toEqual({ kind: "ignore" });
+    expect(swipe.active).toBe(true);
+  });
+});

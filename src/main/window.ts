@@ -10,6 +10,7 @@ import { uiUrl } from "./app-protocol";
 import { downloadViewerOf, isDownloadVisible, onDownloadsChanged } from "./downloads";
 import { setExtensionsNotifier } from "./extensions";
 import type { DownloadViewer } from "./downloads/list";
+import { recordingOf } from "./capture/record";
 import { favoriteFavicon, favoriteTiles, setArchiveNotifier, setFavoritesRefresh } from "./organize";
 import { Overlay } from "./overlay";
 import { LinkPeek } from "./peek";
@@ -284,7 +285,7 @@ export class BrowserController {
   }
 
   private withFavorites(state: BrowserState): BrowserState {
-    return { ...state, favorites: favoriteTiles(this) };
+    return { ...state, favorites: favoriteTiles(this), recording: recordingOf(this) };
   }
 
   /** Shows `browser://archive` (ADR-022). */

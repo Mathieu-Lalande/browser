@@ -61,7 +61,12 @@ export type CommandId =
   | "open-boosts"
   | "zap-elements"
   | "check-updates"
-  | "install-update";
+  | "install-update"
+  | "page-options"
+  | "screenshot-visible"
+  | "screenshot-full"
+  | "screenshot-element"
+  | "record-video";
 
 /** Icon names used by commands; the UI's Icon component must know each of them. */
 export type CommandIcon =
@@ -104,7 +109,12 @@ export type CommandIcon =
   | "smartphone"
   | "rocket"
   | "eraser"
-  | "update";
+  | "update"
+  | "more"
+  | "camera"
+  | "capture-full"
+  | "capture-element"
+  | "video";
 
 /** What a command's label and availability may depend on. */
 export interface CommandContext {
@@ -379,6 +389,45 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
     icon: "eraser",
     needsPage: true,
   },
+  // Page options and captures (ADR-031).
+  "page-options": {
+    label: "Options de la page",
+    keywords: ["options", "menu", "page", "zoom", "capture", "partager", "qr code"],
+    accelerator: "CmdOrCtrl+Shift+O",
+    icon: "more",
+    needsPage: true,
+    opensOverlay: true,
+  },
+  "screenshot-visible": {
+    label: "Capture d'écran de la zone visible",
+    keywords: ["screenshot", "capture", "écran", "image", "copie d'écran"],
+    accelerator: "CmdOrCtrl+Shift+S",
+    icon: "camera",
+    needsPage: true,
+    opensOverlay: true,
+  },
+  "screenshot-full": {
+    label: "Capture d'écran de la page entière",
+    keywords: ["screenshot", "capture", "page entière", "full page", "défilement"],
+    accelerator: "CmdOrCtrl+Alt+S",
+    icon: "capture-full",
+    needsPage: true,
+    opensOverlay: true,
+  },
+  "screenshot-element": {
+    label: "Capture d'écran d'un élément",
+    keywords: ["screenshot", "capture", "élément", "sélection", "zone"],
+    icon: "capture-element",
+    needsPage: true,
+  },
+  "record-video": {
+    label: "Enregistrer une vidéo de l'onglet",
+    menuLabel: "Enregistrer une vidéo / arrêter",
+    keywords: ["record", "vidéo", "enregistrer", "screencast", "filmer", "arrêter l'enregistrement"],
+    accelerator: "CmdOrCtrl+Alt+V",
+    icon: "video",
+    needsPage: true,
+  },
 };
 
 /** Every command, in palette order. */
@@ -483,6 +532,11 @@ export const COMMAND_GROUPS: readonly { label: string; ids: readonly CommandId[]
       "open-passwords",
       "open-boosts",
       "zap-elements",
+      "page-options",
+      "screenshot-visible",
+      "screenshot-full",
+      "screenshot-element",
+      "record-video",
       "open-extensions",
       "site-info",
       "clear-site-data",

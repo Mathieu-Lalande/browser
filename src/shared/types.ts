@@ -1,3 +1,4 @@
+import type { CaptureResult, RecordingState } from "./capture";
 import type { Boost } from "./boosts";
 import type { FolderId, TabFolder } from "./folders";
 import type { LoadError } from "./load-error";
@@ -137,6 +138,8 @@ export interface BrowserState extends TabsState {
    * two-finger swipe slides between spaces (ADR-022). Capped: only what fits on screen.
    */
   peeks?: SpacePeek[];
+  /** The window is recording a tab (ADR-031): the address bar shows it, whatever tab is on screen. */
+  recording?: RecordingState | null;
 }
 
 /** Tabs and folders of a space not on screen (see `BrowserState.peeks`). */
@@ -193,7 +196,15 @@ export interface TabBoost {
 export type UiCommand = "focus-address" | "toggle-sidebar" | "focus-find";
 
 /** Floating UI shown in the overlay layer, above the page (see `src/main/overlay.ts`). */
-export type OverlayKind = "palette" | "downloads" | "site-info" | "password-save" | "password-fill" | "link-peek";
+export type OverlayKind =
+  | "palette"
+  | "downloads"
+  | "site-info"
+  | "password-save"
+  | "password-fill"
+  | "link-peek"
+  | "page-options"
+  | "capture-result";
 
 export interface OverlayRequest {
   kind: OverlayKind;
@@ -205,6 +216,8 @@ export interface OverlayRequest {
   captureId?: string;
   /** Link peek (ADR-027): the card's header and geometry when it opens (updates: `peek.onState`). */
   peek?: PeekState;
+  /** Capture result (ADR-031): the screenshot main keeps, with a small preview. */
+  capture?: CaptureResult;
 }
 
 /** Popovers stay light: no dimmed, blurred backdrop behind them (the palette has one). */

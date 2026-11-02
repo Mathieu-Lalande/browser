@@ -112,7 +112,8 @@
   const canFavorite = $derived(!browser.isPrivate && !!draggedTab && isFavoriteUrl(draggedTab.url));
 
   function onRowPointerDown(event: PointerEvent): void {
-    if (event.button !== 0 || drag) return;
+    // A finger swipes between spaces or scrolls the list (ADR-031): rows are dragged with a mouse or pen.
+    if (event.button !== 0 || drag || event.pointerType === "touch") return;
     const target = event.target as HTMLElement;
     // Buttons inside a row (close, mute, chevron, more) keep their own click.
     if (target.closest("button, input")) return;
@@ -342,10 +343,48 @@
     };
     // Capture: a swipe that starts over the tab list (or any scrolling child) is seen first.
     element.addEventListener("wheel", onWheel, { passive: false, capture: true });
+
+    // A finger on a touchscreen (ADR-031): same machine. `touch-action: pan-y` on the sidebar
+    // leaves vertical pans to the browser (the tab list scrolls, and `pointercancel` ends ours);
+    // horizontal moves reach us. Rows are not dragged by touch (see onRowPointerDown).
+    let finger: number | null = null;
+    const onTouchDown = (event: PointerEvent) => {
+      if (event.pointerType !== "touch" || !event.isPrimary || drag) return;
+      if ((event.target as HTMLElement).closest?.("[role=dialog], input, textarea")) return;
+      if (settling && swipeOffset !== 0) return;
+      finger = event.pointerId;
+      trackWidth = spaceArea?.clientWidth || element.clientWidth;
+      swipe.setWidth(trackWidth);
+      swipe.touchStart({ x: event.clientX, y: event.clientY, time: event.timeStamp });
+    };
+    const onTouchMove = (event: PointerEvent) => {
+      if (event.pointerId !== finger) return;
+      const output = swipe.touchMove({ x: event.clientX, y: event.clientY, time: event.timeStamp }, bounds());
+      if (output.kind !== "ignore") apply(output);
+    };
+    const onTouchEnd = (event: PointerEvent) => {
+      if (event.pointerId !== finger) return;
+      finger = null;
+      const wasSwiping = swipe.active;
+      apply(event.type === "pointercancel" ? swipe.touchCancel() : swipe.touchEnd(event.timeStamp, bounds()));
+      // The lift after a swipe is not a tap on the row below the finger.
+      if (wasSwiping) {
+        swallowClick = true;
+        setTimeout(() => (swallowClick = false), 0);
+      }
+    };
+    element.addEventListener("pointerdown", onTouchDown, { capture: true });
+    window.addEventListener("pointermove", onTouchMove);
+    window.addEventListener("pointerup", onTouchEnd);
+    window.addEventListener("pointercancel", onTouchEnd);
     return () => {
       clearTimeout(endTimer);
       clearTimeout(settleTimer);
       element.removeEventListener("wheel", onWheel, { capture: true });
+      element.removeEventListener("pointerdown", onTouchDown, { capture: true });
+      window.removeEventListener("pointermove", onTouchMove);
+      window.removeEventListener("pointerup", onTouchEnd);
+      window.removeEventListener("pointercancel", onTouchEnd);
     };
   });
 
@@ -723,6 +762,8 @@
     display: flex;
     flex-direction: column;
     gap: var(--sidebar-gap);
+    /* Touch: vertical pans scroll (the browser's), horizontal ones swipe between spaces (ours). */
+    touch-action: pan-y;
     /* Never more than 45% of the window, whatever the saved width. */
     width: min(var(--sidebar-width), 45vw);
     min-width: 0;

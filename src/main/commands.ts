@@ -11,6 +11,8 @@ import { spaces } from "./spaces";
 import { toggleSplit } from "./split";
 import { syncController } from "./sync";
 import { checkForUpdates, installUpdate } from "./updates";
+import { capture, showPageOptions } from "./capture";
+import { toggleRecording } from "./capture/record";
 import { BrowserController } from "./window";
 
 type Runner = (controller: BrowserController) => void;
@@ -107,6 +109,11 @@ const RUNNERS: Record<CommandId, Runner> = {
     checkForUpdates();
   },
   "install-update": () => installUpdate(),
+  "page-options": (c) => showPageOptions(c),
+  "screenshot-visible": (c) => void capture(c, "visible"),
+  "screenshot-full": (c) => void capture(c, "full"),
+  "screenshot-element": (c) => void capture(c, "element"),
+  "record-video": (c) => toggleRecording(c),
 };
 
 /** Commands that make sense without any window (macOS keeps the app running windowless). */

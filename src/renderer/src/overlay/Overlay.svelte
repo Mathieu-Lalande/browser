@@ -8,6 +8,8 @@
   import LinkPeekPanel from "./LinkPeekPanel.svelte";
   import PasswordPanel from "./PasswordPanel.svelte";
   import SiteInfoPanel from "./SiteInfoPanel.svelte";
+  import PageOptionsPanel from "./PageOptionsPanel.svelte";
+  import CaptureResultPanel from "./CaptureResultPanel.svelte";
 
   // Root of the overlay layer (src/main/overlay.ts): a transparent page above the tab views,
   // attached only while a floating UI is open.
@@ -93,6 +95,10 @@
         <PasswordPanel kind="save" anchor={current.request.anchor} captureId={current.request.captureId} onClose={close} />
       {:else if current.request.kind === "link-peek" && current.request.peek}
         <LinkPeekPanel initial={current.request.peek} onClose={close} />
+      {:else if current.request.kind === "page-options" && current.request.tabId}
+        <PageOptionsPanel anchor={current.request.anchor} tabId={current.request.tabId} onClose={close} />
+      {:else if current.request.kind === "capture-result" && current.request.capture}
+        <CaptureResultPanel capture={current.request.capture} onClose={close} />
       {:else if current.request.kind === "password-fill"}
         <PasswordPanel kind="fill" anchor={current.request.anchor} tabId={current.request.tabId} onClose={close} />
       {/if}

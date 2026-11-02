@@ -3,6 +3,7 @@
   import { internalPageOf } from "@shared/internal";
   import type { Bookmark } from "@shared/types";
   import { displayUrl, normalizeInput, searchUrl } from "@shared/url";
+  import { formatDuration } from "@shared/capture";
   import { api, browser } from "../lib/browser.svelte";
   import { platform } from "../lib/platform.svelte";
   import { settings } from "../lib/settings.svelte";
@@ -69,6 +70,23 @@
     const rect = event.currentTarget.getBoundingClientRect();
     api.siteInfo.show({ x: rect.x, y: rect.y, width: rect.width, height: rect.height });
   }
+
+  /** Page options popover (ADR-031), hanging below the whole address bar. */
+  let form: HTMLFormElement;
+  function showPageOptions(): void {
+    const rect = form.getBoundingClientRect();
+    api.pageOptions.show({ x: rect.x, y: rect.y, width: rect.width, height: rect.height });
+  }
+
+  /** The window's tab recording (ADR-031): always shown while it runs, with its timer. */
+  const recording = $derived(browser.state.recording ?? null);
+  let now = $state(Date.now());
+  $effect(() => {
+    if (!recording) return;
+    now = Date.now();
+    const timer = setInterval(() => (now = Date.now()), 500);
+    return () => clearInterval(timer);
+  });
 
   function showPasswords(event: MouseEvent & { currentTarget: HTMLElement }): void {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -139,7 +157,8 @@
 </script>
 
 <div class="omnibox no-drag">
-  <form class="address" class:focused onsubmit={submit}>
+  <!-- Action buttons fade in on hover or keyboard focus (ADR-031); they keep their room, so the URL never moves. -->
+  <form class="address" class:focused onsubmit={submit} bind:this={form}>
     {#if !open && isWebPage}
       <!-- The lock opens the site info popover (connection, cookies, permissions, shields, zoom). -->
       <button
@@ -183,7 +202,7 @@
     {#if tab && zoomed && !focused}
       <button
         type="button"
-        class="zoom"
+        class="zoom act"
         title="Zoom de ce site : {tab.zoom} %. Cliquer pour revenir à {defaultZoom} % ({platform.shortcut('zoom-reset')})."
         aria-label="Zoom {tab.zoom} %, revenir à {defaultZoom} %"
         onclick={() => api.commands.run("zoom-reset")}
@@ -195,8 +214,9 @@
       <!-- Reader mode (ADR-026): offered when Readability thinks the page is an article. -->
       <button
         type="button"
-        class="star"
+        class="star act"
         class:on={tab.reader}
+        class:keep={tab.reader}
         aria-pressed={!!tab.reader}
         aria-label={tab.reader ? "Quitter le mode lecture" : "Mode lecture"}
         title={platform.tip(tab.reader ? "Quitter le mode lecture" : "Mode lecture", "toggle-reader")}
@@ -210,7 +230,7 @@
       <!-- Saved passwords for this site (ADR-025): choose an account to fill the login form. -->
       <button
         type="button"
-        class="star"
+        class="star act"
         aria-label="Remplir un mot de passe enregistré"
         title="Remplir un mot de passe enregistré"
         onmousedown={(event) => event.preventDefault()}
@@ -222,7 +242,7 @@
     {#if tab?.url && !focused && !isInternal}
       <button
         type="button"
-        class="star copy"
+        class="star copy act"
         class:done={copied}
         aria-label={copied ? "Lien copié" : "Copier le lien"}
         title={copied ? "Lien copié" : platform.tip("Copier le lien", "copy-url")}
@@ -234,7 +254,7 @@
       </button>
       <button
         type="button"
-        class="star"
+        class="star act"
         class:on={tab.isBookmarked}
         aria-label={tab.isBookmarked ? "Retirer des favoris" : "Ajouter aux favoris"}
         aria-pressed={tab.isBookmarked}
@@ -247,8 +267,9 @@
     {#if tab && showShield}
       <button
         type="button"
-        class="shield"
+        class="shield act"
         class:off={!tab.shieldsEnabled}
+        class:keep={!tab.shieldsEnabled}
         title={shieldTitle}
         aria-label={shieldTitle}
         aria-pressed={tab.shieldsEnabled}
@@ -257,6 +278,36 @@
         <Icon name={tab.shieldsEnabled ? "shield" : "shield-off"} size={12} />
         {#if tab.shieldsEnabled && tab.blockedCount > 0}<span class="count">{tab.blockedCount > 99 ? "99+" : tab.blockedCount}</span>{/if}
       </button>
+    {/if}
+    {#if tab?.url && !focused && !isInternal}
+      <button
+        type="button"
+        class="star act more"
+        aria-label="Options de la page"
+        aria-haspopup="dialog"
+        title={platform.tip("Options de la page", "page-options")}
+        onmousedown={(event) => event.preventDefault()}
+        onclick={showPageOptions}
+      >
+        <Icon name="more" size={15} />
+      </button>
+    {/if}
+    {#if recording}
+      <!-- Always visible while the window records a tab: red dot, timer, stop. -->
+      <span class="recording" role="status" aria-label="Enregistrement en cours : {formatDuration(now - recording.startedAt)}">
+        <span class="dot" aria-hidden="true"></span>
+        <span class="time" aria-hidden="true">{formatDuration(now - recording.startedAt)}</span>
+        <button
+          type="button"
+          class="stop"
+          aria-label="Arrêter l'enregistrement"
+          title={platform.tip("Arrêter l'enregistrement", "record-video")}
+          onmousedown={(event) => event.preventDefault()}
+          onclick={() => api.commands.run("record-video")}
+        >
+          <Icon name="stop-recording" size={14} />
+        </button>
+      </span>
     {/if}
   </form>
   <!-- Announced to screen readers; shown as a small note under the address bar (never over the page). -->
@@ -309,6 +360,7 @@
 
 <style>
   .omnibox {
+    --recording: var(--danger, #e5484d);
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -330,6 +382,61 @@
   }
   .address:hover {
     background: var(--surface-hover);
+  }
+  /* Hidden until the bar is hovered or holds the keyboard focus; an active state (reader on,
+     shields off) stays. Opacity only: the buttons keep their room and the URL does not move. */
+  .act {
+    opacity: 0;
+    transition: opacity 0.15s var(--ease);
+  }
+  .address:hover .act,
+  .address:focus-within .act,
+  .act.keep {
+    opacity: 1;
+  }
+  .recording {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 5px;
+    height: 22px;
+    padding: 0 2px 0 7px;
+    border-radius: 11px;
+    background: color-mix(in oklab, var(--recording) 16%, transparent);
+    color: var(--text);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+  .recording .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--recording);
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  .recording .stop {
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    color: var(--recording);
+  }
+  .recording .stop:hover {
+    background: var(--surface-active);
+  }
+  @keyframes pulse {
+    50% {
+      opacity: 0.35;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .act {
+      transition: none;
+    }
+    .recording .dot {
+      animation: none;
+    }
   }
   .address.focused {
     border-color: var(--accent-text);

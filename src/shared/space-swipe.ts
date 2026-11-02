@@ -13,6 +13,11 @@
  *   `commitRatio` of the width, or on a fast enough flick (velocity over the last 80 ms).
  * - One gesture, one space: after a commit, the rest of the burst (momentum tail) is swallowed until
  *   it goes idle, unless a new swipe clearly starts in it (deltas growing again, or reversing).
+ *
+ * Touchscreens (ADR-031) feed the same machine with a finger's pointer events (`touchStart`,
+ * `touchMove`, `touchEnd`): same axis lock (over a larger slop, a finger wobbles), same 1:1 follow,
+ * threshold and flick. The release is the finger lifting (no gap timer, no momentum tail); a finger
+ * that stopped before lifting is no flick.
  */
 
 export interface SpaceSwipeOptions {
@@ -30,6 +35,16 @@ export interface SpaceSwipeOptions {
   axisRatio?: number;
   /** A pause this long (ms) ends a gesture. */
   endGapMs?: number;
+  /** Distance (px) a finger travels before the axis is decided. */
+  touchLockDistance?: number;
+}
+
+/** A finger's position (`PointerEvent` with `pointerType` "touch"). */
+export interface TouchSample {
+  x: number;
+  y: number;
+  /** ms (`event.timeStamp`). */
+  time: number;
 }
 
 export interface WheelSample {
@@ -64,7 +79,7 @@ export type SwipeOutput =
 type Sample = { time: number; x: number };
 type Phase =
   | { name: "idle" }
-  | { name: "deciding"; x: number; y: number; last: number }
+  | { name: "deciding"; x: number; y: number; last: number; touch?: boolean }
   | { name: "vertical"; last: number }
   | { name: "tracking"; x: number; last: number; samples: Sample[]; previous: number; peak: number; decays: number }
   | { name: "suppress"; last: number; sign: number; previous: number; rising: number };
@@ -83,6 +98,8 @@ const DECAY_EVENTS = 3;
 
 export class SpaceSwipe {
   private phase: Phase = { name: "idle" };
+  /** The finger's last position, during a touch gesture. */
+  private finger: TouchSample | null = null;
   private readonly options: Required<SpaceSwipeOptions>;
 
   constructor(options: SpaceSwipeOptions) {
@@ -93,6 +110,7 @@ export class SpaceSwipe {
       lockDistance: 4,
       axisRatio: 1.2,
       endGapMs: 140,
+      touchLockDistance: 10,
       ...options,
     };
   }
@@ -111,6 +129,8 @@ export class SpaceSwipe {
   }
 
   wheel(sample: WheelSample, bounds: SwipeBounds): SwipeOutput {
+    // A finger owns the gesture: a stray wheel event changes nothing.
+    if (this.finger) return { kind: "ignore" };
     const { endGapMs, lockDistance, axisRatio } = this.options;
     const phase = this.phase;
     // A pause ended whatever was going on (the caller's timer may have been late).
@@ -171,10 +191,72 @@ export class SpaceSwipe {
     }
   }
 
+  /** A finger touched the swiped area: a new gesture starts (whatever was going on is dropped). */
+  touchStart(sample: TouchSample): void {
+    this.finger = sample;
+    this.phase = { name: "deciding", x: 0, y: 0, last: sample.time, touch: true };
+  }
+
+  /** The finger moved: `ignore` while undecided or vertical (the list scrolls), else `track`. */
+  touchMove(sample: TouchSample, bounds: SwipeBounds): SwipeOutput {
+    const finger = this.finger;
+    if (!finger) return { kind: "ignore" };
+    this.finger = sample;
+    // Content follows the finger: moving it left (dx < 0) reveals the next space, like deltaX > 0.
+    const deltaX = finger.x - sample.x;
+    const deltaY = finger.y - sample.y;
+    const phase = this.phase;
+    if (phase.name === "deciding") {
+      phase.x += deltaX;
+      phase.y += deltaY;
+      phase.last = sample.time;
+      if (Math.hypot(phase.x, phase.y) < this.options.touchLockDistance) return { kind: "ignore" };
+      if (Math.abs(phase.x) <= Math.abs(phase.y) * this.options.axisRatio) {
+        this.phase = { name: "vertical", last: sample.time };
+        return { kind: "ignore" };
+      }
+      // The slop is not lost: the content jumps to the finger, then follows it.
+      this.phase = { name: "tracking", x: phase.x, last: sample.time, samples: [{ time: sample.time, x: phase.x }], previous: 0, peak: 0, decays: 0 };
+      return this.track(bounds);
+    }
+    if (phase.name !== "tracking") return { kind: "ignore" };
+    phase.x += deltaX;
+    phase.last = sample.time;
+    phase.samples.push({ time: sample.time, x: phase.x });
+    while (phase.samples.length > 2 && sample.time - phase.samples[0].time > VELOCITY_WINDOW_MS) phase.samples.shift();
+    return this.track(bounds);
+  }
+
+  /** The finger lifted: `commit` or `cancel` a swipe, `ignore` anything else. */
+  touchEnd(time: number, bounds: SwipeBounds): SwipeOutput {
+    this.finger = null;
+    const phase = this.phase;
+    if (phase.name !== "tracking") {
+      this.phase = { name: "idle" };
+      return { kind: "ignore" };
+    }
+    // A finger held still before lifting: its last samples say so (no flick).
+    phase.samples.push({ time, x: phase.x });
+    while (phase.samples.length > 2 && time - phase.samples[0].time > VELOCITY_WINDOW_MS) phase.samples.shift();
+    const output = this.release(bounds);
+    // No momentum tail after a finger: the next touch starts afresh.
+    this.phase = { name: "idle" };
+    return output;
+  }
+
+  /** The browser took the touch (vertical scroll, `pointercancel`): back to rest. */
+  touchCancel(): SwipeOutput {
+    const tracking = this.phase.name === "tracking";
+    this.finger = null;
+    this.phase = { name: "idle" };
+    return tracking ? { kind: "cancel" } : { kind: "ignore" };
+  }
+
   /** The caller's timer, `endGapMs` after the last event: a gesture still tracking is released. */
   end(time: number, bounds: SwipeBounds): SwipeOutput {
     const phase = this.phase;
-    if (phase.name === "idle" || time - phase.last < this.options.endGapMs) return { kind: "ignore" };
+    // A finger held still is not a pause: only lifting it ends a touch gesture.
+    if (this.finger || phase.name === "idle" || time - phase.last < this.options.endGapMs) return { kind: "ignore" };
     if (phase.name === "tracking") return this.release(bounds);
     this.phase = { name: "idle" };
     return { kind: "ignore" };

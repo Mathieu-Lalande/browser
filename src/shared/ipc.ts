@@ -126,6 +126,14 @@ export const Channels = {
   syncDisconnect: "sync:disconnect",
   syncReset: "sync:reset",
   siteInfoShow: "site-info:show",
+  pageOptionsShow: "page-options:show",
+  captureCopy: "capture:copy",
+  captureSave: "capture:save",
+  captureDiscard: "capture:discard",
+  recordingControl: "recording:control",
+  recordingStarted: "recording:started",
+  recordingFailed: "recording:failed",
+  recordingFinish: "recording:finish",
   siteInfoGet: "site-info:get",
   siteInfoResetPermission: "site-info:reset-permission",
   siteInfoClearData: "site-info:clear-data",
@@ -486,6 +494,31 @@ export interface BrowserApi {
     clearData(tabId: TabId): Promise<SiteInfo | null>;
     /** Third-party cookie blocking: makes the tab's site an exception (refused in private windows). */
     allowThirdPartyCookies(tabId: TabId, allow: boolean): Promise<SiteInfo | null>;
+  };
+  /** Page options popover (ADR-031), hanging from `anchor` (the address bar). Chrome UI only. */
+  pageOptions: {
+    show(anchor: Bounds): void;
+  };
+  /** Screenshots (ADR-031): the image stays in main, the UI only names it. */
+  capture: {
+    /** Copies the image to the clipboard. */
+    copy(id: string): Promise<boolean>;
+    /** Save dialog (PNG, in the downloads folder by default); false when cancelled or failed. */
+    save(id: string): Promise<boolean>;
+    /** The result popover closed: main forgets the image. */
+    discard(id: string): void;
+  };
+  /**
+   * Tab recording (ADR-031): the chrome UI runs the recorder (main grants it the tab as its only
+   * display-media source); main owns the state and the save dialog.
+   */
+  recording: {
+    /** Chrome UI only: main asks to start or stop the recorder. */
+    onControl(listener: (action: "start" | "stop") => void): () => void;
+    started(): void;
+    failed(): void;
+    /** The WebM file; false when the save dialog was cancelled or writing failed. */
+    finish(data: Uint8Array): Promise<boolean>;
   };
   /**
    * Cookies and site data of the profile (default session and isolated spaces), for the settings.
