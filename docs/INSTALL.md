@@ -25,7 +25,8 @@ npm run dev        # ouvre le navigateur, l'interface se recharge à chaque modi
 
 Mise à jour : `git pull` puis `npm install` (si `package.json` a changé), puis `npm run dev`.
 
-Vérifications : `npm run typecheck`, `npm test` et `npm run test:e2e` (tests de bout en bout).
+Vérifications : `npm run typecheck`, `npm test` et `npm run test:e2e` (tests de bout en bout ; sous Linux
+sans affichage : `xvfb-run -a npm run test:e2e`).
 
 > Conseil : évite un dossier synchronisé par OneDrive pour le dépôt (ex. `C:\dev\browser`). OneDrive
 > verrouille parfois des fichiers de `node_modules` pendant `npm install` et ralentit tout.
@@ -145,7 +146,9 @@ Apple Silicon). Pour signer, ajouter dans *Settings → Secrets and variables �
 **Site vitrine.** Le dossier `site/` (Vite + TypeScript, sans framework) est publié sur GitHub Pages par
 `.github/workflows/site.yml` à chaque push sur `master` qui touche `site/`. **Une seule fois** :
 *Settings → Pages → Build and deployment → Source : GitHub Actions*. Adresse :
-**https://mathieu-lalande.github.io/browser/**. Le bouton de téléchargement détecte le système du
+**https://mathieu-lalande.github.io/browser/**. Deux pages, deux entrées Vite (`site/vite.config.ts`) publiées dans
+`site/dist/` : la vitrine (`index.html`) et le guide d'utilisation (`docs.html`, à tenir à jour avec les
+fonctionnalités et les raccourcis de `src/shared/commands.ts`). Le bouton de téléchargement détecte le système du
 visiteur et pointe vers le bon fichier de la dernière release (API GitHub), ou vers la page des
 releases s'il n'y en a pas encore ou si l'API ne répond pas.
 

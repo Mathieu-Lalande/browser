@@ -1,14 +1,15 @@
 <!doctype html>
-<html lang="fr" data-theme="dark">
+<html lang="fr">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Browser — le navigateur rapide, privé et entièrement personnalisable</title>
     <meta
       name="description"
-      content="Browser est un navigateur pour Windows, macOS et Linux : espaces, vue scindée, palette de commandes, bloqueur de pubs intégré, HTTPS uniquement et synchronisation chiffrée de bout en bout."
+      content="Browser est un navigateur pour Windows, macOS et Linux : espaces, vue scindée, barre universelle Ctrl+K, bloqueur intégré, mots de passe, mode lecture et synchronisation chiffrée de bout en bout avec votre téléphone."
     />
-    <meta name="theme-color" content="#141318" />
+    <meta name="theme-color" content="#0b0710" />
+    <meta name="color-scheme" content="dark" />
     <link rel="canonical" href="https://mathieu-lalande.github.io/browser/" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -18,74 +19,72 @@
     <meta property="og:title" content="Browser — rapide, privé, entièrement personnalisable" />
     <meta
       property="og:description"
-      content="Espaces, vue scindée, palette Ctrl+K, bloqueur intégré et synchronisation chiffrée. Pour Windows, macOS et Linux."
+      content="Espaces, vue scindée, barre universelle Ctrl+K, bloqueur intégré et synchronisation chiffrée. Pour Windows, macOS et Linux."
     />
     <meta property="og:url" content="https://mathieu-lalande.github.io/browser/" />
     <meta property="og:image" content="https://mathieu-lalande.github.io/browser/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Browser : page d'accueil du navigateur sur un fond dégradé violet et rose" />
+    <meta property="og:image:alt" content="Browser : page d'accueil du navigateur sur un fond dégradé" />
     <meta name="twitter:card" content="summary_large_image" />
-    <script>
-      // Applied before the first paint to avoid a theme flash. Dark unless the visitor chose light.
-      try {
-        const t = localStorage.getItem("theme");
-        if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
-      } catch {}
-    </script>
     <script type="module" src="/src/main.ts"></script>
   </head>
   <body>
     <a class="skip" href="#contenu">Aller au contenu</a>
 
     <header class="topbar">
-      <nav class="nav container" aria-label="Navigation principale">
+      <div class="topbar-inner container">
         <a class="brand" href="#top" aria-label="Browser, retour en haut">
           <img src="/img/icon.png" width="28" height="28" alt="" />
           <span>Browser</span>
         </a>
-        <ul class="nav-links">
-          <li><a href="#fonctionnalites">Fonctionnalités</a></li>
-          <li><a href="#confidentialite">Confidentialité</a></li>
-          <li><a href="#documentation">Documentation</a></li>
-          <li><a href="#mobile">Mobile</a></li>
-          <li><a href="#faq">FAQ</a></li>
-        </ul>
+        <nav class="site-menu" id="site-menu" aria-label="Navigation principale">
+          <ul class="nav-links">
+            <li><a href="#fonctionnalites">Fonctionnalités</a></li>
+            <li><a href="#confidentialite">Confidentialité</a></li>
+            <li><a href="#mobile">Mobile</a></li>
+            <li><a href="docs.html">Documentation</a></li>
+            <li><a href="#telecharger">Télécharger</a></li>
+          </ul>
+        </nav>
         <div class="nav-actions">
-          <button class="icon-btn" id="theme-toggle" type="button" aria-label="Passer en thème clair">
-            <i data-icon="sun" class="when-dark"></i>
-            <i data-icon="moon" class="when-light"></i>
-          </button>
           <a class="icon-btn" href="https://github.com/Mathieu-Lalande/browser" aria-label="Code source sur GitHub">
             <i data-icon="code-xml"></i>
           </a>
-          <a class="btn btn-small" href="#telecharger">
+          <a class="btn btn-small btn-primary nav-cta" href="#telecharger">
             <i data-icon="download"></i>
             <span>Télécharger</span>
           </a>
+          <button class="icon-btn menu-toggle" id="menu-toggle" type="button" aria-expanded="false" aria-controls="site-menu" aria-label="Ouvrir le menu">
+            <i data-icon="menu" class="when-closed"></i>
+            <i data-icon="x" class="when-open"></i>
+          </button>
         </div>
-      </nav>
+      </div>
     </header>
 
     <main id="contenu">
-      <section class="hero" id="top">
-        <div class="aurora" aria-hidden="true">
+      <!-- ============ Hero ============ -->
+      <section class="hero" id="top" aria-labelledby="hero-title">
+        <div class="mesh" aria-hidden="true" data-depth="0.35">
           <span class="blob b1"></span>
           <span class="blob b2"></span>
           <span class="blob b3"></span>
+          <span class="blob b4"></span>
+          <span class="blob b5"></span>
         </div>
         <div class="container hero-inner">
           <p class="eyebrow">
             <i data-icon="sparkles"></i>
             <span id="hero-version">Gratuit · Windows, macOS et Linux</span>
           </p>
-          <h1>
+          <h1 id="hero-title">
             Le navigateur<br />
             <span class="gradient-text">qui vous ressemble.</span>
           </h1>
           <p class="lead">
-            <strong>Browser</strong> est rapide, privé et entièrement personnalisable : espaces, vue scindée,
-            palette de commandes, bloqueur intégré et synchronisation chiffrée avec votre téléphone.
+            Rapide, privé et entièrement personnalisable : espaces, vue scindée, barre universelle, bloqueur
+            intégré et synchronisation chiffrée avec votre téléphone.
           </p>
           <div class="cta">
             <a class="btn btn-primary btn-large" id="dl-primary" href="#telecharger">
@@ -95,195 +94,354 @@
                 <span class="btn-meta" id="dl-primary-meta">Dernière version sur GitHub</span>
               </span>
             </a>
-            <p class="cta-alt" id="dl-alt">
-              Aussi pour
-              <a href="#telecharger" data-os-link="windows">Windows</a>,
-              <a href="#telecharger" data-os-link="mac">macOS</a> et
-              <a href="#telecharger" data-os-link="linux">Linux</a>
-            </p>
+            <a class="btn btn-ghost btn-large" href="docs.html">
+              <i data-icon="book-open"></i>
+              <span>Lire le guide</span>
+            </a>
           </div>
-          <figure class="window hero-shot">
-            <img
-              src="/img/start.webp"
-              width="1280"
-              height="820"
-              alt="Page d'accueil de Browser en thème sombre : barre latérale verticale, salutation, champ de recherche et sites favoris"
-              fetchpriority="high"
-            />
-          </figure>
+          <p class="cta-alt" id="dl-alt">
+            Aussi pour
+            <a href="#telecharger" data-os-link="windows">Windows</a>,
+            <a href="#telecharger" data-os-link="mac">macOS</a> et
+            <a href="#telecharger" data-os-link="linux">Linux</a>
+          </p>
+        </div>
+
+        <div class="hero-stage container" aria-hidden="true">
+          <div class="stage-glow" data-depth="-0.04"></div>
+          <div class="hero-main" data-depth="-0.06" data-tilt="8">
+            <div class="window">
+              <div class="window-bar"><span></span><span></span><span></span><b>browser://start</b></div>
+              <img src="/img/start.webp" width="1280" height="820" alt="" fetchpriority="high" />
+            </div>
+          </div>
+          <div class="float float-bar" data-depth="-0.16" data-tilt="22">
+            <div class="ubar">
+              <div class="ubar-input"><i data-icon="search"></i><span>12 km en miles</span><kbd>Ctrl K</kbd></div>
+              <div class="ubar-answer"><i data-icon="calculator"></i><strong>7,46 mi</strong><small>Entrée pour copier</small></div>
+              <div class="ubar-row"><i data-icon="app-window"></i><span>Aller à l'onglet <em>Carte des sentiers</em></span></div>
+              <div class="ubar-row"><i data-icon="columns-2"></i><span>Vue scindée</span><kbd>Ctrl Maj \</kbd></div>
+            </div>
+          </div>
+          <div class="float float-phone" data-depth="-0.24" data-tilt="30">
+            <div class="phone"><img src="/img/mobile-start.webp" width="390" height="512" alt="" /></div>
+          </div>
+          <div class="float float-chip chip-a" data-depth="-0.3" data-tilt="38">
+            <i data-icon="shield-check"></i><span>Pubs et traqueurs bloqués</span>
+          </div>
+          <div class="float float-chip chip-b" data-depth="-0.2" data-tilt="-26">
+            <i data-icon="key-round"></i><span>Chiffré de bout en bout</span>
+          </div>
         </div>
       </section>
 
-      <section class="highlights container" aria-label="En bref">
-        <ul>
+      <section class="ticker" aria-label="En bref">
+        <ul class="container">
           <li><i data-icon="zap"></i><span><strong>Moteur Chromium</strong> compatible avec tous les sites</span></li>
           <li><i data-icon="shield-check"></i><span><strong>Bloqueur intégré</strong> pubs et traqueurs</span></li>
           <li><i data-icon="globe-lock"></i><span><strong>HTTPS uniquement</strong> par défaut</span></li>
-          <li><i data-icon="key-round"></i><span><strong>Synchronisation</strong> chiffrée de bout en bout</span></li>
+          <li><i data-icon="refresh-cw"></i><span><strong>Mises à jour</strong> automatiques</span></li>
         </ul>
       </section>
 
-      <section class="features container" id="fonctionnalites" aria-labelledby="features-title">
-        <header class="section-head">
-          <p class="kicker">Fonctionnalités</p>
-          <h2 id="features-title">Pensé pour garder le fil</h2>
-          <p>Des onglets rangés, des pages côte à côte et tout le navigateur au bout du clavier.</p>
-        </header>
-
-        <article class="feature">
-          <div class="feature-text">
-            <span class="chip"><i data-icon="layers"></i>Espaces et gestes</span>
-            <h3>Un espace par contexte</h3>
-            <p>
-              Travail, études, loisirs : chaque espace garde ses onglets, son icône et sa couleur. Passez de l'un à
-              l'autre d'un balayage sur le pavé tactile, ou isolez un espace dans sa propre session, comme un conteneur.
-            </p>
-            <ul class="ticks">
-              <li><i data-icon="check"></i>Onglets épinglés et barre latérale verticale</li>
-              <li><i data-icon="check"></i>Balayage à deux doigts entre les espaces</li>
-              <li><i data-icon="check"></i>Cookies et connexions séparés si vous le souhaitez</li>
-            </ul>
+      <!-- ============ Storytelling (pinned mockup) ============ -->
+      <section class="story" id="fonctionnalites" aria-labelledby="story-title">
+        <div class="container">
+          <header class="section-head reveal-on-scroll">
+            <p class="kicker">Fonctionnalités</p>
+            <h2 id="story-title">Pensé pour garder le fil</h2>
+            <p>Des onglets rangés, des pages côte à côte et tout le navigateur au bout du clavier.</p>
+          </header>
+          <div class="story-grid">
+            <div class="story-pin" aria-hidden="true">
+              <div class="story-frame window">
+                <div class="window-bar"><span></span><span></span><span></span><b>Browser</b></div>
+                <div class="story-shots">
+                  <img class="story-shot" src="/img/spaces.webp" width="1280" height="820" alt="" loading="lazy" decoding="async" />
+                  <img class="story-shot" src="/img/split.webp" width="1280" height="820" alt="" loading="lazy" decoding="async" />
+                  <img class="story-shot" src="/img/palette.webp" width="1280" height="820" alt="" loading="lazy" decoding="async" />
+                  <img class="story-shot" src="/img/favorites.webp" width="1280" height="820" alt="" loading="lazy" decoding="async" />
+                  <img class="story-shot" src="/img/settings.webp" width="1280" height="800" alt="" loading="lazy" decoding="async" />
+                </div>
+              </div>
+              <div class="story-dots"><span></span><span></span><span></span><span></span><span></span></div>
+            </div>
+            <div class="story-steps">
+              <article class="story-step">
+                <span class="chip"><i data-icon="layers"></i>Espaces et gestes</span>
+                <h3>Un espace par contexte</h3>
+                <p>
+                  Travail, études, loisirs : chaque espace garde ses onglets, son icône et sa couleur. Passez de
+                  l'un à l'autre d'un balayage à deux doigts sur le pavé tactile, ou du doigt sur un écran tactile.
+                </p>
+                <ul class="ticks">
+                  <li><i data-icon="check"></i><span>Onglets épinglés et barre latérale verticale</span></li>
+                  <li><i data-icon="check"></i><span>Espace isolé : cookies et connexions séparés, comme un conteneur</span></li>
+                  <li><i data-icon="check"></i><span><kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>1…9</kbd> pour sauter d'un espace à l'autre</span></li>
+                </ul>
+                <img class="step-shot" src="/img/spaces.webp" width="1280" height="820" loading="lazy" decoding="async"
+                  alt="Éditeur d'espace de Browser : choix de l'icône, de la couleur et option d'espace isolé" />
+              </article>
+              <article class="story-step">
+                <span class="chip"><i data-icon="columns-2"></i>Vue scindée</span>
+                <h3>Deux à quatre pages côte à côte</h3>
+                <p>
+                  Lisez une documentation en codant, comparez deux fiches ou prenez des notes pendant une vidéo :
+                  la vue scindée affiche jusqu'à quatre onglets dans la même fenêtre.
+                </p>
+                <ul class="ticks">
+                  <li><i data-icon="check"></i><span>Depuis le menu d'un onglet ou <kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>\</kbd></span></li>
+                  <li><i data-icon="check"></i><span>Séparateurs ajustables, disposition restaurée au démarrage</span></li>
+                </ul>
+                <img class="step-shot" src="/img/split.webp" width="1280" height="820" loading="lazy" decoding="async"
+                  alt="Deux pages affichées côte à côte dans la vue scindée de Browser" />
+              </article>
+              <article class="story-step">
+                <span class="chip"><i data-icon="command"></i>Barre universelle</span>
+                <h3>Tout le navigateur sous <kbd>Ctrl</kbd> <kbd>K</kbd></h3>
+                <p>
+                  Onglets de tous les espaces, favoris, historique, actions et réglages dans une seule recherche
+                  floue. Elle calcule, convertit les unités et donne l'heure d'une ville, sans rien envoyer en ligne.
+                </p>
+                <ul class="ticks">
+                  <li><i data-icon="check"></i><span>Filtres <code>@onglets</code>, <code>@favoris</code>, <code>@historique</code>…</span></li>
+                  <li><i data-icon="check"></i><span>Onglets de vos autres appareils</span></li>
+                </ul>
+                <img class="step-shot" src="/img/palette.webp" width="1280" height="820" loading="lazy" decoding="async"
+                  alt="Barre universelle de Browser listant des onglets et des actions" />
+              </article>
+              <article class="story-step">
+                <span class="chip"><i data-icon="folder-tree"></i>Dossiers, favoris, archivage</span>
+                <h3>Rangez, retrouvez, oubliez le reste</h3>
+                <p>
+                  Classez vos onglets dans des dossiers par glisser-déposer, gardez vos sites de tous les jours
+                  dans la grille des favoris, et laissez Browser archiver les onglets que vous n'ouvrez plus.
+                </p>
+                <ul class="ticks">
+                  <li><i data-icon="check"></i><span>Dossiers imbriqués, avec icône, repliables</span></li>
+                  <li><i data-icon="check"></i><span>Onglets archivés retrouvables dans <code>browser://archive</code></span></li>
+                </ul>
+                <img class="step-shot" src="/img/favorites.webp" width="1280" height="820" loading="lazy" decoding="async"
+                  alt="Page d'accueil de Browser en thème clair avec la grille des sites favoris" />
+              </article>
+              <article class="story-step">
+                <span class="chip"><i data-icon="palette"></i>Thèmes</span>
+                <h3>Vos couleurs, partout</h3>
+                <p>
+                  Thème clair, sombre ou automatique, couleur d'accent avec une palette toujours lisible, fonds
+                  animés, densité, arrondis, police. Choisissez dans la galerie ou partagez votre thème en un code.
+                </p>
+                <ul class="ticks">
+                  <li><i data-icon="check"></i><span>Partage par code, fichier <code>.browsertheme</code> ou QR code</span></li>
+                  <li><i data-icon="check"></i><span>Mode zen : la page seule, bord à bord</span></li>
+                </ul>
+                <img class="step-shot" src="/img/settings.webp" width="1280" height="800" loading="lazy" decoding="async"
+                  alt="Paramètres d'apparence de Browser avec un thème sombre corail" />
+              </article>
+            </div>
           </div>
-          <figure class="window">
-            <img src="/img/spaces.webp" width="1280" height="820" loading="lazy" decoding="async"
-              alt="Éditeur d'espace de Browser : choix de l'icône, de la couleur et option d'espace isolé" />
-          </figure>
-        </article>
-
-        <article class="feature reverse">
-          <div class="feature-text">
-            <span class="chip"><i data-icon="columns-2"></i>Vue scindée</span>
-            <h3>Deux à quatre pages côte à côte</h3>
-            <p>
-              Lisez une documentation en codant, comparez deux fiches ou prenez des notes pendant une vidéo :
-              la vue scindée affiche jusqu'à quatre onglets dans la même fenêtre.
-            </p>
-            <ul class="ticks">
-              <li><i data-icon="check"></i>Depuis le menu d'un onglet ou <kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>\</kbd></li>
-              <li><i data-icon="check"></i>Séparateurs ajustables, disposition restaurée au démarrage</li>
-            </ul>
-          </div>
-          <figure class="window">
-            <img src="/img/split.webp" width="1280" height="820" loading="lazy" decoding="async"
-              alt="Deux pages affichées côte à côte dans la vue scindée de Browser" />
-          </figure>
-        </article>
-
-        <article class="feature">
-          <div class="feature-text">
-            <span class="chip"><i data-icon="command"></i>Palette de commandes</span>
-            <h3>Tout le navigateur sous <kbd>Ctrl</kbd> <kbd>K</kbd></h3>
-            <p>
-              Onglets ouverts, favoris, historique et actions du navigateur dans une seule recherche floue.
-              Quelques lettres suffisent, la souris devient facultative (<kbd>⌘</kbd> <kbd>K</kbd> sur Mac).
-            </p>
-            <ul class="ticks">
-              <li><i data-icon="check"></i>Raccourcis affichés à côté de chaque action</li>
-              <li><i data-icon="check"></i>Onglets de vos autres appareils</li>
-            </ul>
-          </div>
-          <figure class="window">
-            <img src="/img/palette.webp" width="1280" height="820" loading="lazy" decoding="async"
-              alt="Palette de commandes de Browser listant des onglets et des actions" />
-          </figure>
-        </article>
-
-        <article class="feature reverse">
-          <div class="feature-text">
-            <span class="chip"><i data-icon="folder-tree"></i>Dossiers et favoris</span>
-            <h3>Rangez, retrouvez, oubliez le reste</h3>
-            <p>
-              Classez vos onglets dans des dossiers imbriqués par glisser-déposer, gardez vos sites de tous les
-              jours dans la grille des favoris, et laissez Browser archiver les onglets que vous n'ouvrez plus.
-            </p>
-            <ul class="ticks">
-              <li><i data-icon="check"></i>Dossiers avec icône, repliables</li>
-              <li><i data-icon="check"></i>Grille de favoris commune à tous les espaces</li>
-              <li><i data-icon="check"></i>Onglets inactifs mis en veille pour libérer la mémoire</li>
-            </ul>
-          </div>
-          <figure class="window">
-            <img src="/img/favorites.webp" width="1280" height="820" loading="lazy" decoding="async"
-              alt="Page d'accueil de Browser en thème clair avec la grille des sites favoris" />
-          </figure>
-        </article>
+        </div>
       </section>
 
+      <!-- ============ Feature grid ============ -->
+      <section class="all-features container" aria-labelledby="grid-title">
+        <header class="section-head reveal-on-scroll">
+          <p class="kicker">Et tout le reste</p>
+          <h2 id="grid-title">Chaque détail, déjà là</h2>
+          <p>Pas d'extension à chercher pour l'essentiel : tout est intégré, et désactivable.</p>
+        </header>
+        <ul class="bento">
+          <li class="tile tile-wide reveal-on-scroll">
+            <i data-icon="command"></i>
+            <h3>Barre universelle</h3>
+            <p>Calculs, conversions (longueur, masse, température, données…), fuseaux horaires et bases, réponse copiée d'un Entrée. Ouvrez à côté avec <kbd>Maj</kbd> <kbd>Entrée</kbd>, en arrière-plan avec <kbd>Alt</kbd> <kbd>Entrée</kbd>.</p>
+          </li>
+          <li class="tile reveal-on-scroll">
+            <i data-icon="eye"></i>
+            <h3>Aperçu des liens</h3>
+            <p><kbd>Maj</kbd> + clic sur un lien : la page s'ouvre dans une carte flottante, à garder en onglet ou en vue scindée.</p>
+          </li>
+          <li class="tile reveal-on-scroll">
+            <i data-icon="book-open-text"></i>
+            <h3>Mode lecture</h3>
+            <p>L'article seul, sans le reste de la page. <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>R</kbd>.</p>
+          </li>
+          <li class="tile reveal-on-scroll">
+            <i data-icon="wand-sparkles"></i>
+            <h3>Boosts</h3>
+            <p>Personnalisez un site : couleurs, police, éléments masqués d'un clic, CSS, script en option.</p>
+          </li>
+          <li class="tile reveal-on-scroll">
+            <i data-icon="key-round"></i>
+            <h3>Mots de passe</h3>
+            <p>Enregistrés dans un coffre chiffré par le système, remplis sur le bon site uniquement, export CSV.</p>
+          </li>
+          <li class="tile reveal-on-scroll">
+            <i data-icon="puzzle"></i>
+            <h3>Extensions</h3>
+            <p>Installez des extensions Chrome depuis un dossier, un <code>.zip</code> ou un <code>.crx</code>.</p>
+          </li>
+          <li class="tile tile-wide reveal-on-scroll">
+            <i data-icon="camera"></i>
+            <h3>Captures et vidéo</h3>
+            <p>Zone visible, page entière ou un élément choisi à la souris ; enregistrement vidéo de l'onglet, son compris. <kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>S</kbd>, <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>V</kbd>.</p>
+          </li>
+          <li class="tile reveal-on-scroll">
+            <i data-icon="ellipsis"></i>
+            <h3>Options de la page</h3>
+            <p>Zoom, capture, version mobile du site, boost, QR code de la page : tout au bout de la barre d'adresse.</p>
+          </li>
+          <li class="tile reveal-on-scroll">
+            <i data-icon="keyboard"></i>
+            <h3>Raccourcis à vous</h3>
+            <p>Changez ou retirez le raccourci de chaque commande ; les conflits sont signalés.</p>
+          </li>
+          <li class="tile reveal-on-scroll">
+            <i data-icon="palette"></i>
+            <h3>Galerie de thèmes</h3>
+            <p>Huit thèmes prêts à l'emploi, et le vôtre à partager en un code ou un QR code.</p>
+          </li>
+          <li class="tile reveal-on-scroll">
+            <i data-icon="refresh-cw"></i>
+            <h3>Mises à jour automatiques</h3>
+            <p>Téléchargées en arrière-plan, installées au prochain redémarrage. Canal stable ou bêta.</p>
+          </li>
+          <li class="tile reveal-on-scroll">
+            <i data-icon="cloud-cog"></i>
+            <h3>Synchronisation chiffrée</h3>
+            <p>Favoris, onglets, historique récent, espaces, thème et boosts, via votre propre serveur.</p>
+          </li>
+          <li class="tile reveal-on-scroll">
+            <i data-icon="eye-off"></i>
+            <h3>Fenêtres privées</h3>
+            <p>Une session en mémoire par fenêtre, effacée à la fermeture. <kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>N</kbd>.</p>
+          </li>
+          <li class="tile reveal-on-scroll">
+            <i data-icon="shield-check"></i>
+            <h3>Boucliers</h3>
+            <p>Bloqueur de pubs et traqueurs, HTTPS uniquement, fenêtres surgissantes bloquées, désactivables par site.</p>
+          </li>
+          <li class="tile reveal-on-scroll">
+            <i data-icon="moon-star"></i>
+            <h3>Onglets en veille</h3>
+            <p>Les onglets inactifs libèrent la mémoire, jamais pendant une vidéo ou un formulaire en cours.</p>
+          </li>
+          <li class="tile reveal-on-scroll">
+            <i data-icon="hard-drive-download"></i>
+            <h3>Téléchargements</h3>
+            <p>Sans boîte de dialogue, avec pause et reprise ; les programmes attendent votre confirmation.</p>
+          </li>
+          <li class="tile reveal-on-scroll">
+            <i data-icon="scan-search"></i>
+            <h3>Recherche et zoom</h3>
+            <p>Recherche dans la page, zoom mémorisé par site, image dans l'image, son coupé onglet par onglet.</p>
+          </li>
+          <li class="tile tile-wide reveal-on-scroll">
+            <i data-icon="smartphone"></i>
+            <h3>Application mobile</h3>
+            <p>Barre d'adresse en bas, balayage entre onglets, espaces, mode lecture, mots de passe, et vos onglets du PC grâce à la synchronisation.</p>
+          </li>
+        </ul>
+      </section>
+
+      <!-- ============ Privacy ============ -->
       <section class="privacy" id="confidentialite" aria-labelledby="privacy-title">
-        <div class="container">
-          <header class="section-head">
-            <p class="kicker">Confidentialité</p>
-            <h2 id="privacy-title">Privé par défaut, pas en option</h2>
-            <p>Les protections sont actives dès le premier lancement. Rien à installer, rien à régler.</p>
-          </header>
-          <div class="privacy-grid">
-            <ul class="cards">
-              <li class="card">
-                <i data-icon="shield-check"></i>
-                <h3>Bloqueur intégré</h3>
-                <p>Publicités et traqueurs bloqués avec les listes EasyList et uBlock, sans extension.</p>
-              </li>
-              <li class="card">
-                <i data-icon="lock"></i>
-                <h3>HTTPS uniquement</h3>
-                <p>Chaque adresse passe en https ; si un site ne le prend pas en charge, Browser vous demande avant de continuer.</p>
-              </li>
-              <li class="card">
-                <i data-icon="eye-off"></i>
-                <h3>Fenêtres privées</h3>
-                <p>Une session en mémoire, effacée à la fermeture : ni historique, ni cookies, ni autorisations.</p>
-              </li>
-              <li class="card">
-                <i data-icon="key-round"></i>
-                <h3>Synchronisation chiffrée</h3>
-                <p>Favoris, onglets et espaces chiffrés sur vos appareils ; le serveur ne voit que des données illisibles.</p>
-              </li>
+        <div class="privacy-glow" aria-hidden="true" data-depth="0.12" data-box=".privacy"></div>
+        <div class="container privacy-grid">
+          <div>
+            <header class="section-head left reveal-on-scroll">
+              <p class="kicker">Confidentialité</p>
+              <h2 id="privacy-title">Privé par défaut, pas en option</h2>
+              <p>Les protections sont actives dès le premier lancement. Rien à installer, rien à régler.</p>
+            </header>
+            <ul class="privacy-list">
+              <li class="reveal-on-scroll"><i data-icon="shield-check"></i><div><h3>Bloqueur intégré</h3><p>Publicités et traqueurs bloqués avec les listes EasyList et uBlock, compteur par onglet.</p></div></li>
+              <li class="reveal-on-scroll"><i data-icon="lock"></i><div><h3>HTTPS uniquement</h3><p>Chaque adresse passe en https ; si un site ne le permet pas, Browser vous demande avant.</p></div></li>
+              <li class="reveal-on-scroll"><i data-icon="eye-off"></i><div><h3>Fenêtres privées</h3><p>Ni historique, ni cookies, ni mots de passe proposés, rien de synchronisé.</p></div></li>
+              <li class="reveal-on-scroll"><i data-icon="key-round"></i><div><h3>Chiffré de bout en bout</h3><p>La synchronisation passe par votre serveur, qui ne voit que des données illisibles.</p></div></li>
+              <li class="reveal-on-scroll"><i data-icon="fingerprint"></i><div><h3>Moins d'empreinte</h3><p>Global Privacy Control, identité de navigateur sans trace d'Electron, langue uniformisable.</p></div></li>
+              <li class="reveal-on-scroll"><i data-icon="ban"></i><div><h3>Fenêtres surgissantes</h3><p>Une page ne peut ouvrir une fenêtre qu'après un vrai clic de votre part.</p></div></li>
             </ul>
-            <figure class="window">
+          </div>
+          <div class="privacy-visual" data-depth="-0.08" data-box=".privacy">
+            <div class="window">
+              <div class="window-bar private"><span></span><span></span><span></span><b><i data-icon="eye-off"></i>Fenêtre privée</b></div>
               <img src="/img/private.webp" width="1280" height="820" loading="lazy" decoding="async"
                 alt="Fenêtre de navigation privée de Browser et la liste de ses garanties" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ Shortcuts ============ -->
+      <section class="shortcuts container" aria-labelledby="shortcuts-title">
+        <header class="section-head reveal-on-scroll">
+          <p class="kicker">Clavier</p>
+          <h2 id="shortcuts-title">La souris devient facultative</h2>
+          <p>Les raccourcis de Chrome que vous connaissez déjà, et tous modifiables dans les paramètres. Sur Mac, <kbd>Ctrl</kbd> devient <kbd>⌘</kbd>.</p>
+        </header>
+        <ul class="keys">
+          <li class="reveal-on-scroll"><span class="combo"><kbd>Ctrl</kbd><kbd>K</kbd></span><span>Barre universelle</span></li>
+          <li class="reveal-on-scroll"><span class="combo"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>\</kbd></span><span>Vue scindée</span></li>
+          <li class="reveal-on-scroll"><span class="combo"><kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>→</kbd></span><span>Espace suivant</span></li>
+          <li class="reveal-on-scroll"><span class="combo"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>B</kbd></span><span>Mode zen</span></li>
+          <li class="reveal-on-scroll"><span class="combo"><kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>R</kbd></span><span>Mode lecture</span></li>
+          <li class="reveal-on-scroll"><span class="combo"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>O</kbd></span><span>Options de la page</span></li>
+          <li class="reveal-on-scroll"><span class="combo"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>S</kbd></span><span>Capture d'écran</span></li>
+          <li class="reveal-on-scroll"><span class="combo"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>N</kbd></span><span>Fenêtre privée</span></li>
+        </ul>
+        <p class="center"><a class="link" href="docs.html#raccourcis">Tous les raccourcis <i data-icon="arrow-right"></i></a></p>
+      </section>
+
+      <!-- ============ Mobile ============ -->
+      <section class="mobile" id="mobile" aria-labelledby="mobile-title">
+        <div class="container mobile-grid">
+          <div class="mobile-text reveal-on-scroll">
+            <p class="kicker">Mobile</p>
+            <h2 id="mobile-title">Aussi sur iPhone et Android</h2>
+            <p>
+              La même philosophie dans la main : barre d'adresse en bas, balayage pour changer d'onglet, espaces,
+              navigation privée, mode lecture, et vos onglets du PC à portée grâce à la synchronisation chiffrée
+              (jumelage par QR code).
+            </p>
+            <div class="stores">
+              <span class="store"><i data-icon="smartphone"></i><span><small>Bientôt sur</small>l'App Store</span></span>
+              <span class="store"><i data-icon="smartphone"></i><span><small>Bientôt sur</small>Google Play</span></span>
+            </div>
+            <p class="muted small">En attendant, l'application s'essaie avec Expo Go : <a href="docs.html#mobile">voir le guide</a>.</p>
+          </div>
+          <div class="phones" aria-hidden="false">
+            <figure class="phone" data-depth="0.06" data-box=".mobile">
+              <img src="/img/mobile-tabs.webp" width="390" height="512" loading="lazy" decoding="async"
+                alt="Vue des onglets de l'application mobile, regroupés par espace" />
+            </figure>
+            <figure class="phone phone-raised" data-depth="-0.1" data-box=".mobile">
+              <img src="/img/mobile-start.webp" width="390" height="512" loading="lazy" decoding="async"
+                alt="Page d'accueil de l'application mobile Browser en thème sombre" />
+            </figure>
+            <figure class="phone" data-depth="0.02" data-box=".mobile">
+              <img src="/img/mobile-search.webp" width="390" height="512" loading="lazy" decoding="async"
+                alt="Recherche plein écran de l'application mobile en thème clair" />
             </figure>
           </div>
         </div>
       </section>
 
-      <section class="features container" aria-labelledby="custom-title">
-        <article class="feature">
-          <div class="feature-text">
-            <span class="chip"><i data-icon="palette"></i>Personnalisation</span>
-            <h3 id="custom-title">Votre navigateur, vos couleurs</h3>
-            <p>
-              Thème clair, sombre ou automatique, couleur d'accent avec une palette dérivée toujours lisible,
-              arrière-plans animés, densité, arrondis, police, barre latérale à gauche ou à droite. Tout
-              s'applique à chaud.
-            </p>
-            <ul class="ticks">
-              <li><i data-icon="check"></i>Mode zen : la page seule, bord à bord</li>
-              <li><i data-icon="check"></i>Densité compacte, confortable ou aérée</li>
-              <li><i data-icon="check"></i>Page d'accueil personnalisée</li>
-            </ul>
-          </div>
-          <div class="stack">
-            <figure class="window">
-              <img src="/img/settings.webp" width="1280" height="800" loading="lazy" decoding="async"
-                alt="Paramètres d'apparence de Browser avec un thème sombre corail" />
-            </figure>
-            <figure class="window stack-back" aria-hidden="true">
-              <img src="/img/theme-mint.webp" width="1280" height="800" loading="lazy" decoding="async" alt="" />
-            </figure>
-          </div>
-        </article>
-      </section>
-
+      <!-- ============ Download ============ -->
       <section class="download" id="telecharger" aria-labelledby="download-title">
+        <div class="mesh mesh-soft" aria-hidden="true">
+          <span class="blob b1"></span>
+          <span class="blob b3"></span>
+          <span class="blob b4"></span>
+        </div>
         <div class="container">
-          <header class="section-head">
+          <header class="section-head reveal-on-scroll">
             <p class="kicker">Télécharger</p>
             <h2 id="download-title">Installez Browser en une minute</h2>
             <p id="download-version">Les installateurs apparaîtront ici dès qu'une version publique sera publiée.</p>
           </header>
           <div class="platforms">
-            <article class="platform" data-os="windows">
+            <article class="platform reveal-on-scroll" data-os="windows">
               <i data-icon="monitor"></i>
               <h3>Windows</h3>
               <p class="muted">Windows 10 et 11</p>
@@ -293,7 +451,7 @@
               <a class="link" data-asset="win-arm64" href="#telecharger">Windows sur ARM</a>
               <a class="link" data-asset="win-zip" href="#telecharger">Version portable (.zip)</a>
             </article>
-            <article class="platform" data-os="mac">
+            <article class="platform reveal-on-scroll" data-os="mac">
               <i data-icon="laptop"></i>
               <h3>macOS</h3>
               <p class="muted">macOS 12 ou plus récent</p>
@@ -302,7 +460,7 @@
               </a>
               <a class="link" data-asset="mac-x64" href="#telecharger">Mac Intel</a>
             </article>
-            <article class="platform" data-os="linux">
+            <article class="platform reveal-on-scroll" data-os="linux">
               <i data-icon="terminal"></i>
               <h3>Linux</h3>
               <p class="muted">64 bits, la plupart des distributions</p>
@@ -315,66 +473,30 @@
           <p class="fineprint">
             <a data-asset="checksums" href="#telecharger">Empreintes SHA-256</a>
             ·
-            <a href="#telecharger">Toutes les versions</a>
+            <a href="https://github.com/Mathieu-Lalande/browser/releases">Toutes les versions</a>
+            ·
+            <a href="docs.html#installation">Guide d'installation</a>
             ·
             <a href="#faq-smartscreen">Avertissement de Windows à l'installation ?</a>
           </p>
         </div>
       </section>
 
-      <section class="documentation container" id="documentation" aria-labelledby="documentation-title">
-        <header class="section-head">
-          <p class="kicker">Documentation</p>
-          <h2 id="documentation-title">Prêt en quelques minutes</h2>
-          <p>Les étapes essentielles pour installer Browser et retrouver vos repères.</p>
-        </header>
-        <div class="cards">
-          <article class="card">
-            <i data-icon="download"></i>
-            <h3>Installer Browser</h3>
-            <p>Choisissez votre plateforme dans la section téléchargement. L'installateur conserve vos onglets, favoris et réglages lors des mises à jour.</p>
-            <a class="link" href="#telecharger">Voir les téléchargements <i data-icon="arrow-right"></i></a>
-          </article>
-          <article class="card">
-            <i data-icon="book-open"></i>
-            <h3>Navigation et raccourcis</h3>
-            <p>Utilisez <kbd>Alt</kbd> <kbd>←</kbd> et <kbd>Alt</kbd> <kbd>→</kbd> pour revenir en arrière ou avancer. Sur macOS, balayez la page avec deux ou trois doigts.</p>
-            <a class="link" href="#faq">Lire les réponses <i data-icon="arrow-right"></i></a>
-          </article>
-        </div>
-      </section>
-
-      <section class="mobile container" id="mobile" aria-labelledby="mobile-title">
-        <div class="mobile-text">
-          <p class="kicker">Mobile</p>
-          <h2 id="mobile-title">Aussi sur iPhone et Android</h2>
-          <p>
-            La même philosophie dans la main : barre d'adresse en bas, balayage pour changer d'onglet, espaces,
-            navigation privée, et vos onglets du PC à portée grâce à la synchronisation chiffrée (jumelage par QR code).
-          </p>
-          <div class="stores">
-            <span class="store"><i data-icon="smartphone"></i><span><small>Bientôt sur</small>l'App Store</span></span>
-            <span class="store"><i data-icon="smartphone"></i><span><small>Bientôt sur</small>Google Play</span></span>
+      <!-- ============ Docs teaser ============ -->
+      <section class="docs-teaser container reveal-on-scroll" aria-labelledby="docs-teaser-title">
+        <div class="teaser-card">
+          <i data-icon="book-open"></i>
+          <div>
+            <h2 id="docs-teaser-title">Le guide complet</h2>
+            <p>Installation, premiers pas, chaque fonctionnalité pas à pas, tous les raccourcis, la synchronisation et le dépannage.</p>
           </div>
-        </div>
-        <div class="phones">
-          <figure class="phone">
-            <img src="/img/mobile-start.webp" width="390" height="512" loading="lazy" decoding="async"
-              alt="Page d'accueil de l'application mobile Browser en thème sombre" />
-          </figure>
-          <figure class="phone phone-raised">
-            <img src="/img/mobile-tabs.webp" width="390" height="512" loading="lazy" decoding="async"
-              alt="Vue des onglets de l'application mobile, regroupés par espace" />
-          </figure>
-          <figure class="phone">
-            <img src="/img/mobile-search.webp" width="390" height="512" loading="lazy" decoding="async"
-              alt="Recherche plein écran de l'application mobile en thème clair" />
-          </figure>
+          <a class="btn btn-primary" href="docs.html"><span>Ouvrir la documentation</span><i data-icon="arrow-right"></i></a>
         </div>
       </section>
 
+      <!-- ============ FAQ ============ -->
       <section class="faq container" id="faq" aria-labelledby="faq-title">
-        <header class="section-head">
+        <header class="section-head reveal-on-scroll">
           <p class="kicker">Questions fréquentes</p>
           <h2 id="faq-title">Bon à savoir</h2>
         </header>
@@ -382,10 +504,10 @@
           <details id="faq-smartscreen">
             <summary>Windows affiche « Windows a protégé votre ordinateur ». Est-ce normal ?<i data-icon="chevron-down"></i></summary>
             <p>
-              Oui. Les premières versions ne sont pas encore signées avec un certificat de développeur, et
-              SmartScreen avertit pour tout programme peu téléchargé. Cliquez sur « Informations complémentaires »
-              puis « Exécuter quand même ». Vous pouvez vérifier le fichier avec les empreintes SHA-256 publiées
-              avec chaque version.
+              Oui. Les versions ne sont pas encore signées avec un certificat de développeur, et SmartScreen
+              avertit pour tout programme peu téléchargé. Cliquez sur « Informations complémentaires » puis
+              « Exécuter quand même ». Vous pouvez vérifier le fichier avec les empreintes SHA-256 publiées avec
+              chaque version.
             </p>
           </details>
           <details>
@@ -405,28 +527,38 @@
             </p>
           </details>
           <details>
+            <summary>Comment Browser se met-il à jour ?<i data-icon="chevron-down"></i></summary>
+            <p>
+              Tout seul : il vérifie les nouvelles versions 30 secondes après le démarrage puis toutes les 6 heures,
+              les télécharge en arrière-plan et les installe au prochain redémarrage (ou tout de suite avec
+              « Redémarrer pour mettre à jour »). La version portable <code>.zip</code>, le paquet <code>.deb</code>
+              et, tant que l'app n'est pas signée, macOS se mettent à jour à la main.
+            </p>
+          </details>
+          <details>
             <summary>Que fait Browser de mes données ?<i data-icon="chevron-down"></i></summary>
             <p>
-              Votre historique, vos favoris et vos sessions restent sur votre ordinateur. La recherche passe par
-              DuckDuckGo par défaut, les traqueurs sont bloqués et la navigation privée ne laisse aucune trace.
-              Rien n'est envoyé ailleurs, sauf si vous activez la synchronisation, et elle est chiffrée.
+              Votre historique, vos favoris, vos mots de passe et vos sessions restent sur votre ordinateur. La
+              recherche passe par DuckDuckGo par défaut, les traqueurs sont bloqués et la navigation privée ne
+              laisse aucune trace. Rien n'est envoyé ailleurs, sauf si vous activez la synchronisation, et elle est
+              chiffrée.
             </p>
           </details>
           <details>
             <summary>Comment fonctionne la synchronisation ? Qui héberge le serveur ?<i data-icon="chevron-down"></i></summary>
             <p>
-              Vous. La synchronisation passe par un petit serveur que vous déployez (Docker, Fly.io, Render…),
-              et les données sont chiffrées sur vos appareils avant l'envoi : le serveur ne voit jamais de clair.
-              La navigation privée n'est jamais synchronisée. Tant qu'aucun serveur n'est configuré, la
-              synchronisation reste désactivée. Le guide est dans
-              <a href="https://github.com/Mathieu-Lalande/browser/blob/master/server/README.md">server/README.md</a>.
+              Vous. La synchronisation passe par un petit serveur que vous déployez (Docker, Fly.io, Render…), et
+              les données sont chiffrées sur vos appareils avant l'envoi : le serveur ne voit jamais de clair. La
+              navigation privée n'est jamais synchronisée. <a href="docs.html#synchronisation">Voir le guide</a>.
             </p>
           </details>
           <details>
-            <summary>Comment mettre à jour Browser ?<i data-icon="chevron-down"></i></summary>
+            <summary>Mes extensions Chrome fonctionnent-elles ?<i data-icon="chevron-down"></i></summary>
             <p>
-              Téléchargez la nouvelle version et installez-la par-dessus l'ancienne : vos onglets, favoris et
-              réglages sont conservés. Les mises à jour automatiques arriveront avec les versions signées.
+              En partie : Browser charge les extensions non empaquetées et les fichiers <code>.zip</code> ou
+              <code>.crx</code> avec leurs scripts de contenu et une partie des API <code>chrome.*</code>, mais sans
+              boutons d'action ni fenêtres surgissantes d'extension. Le bloqueur, les mots de passe et le mode
+              lecture sont déjà intégrés.
             </p>
           </details>
         </div>
@@ -435,16 +567,23 @@
 
     <footer class="footer">
       <div class="container footer-inner">
-        <a class="brand" href="#top">
-          <img src="/img/icon.png" width="24" height="24" alt="" loading="lazy" />
-          <span>Browser</span>
-        </a>
-        <ul class="footer-links">
-          <li><a href="https://github.com/Mathieu-Lalande/browser">Code source</a></li>
-          <li><a href="https://github.com/Mathieu-Lalande/browser/releases">Versions</a></li>
-          <li><a href="#documentation">Documentation</a></li>
-        </ul>
-        <p class="muted">© 2026 Mathieu Lalande</p>
+        <div class="footer-brand">
+          <a class="brand" href="#top">
+            <img src="/img/icon.png" width="24" height="24" alt="" loading="lazy" />
+            <span>Browser</span>
+          </a>
+          <p class="muted small">Rapide, privé, entièrement personnalisable.</p>
+        </div>
+        <nav aria-label="Pied de page">
+          <ul class="footer-links">
+            <li><a href="docs.html">Documentation</a></li>
+            <li><a href="#telecharger">Télécharger</a></li>
+            <li><a href="https://github.com/Mathieu-Lalande/browser">Code source</a></li>
+            <li><a href="https://github.com/Mathieu-Lalande/browser/releases">Versions</a></li>
+            <li><a href="https://github.com/Mathieu-Lalande/browser/blob/master/server/README.md">Serveur de synchronisation</a></li>
+          </ul>
+        </nav>
+        <p class="muted small">© 2026 Mathieu Lalande</p>
       </div>
     </footer>
   </body>

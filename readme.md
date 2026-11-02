@@ -1,62 +1,86 @@
 # Browser
 
-Un navigateur desktop **rapide, privé et entièrement personnalisable**, dans l'esprit d'Arc et de Zen.
+Un navigateur **rapide, privé et entièrement personnalisable**, dans l'esprit d'Arc et de Zen, pour
+Windows, macOS et Linux, avec son application iPhone et Android.
 
-- Moteur Chromium via Electron, un onglet = une `WebContentsView` sandboxée.
-- Interface Svelte 5 : barre latérale verticale, onglets épinglés, barre d'adresse intégrée, page d'accueil.
-- Espaces (onglets, icône et couleur propres ; sessions isolées façon conteneurs en option) et vue scindée
-  (2 à 4 pages côte à côte).
-- Session restaurée au démarrage (onglets chargés à la demande), historique, favoris, suggestions
-  dans la barre d'adresse et sites les plus visités sur la page d'accueil.
-- Barre universelle (`Ctrl+K`, `⌘K` sous macOS) : onglets de tous les espaces, favoris, historique, actions, réglages, onglets des autres appareils, filtres `@onglets`… et réponses instantanées (calculs, conversions, fuseaux horaires), recherche floue.
-- Recherche privée par défaut (DuckDuckGo), protections de sécurité strictes (voir `docs/DECISIONS.md`).
-- Boucliers intégrés : bloqueur de pubs & traqueurs (listes EasyList/uBlock via Ghostery), mode HTTPS uniquement,
-  Global Privacy Control, invite de permissions par site, user agent et client hints sans trace d'Electron,
-  `Accept-Language` uniformisable.
-- Fenêtres privées (`Ctrl+Maj+N`, `⇧⌘N`) : session en mémoire propre à la fenêtre, effacée à sa fermeture ;
-  ni historique, ni session, ni autorisations mémorisées.
-- Mise en veille des onglets inactifs (mémoire libérée, page rechargée au retour ; jamais pour un onglet
-  qui joue du son ou un formulaire en cours).
-- Paramètres (`browser://settings`) appliqués à chaud : thème clair/sombre/auto, couleur d'accent avec
-  palette dérivée accessible, arrière-plans, densité, coins, police, barre latérale à gauche ou à droite
-  (redimensionnable), page bord à bord, mode zen, moteur de recherche, page d'accueil personnalisée.
-- Téléchargements sans boîte de dialogue (pause, reprise, annulation, historique, `browser://downloads`) ;
-  les programmes et scripts attendent une confirmation et rien n'est jamais ouvert automatiquement.
-- Recherche dans la page, zoom mémorisé par site, image dans l'image, son coupé onglet par onglet.
-- Synchronisation chiffrée de bout en bout avec le téléphone (favoris, historique récent, onglets
-  ouverts, espaces, thème) via un petit serveur que vous hébergez ([`server/`](server/README.md)) et
-  qui ne voit que des données illisibles ; jumelage par QR code. Jamais la navigation privée.
+- **Site et téléchargements** : https://mathieu-lalande.github.io/browser/
+- **Guide d'utilisation** : https://mathieu-lalande.github.io/browser/docs.html
+- **Installer, développer, publier** : [`docs/INSTALL.md`](docs/INSTALL.md) · **Décisions** :
+  [`docs/DECISIONS.md`](docs/DECISIONS.md) · **Feuille de route** : [`docs/ROADMAP.md`](docs/ROADMAP.md)
 
-![Espaces et leur éditeur (icônes Lucide)](docs/screenshots/spaces.png)
+## Fonctionnalités
+
+**Organiser**
+- Barre latérale verticale, onglets épinglés, session restaurée au démarrage (onglets chargés à la demande).
+- Espaces : onglets, icône Lucide et couleur propres, sessions isolées façon conteneurs en option ; balayage à
+  deux doigts (pavé tactile) ou d'un doigt (écran tactile) entre espaces, `Ctrl+Alt+1…9` (ADR-009, 022, 031).
+- Vue scindée : 2 à 4 pages côte à côte, séparateurs ajustables (ADR-009).
+- Dossiers d'onglets imbriqués, grille des favoris commune aux espaces, archivage automatique des onglets
+  inactifs (`browser://archive`) (ADR-022).
+- Mise en veille des onglets inactifs (jamais pendant du son, une autorisation ou un formulaire) (ADR-014).
+
+**Trouver et agir**
+- Barre universelle (`Ctrl+K`, `⌘K`) : onglets de tous les espaces, favoris, historique, commandes, réglages,
+  onglets des autres appareils et archivés ; filtres `@onglets @favoris @historique @commandes @réglages` ;
+  réponses instantanées locales (calculs, conversions d'unités, heure d'une ville, bases) (ADR-032).
+- Aperçu des liens (`Maj`+clic) dans une carte flottante (ADR-027) ; mode lecture (`Ctrl+Alt+R`) et version
+  mobile d'un site (ADR-026).
+- Options de la page (`Ctrl+Maj+O`) : zoom, captures d'écran (zone visible, page entière, élément), vidéo de
+  l'onglet (`Ctrl+Alt+V`), QR code (ADR-031).
+- Menu contextuel complet des pages, infos sur le site, données des sites (ADR-021).
+- Téléchargements sans boîte de dialogue (pause, reprise, `browser://downloads`), recherche dans la page, zoom
+  mémorisé par site, image dans l'image, son coupé par onglet (ADR-013).
+- Raccourcis personnalisables, conflits signalés (ADR-028).
+
+**Personnaliser**
+- Paramètres appliqués à chaud (`browser://settings`) : thème clair/sombre/auto, couleur d'accent avec palette
+  dérivée accessible, arrière-plans, densité, coins, police, barre latérale à gauche ou à droite, mode zen,
+  moteur de recherche, page d'accueil (ADR-011).
+- Galerie de 8 thèmes et thèmes partageables (code `browser-theme:v1:…`, fichier `.browsertheme`, QR code) (ADR-030).
+- Boosts par site : filtres de couleur, police, éléments masqués, CSS, script optionnel (`browser://boosts`) (ADR-029).
+- Extensions Chrome non empaquetées, `.zip` ou `.crx` (`browser://extensions`, support partiel) (ADR-024).
+
+**Protéger**
+- Recherche privée par défaut (DuckDuckGo), modèle de sécurité strict : pages sans preload ni Node, interface
+  servie sur `app://browser/` (ADR-003, 018).
+- Boucliers : bloqueur de pubs et traqueurs (EasyList/uBlock via Ghostery), HTTPS uniquement, bloqueur de
+  fenêtres surgissantes, Global Privacy Control, invite de permissions par site, user agent sans trace
+  d'Electron, `Accept-Language` uniformisable, cookies tiers bloquables (ADR-006 à 008, 014, 021).
+- Fenêtres privées (`Ctrl+Maj+N`, `⇧⌘N`) : session en mémoire propre à la fenêtre, effacée à la fermeture (ADR-014).
+- Gestionnaire de mots de passe (coffre `safeStorage`, remplissage à la demande, origine exacte, export CSV,
+  `browser://passwords`), jamais d'invite en fenêtre privée (ADR-025).
+- Synchronisation chiffrée de bout en bout avec le téléphone (favoris, historique récent, onglets ouverts,
+  espaces, thème, boosts) via un petit serveur que vous hébergez ([`server/`](server/README.md)), jumelage
+  par QR code ; jamais la navigation privée (ADR-019).
+- Mises à jour automatiques depuis les releases GitHub, canal stable ou bêta (ADR-030).
+
+![Espaces et leur éditeur](docs/screenshots/spaces.png)
 ![Page d'accueil](docs/screenshots/start-light.png)
 
+![Barre universelle](docs/screenshots/palette.png)
+![Vue scindée](docs/screenshots/split.png)
+
 ![Paramètres](docs/screenshots/settings.png)
-
 ![Fenêtre privée](docs/screenshots/private.png)
-![Téléchargements](docs/screenshots/downloads.png)
-
-![Recherche dans la page](docs/screenshots/find.png)
 
 ## Installer
 
-Téléchargez la dernière version sur le site **https://mathieu-lalande.github.io/browser/** ou dans les
-[page de téléchargement](https://mathieu-lalande.github.io/browser/#telecharger) : installateur Windows
-(x64 et ARM, sans droits administrateur), version portable `.zip`, `.dmg` macOS (Apple Silicon et Intel),
-AppImage et `.deb` pour Linux, avec `SHA256SUMS.txt`. Les paquets ne sont pas encore signés (voir la FAQ du site).
+Téléchargez la dernière version sur **https://mathieu-lalande.github.io/browser/** (le bouton détecte votre
+système) ou dans les [releases GitHub](https://github.com/Mathieu-Lalande/browser/releases) : installateur
+Windows (x64 et ARM, sans droits administrateur), version portable `.zip`, `.dmg` macOS (Apple Silicon et
+Intel), AppImage et `.deb` pour Linux, avec `SHA256SUMS.txt`. Les paquets ne sont pas encore signés (voir le
+[dépannage](https://mathieu-lalande.github.io/browser/docs.html#depannage)).
 
 **Publier une version** : `npm run release:version -- 0.3.0` puis `git push --follow-tags`. Le workflow
 `.github/workflows/release.yml` construit les trois systèmes et crée la release (ou : *Actions* → *Release* →
-*Run workflow*). Le site vitrine (`site/`) est déployé sur GitHub Pages par `.github/workflows/site.yml` ;
-à activer une fois dans *Settings → Pages → Source : GitHub Actions*. Détails : `docs/INSTALL.md` (section 2.2)
-et ADR-023.
-
-Captures du site : [`docs/screenshots/site-desktop.png`](docs/screenshots/site-desktop.png), [`site-mobile.png`](docs/screenshots/site-mobile.png).
+*Run workflow*). Le site (`site/` : page d'accueil `index.html` et guide `docs.html`) est déployé sur GitHub
+Pages par `.github/workflows/site.yml`. Détails : `docs/INSTALL.md` (section 2.2) et ADR-023.
 
 ## Démarrer
 
 Guide complet (développement sur PC et iPhone, installateurs, TestFlight, App Store) : [`docs/INSTALL.md`](docs/INSTALL.md).
 
-Prérequis : Node.js 20+.
+Prérequis : Node.js 22 (comme la CI).
 
 ```bash
 npm install
@@ -70,6 +94,10 @@ pensée pour une utilisation à une main : barre d'adresse en bas qui se replie 
 balayage de la barre pour changer d'onglet, recherche plein écran, vue des onglets avec espaces,
 navigation privée. Elle réutilise directement `src/shared` (URL, historique, recherche floue,
 commandes, paramètres, thème, HTTPS uniquement) ; voir l'ADR-016.
+
+Elle reprend aussi dossiers, favoris, archivage, mode lecture, version ordinateur, aperçu des liens,
+mots de passe (`expo-secure-store`), boosts et thèmes partageables ; le bloqueur de pubs viendra avec la
+version compilée (phase 2).
 
 Pour l'essayer sur votre téléphone (Windows, macOS ou Linux) : installez **Expo Go** depuis
 l'App Store ou le Play Store, puis
@@ -105,7 +133,7 @@ paquets non signés pour Linux, Windows et macOS sur `master` (ADR-015) ; un tag
 
 ## Raccourcis
 
-Une seule notation, celle de l'interface (infobulles, palette, page d'accueil), tirée du registre des
+Raccourcis par défaut, tous modifiables dans *Paramètres → Raccourcis clavier* (ADR-028). Une seule notation, celle de l'interface (infobulles, palette, page d'accueil), tirée du registre des
 commandes (`src/shared/commands.ts`) : « Maj » pour Shift sous Windows/Linux, symboles sous macOS.
 
 | Windows / Linux | macOS | Action |
@@ -126,6 +154,11 @@ commandes (`src/shared/commands.ts`) : « Maj » pour Shift sous Windows/Linux, 
 | `Ctrl+Maj+B` | `⇧⌘B` | Mode zen (barre latérale masquée, page bord à bord) |
 | `Ctrl+Alt+1…9`, `Ctrl+Alt+←/→` | `⌥⌘1…9`, `⌥⌘←/→` | Aller à l'espace n / espace précédent, suivant |
 | `Ctrl+Maj+\` | `⇧⌘\` | Vue scindée (l'onglet actif et le suivant côte à côte) / la quitter |
+| `Ctrl+Alt+R` | `⌥⌘R` | Mode lecture |
+| `Ctrl+Maj+O` | `⇧⌘O` | Options de la page |
+| `Ctrl+Maj+S` / `Ctrl+Alt+S` | `⇧⌘S` / `⌥⌘S` | Capture de la zone visible / de la page entière |
+| `Ctrl+Alt+V` | `⌥⌘V` | Enregistrer une vidéo de l'onglet (bascule) |
+| `Ctrl+Maj+I` | `⌥⌘I` | Outils de développement |
 | `Ctrl+,` | `⌘,` | Paramètres |
 | `Ctrl+D` | `⌘D` | Ajouter/retirer la page des favoris |
 | `Ctrl+R`, `F5` | `⌘R` | Actualiser |
@@ -147,5 +180,7 @@ src/
               historique, HTTPS uniquement, paramètres, moteur de thème (testés)
 mobile/       application iOS/Android (Expo / React Native), voir mobile/README.md
 tests/e2e/    tests Playwright + Electron
-docs/         décisions d'architecture et roadmap
+docs/         installation, décisions d'architecture et roadmap
+server/       relais de synchronisation auto-hébergé (Node 22, Docker)
+site/         site vitrine et guide d'utilisation (Vite + TS, GitHub Pages)
 ```
