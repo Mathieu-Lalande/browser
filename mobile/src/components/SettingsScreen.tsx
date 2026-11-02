@@ -12,6 +12,8 @@ import { PairingScanner } from "./PairingScanner";
 import { BoostsSettings } from "./BoostsSettings";
 import { PasswordsSettings } from "./PasswordsSettings";
 import { SyncSettings } from "./SyncSettings";
+import { ThemeSettings } from "./ThemeSettings";
+import { THEME_QR_PREFIX } from "../lib/themeShare";
 import { IconButton, SiteIcon, Tap } from "./ui";
 
 /** Settings: search engine, theme/accent, start page, tabs, privacy, favorites, about. */
@@ -22,6 +24,8 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
   const insets = useSafeAreaInsets();
   const { appearance, startPage, behavior } = settings;
   const [scanning, setScanning] = useState(false);
+  const [scanningTheme, setScanningTheme] = useState(false);
+  const [themeInput, setThemeInput] = useState("");
   const { sync } = useBrowserState();
 
   const confirm = (title: string, message: string, action: string, run: () => void) =>
@@ -105,6 +109,7 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
               })}
             </View>
           </View>
+          <ThemeSettings input={themeInput} onInput={setThemeInput} onScan={() => setScanningTheme(true)} />
           <Toggle
             label="Réduire les animations"
             detail="S'ajoute au réglage du système"
@@ -269,6 +274,18 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
           <Text style={[styles.doneBottomText, { color: colors.onAccent }]}>Terminé</Text>
         </Tap>
       </ScrollView>
+      {scanningTheme && (
+        <PairingScanner
+          prefix={THEME_QR_PREFIX}
+          hint="Visez le QR code du thème affiché dans Paramètres, Apparence, sur l'autre appareil."
+          purpose="Pour scanner le QR code d'un thème."
+          onClose={() => setScanningTheme(false)}
+          onCode={(code) => {
+            setScanningTheme(false);
+            setThemeInput(code);
+          }}
+        />
+      )}
       {scanning && (
         <PairingScanner
           onClose={() => setScanning(false)}

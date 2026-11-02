@@ -34,6 +34,8 @@
   import SiteDataSection from "./SiteDataSection.svelte";
   import Slider from "./Slider.svelte";
   import SyncSection from "./SyncSection.svelte";
+  import ThemeShare from "./ThemeShare.svelte";
+  import UpdatesSection from "./UpdatesSection.svelte";
   import Toggle from "./Toggle.svelte";
 
   const NAV: { id: string; label: string; icon: IconName }[] = [
@@ -48,6 +50,7 @@
     { id: "downloads", label: "Téléchargements", icon: "download" },
     { id: "data", label: "Données", icon: "database" },
     { id: "sync", label: "Synchronisation", icon: "cloud" },
+    { id: "updates", label: "Mises à jour", icon: "update" },
   ];
 
   const MODES: { value: ThemeMode; label: string; icon: IconName }[] = [
@@ -194,6 +197,7 @@
           {/each}
         </div>
 
+        <ThemeShare />
         <Row label="Couleur d'accent" hint="Boutons, sélection, focus et reflets de l'arrière-plan.">
           <ColorPicker
             label="Couleur d'accent"
@@ -551,6 +555,16 @@
         description="Vos appareils synchronisés, chiffrés de bout en bout : le serveur ne peut rien lire."
       >
         <SyncSection />
+      </Section>
+
+      <Section
+        id="updates"
+        icon="update"
+        title="Mises à jour"
+        description="Nouvelles versions de Browser, installées au redémarrage."
+        onReset={() => settings.reset("updates")}
+      >
+        <UpdatesSection />
       </Section>
     </div>
     <div class="tail" style:height="{tail}px" aria-hidden="true"></div>

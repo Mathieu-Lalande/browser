@@ -423,7 +423,8 @@ de bureau quelconque (`src/main/fingerprint.ts`, fonctions pures testées) :
   (`CSC_IDENTITY_AUTO_DISCOVERY=false`), le test de fumée sous Linux, et publie les dossiers comme
   artefacts (l'archive d'artefacts ne conserve pas les liens symboliques du bundle macOS : à zipper si
   l'on veut le distribuer). Actions épinglées en v4, Node 22, cache npm.
-- **Mises à jour automatiques : non implémentées** (ni signature ni infrastructure) ; plan dans la roadmap.
+- Mises à jour automatiques : ADR-030 (`"publish"` pointe désormais vers les releases GitHub ; les
+  commandes gardent `--publish never`, electron-builder écrit seulement les `latest*.yml`).
 
 ## ADR-016 — Application mobile : Expo / React Native, code partagé avec le bureau
 
@@ -1008,7 +1009,7 @@ dossiers non compressés en artefacts de CI.
   dont dépend la détection du site.
 - `publish` : rassemble les artefacts, calcule `SHA256SUMS.txt`, crée la release avec
   `softprops/action-gh-release` (notes générées automatiquement + tableau d'installation). Seul ce job
-  a `contents: write`. `"publish": null` reste en place : pas de `latest.yml` ni d'auto-update.
+  a `contents: write`. Depuis ADR-030, la release publie aussi `latest*.yml` et les `.blockmap`.
 - Actions épinglées par SHA de commit (version en commentaire).
 - **Signature facultative** : `WIN_CSC_LINK`/`WIN_CSC_KEY_PASSWORD` (Windows) et
   `CSC_LINK`/`CSC_KEY_PASSWORD` (macOS) ne sont exportés que s'ils existent. Sinon
@@ -1359,3 +1360,58 @@ bureau et le téléphone ; stocké dans `boosts.json` (bureau) et `browser.boost
   des éléments (pas de survol au doigt, sélection peu fiable) : les éléments masqués viennent du bureau par la
   synchronisation. Menu de la page « Boost du site » (activer, filtres rapides, police, réafficher) et liste
   dans les réglages (activer, supprimer).
+
+## ADR-030 — Mises à jour automatiques et thèmes partageables
+
+**Mises à jour (bureau).** `electron-updater` (fournisseur GitHub, `Mathieu-Lalande/browser`, releases
+publiées seulement). La clé `build.publish` de `package.json` décrit ce fournisseur ; les builds restent en
+`--publish never` : electron-builder écrit `latest.yml` (Windows), `latest-mac.yml`, `latest-linux.yml` et
+les `.blockmap` (téléchargement différentiel), que le workflow de release (ADR-023) envoie avec les paquets.
+macOS gagne une cible `zip` (Squirrel.Mac ne met à jour qu'à partir d'un zip). Les `artifactName` ne changent
+pas (le site en dépend).
+- Testable : `electron-updater` est caché derrière l'interface `Updater` (`configure`, `check`, `download`,
+  `install`, `onEvent`) ; `UpdateService` (`src/main/updates/service.ts`, sans Electron) planifie (premier
+  contrôle 30 s après le démarrage, puis toutes les 6 h), lance lui-même le téléchargement (`autoDownload`
+  d'electron-updater coupé) et tient l'état ; la machine à états pure `reduceUpdateStatus` est dans
+  `src/shared/updates.ts` (`idle`, `checking`, `up-to-date`, `available`, `downloading`, `ready`, `manual`,
+  `error`, `disabled`). Une mise à jour téléchargée reste `ready` quoi que disent les contrôles suivants, et
+  s'installe aussi en quittant (`autoInstallOnAppQuit`). Erreurs : messages français fixes (le détail
+  anglais d'electron-updater part dans la console).
+- Jamais en développement : sans `app.isPackaged`, pas d'updater (`disabled`) ; `electron-updater` n'est
+  importé (dynamiquement) que dans une app empaquetée. `--disable-updates` (commutateur explicite, honoré
+  aussi empaqueté) coupe tout : le test de fumée du paquet l'utilise. Les e2e injectent un faux updater
+  scénarisé, `BROWSER_TEST_UPDATER=available|none|error|manual`, crochet ignoré une fois empaqueté (ADR-018).
+- Réglages : section `updates` (`autoDownload`, `channel` `stable`/`beta` → `allowPrerelease`) ; changer de
+  canal relance un contrôle. *Paramètres → Mises à jour* : état (à jour, téléchargement x %, prête — redémarrer
+  pour installer), dernière vérification, « Rechercher des mises à jour », « Télécharger » si le téléchargement
+  automatique est coupé. Une mise à jour prête ajoute un bouton discret (icône Lucide `circle-arrow-up`) dans
+  le pied de la barre latérale et « Redémarrer pour mettre à jour » au menu Fichier (reconstruit quand l'état
+  change) ; commandes `check-updates` (palette) et `install-update` (menu seulement).
+- Installations qui ne peuvent pas se remplacer : `canSelfUpdate` — Windows installé par NSIS (présence de
+  `Uninstall Browser.exe`, pas la version portable), Linux lancé depuis l'AppImage (`APPIMAGE`), macOS signé
+  *Developer ID* (`codesign -dv` ; une signature *ad hoc* ne suffit pas à Squirrel.Mac). Sinon l'état
+  `manual` : « Mise à jour manuelle requise » avec un lien (nouvel onglet) vers la page de la release,
+  construit à partir d'une version validée (semver), jamais d'une URL reçue.
+
+**Thèmes partageables (bureau et téléphone).** Module pur `src/shared/theme-share.ts` :
+- Un thème = `mode`, `accent`, `accent2`, `background`, `density`, `radius`, `font`, `shadows`, un nom
+  facultatif (40 caractères) et le fond de la page d'accueil (`theme` ou `aurora` ; une image n'est jamais
+  exportée ni écrasée : aucune URL ni image dans un thème). Les réglages d'accessibilité (animations, curseur,
+  zoom) restent personnels.
+- Formats : code `browser-theme:v1:<base64url du JSON>` (~250 caractères, ordre des champs fixe) et fichier
+  `.browsertheme` (`{ format: "browser-theme", version: 1, theme }`). Décodage strict : version connue, champs
+  inconnus refusés, chaque champ passe par le validateur des réglages (`validateSettingsField`) et doit en
+  ressortir **inchangé** (un `#ABC` ou un rayon hors bornes est refusé, pas corrigé), 1 Ko pour un code, 4 Ko
+  pour un fichier. Messages d'erreur en français.
+- Galerie de 8 thèmes (`THEME_GALLERY`) dans *Paramètres → Apparence*, avec un aperçu (`MiniBrowser`) ;
+  partage : code (copier), fichier (dialogue natif dans main, `theme:export-file` / `theme:import-file`, thème
+  revalidé dans les deux sens), QR code (uqr, local) ; import par collage ou fichier → carte d'aperçu,
+  « Appliquer » / « Annuler » ; appliquer = un correctif de réglages ordinaire.
+- Téléphone (`mobile/src/lib/themeShare.ts`, `ThemeSettings.tsx`) : même galerie, partage par la feuille de
+  partage du système (message + code), QR code, copier ; import par collage (un code au milieu d'un message
+  partagé est retrouvé) ou scan (`PairingScanner` généralisé par préfixe, `browser-theme:` ici). Le téléphone
+  n'applique visuellement que le mode et les deux couleurs ; les autres champs sont gardés dans ses réglages.
+
+**Limites.** Pas de signature par défaut : mise à jour manuelle sur macOS, SmartScreen sur Windows. Le canal
+bêta suit la dernière release GitHub, pre-release comprise ; revenir en stable n'installe pas de version plus
+ancienne (`allowDowngrade` coupé). Le workflow de release n'a pas pu être exécuté ici.

@@ -197,11 +197,11 @@ function ago(time: number | null): string {
 }
 
 /** QR code drawn locally with react-native-svg (uqr, pure JS). */
-export const QrCode = memo(function QrCode({ value, size }: { value: string; size: number }) {
+export const QrCode = memo(function QrCode({ value, size, label = "QR code de jumelage" }: { value: string; size: number; label?: string }) {
   const qr = useMemo(() => encode(value, { ecc: "M", border: 2 }), [value]);
   const path = useMemo(() => qr.data.flatMap((row, y) => row.map((on, x) => (on ? `M${x} ${y}h1v1h-1z` : ""))).join(""), [qr]);
   return (
-    <View accessible accessibilityLabel="QR code de jumelage" style={styles.qr}>
+    <View accessible accessibilityLabel={label} style={styles.qr}>
       <Svg width={size} height={size} viewBox={`0 0 ${qr.size} ${qr.size}`}>
         <Rect width={qr.size} height={qr.size} fill="#ffffff" />
         <Path d={path} fill="#000000" />

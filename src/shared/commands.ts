@@ -489,6 +489,7 @@ export const COMMAND_GROUPS: readonly { label: string; ids: readonly CommandId[]
       "clear-history",
       "sync-now",
       "check-updates",
+      "install-update",
       "open-settings",
     ],
   },

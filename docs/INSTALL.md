@@ -83,8 +83,7 @@ s'installe comme n'importe quel navigateur (menu Démarrer, raccourci, désinsta
      simple aujourd'hui), sinon SmartScreen avertit chaque utilisateur ;
    - macOS : compte Apple Developer (abonnement annuel), certificat *Developer ID* et notarisation.
      C'est le même compte que pour l'App Store iOS.
-3. **Publication** : voir la section 2.2 ci-dessous. Les mises à jour automatiques (`electron-updater`)
-   viendront avec la signature (`docs/ROADMAP.md`, Sprint 3).
+3. **Publication** : voir la section 2.2 ci-dessous, qui décrit aussi les mises à jour automatiques.
 
 ### 2.2 Publier une version (release GitHub) et le site vitrine
 
@@ -108,10 +107,28 @@ les publie dans une **release GitHub** (ADR-023).
    | `Browser-Setup-<version>-x64.exe` / `-arm64.exe` | Installateur Windows (NSIS) |
    | `Browser-<version>-win-x64.zip` / `-arm64.zip` | Version portable Windows |
    | `Browser-<version>-mac-arm64.dmg` / `-x64.dmg` | macOS Apple Silicon / Intel |
+   | `Browser-<version>-mac-arm64.zip` / `-x64.zip` | macOS, archive servant aux mises à jour |
    | `Browser-<version>-linux-….AppImage`, `….deb` | Linux 64 bits |
+   | `latest.yml`, `latest-mac.yml`, `latest-linux.yml`, `*.blockmap` | Métadonnées des mises à jour automatiques |
    | `SHA256SUMS.txt` | Empreintes SHA-256 de tous les fichiers |
 
    Une version avec un suffixe (`0.3.0-beta.1`) est publiée en *pre-release*.
+
+**Mises à jour automatiques (ADR-030).** L'application installée vérifie les releases GitHub (via
+`electron-updater` et les fichiers `latest*.yml` ci-dessus) 30 s après le démarrage puis toutes les 6 h,
+télécharge la nouvelle version en arrière-plan et l'installe au prochain redémarrage (ou tout de suite
+avec « Redémarrer pour mettre à jour », dans la barre latérale ou le menu Fichier). Réglages dans
+*Paramètres → Mises à jour* : téléchargement automatique, canal **Stable** ou **Bêta** (les
+*pre-releases* `0.3.0-beta.1` ne sont proposées qu'au canal Bêta), « Rechercher des mises à jour ».
+- Windows : installation par l'installateur NSIS uniquement (la version portable `.zip` ne se met pas à
+  jour seule). Non signée, la mise à jour fonctionne, SmartScreen pouvant avertir à nouveau.
+- Linux : l'AppImage se met à jour seule ; le paquet `.deb` non (mise à jour manuelle).
+- macOS : Squirrel.Mac exige une app signée avec un certificat *Developer ID*. Tant que les paquets
+  sont signés *ad hoc*, l'app affiche « Mise à jour manuelle requise » avec un lien vers la page de la
+  release. Il suffit d'ajouter les secrets de signature macOS pour que la mise à jour devienne automatique.
+- Jamais en développement (`npm run dev`) ; `--disable-updates` les coupe aussi dans une app installée.
+- Ne jamais supprimer une release publiée dont les `latest*.yml` sont la dernière version : les
+  applications installées ne trouveraient plus leurs fichiers.
 
 L'installateur Windows propose une installation **pour l'utilisateur courant** (par défaut, sans droits
 administrateur) ou pour tous les utilisateurs, le choix du dossier, un raccourci dans le menu Démarrer,

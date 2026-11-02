@@ -60,3 +60,7 @@
 - Boosts par site (ADR-029) : modèle pur `src/shared/boosts.ts` (motifs d'hôte, sélecteurs validés, CSS généré),
   bureau `src/main/boosts/` (`insertCSS` à clés suivies, script et outil « Masquer des éléments » en monde isolé),
   `browser://boosts`, collection de synchro `boosts` ; mobile `mobile/src/lib/boosts.ts` (pas d'outil de masquage).
+- Mises à jour et thèmes partageables (ADR-030) : `src/shared/updates.ts` (état pur), `src/main/updates/`
+  (`UpdateService` testable, adaptateur `electron-updater`, faux `BROWSER_TEST_UPDATER` en dev), `latest*.yml` publiés
+  par le workflow de release ; codec `src/shared/theme-share.ts` (`browser-theme:v1:…`, `.browsertheme`, galerie),
+  mobile `mobile/src/lib/themeShare.ts`.

@@ -53,7 +53,7 @@ test("the packaged app starts, browses, blocks, and ignores the dev and test hoo
   const filters = readFileSync(fileURLToPath(new URL("./filters.txt", import.meta.url)), "utf8");
   mkdirSync(join(profile, "adblock"), { recursive: true });
   writeFileSync(join(profile, "adblock", "engine.bin"), FiltersEngine.parse(filters, ENGINE_CONFIG).serialize());
-  const child = spawn(resolve(executable!), ["--no-sandbox", `--user-data-dir=${profile}`, "--remote-debugging-port=0"], {
+  const child = spawn(resolve(executable!), ["--no-sandbox", "--disable-updates", `--user-data-dir=${profile}`, "--remote-debugging-port=0"], {
     env: { ...process.env, BROWSER_PROFILE_DIR: ignored, BROWSER_TEST_FILTERS: "/nonexistent", ELECTRON_RENDERER_URL: "http://127.0.0.1:9/" },
     stdio: "ignore",
   });

@@ -7,17 +7,30 @@ import { Icon } from "./Icon";
 import { Tap } from "./ui";
 
 /**
- * Full-screen QR code scanner for the pairing code shown by the desktop (expo-camera, included in
- * Expo Go). Only `browser-sync:` codes are accepted; nothing scanned is opened or sent anywhere.
+ * Full-screen QR code scanner for the codes shown by the desktop (expo-camera, included in Expo
+ * Go): the sync pairing code by default, or theme codes (ADR-030) with `prefix`. Only codes with
+ * the prefix are accepted; nothing scanned is opened or sent anywhere.
  */
-export const PairingScanner = memo(function PairingScanner({ onCode, onClose }: { onCode: (code: string) => void; onClose: () => void }) {
+export const PairingScanner = memo(function PairingScanner({
+  onCode,
+  onClose,
+  prefix = "browser-sync:",
+  hint = "Visez le QR code affiché dans Paramètres, Synchronisation, sur l'ordinateur.",
+  purpose = "Pour scanner le QR code de jumelage affiché par votre ordinateur.",
+}: {
+  onCode: (code: string) => void;
+  onClose: () => void;
+  prefix?: string;
+  hint?: string;
+  purpose?: string;
+}) {
   const { colors, haptic } = useTheme();
   const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
   const done = useRef(false);
 
   const onScanned = (result: BarcodeScanningResult) => {
-    if (done.current || !result.data.startsWith("browser-sync:")) return;
+    if (done.current || !result.data.startsWith(prefix)) return;
     done.current = true;
     haptic("success");
     onCode(result.data);
@@ -32,7 +45,7 @@ export const PairingScanner = memo(function PairingScanner({ onCode, onClose }: 
           <Icon name="scan" size={44} color="#fff" />
           <Text style={styles.permissionTitle}>Accès à l'appareil photo</Text>
           <Text style={styles.permissionText}>
-            Pour scanner le QR code de jumelage affiché par votre ordinateur. L'image n'est ni enregistrée ni envoyée.
+            {purpose} L'image n'est ni enregistrée ni envoyée.
           </Text>
           <Tap
             accessibilityRole="button"
@@ -47,7 +60,7 @@ export const PairingScanner = memo(function PairingScanner({ onCode, onClose }: 
       )}
       <View style={[styles.frame, { top: insets.top + 120 }]} pointerEvents="none" />
       <View style={[styles.top, { paddingTop: insets.top + 8 }]}>
-        <Text style={styles.hint}>Visez le QR code affiché dans Paramètres, Synchronisation, sur l'ordinateur.</Text>
+        <Text style={styles.hint}>{hint}</Text>
         <Tap accessibilityRole="button" accessibilityLabel="Fermer le scanner" onPress={onClose} style={styles.close} pressScale={0.9}>
           <Icon name="close" size={22} color="#fff" strokeWidth={2.4} />
         </Tap>
