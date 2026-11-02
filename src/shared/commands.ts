@@ -213,8 +213,8 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
     },
   },
   "command-palette": {
-    label: "Palette de commandes",
-    keywords: ["command", "search", "rechercher"],
+    label: "Barre universelle",
+    keywords: ["palette de commandes", "command", "search", "rechercher", "omnibox"],
     accelerator: "CmdOrCtrl+K",
     icon: "command",
     palette: false,

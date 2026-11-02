@@ -277,30 +277,33 @@ export function BrowserScreen() {
   });
 
   const pick = useEvent((item: SheetItem) => {
-    switch (item.kind) {
+    const { action } = item;
+    switch (action.type) {
       case "tab":
-        actions.activate(item.tab.id);
+        actions.activate(action.tabId);
         setOverlay("none");
         break;
-      case "bookmark":
-      case "history":
-      case "navigate":
-      case "search":
-        submit(item.url);
+      case "open":
+      case "favorite":
+      case "archived":
+        // Pages, remote tabs and typed addresses alike: the sheet's tab loads it.
+        submit(action.url);
         break;
-      case "remote":
-        actions.openUrl(item.url, { private: isPrivate });
+      case "copy":
+        copy(action.text);
         setOverlay("none");
         break;
       case "command":
-        runCommand(item.command.id);
+        runCommand(action.command.id);
         break;
-      case "action":
-        if (item.action.id === "share" && tab?.url) {
+      case "custom":
+        if (action.id === "share" && tab?.url) {
           setOverlay("none");
           share(tab.url, tab.title);
-        } else if (item.action.id === "new-private-tab") newTab(true);
-        else if (item.action.id === "show-tabs") openOverview();
+        } else if (action.id === "new-private-tab") newTab(true);
+        else if (action.id === "show-tabs") openOverview();
+        break;
+      case "scope":
         break;
     }
   });

@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildPalette, REMOTE_TABS_TITLE } from "../palette";
+import { Omnibox, sharedProviders } from "../omnibox/omnibox";
+import { SECTION_TITLES } from "../omnibox/scorer";
+import type { OmniboxData } from "../omnibox/types";
+import { DEFAULT_SEARCH_ENGINE } from "../url";
 import { DEFAULT_SETTINGS, mergeSettings } from "../settings";
 import { DEFAULT_SPACE } from "../spaces";
-import type { TabState } from "../types";
 import {
   bookmarkLocalId,
   clientRecord,
@@ -103,25 +105,37 @@ describe("synced records", () => {
   });
 });
 
-describe("palette: tabs of my other devices", () => {
-  const tab = (id: string, url: string): TabState =>
-    ({ id, url, title: id, favicon: null, isLoading: false, lastActiveAt: 0 }) as unknown as TabState;
+describe("universal bar: tabs of my other devices", () => {
   const remoteTabs = [
     { device: "iPhone", url: "https://recette.example/tarte", title: "Tarte aux pommes" },
     { device: "iPhone", url: "https://open.example/", title: "Déjà ouvert" },
   ];
+  const omnibox = new Omnibox(sharedProviders());
+  const data = (tabs: OmniboxData["tabs"] = []): OmniboxData => ({
+    tabs,
+    activeTabId: tabs[0]?.id ?? null,
+    activeSpaceId: null,
+    favorites: [],
+    bookmarks: [],
+    history: [],
+    remoteTabs,
+    archived: [],
+    commandContext: {},
+    settings: [],
+    engine: DEFAULT_SEARCH_ENGINE,
+    now: 0,
+  });
 
   it("shows them in their own section, skipping pages already open here", () => {
-    const sections = buildPalette({ query: "", tabs: [tab("t", "https://open.example/")], activeTabId: "t", suggestions: [], context: {}, remoteTabs });
-    const remote = sections.find((section) => section.id === "remote");
-    expect(remote?.title).toBe(REMOTE_TABS_TITLE);
+    const open = [{ id: "t", url: "https://open.example/", title: "t", favicon: null, lastActiveAt: 0, spaceId: null }];
+    const remote = omnibox.query("", data(open)).sections.find((section) => section.id === "remote");
+    expect(remote?.title).toBe(SECTION_TITLES.remote);
     expect(remote?.items.map((item) => item.title)).toEqual(["Tarte aux pommes"]);
     expect(remote?.items[0].detail).toContain("iPhone");
   });
 
   it("matches them by title or address while typing", () => {
-    const sections = buildPalette({ query: "tarte", tabs: [], activeTabId: null, suggestions: [], context: {}, remoteTabs });
-    expect(sections.find((section) => section.id === "remote")?.items).toHaveLength(1);
-    expect(buildPalette({ query: "zzzz", tabs: [], activeTabId: null, suggestions: [], context: {}, remoteTabs }).some((section) => section.id === "remote")).toBe(false);
+    expect(omnibox.query("tarte", data()).sections.find((section) => section.id === "remote")?.items).toHaveLength(1);
+    expect(omnibox.query("zzzz", data()).sections.some((section) => section.id === "remote")).toBe(false);
   });
 });

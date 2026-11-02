@@ -8,7 +8,7 @@ Un navigateur desktop **rapide, privé et entièrement personnalisable**, dans l
   (2 à 4 pages côte à côte).
 - Session restaurée au démarrage (onglets chargés à la demande), historique, favoris, suggestions
   dans la barre d'adresse et sites les plus visités sur la page d'accueil.
-- Palette de commandes (`Ctrl+K`, `⌘K` sous macOS) : onglets ouverts, favoris, historique et actions, recherche floue.
+- Barre universelle (`Ctrl+K`, `⌘K` sous macOS) : onglets de tous les espaces, favoris, historique, actions, réglages, onglets des autres appareils, filtres `@onglets`… et réponses instantanées (calculs, conversions, fuseaux horaires), recherche floue.
 - Recherche privée par défaut (DuckDuckGo), protections de sécurité strictes (voir `docs/DECISIONS.md`).
 - Boucliers intégrés : bloqueur de pubs & traqueurs (listes EasyList/uBlock via Ghostery), mode HTTPS uniquement,
   Global Privacy Control, invite de permissions par site, user agent et client hints sans trace d'Electron,
@@ -110,7 +110,7 @@ commandes (`src/shared/commands.ts`) : « Maj » pour Shift sous Windows/Linux, 
 
 | Windows / Linux | macOS | Action |
 | --- | --- | --- |
-| `Ctrl+K` | `⌘K` | Palette de commandes (`Ctrl+↵` / `⌘↵` : ouvrir dans un nouvel onglet) |
+| `Ctrl+K` | `⌘K` | Barre universelle (`Ctrl+↵` / `⌘↵` : nouvel onglet, `Maj+↵` : côte à côte, `Alt+↵` : arrière-plan, `Tab` : compléter) |
 | `Ctrl+L` | `⌘L` | Barre d'adresse |
 | `Ctrl+T` / `Ctrl+W` | `⌘T` / `⌘W` | Nouvel onglet / fermer l'onglet |
 | `Ctrl+N` / `Ctrl+Maj+N` | `⌘N` / `⇧⌘N` | Nouvelle fenêtre / nouvelle fenêtre privée |

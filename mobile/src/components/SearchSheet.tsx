@@ -1,4 +1,3 @@
-import { commandLabel } from "@shared/commands";
 import { highlightSegments, type Range } from "@shared/fuzzy";
 import { searchEngineOf } from "@shared/settings";
 import { memo, useDeferredValue, useMemo, useRef, useState, type ComponentRef } from "react";
@@ -8,7 +7,7 @@ import Animated, { FadeIn, FadeOut, SlideInDown } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { isBookmarked } from "../lib/bookmarks";
 import { focusOnFirstLayout } from "../lib/focus";
-import { buildSheet, type SheetItem } from "../lib/searchSheet";
+import { buildSheet, itemUrl, mobileAction, type SheetItem } from "../lib/searchSheet";
 import { activeTab, orderedTabs, toTabState } from "../lib/tabs";
 import { useBrowserState, useHistoryEntries } from "../state/BrowserProvider";
 import { useTheme } from "../state/theme";
@@ -62,11 +61,6 @@ export const SearchSheet = memo(function SearchSheet({ initialText, onSubmit, on
     });
   }, [model, bookmarks, history, query, initialText, engine, isPrivate, sync]);
 
-  const activeState = useMemo(() => {
-    const current = activeTab(model);
-    return current ? toTabState(current, isBookmarked(bookmarks, current.url)) : undefined;
-  }, [model, bookmarks]);
-
   return (
     <Animated.View
       entering={FadeIn.duration(reduceMotion ? 80 : 160)}
@@ -94,9 +88,12 @@ export const SearchSheet = memo(function SearchSheet({ initialText, onSubmit, on
                   <Row
                     key={item.key}
                     item={item}
-                    label={item.kind === "command" ? commandLabel(item.command, { activeTab: activeState }) : item.title}
                     first={index === 0}
-                    onPick={onPick}
+                    onPick={(picked) => {
+                      // A scope row or Tab-like completion stays in the sheet.
+                      if (picked.action.type === "scope") setText(picked.completion ?? "");
+                      else onPick(picked);
+                    }}
                     onFill={(value) => {
                       setText(value);
                       input.current?.focus();
@@ -154,39 +151,39 @@ export const SearchSheet = memo(function SearchSheet({ initialText, onSubmit, on
 });
 
 function iconFor(item: SheetItem): IconName {
-  switch (item.kind) {
-    case "command":
-      return COMMAND_ICONS[item.command.icon] ?? "command";
-    case "action":
-      return item.action.icon as IconName;
-    case "search":
-      return "search";
-    case "remote":
-      return "cloud";
-    case "navigate":
-      return "globe";
-    default:
-      return "globe";
-  }
+  const { action } = item;
+  if (action.type === "command") return COMMAND_ICONS[action.command.icon] ?? "command";
+  if (action.type === "custom") return (mobileAction(action.id)?.icon ?? "command") as IconName;
+  return OMNIBOX_ICONS[item.icon] ?? "globe";
 }
 
-const Row = memo(function Row({
-  item,
-  label,
-  first,
-  onPick,
-  onFill,
-}: {
-  item: SheetItem;
-  label: string;
-  first: boolean;
-  onPick: (item: SheetItem) => void;
-  onFill: (value: string) => void;
-}) {
+/** The shared bar's semantic icons, as the phone's names. */
+const OMNIBOX_ICONS: Partial<Record<SheetItem["icon"], IconName>> = {
+  search: "search",
+  globe: "globe",
+  calculator: "calculator",
+  ruler: "ruler",
+  clock: "clock",
+  binary: "binary",
+  star: "star",
+  bookmark: "star",
+  history: "clock",
+  settings: "settings",
+  cloud: "cloud",
+  archive: "archive",
+  tab: "tabs",
+  command: "command",
+  at: "atSign",
+};
+
+const Row = memo(function Row({ item, first, onPick, onFill }: { item: SheetItem; first: boolean; onPick: (item: SheetItem) => void; onFill: (value: string) => void }) {
   const { colors } = useTheme();
-  const siteUrl = item.kind === "tab" ? item.tab.url : item.kind === "bookmark" || item.kind === "history" || item.kind === "remote" ? item.url : null;
-  const fillValue = item.kind === "bookmark" || item.kind === "history" ? item.url : null;
-  const badge = item.kind === "tab" ? "Onglet" : item.kind === "bookmark" ? "Favori" : null;
+  const label = item.title;
+  const answer = item.section === "answer";
+  const accent = answer || item.section === "go" || item.section === "web";
+  const siteUrl = item.action.type === "tab" ? (item.completion ?? null) : item.icon === "cloud" || item.favicon !== undefined ? itemUrl(item) : null;
+  const fillValue = item.section === "bookmarks" || item.section === "history" ? itemUrl(item) : null;
+  const badge = item.section === "tabs" ? "Onglet" : item.section === "bookmarks" ? "Favori" : answer ? "Copier" : null;
   return (
     <Tap
       accessibilityRole="button"
@@ -199,14 +196,15 @@ const Row = memo(function Row({
         {siteUrl !== null ? (
           <SiteIcon url={siteUrl} title={item.title} size={28} />
         ) : (
-          <View style={[styles.glyph, { backgroundColor: item.kind === "navigate" || item.kind === "search" ? colors.accentSoft : colors.surface }]}>
-            <Icon name={iconFor(item)} size={20} color={item.kind === "navigate" || item.kind === "search" ? colors.accentText : colors.text} />
+          <View style={[styles.glyph, { backgroundColor: accent ? colors.accentSoft : colors.surface }]}>
+            <Icon name={iconFor(item)} size={20} color={accent ? colors.accentText : colors.text} />
           </View>
         )}
       </View>
       <View style={styles.rowText}>
-        <Highlighted text={label} ranges={item.kind === "command" && label !== item.title ? [] : item.titleRanges} style={[styles.rowTitle, { color: colors.text }]} />
-        {item.detail ? <Highlighted text={item.detail} ranges={item.detailRanges} style={[styles.rowDetail, { color: colors.textMuted }]} /> : null}
+        {answer && item.detail ? <Text style={[styles.rowDetail, { color: colors.textMuted }]}>{item.detail}</Text> : null}
+        <Highlighted text={label} ranges={item.titleRanges} style={[answer ? styles.answerTitle : styles.rowTitle, { color: colors.text }]} />
+        {item.detail && !answer ? <Highlighted text={item.detail} ranges={item.detailRanges} style={[styles.rowDetail, { color: colors.textMuted }]} /> : null}
       </View>
       {badge && (
         <Text style={[styles.badge, { color: colors.textMuted, backgroundColor: colors.surface }]} allowFontScaling={false}>
@@ -258,6 +256,7 @@ const styles = StyleSheet.create({
   rowText: { flex: 1, paddingVertical: 9, gap: 1 },
   rowTitle: { fontSize: 16, fontWeight: "500" },
   rowDetail: { fontSize: 13 },
+  answerTitle: { fontSize: 24, fontWeight: "700", fontVariant: ["tabular-nums"] },
   badge: { fontSize: 11, fontWeight: "600", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, overflow: "hidden", marginRight: 6 },
   fill: { width: 40, height: 44, alignItems: "center", justifyContent: "center" },
   bar: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth },

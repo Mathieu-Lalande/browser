@@ -72,3 +72,6 @@
   (capturePage, CDP `Page.captureScreenshot` via `webContents.debugger`, sélecteur en monde isolé 1009), enregistreur
   `MediaRecorder` dans l'interface (`lib/recorder.ts`) dont la seule source est l'onglet accordé par main ; helpers purs
   `src/shared/capture.ts`. Boutons de la barre d'adresse : masqués hors survol/focus (classe `act`, `keep` = état actif).
+- Barre universelle (ADR-032) : moteur pur `src/shared/omnibox/` (fournisseurs `Provider`, score `scorer.ts`, filtres `@o @f @h @c @r`,
+  réponses instantanées sans `eval`), overlay `src/renderer/src/overlay/omnibox/`, canaux `omnibox:*` ; liens profonds
+  `browser://settings#section/ligne` (ancres `data-setting`, index `settings-index.ts`) ; mobile `buildSheet` sur le même moteur.

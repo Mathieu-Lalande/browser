@@ -134,10 +134,21 @@
   import Video from "@lucide/svelte/icons/video";
   import CircleStop from "@lucide/svelte/icons/circle-stop";
   import Save from "@lucide/svelte/icons/save";
+  import Calculator from "@lucide/svelte/icons/calculator";
+  import Ruler from "@lucide/svelte/icons/ruler";
+  import Binary from "@lucide/svelte/icons/binary";
+  import History from "@lucide/svelte/icons/rotate-ccw-clock";
+  import AtSign from "@lucide/svelte/icons/at-sign";
 
   type LucideIcon = Component<Record<string, unknown>>;
 
   const ui = {
+    calculator: Calculator,
+    ruler: Ruler,
+    binary: Binary,
+    history: History,
+    "at-sign": AtSign,
+    "app-window": AppWindow,
     back: ArrowLeft,
     forward: ArrowRight,
     reload: RotateCw,

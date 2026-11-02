@@ -1,5 +1,5 @@
 import { isLocalHost } from "./hosts";
-import { internalPageOf, internalUrl } from "./internal";
+import { internalFragment, internalPageOf, internalUrl } from "./internal";
 
 export interface SearchEngine {
   id: string;
@@ -59,7 +59,7 @@ export function normalizeInput(raw: string, engine: SearchEngine = DEFAULT_SEARC
   if (!input) return "";
   if (/\s/.test(input)) return searchUrl(input, engine);
   const internal = internalPageOf(input);
-  if (internal) return internalUrl(internal);
+  if (internal) return internalUrl(internal, internalFragment(input));
 
   if (/^[a-z][a-z\d+\-.]*:/i.test(input) && !/^[^:/]+:\d+(\/|$)/.test(input)) {
     try {

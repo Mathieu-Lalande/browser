@@ -17,13 +17,28 @@ export type InternalPage = keyof typeof INTERNAL_PAGES;
 
 const INTERNAL_PROTOCOL = "browser:";
 
-export const internalUrl = (page: InternalPage) => `browser://${page}`;
+/** A deep link inside an internal page: `section/row` (letters, digits, `-`, `_`, `/`). */
+const FRAGMENT = /^[a-z\d_-]+(?:\/[a-z\d_-]+)?$/i;
 
-/** The internal page an URL (or typed text) designates, if any: `browser://settings`, any case, optional `/`. */
+export const internalUrl = (page: InternalPage, fragment?: string | null) =>
+  `browser://${page}${fragment && FRAGMENT.test(fragment) ? `#${fragment}` : ""}`;
+
+/**
+ * The internal page an URL (or typed text) designates, if any: `browser://settings`, any case,
+ * optional `/`, optional deep link (`browser://settings#appearance/page-zoom`, ADR-032).
+ */
 export function internalPageOf(url: string): InternalPage | null {
-  const match = /^browser:\/\/([a-z]+)\/?$/i.exec(url.trim());
+  const match = /^browser:\/\/([a-z]+)\/?(?:#(.*))?$/i.exec(url.trim());
   const page = match?.[1].toLowerCase();
+  if (match?.[2] !== undefined && !FRAGMENT.test(match[2])) return null;
   return page && Object.hasOwn(INTERNAL_PAGES, page) ? (page as InternalPage) : null;
+}
+
+/** The deep link of an internal page URL (`appearance/page-zoom`), null without one. */
+export function internalFragment(url: string): string | null {
+  if (!internalPageOf(url)) return null;
+  const hash = url.trim().split("#")[1];
+  return hash || null;
 }
 
 /** Anything using the internal scheme, known page or not. */

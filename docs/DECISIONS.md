@@ -1493,3 +1493,43 @@ traîne d'inertie), un doigt immobile avant de se lever n'est pas un lancer. `to
 latérale : le navigateur garde le défilement vertical de la liste (et annule le geste par `pointercancel`), les
 mouvements horizontaux nous reviennent. Les lignes ne se glissent-déposent plus au doigt (souris et stylet
 inchangés) : au doigt, l'horizontale est le geste d'espace et la verticale le défilement.
+
+## ADR-032 — Barre universelle (Ctrl+K et feuille de recherche mobile)
+
+**Contexte.** La palette de commandes (ADR-010) et la feuille de recherche du téléphone mélangeaient
+construction des résultats et rendu (`buildPalette`, un composant de 527 lignes), ne voyaient que l'espace affiché
+et ne savaient ni calculer, ni convertir, ni ouvrir un réglage précis.
+
+**Décision.** Un moteur pur partagé, `src/shared/omnibox/` :
+- des **fournisseurs** (classes implémentant `Provider.query(texte, contexte) → Suggestion[]`) : onglets de tous les
+  espaces (« Aller à l'onglet », change d'espace), favoris épinglés, favoris, historique (déjà classé par main),
+  commandes du registre (raccourci effectif, ADR-028), réglages (index `settings-index.ts`, liens
+  `browser://settings#section/ligne`), onglets des autres appareils, onglets archivés, Web (« Aller à … »,
+  « Rechercher « x » » avec le moteur choisi, recherches passées tirées de l'historique : rien n'est envoyé au moteur
+  pendant la frappe) ;
+- des **réponses instantanées** calculées localement, en tête, Entrée copie : calculatrice (`calculator.ts`,
+  analyseur descendant récursif, jamais `eval` ; nombres à virgule ou point, + - * / % ^ et parenthèses, tout le
+  reste est refusé), conversions d'unités (longueur, masse, température, volume, vitesse, tailles de données ;
+  orthographe exacte d'abord pour distinguer Mb/MB, sinon insensible à la casse si non ambiguë), heure d'un lieu
+  (`Intl`, table de villes), bases (hexa, binaire, octal). Pas de devises : il faudrait des taux en ligne ;
+- un **score** pur (`scorer.ts`) : correspondance floue par champ (titre > détail > mots-clés), poids par section,
+  bonus de récence/rang, sections triées par leur meilleure ligne, réponse et adresse épinglées en tête, recherche
+  Web en dernier, plafonds par section (relevés quand un filtre est actif) ;
+- des **filtres** `@onglets @favoris @historique @commandes @réglages` (`@o @f @h @c @r`, `scopes.ts`) : « @r » suivi
+  d'un espace devient une pastille (Retour arrière sur un champ vide la retire), « @ré » propose les filtres.
+
+Bureau : `overlay/omnibox/` (contrôleur `controller.svelte.ts` + composants `UniversalBar`, `BarInput`,
+`ScopeChips`, `ResultList`, `ResultRow`, `ConfirmPanel`, `BarFooter`). Entrée : ici ; Ctrl/⌘+Entrée : nouvel
+onglet ; Maj+Entrée : côte à côte ; Alt+Entrée : arrière-plan ; Tab : complète la ligne choisie. Canaux
+`omnibox:tabs` (onglets de tous les espaces), `omnibox:show-tab`, `omnibox:open` (texte ≤ 8 Kio, disposition
+énumérée, repasse par `normalizeInput` ; une page interne réutilise son onglet et suit le lien profond),
+`omnibox:copy` (≤ 1 Kio, presse-papiers de main). L'historique d'un ancien texte n'est jamais affiché (garde de
+requête). Seule l'ouverture est animée (`--motion-fast`) : les résultats apparaissent sans fondu.
+
+Mobile : `buildSheet` (`mobile/src/lib/searchSheet.ts`) appelle le même moteur, avec un fournisseur d'actions
+propres au téléphone et un filtre de commandes ; pas de réglages (l'écran de réglages du téléphone a sa propre
+disposition).
+
+**Conséquences.** `src/shared/palette.ts` disparaît. Les liens profonds `browser://…#section/ligne` ne sont acceptés
+que s'ils sont de la forme `[a-z0-9_-]+(/[a-z0-9_-]+)?` et restent, comme toute page interne, hors d'atteinte des
+pages web (ADR-012). Un test vérifie que chaque entrée de l'index a son ancre (`data-setting`) dans la page.

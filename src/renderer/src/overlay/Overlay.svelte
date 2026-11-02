@@ -3,7 +3,7 @@
   import { api, browser } from "../lib/browser.svelte";
   import { settings } from "../lib/settings.svelte";
   import { applyTheme } from "../lib/theme";
-  import CommandPalette from "./CommandPalette.svelte";
+  import UniversalBar from "./omnibox/UniversalBar.svelte";
   import DownloadsPanel from "./DownloadsPanel.svelte";
   import LinkPeekPanel from "./LinkPeekPanel.svelte";
   import PasswordPanel from "./PasswordPanel.svelte";
@@ -86,7 +86,7 @@
       onmousedown={(event) => event.target === event.currentTarget && close(true)}
     >
       {#if current.request.kind === "palette"}
-        <CommandPalette onClose={close} />
+        <UniversalBar onClose={close} />
       {:else if current.request.kind === "downloads"}
         <DownloadsPanel anchor={current.request.anchor} onClose={close} />
       {:else if current.request.kind === "site-info" && current.request.tabId}

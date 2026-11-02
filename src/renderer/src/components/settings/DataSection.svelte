@@ -28,14 +28,14 @@
   }
 </script>
 
-<Row label="Historique de navigation" hint="Efface toutes les pages visitées, et les suggestions qui en découlent.">
+<Row anchor="history" label="Historique de navigation" hint="Efface toutes les pages visitées, et les suggestions qui en découlent.">
   {#if cleared}<span class="done"><Icon name="check" size={12} /> Historique effacé</span>{/if}
   <ConfirmButton variant="outlined" question="Tout l'historique ?" confirmLabel="Effacer" onconfirm={clearHistory}>
     <Icon name="trash" size={12} /> Effacer l'historique
   </ConfirmButton>
 </Row>
 
-<Row label="Favoris" hint={bookmarks.length ? `${bookmarks.length} page${bookmarks.length > 1 ? "s" : ""} en favori.` : `Aucun favori pour l'instant : ${platform.shortcut("toggle-bookmark")} ajoute la page affichée.`} stacked={bookmarks.length > 0}>
+<Row anchor="bookmarks" label="Favoris" hint={bookmarks.length ? `${bookmarks.length} page${bookmarks.length > 1 ? "s" : ""} en favori.` : `Aucun favori pour l'instant : ${platform.shortcut("toggle-bookmark")} ajoute la page affichée.`} stacked={bookmarks.length > 0}>
   {#if bookmarks.length}
     <ul class="bookmarks" aria-label="Favoris">
       {#each bookmarks as bookmark (bookmark.id)}

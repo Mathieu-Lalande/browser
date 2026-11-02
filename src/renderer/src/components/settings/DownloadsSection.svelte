@@ -13,7 +13,7 @@
   }
 </script>
 
-<Row label="Dossier" hint={s.folder ? undefined : "Dossier Téléchargements du système."}>
+<Row anchor="folder" label="Dossier" hint={s.folder ? undefined : "Dossier Téléchargements du système."}>
   <!-- Long paths are cut on the left: the end of a path is the part that matters. -->
   {#if s.folder}<span class="path" title={s.folder}><bdi>{s.folder}</bdi></span>{/if}
   {#if s.folder}
@@ -21,10 +21,10 @@
   {/if}
   <button class="secondary" onclick={choose}><Icon name="folder" size={12} /> Modifier…</button>
 </Row>
-<Row label="Toujours demander où enregistrer" hint="Sinon, les fichiers sont enregistrés directement, sans boîte de dialogue.">
+<Row anchor="ask-where" label="Toujours demander où enregistrer" hint="Sinon, les fichiers sont enregistrés directement, sans boîte de dialogue.">
   <Toggle label="Toujours demander où enregistrer" checked={s.askWhere} onchange={(askWhere) => settings.update({ downloads: { askWhere } })} />
 </Row>
-<Row label="Fichiers exécutables" hint="Programmes, installeurs et scripts (.exe, .dmg, .sh…) attendent votre confirmation avant d'arriver dans le dossier. Rien n'est jamais ouvert automatiquement.">
+<Row anchor="executables" label="Fichiers exécutables" hint="Programmes, installeurs et scripts (.exe, .dmg, .sh…) attendent votre confirmation avant d'arriver dans le dossier. Rien n'est jamais ouvert automatiquement.">
   <!-- A fixed safeguard, not a setting: plain status text, nothing to click. -->
   <span class="status">Toujours activé</span>
 </Row>

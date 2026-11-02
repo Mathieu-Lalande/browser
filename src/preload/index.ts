@@ -142,6 +142,12 @@ const api: BrowserApi = {
   commands: {
     run: (id) => send(Channels.commandRun, id),
   },
+  omnibox: {
+    tabs: () => ipcRenderer.invoke(Channels.omniboxTabs),
+    showTab: (spaceId, tabId) => send(Channels.omniboxShowTab, spaceId, tabId),
+    open: (input, disposition) => send(Channels.omniboxOpen, input, disposition),
+    copy: (text) => send(Channels.omniboxCopy, text),
+  },
   overlay: {
     onShow: (listener) => subscribe<OverlayRequest>(Channels.overlayShow, listener),
     onBackdrop: (listener) => subscribe<OverlayBackdrop>(Channels.overlayBackdrop, listener),

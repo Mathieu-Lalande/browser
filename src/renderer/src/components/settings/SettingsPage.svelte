@@ -16,7 +16,8 @@
     type UiFont,
     ARCHIVE_DELAY_OPTIONS,
   } from "@shared/settings";
-  import { api } from "../../lib/browser.svelte";
+  import { api, browser } from "../../lib/browser.svelte";
+  import { internalFragment } from "@shared/internal";
   import { FONT_STACKS, backdrop } from "@shared/theme";
   import { SEARCH_ENGINES } from "@shared/url";
   import { settings } from "../../lib/settings.svelte";
@@ -105,7 +106,8 @@
     current = reading?.dataset.section ?? NAV[0].id;
   }
 
-  function jump(id: string): void {
+  /** Scrolls to a section, or to `target` inside it (a third down the column). */
+  function jump(id: string, target?: HTMLElement): void {
     const section = content.querySelector<HTMLElement>(`[data-section="${id}"]`);
     if (!section) return;
     current = id;
@@ -118,8 +120,9 @@
     // No scrollend when the content was already there; never keep the scroll spy off for long.
     clearTimeout(jumpTimer);
     jumpTimer = setTimeout(settle, 1000);
-    const margin = parseFloat(getComputedStyle(section).scrollMarginTop) || 0;
-    const top = section.getBoundingClientRect().top - content.getBoundingClientRect().top + content.scrollTop - margin;
+    const element = target ?? section;
+    const margin = target ? content.clientHeight / 3 : parseFloat(getComputedStyle(section).scrollMarginTop) || 0;
+    const top = element.getBoundingClientRect().top - content.getBoundingClientRect().top + content.scrollTop - margin;
     // Only the settings column scrolls: scrollIntoView would also nudge its scrollable ancestors.
     const reduceMotion = s.appearance.reduceMotion || matchMedia("(prefers-reduced-motion: reduce)").matches;
     content.scrollTo({ top, behavior: reduceMotion ? "auto" : "smooth" });
@@ -140,6 +143,25 @@
       observer.disconnect();
       clearTimeout(jumpTimer);
     };
+  });
+
+  // Deep links from the universal bar (ADR-032): `browser://settings#section/row` scrolls to the
+  // section and highlights the row. Runs again when the same tab is sent to another row.
+  const fragment = $derived(internalFragment(browser.activeTab?.url ?? ""));
+  $effect(() => {
+    if (!fragment) return;
+    const [sectionId, row] = fragment.split("/");
+    // After layout: the page may have just been mounted.
+    requestAnimationFrame(() => {
+      const target = row ? content.querySelector<HTMLElement>(`[data-section="${CSS.escape(sectionId)}"] [data-setting="${CSS.escape(row)}"]`) : null;
+      jump(sectionId, target ?? undefined);
+      if (!target) return;
+      // Restart the wash if the same row is reached again.
+      target.removeAttribute("data-flash");
+      void target.offsetWidth;
+      target.setAttribute("data-flash", "");
+      target.addEventListener("animationend", () => target.removeAttribute("data-flash"), { once: true });
+    });
   });
 
   function commitImage(event: Event & { currentTarget: HTMLInputElement }): void {
@@ -176,7 +198,7 @@
         description="Couleurs, ambiance et typographie de l'interface."
         onReset={() => settings.reset("appearance")}
       >
-        <div class="modes" role="radiogroup" aria-label="Thème">
+        <div class="modes" role="radiogroup" aria-label="Thème" data-setting="theme">
           {#each MODES as mode (mode.value)}
             <button
               class="mode"
@@ -198,7 +220,7 @@
         </div>
 
         <ThemeShare />
-        <Row label="Couleur d'accent" hint="Boutons, sélection, focus et reflets de l'arrière-plan.">
+        <Row anchor="accent" label="Couleur d'accent" hint="Boutons, sélection, focus et reflets de l'arrière-plan.">
           <ColorPicker
             label="Couleur d'accent"
             value={s.appearance.accent}
@@ -207,7 +229,7 @@
             onchange={(hex) => update({ appearance: { accent: hex } })}
           />
         </Row>
-        <Row label="Couleur secondaire" hint="Seconde teinte des dégradés.">
+        <Row anchor="secondary" label="Couleur secondaire" hint="Seconde teinte des dégradés.">
           <ColorPicker
             label="Couleur secondaire"
             value={s.appearance.accent2}
@@ -216,7 +238,7 @@
             onchange={(hex) => update({ appearance: { accent2: hex } })}
           />
         </Row>
-        <Row label="Arrière-plan" hint="Fond de la fenêtre, autour de la page.">
+        <Row anchor="background" label="Arrière-plan" hint="Fond de la fenêtre, autour de la page.">
           <div class="tiles" role="radiogroup" aria-label="Arrière-plan">
             {#each BACKGROUNDS as option (option.value)}
               <button
@@ -231,7 +253,7 @@
             {/each}
           </div>
         </Row>
-        <Row label="Police de l'interface">
+        <Row anchor="font" label="Police de l'interface">
           <div class="tiles" role="radiogroup" aria-label="Police de l'interface">
             {#each FONTS as option (option.value)}
               <button
@@ -246,7 +268,7 @@
             {/each}
           </div>
         </Row>
-        <Row label="Densité" hint="Hauteur des onglets et des contrôles.">
+        <Row anchor="density" label="Densité" hint="Hauteur des onglets et des contrôles.">
           <Segmented
             label="Densité"
             value={s.appearance.density}
@@ -258,7 +280,7 @@
             onchange={(density) => update({ appearance: { density } })}
           />
         </Row>
-        <Row label="Arrondi des coins">
+        <Row anchor="radius" label="Arrondi des coins">
           <Slider
             label="Arrondi des coins"
             value={s.appearance.radius}
@@ -267,17 +289,17 @@
             onchange={(radius) => update({ appearance: { radius } })}
           />
         </Row>
-        <Row label="Ombres" hint="Ombre portée de la page et de la fenêtre.">
+        <Row anchor="shadows" label="Ombres" hint="Ombre portée de la page et de la fenêtre.">
           <Toggle label="Ombres" checked={s.appearance.shadows} onchange={(shadows) => update({ appearance: { shadows } })} />
         </Row>
-        <Row label="Réduire les animations" hint="Coupe transitions et animations, en plus du réglage du système.">
+        <Row anchor="reduce-motion" label="Réduire les animations" hint="Coupe transitions et animations, en plus du réglage du système.">
           <Toggle
             label="Réduire les animations"
             checked={s.appearance.reduceMotion}
             onchange={(reduceMotion) => update({ appearance: { reduceMotion } })}
           />
         </Row>
-        <Row label="Curseur main" hint="Pointeur en forme de main sur les boutons, onglets et liens de l'interface.">
+        <Row anchor="hand-cursor" label="Curseur main" hint="Pointeur en forme de main sur les boutons, onglets et liens de l'interface.">
           <Toggle
             label="Curseur main"
             checked={s.appearance.pointerCursor}
@@ -285,6 +307,7 @@
           />
         </Row>
         <Row
+          anchor="page-zoom"
           label="Zoom par défaut"
           hint="Taille des pages web. Le zoom choisi sur un site ({platform.shortcut('zoom-in')} / {platform.shortcut('zoom-out')}) est mémorisé pour ce site."
           id="page-zoom"
@@ -309,7 +332,7 @@
         description="Place de la barre latérale et de la page."
         onReset={() => settings.reset("layout")}
       >
-        <Row label="Position de la barre latérale">
+        <Row anchor="sidebar-position" label="Position de la barre latérale">
           <Segmented
             label="Position de la barre latérale"
             value={s.layout.sidebarPosition}
@@ -320,7 +343,7 @@
             onchange={(sidebarPosition) => update({ layout: { sidebarPosition } })}
           />
         </Row>
-        <Row label="Largeur de la barre latérale" hint="Se règle aussi en faisant glisser son bord.">
+        <Row anchor="sidebar-width" label="Largeur de la barre latérale" hint="Se règle aussi en faisant glisser son bord.">
           <Slider
             label="Largeur de la barre latérale"
             value={s.layout.sidebarWidth}
@@ -330,7 +353,7 @@
             onchange={(sidebarWidth) => update({ layout: { sidebarWidth } })}
           />
         </Row>
-        <Row label="Marge autour de la page" hint="0 pour une page bord à bord.">
+        <Row anchor="gutter" label="Marge autour de la page" hint="0 pour une page bord à bord.">
           <Slider
             label="Marge autour de la page"
             value={s.layout.gutter}
@@ -340,6 +363,7 @@
           />
         </Row>
         <Row
+          anchor="zen"
           label="Mode zen"
           hint="Masque la barre latérale et affiche la page bord à bord. Survolez le bord de la fenêtre pour la faire apparaître. Raccourci : {platform.shortcut('toggle-zen')}."
         >
@@ -354,7 +378,7 @@
         description="Moteur utilisé par la barre d'adresse et la page d'accueil."
         onReset={() => settings.reset("search")}
       >
-        <div class="engines" role="radiogroup" aria-label="Moteur de recherche">
+        <div class="engines" role="radiogroup" aria-label="Moteur de recherche" data-setting="engine">
           {#each SEARCH_ENGINES as engine (engine.id)}
             <button
               class="engine"
@@ -377,7 +401,7 @@
         description="Ce qu'affiche un nouvel onglet."
         onReset={() => settings.reset("startPage")}
       >
-        <Row label="Prénom" hint="Pour un accueil personnalisé : « Bonjour, Mathieu. »" id="greeting-name">
+        <Row anchor="name" label="Prénom" hint="Pour un accueil personnalisé : « Bonjour, Mathieu. »" id="greeting-name">
           <input
             id="greeting-name"
             class="field"
@@ -388,17 +412,17 @@
             oninput={(event) => update({ startPage: { greetingName: event.currentTarget.value } })}
           />
         </Row>
-        <Row label="Horloge">
+        <Row anchor="clock" label="Horloge">
           <Toggle label="Horloge" checked={s.startPage.showClock} onchange={(showClock) => update({ startPage: { showClock } })} />
         </Row>
-        <Row label="Sites les plus visités">
+        <Row anchor="top-sites" label="Sites les plus visités">
           <Toggle
             label="Sites les plus visités"
             checked={s.startPage.showTopSites}
             onchange={(showTopSites) => update({ startPage: { showTopSites } })}
           />
         </Row>
-        <Row label="Fond" hint={s.startPage.background === "image" ? "Adresse https d'une image." : undefined}>
+        <Row anchor="background" label="Fond" hint={s.startPage.background === "image" ? "Adresse https d'une image." : undefined}>
           <div class="stack">
             <Segmented
               label="Fond de la page d'accueil"
@@ -435,14 +459,14 @@
         description="Démarrage et gestion des onglets."
         onReset={() => settings.reset("behavior")}
       >
-        <Row label="Restaurer la session au démarrage" hint="Rouvre les onglets de la dernière fois (chargés à la demande).">
+        <Row anchor="restore-session" label="Restaurer la session au démarrage" hint="Rouvre les onglets de la dernière fois (chargés à la demande).">
           <Toggle
             label="Restaurer la session au démarrage"
             checked={s.behavior.restoreSession}
             onchange={(restoreSession) => update({ behavior: { restoreSession } })}
           />
         </Row>
-        <Row label="Ouvrir les nouveaux onglets">
+        <Row anchor="new-tab-position" label="Ouvrir les nouveaux onglets">
           <Segmented
             label="Ouvrir les nouveaux onglets"
             value={s.behavior.newTabPosition}
@@ -453,7 +477,7 @@
             onchange={(newTabPosition) => update({ behavior: { newTabPosition } })}
           />
         </Row>
-        <Row label="Après la fermeture d'un onglet, afficher">
+        <Row anchor="after-close" label="Après la fermeture d'un onglet, afficher">
           <Segmented
             label="Après la fermeture d'un onglet, afficher"
             value={s.behavior.closeTabActivates}
@@ -466,6 +490,7 @@
           />
         </Row>
         <Row
+          anchor="sleep"
           label="Mettre en veille les onglets inactifs après"
           hint="Libère la mémoire : la page se recharge quand vous revenez sur l'onglet. Jamais pour un onglet qui joue du son ou un formulaire en cours."
         >
@@ -483,6 +508,7 @@
           />
         </Row>
         <Row
+          anchor="archive"
           label="Archiver les onglets inactifs après"
           hint="L'onglet est fermé et rangé dans les onglets archivés, d'où il se restaure. Jamais pour un onglet épinglé, favori, qui joue du son ou dans une vue scindée."
         >
@@ -516,6 +542,7 @@
         onReset={() => settings.reset("privacy")}
       >
         <Row
+          anchor="accept-language"
           label="Uniformiser la langue envoyée aux sites"
           hint="Annonce « en-US, en » comme la majorité des navigateurs, pour moins se distinguer. Les sites peuvent alors s'afficher en anglais."
         >
@@ -590,6 +617,17 @@
   }
   .link:hover {
     background: var(--surface-hover);
+  }
+  /* A row reached from the universal bar (deep link): a brief accent wash. */
+  .settings :global([data-flash]) {
+    border-radius: 12px;
+    animation: flash 1.6s var(--ease);
+  }
+  @keyframes flash {
+    0%,
+    40% {
+      background: color-mix(in oklab, var(--accent) 18%, transparent);
+    }
   }
   .settings {
     display: flex;

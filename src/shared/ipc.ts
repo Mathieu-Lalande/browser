@@ -14,6 +14,7 @@ import type {
   PromptAnswer,
 } from "./passwords";
 import type { DownloadEntry, DownloadsChange } from "./downloads";
+import type { OmniboxTab, OpenDisposition } from "./omnibox/types";
 import type { PeekAction, PeekState } from "./peek";
 import type { ReaderArticle } from "./reader";
 import type { Settings, SettingsPatch, SettingsSection } from "./settings";
@@ -82,6 +83,10 @@ export const Channels = {
   bookmarksRemove: "bookmarks:remove",
   bookmarksToggleActive: "bookmarks:toggle-active",
   commandRun: "command:run",
+  omniboxTabs: "omnibox:tabs",
+  omniboxShowTab: "omnibox:show-tab",
+  omniboxOpen: "omnibox:open",
+  omniboxCopy: "omnibox:copy",
   overlayShow: "overlay:show",
   overlayBackdrop: "overlay:backdrop",
   overlayClose: "overlay:close",
@@ -379,6 +384,17 @@ export interface BrowserApi {
   commands: {
     /** Runs a registry command (`src/shared/commands.ts`) against this window, like its menu item. */
     run(id: CommandId): void;
+  };
+  /** The universal bar (ADR-032). */
+  omnibox: {
+    /** Tabs of every space of this window. */
+    tabs(): Promise<OmniboxTab[]>;
+    /** Shows a tab of any space of this window (switching space). */
+    showTab(spaceId: SpaceId, tabId: TabId): void;
+    /** Opens typed text or a URL: in the active tab, a new one, a background one, or beside it (split). */
+    open(input: string, disposition: OpenDisposition): void;
+    /** Copies an instant answer. */
+    copy(text: string): void;
   };
   overlay: {
     /** Overlay page only: main asks it to show a floating UI (it is attached and focused right after). */

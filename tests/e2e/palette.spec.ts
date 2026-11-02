@@ -43,7 +43,7 @@ async function openPalette(app: ElectronApplication): Promise<Page> {
   const overlay = await overlayOf(app);
   await press(app, "K", ["control"]);
   await expect.poll(() => overlayAttached(app)).toBe(true);
-  await expect(overlay.getByRole("combobox", { name: "Palette de commandes" })).toBeFocused();
+  await expect(overlay.getByRole("combobox", { name: "Barre universelle" })).toBeFocused();
   return overlay;
 }
 
@@ -88,7 +88,7 @@ test("typing a tab's title switches to it; history results navigate", async ({ a
   await visit(chrome, server.url("/beta"), "Page beta");
 
   let overlay = await openPalette(app);
-  const input = overlay.getByRole("combobox", { name: "Palette de commandes" });
+  const input = overlay.getByRole("combobox", { name: "Barre universelle" });
   await input.pressSequentially("gamma");
   await expect(options(overlay).first()).toContainText("Page gamma");
   await expect(options(overlay).first().locator("mark").first()).toHaveText("gamma");
@@ -100,7 +100,7 @@ test("typing a tab's title switches to it; history results navigate", async ({ a
   // "alpha" is only in the history now: Enter loads it in the current tab.
   overlay = await openPalette(app);
   await input.pressSequentially("alpha");
-  const history = overlay.getByRole("group", { name: "Favoris et historique" }).getByRole("option");
+  const history = overlay.getByRole("group", { name: "Historique" }).getByRole("option");
   await expect(history).toHaveText([/Page alpha/]);
   await expect(options(overlay).first()).toContainText("Page alpha");
   await input.press("Enter");
@@ -121,7 +121,7 @@ test("actions run like their menu item: pin, duplicate, new tab, copy URL", asyn
   await visit(chrome, server.url("/act"), "Page act");
 
   let overlay = await openPalette(app);
-  const input = overlay.getByRole("combobox", { name: "Palette de commandes" });
+  const input = overlay.getByRole("combobox", { name: "Barre universelle" });
   await input.pressSequentially("épingl");
   await expect(options(overlay).first()).toHaveText(/Épingler l'onglet/);
   await input.press("Enter");
@@ -157,7 +157,7 @@ test("clearing the history asks for confirmation inside the palette", async ({ a
   expect(await searchHistory()).toHaveLength(1);
 
   const overlay = await openPalette(app);
-  const input = overlay.getByRole("combobox", { name: "Palette de commandes" });
+  const input = overlay.getByRole("combobox", { name: "Barre universelle" });
   await input.pressSequentially("effacer hist");
   await input.press("Enter");
   const dialog = overlay.getByRole("alertdialog", { name: "Effacer tout l'historique ?" });
@@ -197,4 +197,53 @@ test("IPC accepts the overlay as its window's UI, never a tab page", async ({ ap
   await expect(tabCount).toHaveCount(1);
   await emitFrom("app://browser/overlay.html");
   await expect(tabCount).toHaveCount(2);
+});
+
+const browserState = (chrome: Page) => chrome.evaluate(() => (globalThis as unknown as { browser: BrowserApi }).browser.getState());
+
+test("instant answer: 2*(3+4) shows 14 and Enter copies it", async ({ app, chrome, server }) => {
+  await visit(chrome, server.url("/calc"), "Page calc");
+  const overlay = await openPalette(app);
+  const input = overlay.getByRole("combobox", { name: "Barre universelle" });
+  await input.pressSequentially("2*(3+4)");
+  await expect(options(overlay).first()).toContainText("14");
+  await expect(options(overlay).first()).toContainText("2*(3+4) =");
+  await input.press("Enter");
+  await expect.poll(() => app.evaluate(({ clipboard }) => clipboard.readText())).toBe("14");
+  await expect.poll(() => overlayAttached(app)).toBe(false);
+  // Nothing was navigated.
+  expect(await tabUrls(app)).toEqual([server.url("/calc")]);
+});
+
+test("a tab open in another space is found and shown, switching space", async ({ app, chrome, server }) => {
+  await visit(chrome, server.url("/elsewhere"), "Page elsewhere");
+  const home = (await browserState(chrome)).activeSpaceId;
+  const work = await chrome.evaluate(() => (globalThis as unknown as { browser: BrowserApi }).browser.spaces.create({ name: "Travail" }));
+  await expect.poll(async () => (await browserState(chrome)).activeSpaceId).toBe(work!.id);
+
+  const overlay = await openPalette(app);
+  const input = overlay.getByRole("combobox", { name: "Barre universelle" });
+  await input.pressSequentially("elsewhere");
+  const row = overlay.getByRole("group", { name: "Onglets" }).getByRole("option").first();
+  await expect(row).toContainText("Page elsewhere");
+  // Labelled with its space, since it is not the one on screen.
+  await expect(row).toContainText("Personnel");
+  await input.press("Enter");
+  await expect.poll(async () => (await browserState(chrome)).activeSpaceId).toBe(home);
+  await expect(chrome.locator(".tab.active .title")).toHaveText("Page elsewhere");
+});
+
+test("@r zoom jumps to the setting's row in browser://settings", async ({ app, chrome }) => {
+  const overlay = await openPalette(app);
+  const input = overlay.getByRole("combobox", { name: "Barre universelle" });
+  await input.pressSequentially("@r ");
+  // The prefix becomes a chip: only settings are searched.
+  await expect(overlay.getByRole("button", { name: /Réglages/ })).toBeVisible();
+  await expect(input).toHaveValue("");
+  await input.pressSequentially("zoom");
+  await expect(overlay.getByRole("listbox", { name: "Résultats" }).getByRole("group")).toHaveAccessibleName("Paramètres");
+  await expect(options(overlay).first()).toContainText("Zoom par défaut");
+  await input.press("Enter");
+  await expect.poll(async () => (await browserState(chrome)).tabs.map((tab) => tab.url)).toContain("browser://settings#appearance/page-zoom");
+  await expect(chrome.locator('[data-section="appearance"] [data-setting="page-zoom"]')).toBeInViewport();
 });

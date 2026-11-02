@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { internalPageOf, internalUrl, isInternalUrl } from "./internal";
+import { internalFragment, internalPageOf, internalUrl, isInternalUrl } from "./internal";
 import { isNavigableUrl, normalizeInput } from "./url";
 
 describe("internal pages", () => {
@@ -32,5 +32,14 @@ describe("internal pages", () => {
   it("only flags the browser: scheme as internal", () => {
     expect(isInternalUrl("https://example.com/browser://settings")).toBe(false);
     expect(isInternalUrl("")).toBe(false);
+  });
+
+  it("keeps a well-formed deep link (ADR-032) and refuses anything else", () => {
+    expect(internalPageOf("browser://settings#appearance/page-zoom")).toBe("settings");
+    expect(internalFragment("browser://settings#appearance/page-zoom")).toBe("appearance/page-zoom");
+    expect(normalizeInput("browser://settings#sync")).toBe("browser://settings#sync");
+    expect(internalUrl("settings", "a/b/c")).toBe("browser://settings");
+    expect(internalPageOf("browser://settings#<script>")).toBeNull();
+    expect(internalFragment("browser://settings")).toBeNull();
   });
 });

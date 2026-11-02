@@ -697,11 +697,16 @@ export class TabManager {
   }
 
   /** Shows an internal page: switches to its tab if one is open, else opens it in a new tab. */
-  openInternal(page: InternalPage): void {
-    const url = internalUrl(page);
-    const existing = this.tabs.find((tab) => tab.state.url === url);
-    if (existing) this.activate(existing.id);
-    else this.create(url, { index: this.indexAfterActive() });
+  openInternal(page: InternalPage, fragment?: string | null): void {
+    const url = internalUrl(page, fragment);
+    const existing = this.tabs.find((tab) => internalPageOf(tab.state.url) === page);
+    if (!existing) {
+      this.create(url, { index: this.indexAfterActive() });
+      return;
+    }
+    // A deep link (ADR-032) moves the open page to its row.
+    if (fragment && existing.state.url !== url) this.navigate(existing.id, url);
+    this.activate(existing.id);
   }
 
   /**

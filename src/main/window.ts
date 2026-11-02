@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { app, BrowserWindow, nativeTheme, session, type Session, type WebContents } from "electron";
-import { internalUrl, type InternalPage } from "@shared/internal";
+import { internalPageOf, internalUrl, type InternalPage } from "@shared/internal";
 import { Channels } from "@shared/ipc";
 import { PRIVATE_SPACE, privateSettings } from "@shared/private";
 import { pageRadius, searchEngineOf, type Settings } from "@shared/settings";
@@ -344,15 +344,18 @@ export class BrowserController {
     this.openInternal("settings");
   }
 
-  /** Shows an internal page: its open tab, else in the space's empty start-page tab, else a new tab. */
-  private openInternal(page: InternalPage): void {
+  /**
+   * Shows an internal page (at `fragment`, a deep link): its open tab, else in the space's empty
+   * start-page tab, else a new tab.
+   */
+  openInternal(page: InternalPage, fragment?: string | null): void {
     const { tabs } = this.tabs.getState();
     const empty = this.emptyTab();
-    if (!tabs.some((tab) => tab.url === internalUrl(page)) && empty) {
-      this.tabs.navigate(empty, internalUrl(page));
+    if (!tabs.some((tab) => internalPageOf(tab.url) === page) && empty) {
+      this.tabs.navigate(empty, internalUrl(page, fragment));
       this.tabs.activate(empty);
     } else {
-      this.tabs.openInternal(page);
+      this.tabs.openInternal(page, fragment);
     }
   }
 

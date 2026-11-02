@@ -49,7 +49,7 @@ test("command palette over a page", async ({ app, chrome, server }) => {
     contents.sendInputEvent({ type: "keyDown", keyCode: "K", modifiers: ["control"] });
     contents.sendInputEvent({ type: "keyUp", keyCode: "K", modifiers: ["control"] });
   });
-  const input = overlay.getByRole("combobox", { name: "Palette de commandes" });
+  const input = overlay.getByRole("combobox", { name: "Barre universelle" });
   await expect(input).toBeFocused();
   await input.pressSequentially(process.env.PALETTE_QUERY ?? "pa");
   await expect(overlay.locator(".backdrop")).toBeVisible();

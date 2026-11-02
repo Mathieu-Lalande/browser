@@ -45,6 +45,7 @@
 </script>
 
 <Row
+  anchor="third-party-cookies"
   label="Bloquer les cookies tiers"
   hint="Les cookies ne sont ni envoyés ni enregistrés pour les requêtes vers d'autres sites que celui affiché (pisteurs, publicités). Peut empêcher certaines connexions ou contenus intégrés : ajoutez une exception depuis les infos du site (cadenas)."
 >

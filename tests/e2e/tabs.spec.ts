@@ -282,7 +282,7 @@ test("the command palette never runs a suggestion computed for older text", asyn
   await slowHistorySearch(app, stale, "zzfresh", 2000);
   const overlay = await overlayOf(app);
   await run(chrome, "command-palette");
-  const input = overlay.getByRole("combobox", { name: "Palette de commandes" });
+  const input = overlay.getByRole("combobox", { name: "Barre universelle" });
   await expect(input).toBeFocused();
   await input.fill("stale");
   await expect(overlay.getByRole("option", { name: /Stale/ })).toBeVisible();

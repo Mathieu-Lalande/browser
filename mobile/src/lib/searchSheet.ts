@@ -1,15 +1,16 @@
-import { type CommandContext, type CommandId } from "@shared/commands";
-import { fuzzyMatch, type Range } from "@shared/fuzzy";
-import { buildPalette, type PaletteItem, type PaletteSection, type RemoteTabInput } from "@shared/palette";
-import { mergeSuggestions, rankHistory, topSites } from "@shared/search";
-import { displayUrl } from "@shared/url";
+import { type CommandContext, type CommandDefinition, type CommandId } from "@shared/commands";
+import { Omnibox, sharedProviders } from "@shared/omnibox/omnibox";
+import { matchedRow, present } from "@shared/omnibox/providers/util";
+import type { OmniboxIcon, Provider, QueryContext, RemoteTabInput, ScopeId, Section, Suggestion } from "@shared/omnibox/types";
+import { rankHistory, topSites } from "@shared/search";
+import { displayUrl, type SearchEngine } from "@shared/url";
 import type { Bookmark, HistoryEntry, TabState } from "@shared/types";
-import { normalizeInput, searchUrl, type SearchEngine } from "@shared/url";
 
 /**
- * Content of the full-screen search sheet. It is the desktop command palette (`buildPalette`):
- * open tabs (fuzzy), bookmarks and history (frecency), actions from the shared command registry,
- * restricted to what makes sense on a phone, plus a few mobile-only actions.
+ * Content of the full-screen search sheet: the desktop's universal bar (ADR-032), same providers,
+ * scorer, scopes and instant answers (`@shared/omnibox`), restricted to what makes sense on a
+ * phone, plus a few mobile-only actions (a provider of their own). No settings deep links: the
+ * phone's settings screen has its own layout.
  */
 
 /** Shared commands offered on mobile (no windows, zoom, devtools, split view, zen mode…). */
@@ -48,23 +49,10 @@ export const MOBILE_ACTIONS: readonly MobileAction[] = [
   { id: "show-tabs", label: "Afficher les onglets", keywords: ["tabs", "onglets ouverts", "aperçu"], icon: "tabs" },
 ];
 
-export type SheetItem =
-  | PaletteItem
-  | {
-      kind: "action";
-      key: string;
-      action: MobileAction;
-      title: string;
-      titleRanges: Range[];
-      detail: string;
-      detailRanges: Range[];
-    };
+export const mobileAction = (id: string) => MOBILE_ACTIONS.find((action) => action.id === id);
 
-export interface SheetSection {
-  id: PaletteSection["id"];
-  title: string | null;
-  items: SheetItem[];
-}
+export type SheetItem = Suggestion;
+export type SheetSection = Section;
 
 export interface SheetInput {
   query: string;
@@ -81,102 +69,109 @@ export interface SheetInput {
   spaceCount?: number;
   /** Private tab: no spaces, sync, history clearing nor "new private tab" (already private). */
   isPrivate?: boolean;
+  /** A scope chip chosen from the scope rows. */
+  scope?: ScopeId | null;
 }
 
 /** Commands never offered in private browsing (they concern the regular profile). */
 const NOT_PRIVATE: ReadonlySet<string> = new Set(["new-space", "next-space", "previous-space", "sync-now", "clear-history", "new-private-tab"]);
 /** Destructive commands: found by typing, not listed in the empty sheet. */
-const DESTRUCTIVE: ReadonlySet<CommandId> = new Set<CommandId>(["close-tab", "clear-history"]);
+const DESTRUCTIVE: ReadonlySet<string> = new Set<CommandId>(["close-tab", "clear-history"]);
 const MAX_FREQUENT = 4;
+const MAX_HISTORY = 16;
 
 /** Whether a command or mobile action fits the context (spaces, private browsing, empty query). */
 function fits(id: string, input: SheetInput, empty: boolean): boolean {
   if (input.isPrivate && NOT_PRIVATE.has(id)) return false;
   if ((id === "next-space" || id === "previous-space") && (input.spaceCount ?? 1) < 2) return false;
-  if (empty && DESTRUCTIVE.has(id as CommandId)) return false;
+  if (empty && DESTRUCTIVE.has(id)) return false;
   return true;
 }
 
-const MAX_SUGGESTIONS = 8;
+/** Mobile-only actions, ranked with the commands (they come first on a tie: the most useful on a phone). */
+class MobileActionsProvider implements Provider {
+  readonly id = "mobile-actions";
+  readonly scope = "commands" as const;
 
-function mobileActionRows(query: string, context: CommandContext): { item: SheetItem; score: number }[] {
-  const rows: { item: SheetItem; score: number }[] = [];
-  for (const action of MOBILE_ACTIONS) {
-    if (action.needsPage && !context.activeTab?.url) continue;
-    const base = { kind: "action" as const, key: `action:${action.id}`, action, title: action.label, detail: "", detailRanges: [] };
-    if (!query) {
-      rows.push({ item: { ...base, titleRanges: [] }, score: 0 });
-      continue;
-    }
-    const match = fuzzyMatch(query, action.label);
-    if (match) rows.push({ item: { ...base, titleRanges: match.ranges }, score: match.score });
-    else {
-      const keyword = Math.max(...action.keywords.map((word) => fuzzyMatch(query, word)?.score ?? -Infinity));
-      if (keyword > -Infinity) rows.push({ item: { ...base, titleRanges: [] }, score: keyword * 0.75 });
-    }
+  constructor(private readonly input: SheetInput) {}
+
+  query(text: string, context: QueryContext): Suggestion[] {
+    const actions = MOBILE_ACTIONS.filter((action) => (!action.needsPage || context.commandContext.activeTab?.url) && fits(action.id, this.input, !text));
+    return present(
+      actions.map((action) =>
+        matchedRow(
+          text,
+          "commands",
+          {
+            key: `action:${action.id}`,
+            title: action.label,
+            detail: "",
+            icon: "command" as OmniboxIcon,
+            verb: "Exécuter",
+            completion: action.label,
+            action: { type: "custom", id: action.id },
+          },
+          { keywords: action.keywords, boost: 0.01 },
+        ),
+      ),
+    );
   }
-  return rows;
 }
 
 export function buildSheet(input: SheetInput): SheetSection[] {
   const text = input.query.trim();
-  const ranked = text ? rankHistory(input.history, text, MAX_SUGGESTIONS * 2, input.now) : [];
-  const suggestions = text ? mergeSuggestions(text, ranked, input.bookmarks, MAX_SUGGESTIONS) : [];
-  const sections: SheetSection[] = buildPalette({
-    query: text,
-    tabs: input.tabs,
-    activeTabId: input.activeTabId,
-    suggestions,
-    context: input.context,
-    remoteTabs: input.remoteTabs,
-  }).map((section) => ({
-    ...section,
-    items: section.items.filter((item) => item.kind !== "command" || (MOBILE_COMMANDS.has(item.command.id) && fits(item.command.id, input, !text))),
-  }));
-
-  // The shared palette searches with the default engine: use the one chosen in the settings.
-  for (const section of sections) {
-    if (section.id !== "web") continue;
-    section.items = section.items.map((item) => (item.kind === "search" ? { ...item, url: searchUrl(text, input.engine) } : item));
-  }
-  if (text) {
-    const go = sections.find((section) => section.id === "go");
-    const url = normalizeInput(text, input.engine);
-    if (go) go.items = go.items.map((item) => (item.kind === "navigate" ? { ...item, url } : item));
-  }
-
-  const extra = mobileActionRows(text, input.context)
-    .filter((row) => row.item.kind !== "action" || fits(row.item.action.id, input, !text))
-    .sort((a, b) => b.score - a.score);
-  const commands = sections.find((section) => section.id === "commands");
-  if (commands) {
-    // Mobile actions first: they are the most useful ones on a phone.
-    commands.items = text ? [...extra.map((row) => row.item), ...commands.items].slice(0, 7) : [...extra.map((row) => row.item), ...commands.items];
-  } else if (extra.length) {
-    const index = sections.findIndex((section) => section.id === "web");
-    const section: SheetSection = { id: "commands", title: "Actions", items: extra.map((row) => row.item) };
-    if (index === -1) sections.push(section);
-    else sections.splice(index, 0, section);
-  }
+  const omnibox = new Omnibox([new MobileActionsProvider(input), ...sharedProviders()]);
+  const filter = (command: CommandDefinition, empty: boolean) => MOBILE_COMMANDS.has(command.id) && fits(command.id, input, empty);
+  const result = omnibox.query(
+    text,
+    {
+      tabs: input.tabs.map((tab) => ({ ...tab, spaceId: null })),
+      activeTabId: input.activeTabId,
+      activeSpaceId: null,
+      favorites: [],
+      bookmarks: input.bookmarks,
+      history: text ? rankHistory(input.history, text.replace(/^@\S+\s+/, ""), MAX_HISTORY, input.now) : [],
+      remoteTabs: input.remoteTabs ?? [],
+      archived: [],
+      commandContext: input.context,
+      commandFilter: filter,
+      settings: [],
+      engine: input.engine,
+      now: input.now,
+    },
+    input.scope ?? null,
+  );
+  const sections = [...result.sections];
   // Before typing: the most visited sites come first (never in private browsing).
-  if (!text && !input.isPrivate) {
+  if (!text && !input.scope && !input.isPrivate) {
     const open = new Set(input.tabs.map((tab) => tab.url));
     const frequent = topSites(input.history, MAX_FREQUENT * 2, input.now)
       .filter((entry) => !open.has(entry.url))
       .slice(0, MAX_FREQUENT)
       .map(
         (entry): SheetItem => ({
-          kind: "history",
           key: `frequent:${entry.url}`,
-          url: entry.url,
-          favicon: entry.favicon,
+          section: "history",
           title: entry.title || displayUrl(entry.url),
           titleRanges: [],
           detail: displayUrl(entry.url),
           detailRanges: [],
+          score: 0,
+          icon: "history",
+          favicon: entry.favicon,
+          verb: "Ouvrir",
+          completion: entry.url,
+          action: { type: "open", url: entry.url },
         }),
       );
-    if (frequent.length) sections.unshift({ id: "suggestions", title: "Sites fréquents", items: frequent });
+    if (frequent.length) sections.unshift({ id: "history", title: "Sites fréquents", items: frequent });
   }
-  return sections.filter((section) => section.items.length > 0);
+  return sections;
+}
+
+/** The URL a row opens, if it opens one (for the site icon and the "edit address" button). */
+export function itemUrl(item: SheetItem): string | null {
+  const { action } = item;
+  if (action.type === "open" || action.type === "favorite") return action.url;
+  return null;
 }

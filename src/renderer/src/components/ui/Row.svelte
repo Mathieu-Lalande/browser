@@ -1,17 +1,21 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
 
-  /** One setting: label and hint on the left, its control on the right (or below with `stacked`). */
+  /**
+   * One setting: label and hint on the left, its control on the right (or below with `stacked`).
+   * `anchor`: its name in deep links (`browser://settings#section/anchor`, ADR-032).
+   */
   let {
     label,
     hint,
     id,
+    anchor,
     stacked = false,
     children,
-  }: { label: string; hint?: string; id?: string; stacked?: boolean; children: Snippet } = $props();
+  }: { label: string; hint?: string; id?: string; anchor?: string; stacked?: boolean; children: Snippet } = $props();
 </script>
 
-<div class="row" class:stacked>
+<div class="row" class:stacked data-setting={anchor}>
   <div class="text">
     {#if id}<label class="label" for={id}>{label}</label>{:else}<span class="label">{label}</span>{/if}
     {#if hint}<span class="hint">{hint}</span>{/if}

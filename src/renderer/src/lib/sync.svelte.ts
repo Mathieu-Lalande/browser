@@ -1,4 +1,4 @@
-import type { RemoteTabInput } from "@shared/palette";
+import type { RemoteTabInput } from "@shared/omnibox/types";
 import type { SyncStatus } from "@shared/sync/controller";
 
 /** Reactive mirror of the sync status (ADR-019), pushed by main on every change. */
@@ -10,7 +10,7 @@ class SyncStore {
     window.browser.sync.status().then((status) => (this.status ??= status), () => {});
   }
 
-  /** Other devices' tabs, flattened for the palette (most recently updated device first). */
+  /** Other devices' tabs, flattened for the universal bar (most recently updated device first). */
   get remoteTabs(): RemoteTabInput[] {
     return (this.status?.devices ?? []).flatMap((device) => device.tabs.map((tab) => ({ device: device.name, url: tab.url, title: tab.title })));
   }

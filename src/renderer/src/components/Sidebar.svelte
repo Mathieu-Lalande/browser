@@ -516,8 +516,8 @@
     />
     <IconButton
       icon="command"
-      label="Palette de commandes"
-      title="Palette de commandes : onglets, pages et actions"
+      label="Barre universelle"
+      title="Barre universelle : onglets, pages, actions, réglages et calculs"
       command="command-palette"
       onclick={() => api.commands.run("command-palette")}
     />

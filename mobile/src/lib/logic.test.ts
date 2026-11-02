@@ -232,31 +232,40 @@ describe("search sheet", () => {
     const sections = buildSheet({ ...base, query: "" });
     const actions = sections.find((section) => section.id === "commands")!;
     for (const item of actions.items) {
-      if (item.kind === "command") expect(MOBILE_COMMANDS.has(item.command.id)).toBe(true);
+      if (item.action.type === "command") expect(MOBILE_COMMANDS.has(item.action.command.id)).toBe(true);
     }
-    expect(actions.items.some((item) => item.kind === "action" && item.action.id === "share")).toBe(true);
-    expect(actions.items.some((item) => item.kind === "command" && item.command.id === "devtools")).toBe(false);
+    expect(actions.items.some((item) => item.action.type === "custom" && item.action.id === "share")).toBe(true);
+    expect(actions.items.some((item) => item.action.type === "command" && item.action.command.id === "devtools")).toBe(false);
   });
 
   it("finds open tabs and history, and searches with the chosen engine", () => {
     const history = [{ url: "https://gitlab.com/", title: "GitLab", favicon: null, visitCount: 3, lastVisit: 0 }];
     const brave = SEARCH_ENGINES.find((engine) => engine.id === "brave")!;
     const sections = buildSheet({ ...base, query: "git", history, engine: brave });
-    expect(sections.find((section) => section.id === "tabs")?.items[0]).toMatchObject({ kind: "tab" });
-    expect(sections.find((section) => section.id === "suggestions")?.items[0]).toMatchObject({ kind: "history", url: "https://gitlab.com/" });
+    expect(sections.find((section) => section.id === "tabs")?.items[0].action).toMatchObject({ type: "tab" });
+    expect(sections.find((section) => section.id === "history")?.items[0].action).toEqual({ type: "open", url: "https://gitlab.com/" });
     const web = sections.find((section) => section.id === "web")!.items[0];
-    expect(web).toMatchObject({ kind: "search", url: "https://search.brave.com/search?q=git" });
+    expect(web.action).toEqual({ type: "open", url: "https://search.brave.com/search?q=git" });
   });
 
   it("puts an address first", () => {
     const sections = buildSheet({ ...base, query: "example.org" });
-    expect(sections[0].items[0]).toMatchObject({ kind: "navigate", url: "https://example.org/" });
+    expect(sections[0].items[0]).toMatchObject({ section: "go", action: { type: "open", url: "https://example.org/" } });
   });
 
   it("matches mobile actions", () => {
     const sections = buildSheet({ ...base, query: "privé" });
     const items = sections.flatMap((section) => section.items);
-    expect(items.some((item) => item.kind === "action" && item.action.id === "new-private-tab")).toBe(true);
+    expect(items.some((item) => item.action.type === "custom" && item.action.id === "new-private-tab")).toBe(true);
+  });
+
+  it("shares the desktop's instant answers and scopes", () => {
+    expect(buildSheet({ ...base, query: "2*(3+4)" })[0].items[0]).toMatchObject({ title: "14", action: { type: "copy", text: "14" } });
+    expect(buildSheet({ ...base, query: "10 km en m" })[0].items[0].title).toBe("10000 m");
+    expect(buildSheet({ ...base, query: "255 en hexa" })[0].items[0].title).toBe("FF");
+    expect(buildSheet({ ...base, query: "heure à Tokyo" })[0].items[0].detail).toContain("Tokyo");
+    expect(buildSheet({ ...base, query: "@o git" }).map((section) => section.id)).toEqual(["tabs"]);
+    expect(buildSheet({ ...base, query: "@c" })[0].items[0].action).toEqual({ type: "scope", scope: "commands" });
   });
 });
 
@@ -339,11 +348,11 @@ describe("search sheet context", () => {
     now: 0,
   };
   const ids = (sections: ReturnType<typeof buildSheet>) =>
-    sections.flatMap((section) => section.items).map((item) => (item.kind === "command" ? item.command.id : item.kind === "action" ? item.action.id : item.key));
+    sections.flatMap((section) => section.items).map((item) => (item.action.type === "command" ? item.action.command.id : item.action.type === "custom" ? item.action.id : item.key));
 
   it("leads with frequent sites and hides destructive actions before typing", () => {
     const sections = buildSheet({ ...input, spaceCount: 2 });
-    expect(sections[0]).toMatchObject({ title: "Sites fréquents", items: [{ kind: "history", url: page.url }] });
+    expect(sections[0]).toMatchObject({ title: "Sites fréquents", items: [{ action: { type: "open", url: page.url } }] });
     expect(ids(sections)).not.toContain("clear-history");
     expect(ids(buildSheet({ ...input, query: "effacer", spaceCount: 2 }))).toContain("clear-history");
   });

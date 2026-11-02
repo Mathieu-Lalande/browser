@@ -14,6 +14,10 @@ import ChevronLeft from "lucide-react-native/icons/chevron-left";
 import ChevronRight from "lucide-react-native/icons/chevron-right";
 import CircleUser from "lucide-react-native/icons/circle-user";
 import Clock from "lucide-react-native/icons/clock";
+import Calculator from "lucide-react-native/icons/calculator";
+import Ruler from "lucide-react-native/icons/ruler";
+import Binary from "lucide-react-native/icons/binary";
+import AtSign from "lucide-react-native/icons/at-sign";
 import CodeXml from "lucide-react-native/icons/code-xml";
 import Coffee from "lucide-react-native/icons/coffee";
 import Command from "lucide-react-native/icons/command";
@@ -105,6 +109,10 @@ const ui = {
   globe: Globe,
   check: Check,
   clock: Clock,
+  calculator: Calculator,
+  ruler: Ruler,
+  binary: Binary,
+  atSign: AtSign,
   fill: ArrowUpLeft,
   shield: Shield,
   home: House,
