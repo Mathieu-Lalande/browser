@@ -29,6 +29,38 @@
   --sidebar-gap: 6px;
   --viewport-shadow: 0 0 0 1px var(--border), 0 10px 30px -12px rgb(0 0 0 / 0.5);
   --elevation: 0 1px 2px rgb(0 0 0 / 0.18);
+
+  /*
+   * Design scales: every component spaces, rounds, sizes text and icons from these, never with
+   * its own numbers. Spacing 4/8/12/16/24/32; radii derive from the user's --radius (theme.ts).
+   */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --radius-sm: max(3px, calc(var(--radius) - 4px));
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 4px);
+  --radius-pill: 999px;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-md: 15px;
+  --text-lg: 20px;
+  --text-xl: 28px;
+  /* Icons: 16 in rows and lists, 18 in standalone buttons, 14 inside text buttons. */
+  --icon-row: 16px;
+  --icon-button-glyph: 18px;
+  --icon-inline: 14px;
+  /* Smallest clickable box, and the height of fields and buttons in pages and panels. */
+  --hit-min: 28px;
+  --field-height: 32px;
+  --focus-ring: 0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent);
+  --danger: #e5484d;
+  --danger-text: #ff8589;
+  --success: #30a46c;
+  --page-max: 760px;
 }
 
 @media (prefers-color-scheme: light) {
@@ -43,6 +75,7 @@
     --text: #1d1a25;
     --text-muted: #5f5a6d;
     --text-faint: #8e8a9b;
+    --danger-text: #c62828;
   }
 }
 
@@ -116,6 +149,49 @@ button {
   outline-offset: 1px;
 }
 
+/* Accessible-name-only text (icon-only navigation, labels read by screen readers). */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/*
+ * Text fields of pages and panels (settings, internal pages, popovers): one look everywhere.
+ * Components add `class="field"` and only size them.
+ */
+.field {
+  height: var(--field-height);
+  min-width: 0;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  outline: 0;
+  background: var(--surface);
+  color: var(--text);
+  user-select: text;
+  transition:
+    border-color var(--motion-fast) var(--ease),
+    box-shadow var(--motion-fast) var(--ease);
+}
+.field:hover:not(:focus) {
+  border-color: color-mix(in oklab, var(--text) 18%, transparent);
+}
+.field:focus {
+  border-color: color-mix(in oklab, var(--accent) 60%, transparent);
+  box-shadow: var(--focus-ring);
+}
+.field::placeholder {
+  color: var(--text-faint);
+}
+.field[aria-invalid="true"],
+.field.invalid {
+  border-color: var(--danger);
+}
+
 ::selection {
   background: color-mix(in oklab, var(--accent) 32%, transparent);
   color: var(--text);
@@ -178,4 +254,11 @@ select option,
 select optgroup {
   background-color: var(--bg-elevated);
   color: var(--text);
+}
+
+/* Animatable length for the address bar URL fade (AddressBar), so it follows the buttons fade. */
+@property --url-fade {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
 }
