@@ -75,7 +75,6 @@
     --text: #1d1a25;
     --text-muted: #5f5a6d;
     --text-faint: #8e8a9b;
-    --danger-text: #c62828;
   }
 }
 
@@ -204,6 +203,11 @@ button {
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--surface-active) transparent;
+}
+
+/* Red text follows the theme's mode (set by lib/theme.ts), not the system's. */
+:root[data-theme="light"] {
+  --danger-text: #c62828;
 }
 
 /* Dark theme: the active tab is a brighter, elevated surface, unlike a merely hovered one. */
