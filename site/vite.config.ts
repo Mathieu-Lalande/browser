@@ -35,5 +35,12 @@ export default defineConfig({
   build: {
     target: "es2022",
     assetsInlineLimit: 0,
+    // Multi-page: the showcase (index.html) and the user guide (docs.html), both in dist/.
+    rollupOptions: {
+      input: {
+        main: fileURLToPath(new URL("./index.html", import.meta.url)),
+        docs: fileURLToPath(new URL("./docs.html", import.meta.url)),
+      },
+    },
   },
 });
