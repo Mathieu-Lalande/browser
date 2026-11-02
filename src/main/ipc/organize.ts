@@ -13,6 +13,7 @@ import {
   restoreArchived,
   showFavoriteMenu,
 } from "../organize";
+import { showSpaceMenu } from "../context-menus";
 import { profile } from "../profile";
 import { spaces } from "../spaces";
 import { MAX_INDEX, MAX_QUERY_LENGTH } from "./limits";
@@ -75,4 +76,5 @@ export const spaceHandlers = defineHandlers({
     if (!c.isPrivate) spaces.remove(spaceId);
   }),
   [Channels.spaceSwitch]: on([isSpaceId], (c, spaceId) => c.spaces.switchTo(spaceId)),
+  [Channels.spaceContextMenu]: on([isSpaceId], (c, spaceId) => showSpaceMenu(c, spaceId), { from: "chrome" }),
 });

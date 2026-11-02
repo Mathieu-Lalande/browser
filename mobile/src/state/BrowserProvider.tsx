@@ -10,9 +10,9 @@ import { nextSpaceDefaults } from "@shared/spaces";
 import { SyncError } from "@shared/sync/client";
 import type { SyncController, SyncStatus } from "@shared/sync/controller";
 import type { Bookmark, HistoryEntry, SpaceInput } from "@shared/types";
-import { normalizeInput } from "@shared/url";
+import { displayUrl, normalizeInput } from "@shared/url";
 import { createContext, use, useCallback, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
-import { AppState } from "react-native";
+import { Alert, AppState } from "react-native";
 import type { WebViewHandle } from "../components/webViewHandle";
 import { parseBookmarks, parseFolders, toggleBookmark } from "../lib/bookmarks";
 import { DEFAULT_MOBILE_SETTINGS, sanitizeMobileSettings, type MobileSettings } from "../lib/mobileSettings";
@@ -123,6 +123,8 @@ export interface BrowserActions {
     syncNow(): void;
     disconnect(): Promise<SyncResult>;
     reset(): Promise<SyncResult>;
+    /** A tab another device sent (ADR-033) was opened or dismissed: deleted from the account. */
+    dismissReceived(id: string): void;
   };
 }
 
@@ -581,9 +583,30 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
         syncNow: () => void syncRef.current?.syncNow(),
         disconnect: () => syncAttempt(async () => syncRef.current?.disconnect()),
         reset: () => syncAttempt(async () => syncRef.current?.reset()),
+        dismissReceived: (id) => syncRef.current?.dismissReceivedTab(id),
       },
     };
   }, []);
+
+  // Tabs sent from another device (ADR-033): asked once each; "Plus tard" leaves them under
+  // "Autres appareils" in the tab overview.
+  const announced = useRef(new Set<string>());
+  useEffect(() => {
+    for (const tab of syncStatus?.received ?? []) {
+      if (announced.current.has(tab.id)) continue;
+      announced.current.add(tab.id);
+      Alert.alert(`Onglet reçu de ${tab.fromName}`, tab.title || displayUrl(tab.url), [
+        { text: "Plus tard", style: "cancel" },
+        {
+          text: "Ouvrir",
+          onPress: () => {
+            actions.openUrl(tab.url);
+            actions.sync.dismissReceived(tab.id);
+          },
+        },
+      ]);
+    }
+  }, [syncStatus, actions]);
 
   const state = useMemo<BrowserState>(
     () => ({ ready, model, settings, mobile, bookmarks, favorites, archive, boosts, historyVersion, history: historyRef.current, sync: syncStatus }),

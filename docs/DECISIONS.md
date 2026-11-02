@@ -1533,3 +1533,63 @@ disposition).
 **Conséquences.** `src/shared/palette.ts` disparaît. Les liens profonds `browser://…#section/ligne` ne sont acceptés
 que s'ils sont de la forme `[a-z0-9_-]+(/[a-z0-9_-]+)?` et restent, comme toute page interne, hors d'atteinte des
 pages web (ADR-012). Un test vérifie que chaque entrée de l'index a son ancre (`data-setting`) dans la page.
+
+## ADR-033 — Menus de l'application, de la barre latérale et des pages ; gestes sur la page
+
+**Contexte.** Zen (et Firefox, Chrome) offre un menu « … » complet, des menus contextuels sur la barre latérale et
+les espaces, des actions de page (imprimer, enregistrer, code source, envoyer à un appareil) et des gestes au pavé
+tactile (pincer pour zoomer, balayer pour revenir). Il fallait l'équivalent sans multiplier les sources de vérité.
+
+**Décision.** Des **modèles de menus purs** (`src/shared/menus.ts`, testés) construits depuis le registre de
+commandes : chaque entrée est une commande (`kind: "command"`, libellé, icône et raccourci effectif ADR-028), sauf ce
+qui n'existe que dans un menu (liens d'historique/favoris, actions d'espace). Nouvelles commandes : `print`,
+`save-page`, `view-source` (Ctrl+U), `reopen-closed-tab` (Ctrl+Maj+T), `select-all-tabs`, `toggle-compact-mode`,
+`toggle-sidebar-position`, `toggle-fullscreen` (F11 / ⌃⌘F), `edit-space`, `app-menu`, `open-sync`,
+`keyboard-shortcuts`, `about`, `report-issue`, `quit` ; toutes dans le menu de l'application (leurs raccourcis).
+- **Menu « … »** (bouton en tête de la rangée de navigation) : popover `app-menu` du calque overlay (ADR-010), rendu
+  par `MenuList.svelte` (récursif, sur `Menu`/`MenuItem`) : flèches dans un niveau, sous-menu au survol, → / Entrée,
+  ← / Échap pour revenir. En-tête Synchronisation (état + « Se connecter »/« Synchroniser »), rangée Zoom (− % + et
+  plein écran, le menu reste ouvert). « Traduire la page » est grisé (« Bientôt ») tant qu'il n'y a pas de traduction.
+  « Tout l'historique… » ouvre la barre universelle (pas de page d'historique) ; une commande qui ouvre sa propre UI
+  flottante remplace le menu dans le calque (`command-palette` n'est plus une bascule que pour elle-même).
+- **Menus natifs** (comme ceux des onglets et des pages) : espace vide de la barre latérale (`sidebar:context-menu`)
+  et pastilles d'espace (`spaces:context-menu` : renommer et icône/couleur ouvrent l'éditeur de l'interface,
+  déplacer à gauche/droite `moveSpace`, supprimer après confirmation `dialog`). Les raccourcis y sont des indications
+  (`registerAccelerator: false`) : le menu de l'application reste le seul à les installer.
+- **Menu de la page** : un menu natif ne sait pas dessiner une rangée d'icônes ; Précédent/Suivant/Actualiser/Favori
+  viennent donc en tête avec leurs raccourcis, puis Enregistrer la page sous…, Tout sélectionner, Capture d'écran ▸,
+  Afficher le code source, Envoyer à un appareil ▸, et Inspecter.
+- **Enregistrer la page sous…** : boîte de dialogue puis `webContents.savePage` (HTML complet ou MHTML) vers le fichier
+  choisi : aucune entrée de téléchargement ni dossier mémorisé, donc rien dans le profil depuis une fenêtre privée.
+  **Code source** : `view-source:` d'une page http(s) seulement (`isViewSourceUrl`), accepté par `isNavigableUrl` et
+  la barre d'adresse mais jamais par `isPageOpenableUrl` ; Chromium refuse les navigations view-source initiées par
+  une page.
+- **Rouvrir l'onglet fermé** : pile en mémoire par liste d'onglets (25), jamais écrite.
+- **Sélection d'onglets** : Ctrl/⌘+clic ou « Sélectionner tous les onglets », barre d'actions (nouveau dossier,
+  déplacer vers un espace, fermer, annuler ; Échap), réinitialisée au changement d'espace.
+- **Mode compact** (`layout.compactMode`) : la barre latérale devient un rail d'icônes (`CompactRail`) qui se déplie
+  en barre complète au survol (même minuterie que le mode zen, la page suit), le zen l'emporte.
+- **Envoyer à un appareil** : collection de synchro `sent` (le nom « sent-tabs » n'est pas un nom de collection
+  valide) : `{ to, from, fromName, url, title, sentAt }` chiffré de bout en bout comme le reste, http(s) seulement,
+  expiré après 7 jours (il sort de l'instantané, donc est supprimé partout). Le destinataire le voit dans
+  `SyncStatus.received` ; le bureau l'ouvre en arrière-plan dans une fenêtre normale (notification), le téléphone
+  demande (« Ouvrir » / « Plus tard ») et le garde sous « Autres appareils » ; une fois montré il est supprimé
+  (`dismissReceivedTab`). Jamais depuis une fenêtre privée.
+
+**Gestes.** *Pincer / Ctrl+molette* : Chromium les rapporte en `zoom-changed` (le zoom visuel reste désactivé,
+limites 1:1 par défaut dans Electron) ; ils passent par le zoom par site (ADR-013), à raison d'un cran au plus toutes
+les 110 ms (`PinchZoomSteps`) pour qu'un pincement ne saute pas aux extrêmes ; l'indicateur de zoom de la barre
+d'adresse les montre. Comportement unique, assumé : tout pincement est un zoom de page ; un écran tactile n'a pas de
+zoom visuel. *Balayage à deux doigts* : `input-event` n'a pas les deltas de molette et les pages n'ont pas de preload ;
+un guetteur en monde isolé 1010 (`page-swipe-script.ts`) classe chaque rafale de molette de confiance : seule une
+rafale horizontale en pixels (pavé tactile) que l'élément sous le pointeur, ses ancêtres et le document ne peuvent
+plus faire défiler dans ce sens est signalée, par `console.debug` préfixé d'un secret tiré au lancement (invisible du
+monde principal : une page ne peut pas simuler un geste ; rien n'est émis pendant un défilement vertical). Main
+(`page-swipe.ts`) les lit sur `console-message` (cadre principal), les passe à `PageSwipe` (`page-gestures.ts`, pur,
+qui réutilise l'automate de `SpaceSwipe` : verrou d'axe, suivi 1:1, seuil 120 px ou lancer, traîne d'inertie avalée)
+et montre une flèche dans le calque overlay (popover `page-swipe`, sans prendre le focus) ; le calque couvrant alors
+la page, il renvoie les molettes suivantes à main (`page-swipe:wheel`). macOS garde aussi l'événement natif `swipe`.
+
+**Conséquences.** Les messages du guetteur apparaissent au niveau « Verbose » des outils de développement de la page.
+Une page qui gère elle-même le défilement horizontal par script (sans débordement CSS) peut voir un balayage
+naviguer au bord : comme dans Chrome.

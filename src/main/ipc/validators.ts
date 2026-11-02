@@ -68,3 +68,12 @@ export const bounds: Guard<Bounds> = (value): value is Bounds => {
   const b = value as Record<string, unknown>;
   return num(b.x) && num(b.y) && num(b.width) && num(b.height);
 };
+
+/** A wheel event the overlay forwards during a page swipe (ADR-033). */
+export const wheelSample: Guard<{ deltaX: number; deltaY: number; deltaMode: number; shiftKey: boolean; ctrlKey: boolean }> = (
+  value,
+): value is { deltaX: number; deltaY: number; deltaMode: number; shiftKey: boolean; ctrlKey: boolean } => {
+  if (typeof value !== "object" || value === null) return false;
+  const w = value as Record<string, unknown>;
+  return num(w.deltaX) && num(w.deltaY) && (w.deltaMode === 0 || w.deltaMode === 1 || w.deltaMode === 2) && typeof w.shiftKey === "boolean" && typeof w.ctrlKey === "boolean";
+};

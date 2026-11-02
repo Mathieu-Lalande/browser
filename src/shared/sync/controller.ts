@@ -1,10 +1,20 @@
-import { toBase64Url, type RandomBytes } from "./bytes";
+import { randomBytesChecked, toBase64Url, toHex, type RandomBytes } from "./bytes";
 import { SyncClient, SyncError, type SyncErrorKind, type Transport } from "./client";
 import { generateSyncKey } from "./crypto";
 import { SyncEngine, createSyncState, keyFingerprint, loadSyncState, type CollectionAdapter, type SyncState } from "./engine";
 import { decodeHlc } from "./hlc";
 import { decodePairingCode, encodePairingCode, normalizeServerUrl, type SyncCredentials } from "./pairing";
-import { clientRecord, sanitizeSyncedClient, type RemoteDevice, type SyncedClient, type SyncedTab } from "./records";
+import {
+  clientRecord,
+  isSentTabLive,
+  sanitizeSentTab,
+  sanitizeSyncedClient,
+  type ReceivedTab,
+  type RemoteDevice,
+  type SentTab,
+  type SyncedClient,
+  type SyncedTab,
+} from "./records";
 
 /**
  * Sync lifecycle shared by both apps: account creation, pairing, scheduling (startup, local
@@ -30,6 +40,8 @@ export interface SyncStatus {
   keyFingerprint: string | null;
   /** The account's other devices, with their open tabs. */
   devices: RemoteDevice[];
+  /** Tabs other devices sent here, oldest first, until `dismissReceivedTab` (ADR-033). */
+  received: ReceivedTab[];
 }
 
 export interface SyncPlatform {
@@ -141,6 +153,32 @@ export class SyncController {
     return this.running;
   }
 
+  /**
+   * "Envoyer à un appareil" (ADR-033): a `sent` record for `deviceId`, synced right away. It
+   * expires after a week if that device never shows up. False when sync is off or the input invalid.
+   */
+  async sendTab(deviceId: string, url: string, title: string): Promise<boolean> {
+    const state = this.state;
+    if (!this.credentials || !state || deviceId === state.deviceId) return false;
+    const tab = sanitizeSentTab({ to: deviceId, from: state.deviceId, fromName: this.platform.deviceName(), url, title, sentAt: this.now() });
+    if (!tab) return false;
+    state.sentTabs = { ...state.sentTabs, [toHex(randomBytesChecked(this.platform.rng, 8))]: tab };
+    this.platform.saveState(state);
+    await this.syncNow();
+    return true;
+  }
+
+  /** A received tab was shown (opened, or dismissed): it is deleted everywhere at the next sync. */
+  dismissReceivedTab(id: string): void {
+    const state = this.state;
+    const tab = state?.sentTabs?.[id] ? sanitizeSentTab(state.sentTabs[id]) : null;
+    if (!state?.sentTabs || !tab || tab.to !== state.deviceId) return;
+    delete state.sentTabs[id];
+    this.platform.saveState(state);
+    this.publish({});
+    this.notifyChange();
+  }
+
   /** Something changed locally: sync a little later (debounced). */
   notifyChange(): void {
     if (!this.credentials || this.status.error && FATAL.has(this.status.error.kind)) return;
@@ -224,7 +262,7 @@ export class SyncController {
       rng: this.platform.rng,
       credentials: this.credentials!,
       state,
-      adapters: [...this.platform.adapters(), this.clientsAdapter(state)],
+      adapters: [...this.platform.adapters(), this.clientsAdapter(state), this.sentAdapter(state)],
       now: () => this.now(),
       persist: (current) => this.platform.saveState(current),
     });
@@ -250,6 +288,40 @@ export class SyncController {
         state.devices = devices;
       },
     };
+  }
+
+  /** Sent tabs (ADR-033): every live record known here; expired ones drop out, hence are deleted. */
+  private sentAdapter(state: SyncState): CollectionAdapter<SentTab> {
+    return {
+      name: "sent",
+      snapshot: () => {
+        const map = new Map<string, SentTab>();
+        const now = this.now();
+        for (const [id, value] of Object.entries(state.sentTabs ?? {})) {
+          const tab = sanitizeSentTab(value);
+          if (tab && isSentTabLive(tab, now)) map.set(id, tab);
+        }
+        return map;
+      },
+      sanitize: (value) => sanitizeSentTab(value),
+      apply: ({ upserts, deletes }) => {
+        const tabs = { ...state.sentTabs };
+        for (const { id, data } of upserts) tabs[id] = data;
+        for (const id of deletes) delete tabs[id];
+        state.sentTabs = tabs;
+      },
+    };
+  }
+
+  private receivedTabs(state: SyncState | null): ReceivedTab[] {
+    if (!state) return [];
+    const now = this.now();
+    const list: ReceivedTab[] = [];
+    for (const [id, value] of Object.entries(state.sentTabs ?? {})) {
+      const tab = sanitizeSentTab(value);
+      if (tab && tab.to === state.deviceId && isSentTabLive(tab, now)) list.push({ id, ...tab });
+    }
+    return list.sort((a, b) => a.sentAt - b.sentAt);
   }
 
   private remoteDevices(state: SyncState | null): RemoteDevice[] {
@@ -324,6 +396,7 @@ export class SyncController {
       retryAt: null,
       keyFingerprint: null,
       devices: [],
+      received: [],
     };
   }
 
@@ -340,6 +413,7 @@ export class SyncController {
       lastSync: this.state?.lastSync ?? null,
       keyFingerprint: this.credentials ? keyFingerprint(this.credentials) : null,
       devices: this.remoteDevices(this.state),
+      received: this.receivedTabs(this.state),
     };
     if (!configured) this.status.phase = "off";
     this.platform.onStatus(this.status);

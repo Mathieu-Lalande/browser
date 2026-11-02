@@ -55,6 +55,8 @@ export interface SyncState {
   collections: Partial<Record<CollectionName, CollectionState>>;
   /** The account's other devices as last received (validated again when read). */
   devices?: Record<string, RemoteDevice>;
+  /** Sent tabs known here, to or from this device (validated again when read, ADR-033). */
+  sentTabs?: Record<string, unknown>;
 }
 
 export interface RecordChange<T> {
@@ -150,6 +152,7 @@ export function loadSyncState(value: unknown, credentials: SyncCredentials, rng:
     lastSync: typeof v.lastSync === "number" ? v.lastSync : null,
     collections,
     devices: typeof v.devices === "object" && v.devices !== null ? v.devices : {},
+    sentTabs: typeof v.sentTabs === "object" && v.sentTabs !== null ? v.sentTabs : {},
   };
 }
 

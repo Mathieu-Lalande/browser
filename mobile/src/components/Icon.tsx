@@ -69,6 +69,7 @@ import { memo } from "react";
 /** The app's own icon names, mapped to Lucide icons (call sites never import Lucide directly). */
 import Cloud from "lucide-react-native/icons/cloud";
 import CloudOff from "lucide-react-native/icons/cloud-off";
+import Send from "lucide-react-native/icons/send";
 import Laptop from "lucide-react-native/icons/laptop";
 import Smartphone from "lucide-react-native/icons/smartphone";
 import QrCode from "lucide-react-native/icons/qr-code";
@@ -125,6 +126,7 @@ const ui = {
   // Sync (ADR-019).
   cloud: Cloud,
   cloudOff: CloudOff,
+  send: Send,
   laptop: Laptop,
   smartphone: Smartphone,
   qr: QrCode,

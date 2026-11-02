@@ -1,6 +1,6 @@
 import { hostname } from "node:os";
 import { join } from "node:path";
-import { app, net } from "electron";
+import { Notification, app, net } from "electron";
 import { SyncController, type SyncStatus } from "@shared/sync/controller";
 import { fetchTransport } from "@shared/sync/client";
 import type { SyncState } from "@shared/sync/engine";
@@ -94,7 +94,30 @@ export function startSync(): void {
   profile().onChange(() => {
     if (!applying) sync.notifyChange();
   });
+  openReceivedTabs(sync);
   void sync.init();
+}
+
+/**
+ * Tabs other devices sent here (ADR-033) open in the background in a normal window (the focused
+ * one, else the first), never a private one; each is then deleted from the account.
+ */
+function openReceivedTabs(sync: SyncController): void {
+  const handled = new Set<string>();
+  statuses.on((status) => {
+    for (const tab of status.received) {
+      if (handled.has(tab.id)) continue;
+      const windows = persistentWindows(BrowserController.all());
+      const focused = BrowserController.focused();
+      const target = focused && !focused.isPrivate ? focused : windows[0];
+      if (!target) return;
+      handled.add(tab.id);
+      target.tabs.create(tab.url, { activate: false });
+      if (Notification.isSupported()) new Notification({ title: `Onglet reçu de ${tab.fromName}`, body: tab.title || tab.url, silent: true }).show();
+      // Outside the status listener: dismissing publishes a new status.
+      queueMicrotask(() => sync.dismissReceivedTab(tab.id));
+    }
+  });
 }
 
 export function onSyncStatus(listener: Listener): () => void {

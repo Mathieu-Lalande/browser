@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SEARCH_ENGINES, displayUrl, isNavigableUrl, isPageOpenableUrl, normalizeInput } from "./url";
+import { SEARCH_ENGINES, displayUrl, isNavigableUrl, isPageOpenableUrl, isViewSourceUrl, normalizeInput } from "./url";
 
 const ddg = (q: string) => `https://duckduckgo.com/?q=${encodeURIComponent(q)}`;
 
@@ -84,5 +84,15 @@ describe("displayUrl", () => {
     expect(displayUrl("https://www.example.com/")).toBe("example.com");
     expect(displayUrl("https://example.com/docs")).toBe("example.com/docs");
     expect(displayUrl("")).toBe("");
+  });
+});
+
+describe("view-source (ADR-033)", () => {
+  it("accepts the source of web pages only, typed or from the menus", () => {
+    expect(isViewSourceUrl("view-source:https://example.com/")).toBe(true);
+    expect(isViewSourceUrl("view-source:file:///etc/passwd")).toBe(false);
+    expect(isNavigableUrl("view-source:http://example.com/a")).toBe(true);
+    expect(isPageOpenableUrl("view-source:https://example.com/")).toBe(false);
+    expect(normalizeInput("view-source:https://example.com")).toBe("view-source:https://example.com/");
   });
 });

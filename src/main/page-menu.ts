@@ -1,4 +1,6 @@
 import { Menu, clipboard, type ContextMenuParams, type MenuItemConstructorOptions, type WebContents } from "electron";
+import type { CaptureMode } from "@shared/capture";
+import { effectiveAccelerator } from "@shared/commands";
 import { MAX_SPLIT_TABS } from "@shared/split";
 import type { TabId } from "@shared/types";
 import { isPageOpenableUrl, searchUrl } from "@shared/url";
@@ -9,6 +11,9 @@ import { hasPasswordsFor } from "./passwords/vault";
 import { buildPageMenu, isSavableUrl, selectionAddress, type PageMenuEntry } from "./page-menu-model";
 import { settings } from "./settings";
 import { spaces } from "./spaces";
+import { capture } from "./capture";
+import { savePage, viewSource } from "./page-actions";
+import { syncController } from "./sync";
 import { BrowserController } from "./window";
 
 /** Isolated world of the media actions script (PiP uses 1002, cosmetic filtering 1001). */
@@ -62,6 +67,12 @@ function runEntry(id: string, c: BrowserController, tabId: TabId, contents: WebC
   const engine = searchEngineOf(settings());
   if (id.startsWith("link-open-space:")) {
     if (!c.isPrivate && isPageOpenableUrl(params.linkURL)) c.spaces.openInSpace(id.slice("link-open-space:".length), params.linkURL);
+    return;
+  }
+  if (id.startsWith("page-send:")) {
+    // Only the URL and title leave, end-to-end encrypted (ADR-019); never from a private window.
+    const url = contents.getURL();
+    if (!c.isPrivate && /^https?:/.test(url)) void syncController().sendTab(id.slice("page-send:".length), url, contents.getTitle());
     return;
   }
   if (id.startsWith("spell-") && /^spell-\d$/.test(id)) {
@@ -136,11 +147,21 @@ function runEntry(id: string, c: BrowserController, tabId: TabId, contents: WebC
       return c.tabs.forward(tabId);
     case "page-reload":
       return c.tabs.reload(tabId);
-    case "page-save": {
-      const url = contents.getURL();
-      if (isSavableUrl(url)) contents.downloadURL(url);
-      return;
-    }
+    case "page-save":
+      return void savePage(c, tabId);
+    case "page-bookmark":
+      if (c.tabs.activeTabId !== tabId) c.tabs.activate(tabId);
+      return c.toggleBookmark();
+    case "page-select-all":
+      return contents.selectAll();
+    case "page-capture-visible":
+    case "page-capture-full":
+    case "page-capture-element":
+      // Captures act on the active tab (a split pane may be another one).
+      if (c.tabs.activeTabId !== tabId) c.tabs.activate(tabId);
+      return void capture(c, id.slice("page-capture-".length) as CaptureMode);
+    case "page-view-source":
+      return viewSource(c, tabId);
     case "page-copy-url":
       return void clipboard.writeText(contents.getURL());
     case "page-site-info":
@@ -156,16 +177,25 @@ function runEntry(id: string, c: BrowserController, tabId: TabId, contents: WebC
 function toTemplate(entries: PageMenuEntry[], click: (id: string) => void): MenuItemConstructorOptions[] {
   return entries.map((entry) => {
     if ("separator" in entry) return { type: "separator" };
-    const { id, label, enabled, checked, submenu } = entry;
+    const { id, label, enabled, checked, submenu, accelerator } = entry;
     if (submenu) return { id, label, enabled, submenu: toTemplate(submenu, click) };
     return {
       id,
       label,
       enabled,
+      // A hint only: the application menu owns the shortcuts.
+      ...(accelerator ? { accelerator, registerAccelerator: false } : {}),
       ...(checked === undefined ? {} : { type: "checkbox" as const, checked }),
       click: () => click(id),
     };
   });
+}
+
+/** Devices "Envoyer à un appareil" lists: none from a private window or without sync. */
+function sendableDevices(c: BrowserController): { id: string; name: string }[] | null {
+  const status = syncController().getStatus();
+  if (c.isPrivate || !status.configured) return null;
+  return status.devices.map((device) => ({ id: device.id, name: device.name }));
 }
 
 /** The native menu for a right click on a tab's page (null if the tab has no live page). */
@@ -183,6 +213,9 @@ export function buildPageContextMenu(c: BrowserController, tabId: TabId, params:
     canSplit: !(c.tabs.splitVisible && (split?.tabIds.length ?? 0) >= MAX_SPLIT_TABS),
     engine: searchEngineOf(settings()),
     hasPasswords: hasPasswordsFor(contents.getURL()),
+    isBookmarked: tab.isBookmarked,
+    devices: sendableDevices(c),
+    shortcut: (command) => effectiveAccelerator(command, process.platform, settings().shortcuts),
   });
   return Menu.buildFromTemplate(
     toTemplate(entries, (id) => {

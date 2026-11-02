@@ -10,6 +10,8 @@
   import SiteInfoPanel from "./SiteInfoPanel.svelte";
   import PageOptionsPanel from "./PageOptionsPanel.svelte";
   import CaptureResultPanel from "./CaptureResultPanel.svelte";
+  import AppMenuPanel from "./AppMenuPanel.svelte";
+  import PageSwipePanel from "./PageSwipePanel.svelte";
 
   // Root of the overlay layer (src/main/overlay.ts): a transparent page above the tab views,
   // attached only while a floating UI is open.
@@ -99,6 +101,10 @@
         <PageOptionsPanel anchor={current.request.anchor} tabId={current.request.tabId} onClose={close} />
       {:else if current.request.kind === "capture-result" && current.request.capture}
         <CaptureResultPanel capture={current.request.capture} onClose={close} />
+      {:else if current.request.kind === "app-menu"}
+        <AppMenuPanel anchor={current.request.anchor} onClose={close} />
+      {:else if current.request.kind === "page-swipe" && current.request.swipe}
+        <PageSwipePanel anchor={current.request.anchor} initial={current.request.swipe} />
       {:else if current.request.kind === "password-fill"}
         <PasswordPanel kind="fill" anchor={current.request.anchor} tabId={current.request.tabId} onClose={close} />
       {/if}

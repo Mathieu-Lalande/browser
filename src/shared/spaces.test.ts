@@ -14,6 +14,7 @@ import {
   neighborSpace,
   nextSpaceDefaults,
   removeSpace,
+  moveSpace,
   sanitizeSpace,
   spacePartition,
   updateSpace,
@@ -132,5 +133,16 @@ describe("space icon migration (emoji icons of earlier versions)", () => {
     expect(sanitizeSpace({ id: "x", name: "X", icon: "🦄" })?.icon).toBe(FALLBACK_SPACE_ICON);
     expect(sanitizeSpace({ id: "y", name: "Y" })?.icon).toBe(FALLBACK_SPACE_ICON);
     expect(sanitizeSpace({ id: "z", name: "Z", icon: "rocket" })?.icon).toBe("rocket");
+  });
+});
+
+describe("moving spaces", () => {
+  const a = { ...DEFAULT_SPACE, id: "a" };
+  const b = { ...DEFAULT_SPACE, id: "b" };
+  const c = { ...DEFAULT_SPACE, id: "c" };
+  it("moves one position, clamped at the ends", () => {
+    expect(moveSpace([a, b, c], "a", 1).map((space) => space.id)).toEqual(["b", "a", "c"]);
+    expect(moveSpace([a, b, c], "c", -1).map((space) => space.id)).toEqual(["a", "c", "b"]);
+    expect(moveSpace([a, b, c], "a", -1).map((space) => space.id)).toEqual(["a", "b", "c"]);
   });
 });

@@ -1,3 +1,4 @@
+import type { CommandId } from "@shared/commands";
 import { isNavigableUrl, isPageOpenableUrl, normalizeInput, searchUrl, type SearchEngine } from "@shared/url";
 
 /**
@@ -36,10 +37,19 @@ export interface PageMenuContext {
   engine: SearchEngine;
   /** Passwords are saved for the page's origin (ADR-025): fields offer to fill them. */
   hasPasswords?: boolean;
+  /** The page is bookmarked (the bookmark entry offers to remove it). */
+  isBookmarked?: boolean;
+  /**
+   * Devices of the sync account the page can be sent to (ADR-033); null: no "Envoyer à un appareil"
+   * (sync off, or a private window: nothing private is synced).
+   */
+  devices?: { id: string; name: string }[] | null;
+  /** The displayed shortcut of a registry command (its effective accelerator, ADR-028). */
+  shortcut?: (id: CommandId) => string | undefined;
 }
 
 export type PageMenuEntry =
-  | { id: string; label: string; enabled?: boolean; checked?: boolean; submenu?: PageMenuEntry[] }
+  | { id: string; label: string; enabled?: boolean; checked?: boolean; submenu?: PageMenuEntry[]; accelerator?: string }
   | { separator: true };
 
 /** Longest selection quoted in "Rechercher « … »". */
@@ -150,22 +160,51 @@ export function buildPageMenu(params: PageMenuParams, context: PageMenuContext):
     sections.push(items);
   }
 
-  // A plain right click on the page: navigation and page tools.
+  // A plain right click on the page: navigation first (with their shortcuts, as a native menu
+  // cannot draw a row of icons), then the page tools (ADR-033).
   if (!sections.length) {
+    const key = (id: CommandId) => context.shortcut?.(id);
+    const devices = context.devices;
     sections.push(
       [
-        { id: "page-back", label: "Précédent", enabled: context.canGoBack },
-        { id: "page-forward", label: "Suivant", enabled: context.canGoForward },
-        { id: "page-reload", label: "Actualiser" },
+        { id: "page-back", label: "Précédent", enabled: context.canGoBack, accelerator: key("back") },
+        { id: "page-forward", label: "Suivant", enabled: context.canGoForward, accelerator: key("forward") },
+        { id: "page-reload", label: "Actualiser", accelerator: key("reload") },
+        { id: "page-bookmark", label: context.isBookmarked ? "Retirer des favoris" : "Ajouter aux favoris", accelerator: key("toggle-bookmark") },
       ],
       [
-        { id: "page-save", label: "Enregistrer la page sous…" },
+        { id: "page-save", label: "Enregistrer la page sous…", accelerator: key("save-page") },
+        { id: "page-select-all", label: "Tout sélectionner", accelerator: "CmdOrCtrl+A" },
+        {
+          id: "page-capture",
+          label: "Capture d'écran",
+          submenu: [
+            { id: "page-capture-visible", label: "Zone visible", accelerator: key("screenshot-visible") },
+            { id: "page-capture-full", label: "Page entière", accelerator: key("screenshot-full") },
+            { id: "page-capture-element", label: "Élément…", accelerator: key("screenshot-element") },
+          ],
+        },
+        { id: "page-view-source", label: "Afficher le code source", accelerator: key("view-source") },
+        ...(devices
+          ? [
+              {
+                id: "page-send",
+                label: "Envoyer à un appareil",
+                enabled: devices.length > 0,
+                submenu: devices.length
+                  ? devices.map((device) => ({ id: `page-send:${device.id}`, label: device.name }))
+                  : [{ id: "page-send-none", label: "Aucun autre appareil", enabled: false }],
+              },
+            ]
+          : []),
+      ],
+      [
         { id: "page-copy-url", label: "Copier l'adresse de la page" },
         { id: "page-site-info", label: "Infos sur le site" },
       ],
     );
   }
-  sections.push([{ id: "inspect", label: "Inspecter" }]);
+  sections.push([{ id: "inspect", label: "Inspecter", accelerator: context.shortcut?.("devtools") }]);
 
   return sections.flatMap((section, index) => (index ? [{ separator: true } as const, ...section] : section));
 }

@@ -99,7 +99,7 @@
         title={index < 9 ? `${space.name} (${shortcutText(`CmdOrCtrl+Alt+${index + 1}`, platform.name)})` : space.name}
         style:--dot={space.color ?? "var(--accent)"}
         onclick={() => (active ? onEdit(space.id) : api.spaces.switchTo(space.id))}
-        oncontextmenu={(event) => (event.preventDefault(), onEdit(space.id))}
+        oncontextmenu={(event) => (event.preventDefault(), api.spaces.contextMenu(space.id))}
       >
         <Icon name={space.icon} size={compact ? 14 : 16} />
       </button>

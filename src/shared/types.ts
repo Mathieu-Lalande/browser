@@ -193,7 +193,15 @@ export interface TabBoost {
 }
 
 /** Commands triggered by main (menus, shortcuts) that the chrome UI must handle. */
-export type UiCommand = "focus-address" | "toggle-sidebar" | "focus-find";
+export type UiCommand =
+  | "focus-address"
+  | "toggle-sidebar"
+  | "focus-find"
+  /** Selects every tab of the space shown (ADR-033). */
+  | "select-all-tabs"
+  /** Opens a space's editor (`edit-space:<id>`), its name field focused with `rename-space:<id>`. */
+  | `edit-space:${string}`
+  | `rename-space:${string}`;
 
 /** Floating UI shown in the overlay layer, above the page (see `src/main/overlay.ts`). */
 export type OverlayKind =
@@ -204,7 +212,9 @@ export type OverlayKind =
   | "password-fill"
   | "link-peek"
   | "page-options"
-  | "capture-result";
+  | "capture-result"
+  | "app-menu"
+  | "page-swipe";
 
 export interface OverlayRequest {
   kind: OverlayKind;
@@ -218,6 +228,22 @@ export interface OverlayRequest {
   peek?: PeekState;
   /** Capture result (ADR-031): the screenshot main keeps, with a small preview. */
   capture?: CaptureResult;
+  /** Page swipe (ADR-033): the indicator's first position (updates: `overlay.onPageSwipe`). */
+  swipe?: PageSwipeIndicator;
+}
+
+/** The back/forward indicator of a two-finger swipe on the page (ADR-033), drawn by the overlay. */
+export interface PageSwipeIndicator {
+  /** -1 back (left edge), 1 forward (right edge). */
+  direction: 1 | -1;
+  /** Finger travel, px (positive: to the right). */
+  offset: number;
+  /** 0…1 of the commit threshold. */
+  progress: number;
+  /** Releasing now navigates. */
+  ready: boolean;
+  /** Navigated: the indicator plays its exit. */
+  committed: boolean;
 }
 
 /** Popovers stay light: no dimmed, blurred backdrop behind them (the palette has one). */

@@ -219,6 +219,17 @@ export function removeSpace(spaces: readonly SpaceInfo[], id: SpaceId): SpaceInf
   return spaces.filter((space) => space.id !== id);
 }
 
+/** The list with `id` moved `delta` positions (clamped to the ends; unchanged when it cannot move). */
+export function moveSpace(spaces: readonly SpaceInfo[], id: SpaceId, delta: number): SpaceInfo[] {
+  const from = spaces.findIndex((space) => space.id === id);
+  const to = Math.max(0, Math.min(spaces.length - 1, from + delta));
+  if (from === -1 || to === from) return [...spaces];
+  const next = [...spaces];
+  const [space] = next.splice(from, 1);
+  next.splice(to, 0, space);
+  return next;
+}
+
 /** The space to show instead of `id` once it is removed: the next one, else the previous one. */
 export function neighborSpace(spaces: readonly SpaceInfo[], id: SpaceId): SpaceId | null {
   const index = spaces.findIndex((space) => space.id === id);

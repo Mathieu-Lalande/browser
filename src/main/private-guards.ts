@@ -28,6 +28,10 @@ export function tabHooksFor(hooks: TabManagerHooks, isPrivate: boolean): TabMana
         boostPage: hooks.boostPage,
         // The link peek uses the window's private session and records nothing (ADR-027).
         peekLink: hooks.peekLink,
+        // Page gestures (ADR-033): navigation and zoom only (the zoom of a private session is its own).
+        gesturePage: hooks.gesturePage,
+        pageWheel: hooks.pageWheel,
+        pageZoom: hooks.pageZoom,
       }
     : hooks;
 }

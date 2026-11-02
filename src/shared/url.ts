@@ -61,6 +61,7 @@ export function normalizeInput(raw: string, engine: SearchEngine = DEFAULT_SEARC
   const internal = internalPageOf(input);
   if (internal) return internalUrl(internal, internalFragment(input));
 
+  if (isViewSourceUrl(input)) return `view-source:${new URL(input.slice("view-source:".length)).href}`;
   if (/^[a-z][a-z\d+\-.]*:/i.test(input) && !/^[^:/]+:\d+(\/|$)/.test(input)) {
     try {
       const url = new URL(input);
@@ -83,7 +84,23 @@ export function normalizeInput(raw: string, engine: SearchEngine = DEFAULT_SEARC
   return searchUrl(input, engine);
 }
 
+/**
+ * `view-source:` of a web page (ADR-033): opened by the menus or typed, never by a page (Chromium
+ * refuses renderer-initiated view-source navigations, and `isPageOpenableUrl` does not accept it).
+ */
+export function isViewSourceUrl(url: string): boolean {
+  const match = /^view-source:(.+)$/i.exec(url);
+  if (!match) return false;
+  try {
+    const inner = new URL(match[1]);
+    return inner.protocol === "http:" || inner.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export function isNavigableUrl(url: string): boolean {
+  if (isViewSourceUrl(url)) return true;
   try {
     return NAVIGABLE_SCHEMES.has(new URL(url).protocol);
   } catch {

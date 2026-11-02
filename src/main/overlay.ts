@@ -78,7 +78,9 @@ export class Overlay {
     const view = this.ensureView();
     const chrome = this.hooks.chrome();
     const opening = !this.attached;
-    if (opening) this.returnFocus = chrome.isFocused() ? chrome : this.hooks.focusTarget();
+    // The page swipe indicator (ADR-033) only shows: keyboard focus stays where it is.
+    const passive = request.kind === "page-swipe";
+    if (opening) this.returnFocus = passive ? null : chrome.isFocused() ? chrome : this.hooks.focusTarget();
     // Anything else replacing the link peek (Ctrl+K…) takes its place.
     if (request.kind !== "link-peek") this.hooks.dismissed?.();
     this.kind = request.kind;
@@ -87,7 +89,7 @@ export class Overlay {
     if (this.ready) view.webContents.send(Channels.overlayShow, request);
     else this.pending = request;
     this.raise();
-    view.webContents.focus();
+    if (!passive) view.webContents.focus();
     if (opening) this.openings++;
     if (opening && !isPopover(request.kind)) void this.sendBackdrop(this.openings);
   }

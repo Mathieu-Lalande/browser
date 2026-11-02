@@ -139,6 +139,16 @@
   import Binary from "@lucide/svelte/icons/binary";
   import History from "@lucide/svelte/icons/rotate-ccw-clock";
   import AtSign from "@lucide/svelte/icons/at-sign";
+  import Printer from "@lucide/svelte/icons/printer";
+  import FileCode from "@lucide/svelte/icons/file-code";
+  import ListChecks from "@lucide/svelte/icons/list-checks";
+  import PanelLeftClose from "@lucide/svelte/icons/panel-left-close";
+  import PanelRight from "@lucide/svelte/icons/panel-right";
+  import CircleHelp from "@lucide/svelte/icons/circle-question-mark";
+  import Bug from "@lucide/svelte/icons/bug";
+  import LogOut from "@lucide/svelte/icons/log-out";
+  import Send from "@lucide/svelte/icons/send";
+  import Languages from "@lucide/svelte/icons/languages";
 
   type LucideIcon = Component<Record<string, unknown>>;
 
@@ -268,6 +278,16 @@
     video: Video,
     "stop-recording": CircleStop,
     save: Save,
+    printer: Printer,
+    "file-code": FileCode,
+    "list-checks": ListChecks,
+    "panel-left-close": PanelLeftClose,
+    "panel-right": PanelRight,
+    help: CircleHelp,
+    bug: Bug,
+    "log-out": LogOut,
+    send: Send,
+    languages: Languages,
   } satisfies Record<string, LucideIcon> & Record<CommandIcon, LucideIcon>;
 
   /** Space icons: their stored names are Lucide's own. */

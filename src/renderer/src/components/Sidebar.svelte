@@ -4,7 +4,7 @@
   import { dropZone, resolveDrop, sidebarRows, type DragItem, type DropResult, type SidebarRow } from "@shared/folders";
   import { isFavoriteUrl } from "@shared/favorites";
   import { SpaceSwipe, type SwipeOutput } from "@shared/space-swipe";
-  import type { SpaceId, SpaceInfo, SpacePeek, TabState } from "@shared/types";
+  import type { SpaceId, SpaceInfo, SpacePeek, TabId, TabState } from "@shared/types";
   import { displayUrl } from "@shared/url";
   import { api, browser } from "../lib/browser.svelte";
   import AddressBar from "./AddressBar.svelte";
@@ -202,6 +202,16 @@
   }
 
   function onTreeClickCapture(event: MouseEvent): void {
+    // Ctrl/Cmd+click adds a tab to the selection (ADR-033) instead of showing it.
+    if ((event.ctrlKey || event.metaKey) && !swallowClick) {
+      const id = (event.target as HTMLElement).closest<HTMLElement>("[data-tab-id]")?.dataset.tabId;
+      if (id) {
+        event.preventDefault();
+        event.stopPropagation();
+        toggleSelected(id);
+      }
+      return;
+    }
     if (!swallowClick) return;
     event.preventDefault();
     event.stopPropagation();
@@ -430,6 +440,11 @@
    * move the focus, Enter/Space activate, Delete/Backspace close the focused tab.
    */
   function onTabsKeydown(event: KeyboardEvent): void {
+    if (event.key === "Escape" && selection.length) {
+      event.preventDefault();
+      clearSelection();
+      return;
+    }
     const items = [...(tabList?.querySelectorAll<HTMLElement>("[role=tab]") ?? [])];
     const current = items.findIndex((item) => item === document.activeElement);
     if (current === -1) return;
@@ -474,13 +489,75 @@
     event.preventDefault();
   }
 
+  // --- Selection of several tabs (ADR-033): close, file in a new folder, or move them together ---
+
+  let selected = $state<TabId[]>([]);
+  // Tabs that went away leave the selection.
+  const selection = $derived(selected.filter((id) => browser.state.tabs.some((item) => item.id === id && !item.isPinned)));
+  const otherSpaces = $derived(browser.isPrivate ? [] : browser.state.spaces.filter((space) => space.id !== browser.state.activeSpaceId));
+
+  /** "Sélectionner tous les onglets": every unpinned tab of the space shown. */
+  export function selectAllTabs(): void {
+    selected = browser.regularTabs.map((item) => item.id);
+  }
+
+  /** Opens a space's editor (its name field is focused: renaming is typing). */
+  export function editSpace(id: SpaceId): void {
+    editing = id;
+  }
+
+  function toggleSelected(id: TabId): void {
+    selected = selection.includes(id) ? selection.filter((other) => other !== id) : [...selection, id];
+  }
+
+  function clearSelection(): void {
+    selected = [];
+  }
+
+  function closeSelected(): void {
+    for (const id of selection) api.tabs.close(id);
+    clearSelection();
+  }
+
+  function folderSelected(): void {
+    api.folders.create({}, null, selection);
+    clearSelection();
+  }
+
+  function moveSelected(spaceId: SpaceId): void {
+    for (const id of selection) api.tabs.moveToSpace(id, spaceId);
+    clearSelection();
+  }
+
+  // Another space shown: its tabs are not the selected ones.
+  $effect(() => {
+    void browser.state.activeSpaceId;
+    selected = [];
+  });
+
+  /** Right click on the sidebar's empty space (not a tab, folder, button or field): its native menu. */
+  function onSidebarContextMenu(event: MouseEvent): void {
+    if (event.defaultPrevented) return;
+    const target = event.target as HTMLElement;
+    if (target.closest("button, input, a, [data-drag-kind], [data-tab-id], .favorites-area, .footer")) return;
+    event.preventDefault();
+    api.sidebar.contextMenu();
+  }
+
+  let appMenuButton = $state<HTMLElement>();
+
+  function showAppMenu(): void {
+    const rect = appMenuButton?.getBoundingClientRect();
+    if (rect) api.appMenu.show({ x: rect.x, y: rect.y, width: rect.width, height: rect.height });
+  }
+
   function newTab(): void {
     api.tabs.create();
     focusAddress();
   }
 </script>
 
-<aside class="sidebar" bind:this={sidebarElement}>
+<aside class="sidebar" bind:this={sidebarElement} oncontextmenu={onSidebarContextMenu}>
   <header class="titlebar drag" class:mac={roomForTrafficLights}>
     {#if windowControls && !controlsAtEnd}<WindowControls />{/if}
     <!-- The flexible part: it gives way (the badge folds to its icon), never the buttons. -->
@@ -498,6 +575,15 @@
   </header>
 
   <nav class="nav">
+    <IconButton
+      bind:element={appMenuButton}
+      icon="more"
+      label="Menu de l'application"
+      title="Menu : synchronisation, historique, favoris, outils, aide…"
+      aria-haspopup="menu"
+      data-testid="app-menu-button"
+      onclick={showAppMenu}
+    />
     <IconButton icon="back" label="Précédent" command="back" disabled={!tab?.canGoBack} onclick={() => tab && api.tabs.back(tab.id)} />
     <IconButton icon="forward" label="Suivant" command="forward" disabled={!tab?.canGoForward} onclick={() => tab && api.tabs.forward(tab.id)} />
     {#if tab?.isLoading}
@@ -578,6 +664,18 @@
           <IconButton size="sm" icon="folder-plus" label="Nouveau dossier" onclick={() => api.folders.create()} />
         </div>
 
+        {#if selection.length}
+          <div class="selection" role="toolbar" aria-label="Onglets sélectionnés" data-testid="tab-selection">
+            <span class="selection-count">{selection.length} sélectionné{selection.length > 1 ? "s" : ""}</span>
+            <IconButton size="sm" icon="folder-plus" label="Nouveau dossier avec les onglets sélectionnés" onclick={folderSelected} />
+            {#each otherSpaces as space (space.id)}
+              <IconButton size="sm" icon={space.icon} label="Déplacer vers {space.name}" onclick={() => moveSelected(space.id)} />
+            {/each}
+            <IconButton size="sm" icon="trash" label="Fermer les onglets sélectionnés" onclick={closeSelected} />
+            <IconButton size="sm" icon="close" label="Annuler la sélection" onclick={clearSelection} />
+          </div>
+        {/if}
+
         <!-- Pointer drag and drop of rows; the keyboard has the tab menu's "Déplacer vers le dossier…". -->
         <div
           class="tabs"
@@ -636,6 +734,7 @@
             {:else}
               <div
                 class="row"
+                class:selected={selection.includes(entry.tab.id)}
                 class:dragged={drag?.item.kind === "tab" && drag.item.id === entry.tab.id}
                 data-row-index={entry.index}
                 data-depth={entry.depth}
@@ -752,6 +851,28 @@
     padding: 0 8px 8px;
     /* Narrow-sidebar rules of its parts (title bar, address bar, indentation) query this. */
     container: sidebar / inline-size;
+  }
+  .selection {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px;
+    margin: 0 0 4px;
+    padding: 2px 2px 2px 10px;
+    border-radius: var(--radius);
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    color: var(--accent-text);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .selection-count {
+    flex: 1;
+    min-width: 0;
+  }
+  .row.selected {
+    border-radius: var(--radius);
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
   }
   .titlebar {
     display: flex;

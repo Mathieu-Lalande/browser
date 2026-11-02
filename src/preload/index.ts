@@ -6,7 +6,7 @@ import type { Settings } from "@shared/settings";
 import type { KeyPress } from "@shared/accelerators";
 import type { SyncStatus } from "@shared/sync/controller";
 import type { UpdateStatus } from "@shared/updates";
-import type { BrowserState, OverlayBackdrop, OverlayRequest, UiCommand } from "@shared/types";
+import type { BrowserState, OverlayBackdrop, OverlayRequest, PageSwipeIndicator, UiCommand } from "@shared/types";
 
 function subscribe<T>(channel: string, listener: (payload: T) => void): () => void {
   const wrapped = (_event: IpcRendererEvent, payload: T) => listener(payload);
@@ -109,6 +109,7 @@ const api: BrowserApi = {
     update: (id, input) => send(Channels.spaceUpdate, id, input),
     remove: (id) => send(Channels.spaceRemove, id),
     switchTo: (id) => send(Channels.spaceSwitch, id),
+    contextMenu: (id) => send(Channels.spaceContextMenu, id),
   },
   split: {
     open: (tabId) => send(Channels.splitOpen, tabId),
@@ -152,6 +153,14 @@ const api: BrowserApi = {
     onShow: (listener) => subscribe<OverlayRequest>(Channels.overlayShow, listener),
     onBackdrop: (listener) => subscribe<OverlayBackdrop>(Channels.overlayBackdrop, listener),
     close: (restoreFocus) => send(Channels.overlayClose, restoreFocus),
+    onPageSwipe: (listener) => subscribe<PageSwipeIndicator>(Channels.pageSwipeState, listener),
+    swipeWheel: (sample) => send(Channels.pageSwipeWheel, sample),
+  },
+  appMenu: {
+    show: (anchor) => send(Channels.appMenuShow, anchor),
+  },
+  sidebar: {
+    contextMenu: () => send(Channels.sidebarContextMenu),
   },
   settings: {
     get: () => ipcRenderer.invoke(Channels.settingsGet),

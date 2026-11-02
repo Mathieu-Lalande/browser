@@ -4,9 +4,11 @@ import { isPeekAction } from "@shared/peek";
 import { MAX_COPY_LENGTH, OPEN_DISPOSITIONS } from "@shared/omnibox/types";
 import { isSpaceId } from "@shared/spaces";
 import { runCommand } from "../commands";
+import { showSidebarMenu } from "../context-menus";
+import { showAppMenu } from "../page-actions";
 import { omniboxCopy, omniboxOpen, omniboxTabs } from "../omnibox";
 import { MAX_URL_LENGTH } from "./limits";
-import { bool, bounds, defineHandlers, handle, num, on, oneOf, opt, str, text } from "./registry";
+import { bool, bounds, defineHandlers, handle, num, on, oneOf, opt, str, text, wheelSample } from "./registry";
 
 /** The window itself: state, layout, split view, frame buttons, command palette, overlay and peek. */
 export const windowHandlers = defineHandlers({
@@ -33,6 +35,10 @@ export const windowHandlers = defineHandlers({
   [Channels.omniboxOpen]: on([text(MAX_URL_LENGTH), oneOf(...OPEN_DISPOSITIONS)], (c, input, disposition) => omniboxOpen(c, input, disposition)),
   [Channels.omniboxCopy]: on([text(MAX_COPY_LENGTH)], (_c, value) => omniboxCopy(value)),
   [Channels.overlayClose]: on([opt(bool)], (c, restoreFocus) => c.overlay.close(restoreFocus)),
+  // App menu, sidebar menu and page gestures (ADR-033).
+  [Channels.appMenuShow]: on([bounds], (c, anchor) => showAppMenu(c, anchor), { from: "chrome" }),
+  [Channels.sidebarContextMenu]: on([], (c) => showSidebarMenu(c), { from: "chrome" }),
+  [Channels.pageSwipeWheel]: on([wheelSample], (c, sample) => c.gestures.feedOverlay(sample)),
   // Link peek (ADR-027): the overlay names an action only; main knows the page and its URL.
   [Channels.peekAction]: on([isPeekAction], (c, action) => c.peek.act(action)),
 });

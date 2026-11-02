@@ -37,6 +37,7 @@ import { hardenWebContents } from "./security";
 import type { SleepCandidate } from "./sleep";
 import type { SessionTab, SessionTabList } from "./storage/session";
 import { closeSuccessor, tabSlot } from "@shared/tab-order";
+import { parsePageWheel, type PageWheelSample } from "./page-swipe-script";
 import { onSiteZoomChange, rememberSiteZoom, siteZoomFactor } from "./zoom";
 import { nextZoomFactor, sameFactor } from "./zoom/levels";
 
@@ -115,6 +116,12 @@ export interface TabManagerHooks {
   hasPasswords?(url: string): boolean;
   /** A Shift+click on a link of the tab's page: preview it in the link peek (ADR-027). */
   peekLink?(tabId: TabId, url: string): void;
+  /** A new document is ready (dom-ready): the page swipe's wheel watcher goes in (ADR-033). */
+  gesturePage?(contents: WebContents): void;
+  /** The page's wheel watcher reported a horizontal swipe event (ADR-033). */
+  pageWheel?(tabId: TabId, sample: PageWheelSample): void;
+  /** Ctrl+wheel or a pinch asks to zoom the page (paced by the window, ADR-033). */
+  pageZoom?(tabId: TabId, direction: 1 | -1): void;
 }
 
 /** User preferences TabManager follows (see `configure`). */
@@ -137,6 +144,8 @@ const DEFAULT_TAB_OPTIONS: TabOptions = {
 };
 
 /** Whether a tab URL is a web page (vs the start page or an internal page drawn by the chrome UI). */
+/** Closed tabs remembered per tab list for "Rouvrir l'onglet fermé". */
+const MAX_CLOSED_TABS = 25;
 const showsWebPage = (url: string) => url !== "" && !isInternalUrl(url);
 const isDiscarded = (tab: Tab) => !tab.view && showsWebPage(tab.state.url);
 const withoutHash = (url: string) => url.split("#", 1)[0];
@@ -171,6 +180,8 @@ export class TabManager {
   private bounds: Bounds = { x: 0, y: 0, width: 0, height: 0 };
   private attached = new Set<WebContentsView>();
   private split: SplitState | null = null;
+  /** Recently closed tabs, last one at the end. */
+  private readonly closed: { url: string; index: number }[] = [];
   /** Sidebar folders of this space (ADR-022); tabs point to them with `state.folderId`. */
   private folders: TabFolder[] = [];
   private visible: boolean;
@@ -341,11 +352,29 @@ export class TabManager {
   }
 
   close(id: TabId): void {
+    const index = this.tabs.findIndex((tab) => tab.id === id);
     const tab = this.remove(id);
     if (!tab) return;
+    // "Rouvrir l'onglet fermé" (ADR-033): kept in memory only, with the window (private ones too).
+    if (tab.state.url) {
+      this.closed.push({ url: tab.state.url, index });
+      if (this.closed.length > MAX_CLOSED_TABS) this.closed.shift();
+    }
     tab.unwire?.();
     tab.unwire = undefined;
     liveContents(tab)?.close();
+  }
+
+  /** Whether a closed tab can be reopened. */
+  get canReopenClosed(): boolean {
+    return this.closed.length > 0;
+  }
+
+  /** Reopens the last closed tab where it was (its URL: the page loads again). */
+  reopenClosed(): TabId | null {
+    const last = this.closed.pop();
+    if (!last) return null;
+    return this.create(last.url, { index: Math.min(Math.max(0, last.index), this.tabs.length) });
   }
 
   /**
@@ -1202,40 +1231,12 @@ export class TabManager {
     on("focus", () => {
       if (this.splitVisible && tab.id !== this.activeId && this.split?.tabIds.includes(tab.id)) this.activate(tab.id);
     });
-    // Precision touchpads on Windows report horizontal wheel deltas rather than Electron's
-    // macOS-only native `swipe` event. Require a clearly horizontal, precise gesture.
-    let horizontalGesture = 0;
-    let gestureReset: ReturnType<typeof setTimeout> | undefined;
-    const resetHorizontalGesture = () => {
-      horizontalGesture = 0;
-      if (gestureReset !== undefined) {
-        clearTimeout(gestureReset);
-        gestureReset = undefined;
-      }
-    };
-    on("input-event", (_event: Electron.Event, input: Electron.InputEvent) => {
-      if (input.type === "gestureScrollEnd") {
-        resetHorizontalGesture();
-        return;
-      }
-      if (input.type !== "mouseWheel") return;
-      const wheel = input as Electron.InputEvent & {
-        deltaX?: number;
-        deltaY?: number;
-        hasPreciseScrollingDeltas?: boolean;
-      };
-      const deltaX = wheel.deltaX ?? 0;
-      const deltaY = wheel.deltaY ?? 0;
-      if (!wheel.hasPreciseScrollingDeltas || Math.abs(deltaX) < Math.abs(deltaY) * 1.5) {
-        resetHorizontalGesture();
-        return;
-      }
-      horizontalGesture += deltaX;
-      gestureReset = setTimeout(resetHorizontalGesture, 250);
-      if (Math.abs(horizontalGesture) < 120) return;
-      if (horizontalGesture < 0) this.back(tab.id);
-      else this.forward(tab.id);
-      resetHorizontalGesture();
+    // Two-finger swipe back/forward (ADR-033): the watcher in the page's isolated world reports
+    // swipe candidates as tagged debug messages of the main frame (`input-event` has no deltas).
+    on("console-message", (details: Electron.Event<Electron.WebContentsConsoleMessageEventParams>) => {
+      if (details.frame !== contents.mainFrame) return;
+      const sample = parsePageWheel(details.message);
+      if (sample) this.hooks.pageWheel?.(tab.id, sample);
     });
     on("did-start-navigation", (details) => {
       if (!details.isMainFrame || details.isSameDocument) return;
@@ -1281,10 +1282,15 @@ export class TabManager {
     });
     on("dom-ready", () => {
       this.hooks.boostPage?.(contents);
+      this.hooks.gesturePage?.(contents);
       this.hooks.pageReady?.(tab.id, contents);
     });
-    // Ctrl+wheel and pinch: same steps as the zoom commands, remembered per site.
-    on("zoom-changed", (_event, direction) => this.zoom(tab.id, direction === "in" ? 1 : -1));
+    // Ctrl+wheel and pinch: same steps as the zoom commands, remembered per site, paced by the window.
+    on("zoom-changed", (_event, direction) => {
+      const step = direction === "in" ? 1 : -1;
+      if (this.hooks.pageZoom) this.hooks.pageZoom(tab.id, step);
+      else this.zoom(tab.id, step);
+    });
     on("context-menu", (_event, params) => {
       // A parked page (below the start page or an internal page) is not on screen.
       if (showsWebPage(tab.state.url) && !tab.state.interstitial && !tab.state.loadError) this.hooks.contextMenu?.(tab.id, params);

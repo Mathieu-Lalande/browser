@@ -25,6 +25,8 @@ import { SpaceManager, spaces } from "./spaces";
 import type { SessionWindow } from "./storage/session";
 import type { TabManager, TabManagerHooks } from "./tabs";
 import { uiSession } from "./ui-session";
+import { PageGestures } from "./page-swipe";
+import { watchPageWheel } from "./page-swipe-script";
 
 /** Browser windows, keyed by their chrome UI's webContents id. */
 const controllers = new Map<number, BrowserController>();
@@ -127,6 +129,8 @@ export class BrowserController {
   readonly overlay: Overlay;
   /** The link previewed in a floating card above the page, if any (ADR-027). */
   readonly peek: LinkPeek;
+  /** Pinch zoom pacing and the two-finger swipe back/forward on pages (ADR-033). */
+  readonly gestures: PageGestures = new PageGestures(this);
   /**
    * Private window: never written to the profile (history, session, permissions…). Anything that
    * persists per window checks this; per-session hooks (downloads) use `isPrivateSession` (./private).
@@ -197,6 +201,9 @@ export class BrowserController {
           pageReady: (tabId, contents) => watchPasswordForms(this, tabId, contents),
           boostPage: (contents) => boostPage(contents, this.isPrivate),
           peekLink: (tabId, url) => this.peek.open(tabId, url),
+          gesturePage: (contents) => watchPageWheel(contents),
+          pageWheel: (tabId, sample) => this.gestures.feedPage(tabId, sample),
+          pageZoom: (tabId, direction) => this.gestures.zoom(tabId, direction),
         },
         this.isPrivate,
       ),

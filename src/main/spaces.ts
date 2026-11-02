@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { session, type BaseWindow, type Session } from "electron";
-import { DEFAULT_SPACE, addSpace, cycleSpace, neighborSpace, removeSpace, spacePartition, updateSpace } from "@shared/spaces";
+import { DEFAULT_SPACE, addSpace, cycleSpace, moveSpace, neighborSpace, removeSpace, spacePartition, updateSpace } from "@shared/spaces";
 import type { Bounds, BrowserState, SpaceId, SpaceInfo, SpaceInput, SpacePeek, TabId, TabState } from "@shared/types";
 import { hardenSession } from "./security";
 import type { SessionWindow } from "./storage/session";
@@ -51,6 +51,14 @@ class SpaceRegistry {
     if (!before) return;
     this.spaces = updateSpace(this.spaces, id, input);
     this.notify(before.isolated !== this.get(id)?.isolated ? { sessionChanged: id } : {});
+  }
+
+  /** Moves a space `delta` positions in the list (space chip menu, ADR-033). */
+  move(id: SpaceId, delta: number): void {
+    const next = moveSpace(this.spaces, id, delta);
+    if (next.every((space, index) => space.id === this.spaces[index]?.id)) return;
+    this.spaces = next;
+    this.notify({});
   }
 
   /** Deletes a space (never the last one): its tabs are closed in every window. */

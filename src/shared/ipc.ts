@@ -38,6 +38,7 @@ import type {
   SpaceInput,
   TabId,
   UiCommand,
+  PageSwipeIndicator,
 } from "./types";
 
 /** IPC channel names, shared by main and preload so they cannot drift. */
@@ -90,6 +91,11 @@ export const Channels = {
   overlayShow: "overlay:show",
   overlayBackdrop: "overlay:backdrop",
   overlayClose: "overlay:close",
+  appMenuShow: "app-menu:show",
+  sidebarContextMenu: "sidebar:context-menu",
+  spaceContextMenu: "spaces:context-menu",
+  pageSwipeState: "page-swipe:state",
+  pageSwipeWheel: "page-swipe:wheel",
   settingsGet: "settings:get",
   settingsUpdate: "settings:update",
   settingsReset: "settings:reset",
@@ -344,6 +350,8 @@ export interface BrowserApi {
     /** Deletes the space and closes its tabs, in every window. The last space cannot be deleted. */
     remove(id: SpaceId): void;
     switchTo(id: SpaceId): void;
+    /** Native menu of a space chip: rename, icon and color, move, delete, new space (ADR-033). */
+    contextMenu(id: SpaceId): void;
   };
   split: {
     /** Shows `tabId` side by side with the active tab (or adds it to the visible split). */
@@ -406,6 +414,18 @@ export interface BrowserApi {
      * otherwise focus goes to the active page, or the chrome UI on the start page.
      */
     close(restoreFocus?: boolean): void;
+    /** Overlay page only: the page swipe indicator moved (ADR-033). */
+    onPageSwipe(listener: (indicator: PageSwipeIndicator) => void): () => void;
+    /** Overlay page only: wheel events received while the swipe indicator covers the page. */
+    swipeWheel(sample: { deltaX: number; deltaY: number; deltaMode: number; shiftKey: boolean; ctrlKey: boolean }): void;
+  };
+  /** The "…" app menu (ADR-033), in the overlay layer, hanging from `anchor` (its button). Chrome UI only. */
+  appMenu: {
+    show(anchor: Bounds): void;
+  };
+  /** Native menu of the sidebar's empty space (ADR-033). Chrome UI only. */
+  sidebar: {
+    contextMenu(): void;
   };
   settings: {
     get(): Promise<Settings>;

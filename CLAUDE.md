@@ -77,3 +77,6 @@
 - Barre universelle (ADR-032) : moteur pur `src/shared/omnibox/` (fournisseurs `Provider`, score `scorer.ts`, filtres `@o @f @h @c @r`,
   réponses instantanées sans `eval`), overlay `src/renderer/src/overlay/omnibox/`, canaux `omnibox:*` ; liens profonds
   `browser://settings#section/ligne` (ancres `data-setting`, index `settings-index.ts`) ; mobile `buildSheet` sur le même moteur.
+- Menus et gestes (ADR-033) : modèles purs `src/shared/menus.ts` (menu « … » overlay `app-menu` via `MenuList.svelte`,
+  menus natifs barre latérale/espaces `src/main/context-menus.ts`), page `page-menu-model.ts` ; gestes de page
+  `src/shared/page-gestures.ts` + guetteur en monde isolé `src/main/page-swipe-script.ts` ; collection de synchro `sent`.

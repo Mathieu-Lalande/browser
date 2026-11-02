@@ -2,6 +2,7 @@ import { sanitizeSettings, type Settings, type SettingsPatch } from "../settings
 import { isSpaceId, sanitizeSpace } from "../spaces";
 import type { Bookmark, HistoryEntry, SpaceInfo } from "../types";
 import { isNavigableUrl } from "../url";
+import { isDeviceId } from "./hlc";
 
 /**
  * What is synced, as plain data shared by the desktop and mobile adapters (ADR-019). Each
@@ -9,7 +10,7 @@ import { isNavigableUrl } from "../url";
  * value decrypted from another device.
  */
 
-export const COLLECTIONS = ["settings", "spaces", "bookmarks", "history", "clients", "favorites", "boosts"] as const;
+export const COLLECTIONS = ["settings", "spaces", "bookmarks", "history", "clients", "favorites", "boosts", "sent"] as const;
 export type CollectionName = (typeof COLLECTIONS)[number];
 
 const MAX_TEXT = 512;
@@ -231,3 +232,35 @@ export interface RemoteDevice {
   updatedAt: number;
   tabs: SyncedTab[];
 }
+
+// --- Sent tabs ("Envoyer à un appareil", ADR-033) --------------------------------------------------
+
+/** A sent tab waits this long for its device, then is deleted everywhere. */
+export const SENT_TAB_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** A page sent to another device of the account (collection `sent`, end-to-end encrypted like the rest). */
+export interface SentTab {
+  /** Recipient device id. */
+  to: string;
+  from: string;
+  fromName: string;
+  url: string;
+  title: string;
+  /** Epoch ms. */
+  sentAt: number;
+}
+
+/** A sent tab this device received. */
+export interface ReceivedTab extends SentTab {
+  id: string;
+}
+
+export function sanitizeSentTab(value: unknown): SentTab | null {
+  if (!isRecord(value) || !isDeviceId(value.to) || !isDeviceId(value.from) || !isWebUrl(value.url)) return null;
+  const sentAt = time(value.sentAt);
+  if (!sentAt) return null;
+  return { to: value.to, from: value.from, fromName: text(value.fromName, 64) || "Appareil", url: value.url, title: text(value.title), sentAt };
+}
+
+/** Whether a sent tab is still waiting (not past its expiry, not from the future beyond clock skew). */
+export const isSentTabLive = (tab: SentTab, now: number) => now - tab.sentAt < SENT_TAB_TTL_MS && tab.sentAt - now < SENT_TAB_TTL_MS;

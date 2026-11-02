@@ -46,6 +46,8 @@ export interface LayoutSettings {
   gutter: number;
   /** Distraction-free: sidebar hidden until the window edge is hovered, page edge to edge. */
   zenMode: boolean;
+  /** The sidebar is a narrow rail of tab icons that unfolds while hovered (ADR-033). */
+  compactMode: boolean;
   /** The empty favorites grid's drop-zone hint was dismissed (ADR-022). */
   favoritesHintDismissed: boolean;
 }
@@ -182,7 +184,7 @@ export const DEFAULT_SETTINGS: Settings = {
     pointerCursor: true,
     pageZoom: 100,
   },
-  layout: { sidebarPosition: "left", sidebarWidth: 264, gutter: 8, zenMode: false, favoritesHintDismissed: false },
+  layout: { sidebarPosition: "left", sidebarWidth: 264, gutter: 8, zenMode: false, compactMode: false, favoritesHintDismissed: false },
   search: { engine: DEFAULT_SEARCH_ENGINE.id },
   startPage: { showClock: true, showTopSites: true, greetingName: "", background: "theme", backgroundImage: "" },
   behavior: { restoreSession: true, newTabPosition: "end", closeTabActivates: "next", sleepTabsAfter: "30m", archiveTabsAfter: "7d" },
@@ -277,6 +279,7 @@ const schema: Schema = {
     sidebarWidth: integer(LIMITS.sidebarWidth),
     gutter: integer(LIMITS.gutter),
     zenMode: bool,
+    compactMode: bool,
     favoritesHintDismissed: bool,
   },
   search: { engine: oneOf(...SEARCH_ENGINES.map((engine) => engine.id)) },

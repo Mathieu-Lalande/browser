@@ -66,7 +66,22 @@ export type CommandId =
   | "screenshot-visible"
   | "screenshot-full"
   | "screenshot-element"
-  | "record-video";
+  | "record-video"
+  | "print"
+  | "save-page"
+  | "view-source"
+  | "reopen-closed-tab"
+  | "select-all-tabs"
+  | "toggle-compact-mode"
+  | "toggle-sidebar-position"
+  | "toggle-fullscreen"
+  | "edit-space"
+  | "app-menu"
+  | "open-sync"
+  | "keyboard-shortcuts"
+  | "about"
+  | "report-issue"
+  | "quit";
 
 /** Icon names used by commands; the UI's Icon component must know each of them. */
 export type CommandIcon =
@@ -114,7 +129,24 @@ export type CommandIcon =
   | "camera"
   | "capture-full"
   | "capture-element"
-  | "video";
+  | "video"
+  | "printer"
+  | "save"
+  | "file-code"
+  | "undo"
+  | "list-checks"
+  | "panel-left-close"
+  | "panel-right"
+  | "maximize"
+  | "palette"
+  | "keyboard"
+  | "help"
+  | "bug"
+  | "log-out"
+  | "send"
+  | "languages"
+  | "history"
+  | "pencil";
 
 /** What a command's label and availability may depend on. */
 export interface CommandContext {
@@ -428,6 +460,67 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
     icon: "video",
     needsPage: true,
   },
+  // App menu, sidebar and page menus (ADR-033).
+  print: { label: "Imprimer…", keywords: ["print", "imprimante", "pdf"], accelerator: "CmdOrCtrl+P", icon: "printer", needsPage: true },
+  "save-page": {
+    label: "Enregistrer la page sous…",
+    keywords: ["save page", "enregistrer", "html", "hors ligne", "sauvegarder"],
+    icon: "save",
+    needsPage: true,
+  },
+  "view-source": {
+    label: "Afficher le code source",
+    keywords: ["view source", "source", "html", "code"],
+    accelerator: "CmdOrCtrl+U",
+    icon: "file-code",
+    needsPage: true,
+  },
+  "reopen-closed-tab": {
+    label: "Rouvrir l'onglet fermé",
+    keywords: ["reopen", "restaurer", "annuler la fermeture", "undo close"],
+    accelerator: "CmdOrCtrl+Shift+T",
+    icon: "undo",
+  },
+  "select-all-tabs": {
+    label: "Sélectionner tous les onglets",
+    keywords: ["select all tabs", "sélection", "plusieurs onglets", "multiple"],
+    icon: "list-checks",
+  },
+  "toggle-compact-mode": {
+    label: "Mode compact",
+    keywords: ["compact", "icônes", "barre latérale étroite", "favicons"],
+    icon: "panel-left-close",
+  },
+  "toggle-sidebar-position": {
+    label: "Changer le côté de la barre latérale",
+    keywords: ["sidebar", "droite", "gauche", "position", "côté"],
+    icon: "panel-right",
+  },
+  "toggle-fullscreen": { label: "Plein écran", keywords: ["fullscreen", "plein écran", "kiosque"], icon: "maximize" },
+  "edit-space": {
+    label: "Modifier le thème de l'espace",
+    keywords: ["space", "espace", "couleur", "icône", "renommer", "thème"],
+    icon: "palette",
+  },
+  "app-menu": { label: "Menu de l'application", keywords: ["menu", "application", "hamburger"], icon: "more", palette: false, opensOverlay: true },
+  "open-sync": {
+    label: "Synchronisation",
+    menuLabel: "Réglages de synchronisation…",
+    keywords: ["sync", "se connecter", "compte", "appareils", "jumeler"],
+    icon: "cloud",
+  },
+  "keyboard-shortcuts": {
+    label: "Raccourcis clavier",
+    keywords: ["shortcuts", "raccourcis", "touches", "clavier", "keyboard"],
+    icon: "keyboard",
+  },
+  about: { label: "À propos de Browser", keywords: ["about", "version", "à propos"], icon: "info" },
+  "report-issue": {
+    label: "Signaler un problème",
+    keywords: ["bug", "issue", "problème", "github", "signaler", "feedback"],
+    icon: "bug",
+  },
+  quit: { label: "Quitter", keywords: ["quit", "exit", "fermer l'application"], icon: "log-out" },
 };
 
 /** Every command, in palette order. */
@@ -453,6 +546,8 @@ const PLATFORM_ACCELERATORS: Partial<Record<CommandId, { mac: string; other: str
   "find-previous": { mac: "Cmd+Shift+G", other: "Shift+F3" },
   // Chrome's shortcuts for the downloads page.
   "open-downloads": { mac: "Alt+Cmd+L", other: "Ctrl+Shift+J" },
+  "toggle-fullscreen": { mac: "Ctrl+Cmd+F", other: "F11" },
+  quit: { mac: "Cmd+Q", other: "Ctrl+Shift+Q" },
 };
 
 /** The command's accelerator on `platform` (`process.platform` values). */
@@ -503,15 +598,25 @@ export const COMMAND_GROUPS: readonly { label: string; ids: readonly CommandId[]
       "sleep-other-tabs",
       "new-folder",
       "toggle-split",
+      "reopen-closed-tab",
+      "select-all-tabs",
+      "quit",
     ],
   },
-  { label: "Navigation", ids: ["back", "forward", "reload", "focus-address", "copy-url", "find", "find-next", "find-previous"] },
+  {
+    label: "Navigation",
+    ids: ["back", "forward", "reload", "focus-address", "copy-url", "find", "find-next", "find-previous", "print", "save-page", "view-source"],
+  },
   {
     label: "Affichage",
     ids: [
       "command-palette",
       "toggle-sidebar",
+      "app-menu",
       "toggle-zen",
+      "toggle-compact-mode",
+      "toggle-sidebar-position",
+      "toggle-fullscreen",
       "toggle-reader",
       "toggle-mobile-site",
       "zoom-in",
@@ -521,7 +626,7 @@ export const COMMAND_GROUPS: readonly { label: string; ids: readonly CommandId[]
       "devtools",
     ],
   },
-  { label: "Espaces", ids: ["new-space", "next-space", "previous-space"] },
+  { label: "Espaces", ids: ["new-space", "next-space", "previous-space", "edit-space"] },
   {
     label: "Bibliothèque et outils",
     ids: [
@@ -542,9 +647,13 @@ export const COMMAND_GROUPS: readonly { label: string; ids: readonly CommandId[]
       "clear-site-data",
       "clear-history",
       "sync-now",
+      "open-sync",
       "check-updates",
       "install-update",
       "open-settings",
+      "keyboard-shortcuts",
+      "about",
+      "report-issue",
     ],
   },
 ];

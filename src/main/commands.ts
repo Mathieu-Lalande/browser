@@ -1,6 +1,6 @@
-import { clipboard, type MenuItemConstructorOptions } from "electron";
+import { app, clipboard, type MenuItemConstructorOptions } from "electron";
 import { effectiveAccelerator, effectiveAliases, getCommand, type CommandId } from "@shared/commands";
-import { settings } from "./settings";
+import { settings, updateSettings } from "./settings";
 import { toggleFavorite } from "./organize";
 import { profile } from "./profile";
 import { startZap } from "./boosts";
@@ -14,6 +14,7 @@ import { checkForUpdates, installUpdate } from "./updates";
 import { capture, showPageOptions } from "./capture";
 import { toggleRecording } from "./capture/record";
 import { BrowserController } from "./window";
+import { ISSUES_URL, printPage, savePage, showAppMenu, viewSource } from "./page-actions";
 
 type Runner = (controller: BrowserController) => void;
 
@@ -66,7 +67,8 @@ const RUNNERS: Record<CommandId, Runner> = {
     profile().history.clear();
     profile().saveHistory();
   },
-  "command-palette": (c) => c.overlay.toggle({ kind: "palette" }),
+  // Replaces another floating UI (the app menu's "Tout l'historique…"), closes itself.
+  "command-palette": (c) => (c.overlay.shown === "palette" ? c.overlay.close(true) : c.overlay.open({ kind: "palette" })),
   "open-settings": (c) => c.openSettings(),
   "toggle-zen": () => BrowserController.toggleZenMode(),
   find: onActiveTab(openFind),
@@ -114,6 +116,24 @@ const RUNNERS: Record<CommandId, Runner> = {
   "screenshot-full": (c) => void capture(c, "full"),
   "screenshot-element": (c) => void capture(c, "element"),
   "record-video": (c) => toggleRecording(c),
+  print: (c) => printPage(c),
+  "save-page": (c) => void savePage(c),
+  "view-source": (c) => viewSource(c),
+  "reopen-closed-tab": (c) => void c.tabs.reopenClosed(),
+  "select-all-tabs": (c) => c.sendUiCommand("select-all-tabs"),
+  "toggle-compact-mode": () => void updateSettings({ layout: { compactMode: !settings().layout.compactMode } }),
+  "toggle-sidebar-position": () => void updateSettings({ layout: { sidebarPosition: settings().layout.sidebarPosition === "left" ? "right" : "left" } }),
+  "toggle-fullscreen": (c) => c.window.setFullScreen(!c.window.isFullScreen()),
+  "edit-space": (c) => {
+    if (!c.isPrivate) c.sendUiCommand(`edit-space:${c.spaces.activeSpaceId}`);
+  },
+  "app-menu": (c) => showAppMenu(c),
+  "open-sync": (c) => c.openInternal("settings", "sync"),
+  "keyboard-shortcuts": (c) => c.openInternal("settings", "shortcuts"),
+  // The "Mises à jour" section shows the version.
+  about: (c) => c.openInternal("settings", "updates"),
+  "report-issue": (c) => void c.tabs.create(ISSUES_URL),
+  quit: () => app.quit(),
 };
 
 /** Commands that make sense without any window (macOS keeps the app running windowless). */
@@ -121,6 +141,7 @@ const WINDOWLESS: Partial<Record<CommandId, () => void>> = {
   "new-window": () => new BrowserController(),
   "new-private-window": () => openPrivateWindow(),
   "install-update": () => installUpdate(),
+  quit: () => app.quit(),
 };
 
 function openPrivateWindow(): BrowserController {

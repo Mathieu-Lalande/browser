@@ -1,6 +1,7 @@
 <script lang="ts">
   import { internalPageOf } from "@shared/internal";
   import { accentVariables } from "@shared/theme";
+  import { tick } from "svelte";
   import { cubicOut } from "svelte/easing";
   import { api, browser } from "./lib/browser.svelte";
   import ReaderView from "./components/reader/ReaderView.svelte";
@@ -17,6 +18,7 @@
   import PermissionBar from "./components/PermissionBar.svelte";
   import PopupBar from "./components/PopupBar.svelte";
   import Sidebar from "./components/Sidebar.svelte";
+  import CompactRail from "./components/CompactRail.svelte";
   import SidebarResizer from "./components/SidebarResizer.svelte";
   import SplitView from "./components/split/SplitView.svelte";
   import StartPage from "./components/StartPage.svelte";
@@ -34,6 +36,11 @@
 
   const layout = $derived(settings.current.layout);
   const zen = $derived(layout.zenMode);
+  /** Compact mode (ADR-033): a rail of tab icons that unfolds into the sidebar while hovered. */
+  const compact = $derived(layout.compactMode && !zen);
+  let unfolded = $state(false);
+  let unfoldTimer: ReturnType<typeof setTimeout> | undefined;
+  const folded = $derived(compact && !unfolded);
   const right = $derived(layout.sidebarPosition === "right");
   const showSidebar = $derived(zen ? revealed : sidebarVisible);
   const showStartPage = $derived(!browser.activeTab?.url);
@@ -103,10 +110,12 @@
   // Tab recording (ADR-031): main starts and stops the recorder that lives in this page.
   $effect(() => installRecorder());
 
-  // Entering or leaving zen mode starts with the sidebar tucked away.
+  // Entering or leaving zen (or compact) mode starts with the sidebar tucked away.
   $effect(() => {
     void zen;
+    void compact;
     revealed = false;
+    unfolded = false;
   });
 
   function toggleSidebar(): void {
@@ -116,19 +125,31 @@
 
   function showSidebarNow(): void {
     clearTimeout(hideTimer);
+    if (compact) unfolded = true;
     if (zen) revealed = true;
     else sidebarVisible = true;
   }
 
   /** Zen mode: hide the revealed sidebar shortly after the pointer leaves it, unless the user is typing in it. */
   function scheduleHide(delay = ZEN_HIDE_DELAY): void {
-    if (!zen) return;
+    clearTimeout(unfoldTimer);
+    if (!zen && !compact) return;
     clearTimeout(hideTimer);
     hideTimer = setTimeout(() => {
       const active = document.activeElement;
       const typing = active instanceof HTMLInputElement && sidebarFrame?.contains(active);
-      if (!typing && !sidebarFrame?.matches(":hover")) revealed = false;
+      if (typing || sidebarFrame?.matches(":hover")) return;
+      if (zen) revealed = false;
+      else unfolded = false;
     }, delay);
+  }
+
+  /** Compact mode: the rail unfolds once the pointer rests on it a moment (not when merely crossed). */
+  function onFrameEnter(): void {
+    clearTimeout(hideTimer);
+    if (!folded) return;
+    clearTimeout(unfoldTimer);
+    unfoldTimer = setTimeout(() => (unfolded = true), 140);
   }
 
   function revealFromEdge(): void {
@@ -172,7 +193,17 @@
       if (command === "toggle-sidebar") toggleSidebar();
       if (command === "focus-address") {
         showSidebarNow();
-        queueMicrotask(() => sidebar?.focusAddress());
+        void tick().then(() => sidebar?.focusAddress());
+      }
+      // Sidebar menus (ADR-033): selection and space editor, the sidebar shown first.
+      if (command === "select-all-tabs") {
+        showSidebarNow();
+        void tick().then(() => sidebar?.selectAllTabs());
+      }
+      const space = /^(?:edit|rename)-space:(.+)$/.exec(command)?.[1];
+      if (space) {
+        showSidebarNow();
+        void tick().then(() => sidebar?.editSpace(space));
       }
       // The bar may not be rendered yet (its state is on its way): focused as soon as it is.
       if (command === "focus-find") findFocusPending = true;
@@ -209,12 +240,17 @@
       transition:slide
       bind:this={sidebarFrame}
       role="presentation"
-      onmouseenter={() => clearTimeout(hideTimer)}
+      class:compact
+      onmouseenter={onFrameEnter}
       onmouseleave={() => scheduleHide()}
       onfocusout={() => scheduleHide()}
     >
-      <Sidebar bind:this={sidebar} onToggle={toggleSidebar} windowControls={controlsInSidebar} />
-      <SidebarResizer side={right ? "right" : "left"} />
+      {#if folded}
+        <CompactRail />
+      {:else}
+        <Sidebar bind:this={sidebar} onToggle={toggleSidebar} windowControls={controlsInSidebar} />
+        <SidebarResizer side={right ? "right" : "left"} />
+      {/if}
     </div>
   {:else if zen}
     <!-- A thin strip left uncovered by the page view: the chrome UI cannot see the pointer over the page. -->

@@ -42,9 +42,39 @@ describe("page context menu", () => {
 
   it("offers navigation and page tools on a plain right click", () => {
     const menu = buildPageMenu(params(), context());
-    expect(ids(menu)).toEqual(["page-back", "page-forward", "page-reload", "page-save", "page-copy-url", "page-site-info", "inspect"]);
+    expect(ids(menu)).toEqual([
+      "page-back",
+      "page-forward",
+      "page-reload",
+      "page-bookmark",
+      "page-save",
+      "page-select-all",
+      "page-capture",
+      "page-view-source",
+      "page-copy-url",
+      "page-site-info",
+      "inspect",
+    ]);
     expect(item(menu, "page-back")?.enabled).toBe(true);
     expect(item(menu, "page-forward")?.enabled).toBe(false);
+    expect(item(menu, "page-capture")?.submenu?.map((entry) => ("id" in entry ? entry.id : ""))).toEqual([
+      "page-capture-visible",
+      "page-capture-full",
+      "page-capture-element",
+    ]);
+  });
+
+  it("shows the commands' shortcuts and the bookmark state (ADR-033)", () => {
+    const menu = buildPageMenu(params(), context({ isBookmarked: true, shortcut: (id) => (id === "reload" ? "CmdOrCtrl+R" : undefined) }));
+    expect(item(menu, "page-reload")?.accelerator).toBe("CmdOrCtrl+R");
+    expect(item(menu, "page-bookmark")?.label).toBe("Retirer des favoris");
+  });
+
+  it("sends the page to the sync account's other devices, never without sync", () => {
+    const menu = buildPageMenu(params(), context({ devices: [{ id: "d1", name: "iPhone" }] }));
+    expect(item(menu, "page-send")?.submenu?.map((entry) => ("id" in entry ? entry.id : ""))).toEqual(["page-send:d1"]);
+    expect(item(buildPageMenu(params(), context({ devices: [] })), "page-send")?.enabled).toBe(false);
+    expect(ids(buildPageMenu(params(), context({ devices: null })))).not.toContain("page-send");
   });
 
   it("opens web links in every way, spaces included", () => {

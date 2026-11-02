@@ -1,7 +1,7 @@
 import { displayUrl } from "@shared/url";
 import { memo } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { useBrowserState } from "../state/BrowserProvider";
+import { useBrowserActions, useBrowserState } from "../state/BrowserProvider";
 import { useTheme } from "../state/theme";
 import { Icon } from "./Icon";
 import { SiteIcon, Tap } from "./ui";
@@ -10,8 +10,10 @@ import { SiteIcon, Tap } from "./ui";
 export const RemoteTabs = memo(function RemoteTabs({ onOpen }: { onOpen: (url: string) => void }) {
   const { colors } = useTheme();
   const { sync } = useBrowserState();
+  const actions = useBrowserActions();
   const devices = (sync?.devices ?? []).filter((device) => device.tabs.length > 0);
-  if (!sync?.configured || devices.length === 0) return null;
+  const received = sync?.received ?? [];
+  if (!sync?.configured || (devices.length === 0 && received.length === 0)) return null;
   return (
     <View style={styles.section} testID="remote-tabs">
       <View style={styles.header}>
@@ -20,6 +22,40 @@ export const RemoteTabs = memo(function RemoteTabs({ onOpen }: { onOpen: (url: s
           Autres appareils
         </Text>
       </View>
+      {received.length > 0 && (
+        <View style={[styles.card, { backgroundColor: colors.bgElevated, borderColor: colors.hairline }]} testID="received-tabs">
+          <View style={styles.device}>
+            <Icon name="send" size={16} color={colors.accentText} />
+            <Text style={[styles.deviceName, { color: colors.text }]} numberOfLines={1}>
+              Reçus
+            </Text>
+            <Text style={[styles.count, { color: colors.textMuted }]}>{received.length}</Text>
+          </View>
+          {received.map((tab) => (
+            <Tap
+              key={tab.id}
+              accessibilityRole="button"
+              accessibilityLabel={`Ouvrir ${tab.title || displayUrl(tab.url)}, envoyé par ${tab.fromName}`}
+              onPress={() => {
+                onOpen(tab.url);
+                actions.sync.dismissReceived(tab.id);
+              }}
+              pressScale={0.98}
+              style={[styles.row, { borderTopColor: colors.hairline }]}
+            >
+              <SiteIcon url={tab.url} title={tab.title} size={22} />
+              <View style={styles.text}>
+                <Text style={[styles.tabTitle, { color: colors.text }]} numberOfLines={1}>
+                  {tab.title || displayUrl(tab.url)}
+                </Text>
+                <Text style={[styles.tabUrl, { color: colors.textMuted }]} numberOfLines={1}>
+                  {tab.fromName} · {displayUrl(tab.url)}
+                </Text>
+              </View>
+            </Tap>
+          ))}
+        </View>
+      )}
       {devices.map((device) => (
         <View key={device.id} style={[styles.card, { backgroundColor: colors.bgElevated, borderColor: colors.hairline }]}>
           <View style={styles.device}>

@@ -30,7 +30,8 @@ type EventChannel = (typeof Channels)[
   | "extensionsChanged"
   | "passwordsChanged"
   | "boostsChanged"
-  | "peekState"];
+  | "peekState"
+  | "pageSwipeState"];
 
 /** Every channel the UI sends or invokes: the compiler checks each one has exactly one handler. */
 type RequestChannel = Exclude<ChannelName, EventChannel>;

@@ -73,6 +73,32 @@ describe("sync controller", () => {
     expect(a.status().devices.map((device) => device.name)).toEqual(["iPhone"]);
   });
 
+  it("sends a tab to another device, which receives it once (end-to-end), then forgets it", async () => {
+    const server = new MemorySyncServer();
+    const a = app(server, "PC");
+    const b = app(server, "iPhone");
+    await a.controller.createAccount("http://127.0.0.1:1");
+    await b.controller.pair(a.controller.pairingCode()!);
+    await a.controller.syncNow();
+    const phone = a.status().devices[0];
+    expect(await a.controller.sendTab(phone.id, "https://sent.example/", "Envoyé")).toBe(true);
+    // Never a non-web page, never to itself.
+    expect(await a.controller.sendTab(phone.id, "file:///etc/passwd", "x")).toBe(false);
+    expect(await a.controller.sendTab(a.status().deviceId!, "https://self.example/", "x")).toBe(false);
+    expect(server.dump()).not.toContain("sent.example");
+
+    await b.controller.syncNow();
+    expect(b.status().received).toMatchObject([{ url: "https://sent.example/", title: "Envoyé", fromName: "PC" }]);
+    expect(a.status().received).toEqual([]);
+
+    b.controller.dismissReceivedTab(b.status().received[0].id);
+    expect(b.status().received).toEqual([]);
+    await b.controller.syncNow();
+    await a.controller.syncNow();
+    await b.controller.syncNow();
+    expect(b.status().received).toEqual([]);
+  });
+
   it("rejects a bad pairing code or an unreachable server without changing anything", async () => {
     const server = new MemorySyncServer();
     const a = app(server, "PC");
