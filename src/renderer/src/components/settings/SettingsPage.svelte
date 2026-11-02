@@ -37,6 +37,11 @@
   import ThemeShare from "./ThemeShare.svelte";
   import UpdatesSection from "./UpdatesSection.svelte";
   import Toggle from "../ui/Toggle.svelte";
+  import Button from "../ui/Button.svelte";
+  import EmptyState from "../ui/EmptyState.svelte";
+  import SearchField from "../ui/SearchField.svelte";
+  import { queryFilter, setRowFilter } from "../ui/filter";
+  import { tick } from "svelte";
 
   const NAV: { id: string; label: string; icon: IconName }[] = [
     { id: "appearance", label: "Apparence", icon: "palette" },
@@ -81,6 +86,22 @@
   const secondarySwatches = $derived(
     [...new Set(ACCENT_PRESETS.map((preset) => preset.accent2))].map((color) => ({ name: color, color })),
   );
+
+  /** Settings search: rows hide themselves when they do not match (ui/filter.ts). */
+  let query = $state("");
+  setRowFilter(queryFilter(() => query));
+  /** Sections left visible by the search (all of them without one). */
+  let visible = $state<Set<string> | null>(null);
+  $effect(() => {
+    void query;
+    tick().then(() => {
+      if (!query.trim()) return void (visible = null);
+      const shown = [...inner.querySelectorAll<HTMLElement>("[data-section]")].filter((section) => section.offsetHeight > 0);
+      visible = new Set(shown.map((section) => section.dataset.section!));
+      content.scrollTo({ top: 0 });
+      if (shown[0]) current = shown[0].dataset.section!;
+    });
+  });
 
   let content: HTMLElement;
   let inner: HTMLElement;
@@ -153,22 +174,36 @@
 
 <div class="settings">
   <nav class="toc" aria-label="Sections des paramètres">
-    <h1>Paramètres</h1>
     {#each NAV as item (item.id)}
-      <button class:current={current === item.id} aria-current={current === item.id ? "true" : undefined} onclick={() => jump(item.id)}>
+      <button
+        class:current={current === item.id}
+        class:dim={visible !== null && !visible.has(item.id)}
+        aria-current={current === item.id ? "true" : undefined}
+        title={item.label}
+        onclick={() => jump(item.id)}
+      >
         <Icon name={item.icon} size={16} />
-        {item.label}
+        <span class="toc-label">{item.label}</span>
       </button>
     {/each}
     <div class="reset-all">
       <ConfirmButton question="Tous les réglages par défaut ?" confirmLabel="Tout réinitialiser" onconfirm={() => settings.reset()}>
-        <Icon name="reset" size={12} /> Tout réinitialiser
+        <Icon name="reset" size={12} /> <span class="toc-label">Tout réinitialiser</span>
       </ConfirmButton>
     </div>
   </nav>
 
   <div class="content" bind:this={content} onscroll={onScroll}>
     <div class="inner" bind:this={inner}>
+      <header class="top">
+        <h1>Paramètres</h1>
+        <div class="search"><SearchField bind:value={query} label="Rechercher un réglage" /></div>
+      </header>
+      {#if visible?.size === 0}
+        <EmptyState icon="search" title="Aucun réglage trouvé" hint="Essayez un autre mot : « thème », « onglets », « cookies »…">
+          {#snippet action()}<Button onclick={() => (query = "")}>Effacer la recherche</Button>{/snippet}
+        </EmptyState>
+      {/if}
       <Section
         id="appearance"
         icon="palette"
@@ -176,6 +211,7 @@
         description="Couleurs, ambiance et typographie de l'interface."
         onReset={() => settings.reset("appearance")}
       >
+        <Row label="Mode" hint="Clair, sombre, ou selon le réglage du système." keywords="thème clair sombre système dark light" stacked>
         <div class="modes" role="radiogroup" aria-label="Thème">
           {#each MODES as mode (mode.value)}
             <button
@@ -196,6 +232,7 @@
             </button>
           {/each}
         </div>
+        </Row>
 
         <ThemeShare />
         <Row label="Couleur d'accent" hint="Boutons, sélection, focus et reflets de l'arrière-plan.">
@@ -291,7 +328,7 @@
         >
           <select
             id="page-zoom"
-            class="field select"
+            class="ui-field select"
             value={s.appearance.pageZoom}
             onchange={(event) => update({ appearance: { pageZoom: Number(event.currentTarget.value) } })}
           >
@@ -354,6 +391,7 @@
         description="Moteur utilisé par la barre d'adresse et la page d'accueil."
         onReset={() => settings.reset("search")}
       >
+        <Row label="Moteur de recherche" hint="Utilisé quand le texte saisi n'est pas une adresse." keywords="google duckduckgo bing qwant ecosia" stacked>
         <div class="engines" role="radiogroup" aria-label="Moteur de recherche">
           {#each SEARCH_ENGINES as engine (engine.id)}
             <button
@@ -368,6 +406,7 @@
             </button>
           {/each}
         </div>
+        </Row>
       </Section>
 
       <Section
@@ -380,7 +419,7 @@
         <Row label="Prénom" hint="Pour un accueil personnalisé : « Bonjour, Mathieu. »" id="greeting-name">
           <input
             id="greeting-name"
-            class="field"
+            class="ui-field"
             value={s.startPage.greetingName}
             maxlength={LIMITS.greetingName}
             placeholder="Votre prénom"
@@ -412,7 +451,7 @@
             />
             {#if s.startPage.background === "image"}
               <input
-                class="field wide"
+                class="ui-field wide"
                 class:invalid={imageError}
                 type="url"
                 value={imageDraft ?? s.startPage.backgroundImage}
@@ -493,10 +532,12 @@
             onchange={(archiveTabsAfter) => update({ behavior: { archiveTabsAfter } })}
           />
         </Row>
-        <div class="archive-link">
-          <button class="link" onclick={() => api.commands.run("open-archive")}><Icon name="archive" size={12} /> Voir les onglets archivés</button>
-          <button class="link" onclick={() => api.commands.run("open-extensions")}><Icon name="extension" size={12} /> Gérer les extensions</button>
-        </div>
+        <Row label="Onglets archivés" hint="Les onglets fermés par l'archivage, à restaurer ou supprimer.">
+          <Button icon="archive" onclick={() => api.commands.run("open-archive")}>Voir les onglets archivés</Button>
+        </Row>
+        <Row label="Extensions" hint="Installer, activer ou retirer des extensions." keywords="modules addons">
+          <Button icon="extension" onclick={() => api.commands.run("open-extensions")}>Gérer les extensions</Button>
+        </Row>
       </Section>
 
       <Section
@@ -504,6 +545,7 @@
         icon="keyboard"
         title="Raccourcis clavier"
         description="Choisissez la combinaison de chaque commande, ou retirez-la."
+        keywords="touches combinaison clavier accélérateur"
       >
         <ShortcutsSection />
       </Section>
@@ -525,9 +567,9 @@
             onchange={(normalizeAcceptLanguage) => update({ privacy: { normalizeAcceptLanguage } })}
           />
         </Row>
-        <div class="archive-link">
-          <button class="link" onclick={() => api.commands.run("open-passwords")}><Icon name="key" size={12} /> Gérer les mots de passe</button>
-        </div>
+        <Row label="Mots de passe" hint="Identifiants enregistrés, chiffrés sur cet appareil." keywords="identifiants comptes connexion">
+          <Button icon="key" onclick={() => api.commands.run("open-passwords")}>Gérer les mots de passe</Button>
+        </Row>
       </Section>
 
       <Section id="siteData" icon="cookie" title="Données des sites" description="Cookies et stockage laissés par les sites, et cookies tiers.">
@@ -572,26 +614,13 @@
 </div>
 
 <style>
-  .archive-link {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px 16px;
-    justify-content: flex-end;
-    padding: 4px 0 0;
-  }
-  .link {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 8px;
-    border-radius: 6px;
-    color: var(--accent-text);
-    font-size: 12.5px;
-  }
-  .link:hover {
-    background: var(--surface-hover);
-  }
+  /*
+   * Layout: section navigation on the left, one column of sections (--page-max) on the right.
+   * Container query on the page (it lives in the viewport or a split pane, not the window): the
+   * navigation shrinks to an icon rail on a medium page, and hides on a narrow one.
+   */
   .settings {
+    container: settings-page / inline-size;
     display: flex;
     height: 100%;
     animation: rise var(--motion-base) var(--ease);
@@ -601,25 +630,26 @@
     flex: none;
     flex-direction: column;
     gap: 2px;
-    width: 210px;
-    padding: 28px 12px 16px;
+    width: 216px;
+    padding: var(--space-6) var(--space-3) var(--space-4);
+    overflow-y: auto;
     border-right: 1px solid var(--border);
-  }
-  h1 {
-    margin: 0 10px 18px;
-    font-size: 22px;
-    font-weight: 650;
-    letter-spacing: -0.03em;
   }
   .toc button {
     display: flex;
+    flex: none;
     align-items: center;
     gap: 10px;
     height: 34px;
     padding: 0 10px;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     color: var(--text-muted);
     text-align: left;
+    white-space: nowrap;
+    transition:
+      background var(--motion-fast) var(--ease),
+      color var(--motion-fast) var(--ease),
+      opacity var(--motion-fast) var(--ease);
   }
   .toc button:hover {
     background: var(--surface-hover);
@@ -628,14 +658,18 @@
   .toc button.current {
     background: color-mix(in oklab, var(--accent) 14%, transparent);
     color: var(--text);
+    font-weight: 500;
   }
   .toc button.current :global(svg) {
     color: var(--accent-text);
   }
+  .toc button.dim {
+    opacity: 0.4;
+  }
   .reset-all {
     display: flex;
     margin-top: auto;
-    padding-top: 12px;
+    padding-top: var(--space-3);
   }
   .content {
     flex: 1;
@@ -647,25 +681,79 @@
     container: settings / inline-size;
     display: flex;
     flex-direction: column;
-    gap: 36px;
-    max-width: 760px;
+    gap: var(--space-6);
+    max-width: var(--page-max);
     margin: 0 auto;
-    padding: 32px 32px 64px;
+    padding: var(--space-6) var(--space-6) 64px;
     user-select: none;
+  }
+  .top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3) var(--space-4);
+    margin-bottom: calc(var(--space-2) - var(--space-6));
+  }
+  h1 {
+    flex: 1 1 auto;
+    margin: 0;
+    font-size: var(--text-xl);
+    font-weight: 650;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+  }
+  .search {
+    flex: 0 1 280px;
+    min-width: 200px;
+  }
+  @container settings-page (max-width: 760px) {
+    .toc {
+      width: 60px;
+      padding-inline: var(--space-2);
+      align-items: center;
+    }
+    .toc button {
+      justify-content: center;
+      width: 40px;
+      padding: 0;
+    }
+    .toc-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+    .reset-all :global(button) {
+      width: 40px;
+      justify-content: center;
+      padding: 0;
+    }
+  }
+  @container settings-page (max-width: 440px) {
+    .toc {
+      display: none;
+    }
+  }
+  @container settings (max-width: 520px) {
+    .inner {
+      padding-inline: var(--space-4);
+    }
+    .search {
+      flex: 1 1 100%;
+    }
   }
 
   /* Theme mode cards with a live miniature of the browser. */
   .modes {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
-    padding: 18px;
-    border-bottom: 1px solid var(--border);
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: var(--space-3);
   }
   .mode {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: var(--space-2);
     padding: 0;
     color: var(--text-muted);
   }
@@ -674,11 +762,11 @@
     display: block;
     overflow: hidden;
     aspect-ratio: 16 / 10;
-    border-radius: calc(var(--radius) + 2px);
+    border-radius: var(--radius-md);
     box-shadow:
       0 0 0 1px var(--border),
       0 6px 18px -10px rgb(0 0 0 / 0.5);
-    transition: box-shadow 0.15s var(--ease);
+    transition: box-shadow var(--motion-fast) var(--ease);
   }
   .mode:hover .frame {
     box-shadow:
@@ -705,14 +793,14 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
-    font-size: 12.5px;
+    font-size: var(--text-xs);
   }
 
   /* Picture tiles (background style, font). */
   .tiles {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: var(--space-2);
   }
   .tile {
     display: flex;
@@ -720,11 +808,14 @@
     align-items: center;
     gap: 6px;
     width: 76px;
-    padding: 6px 6px 7px;
-    border-radius: var(--radius);
+    padding: 6px 6px 8px;
+    border-radius: var(--radius-md);
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--text-xs);
     box-shadow: inset 0 0 0 1px var(--border);
+    transition:
+      background var(--motion-fast) var(--ease),
+      box-shadow var(--motion-fast) var(--ease);
   }
   .tile:hover {
     background: var(--surface-hover);
@@ -737,7 +828,7 @@
   .sample {
     width: 100%;
     height: 38px;
-    border-radius: calc(var(--radius) - 4px);
+    border-radius: var(--radius-sm);
     box-shadow: inset 0 0 0 1px var(--border);
   }
   .aa {
@@ -746,25 +837,27 @@
     width: 100%;
     height: 38px;
     color: var(--text);
-    font-size: 20px;
+    font-size: var(--text-lg);
   }
 
   /* Search engines. */
   .engines {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    padding: 16px 18px;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--space-2);
   }
   .engine {
     display: grid;
     grid-template-columns: auto 1fr;
     align-items: center;
-    column-gap: 12px;
-    padding: 12px 14px;
-    border-radius: var(--radius);
+    column-gap: var(--space-3);
+    padding: 10px var(--space-3);
+    border-radius: var(--radius-md);
     text-align: left;
     box-shadow: inset 0 0 0 1px var(--border);
+    transition:
+      background var(--motion-fast) var(--ease),
+      box-shadow var(--motion-fast) var(--ease);
   }
   .engine:hover {
     background: var(--surface-hover);
@@ -788,56 +881,25 @@
     font-weight: 500;
   }
   .engine-host {
-    color: var(--text-faint);
-    font-size: 12px;
+    color: var(--text-muted);
+    font-size: var(--text-xs);
   }
 
   .stack {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 8px;
+    gap: var(--space-2);
   }
-  .field {
+  .ui-field {
     width: 220px;
-    height: 32px;
-    padding: 0 10px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    outline: 0;
-    background: var(--surface);
-    user-select: text;
-    transition:
-      border-color 0.15s var(--ease),
-      box-shadow 0.15s var(--ease);
   }
-  .field.wide {
-    width: 300px;
+  .ui-field.wide {
+    width: min(300px, 100%);
   }
-  .field.select {
+  .ui-field.select {
     width: 110px;
     padding-right: 6px;
-    color: inherit;
-    font: inherit;
-  }
-  .field:focus {
-    border-color: color-mix(in oklab, var(--accent) 60%, transparent);
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
-  }
-  .field.invalid {
-    border-color: #e5484d;
-  }
-  .field::placeholder {
-    color: var(--text-faint);
-  }
-
-  @media (max-width: 760px) {
-    .toc {
-      display: none;
-    }
-    .modes {
-      grid-template-columns: 1fr 1fr;
-    }
   }
   @keyframes rise {
     from {

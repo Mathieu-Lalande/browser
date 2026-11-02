@@ -161,9 +161,9 @@ button {
 
 /*
  * Text fields of pages and panels (settings, internal pages, popovers): one look everywhere.
- * Components add `class="field"` and only size them.
+ * Components add `class="ui-field"` and only size them.
  */
-.field {
+.ui-field {
   height: var(--field-height);
   min-width: 0;
   padding: 0 var(--space-3);
@@ -177,18 +177,18 @@ button {
     border-color var(--motion-fast) var(--ease),
     box-shadow var(--motion-fast) var(--ease);
 }
-.field:hover:not(:focus) {
+.ui-field:hover:not(:focus) {
   border-color: color-mix(in oklab, var(--text) 18%, transparent);
 }
-.field:focus {
+.ui-field:focus {
   border-color: color-mix(in oklab, var(--accent) 60%, transparent);
   box-shadow: var(--focus-ring);
 }
-.field::placeholder {
+.ui-field::placeholder {
   color: var(--text-faint);
 }
-.field[aria-invalid="true"],
-.field.invalid {
+.ui-field[aria-invalid="true"],
+.ui-field.invalid {
   border-color: var(--danger);
 }
 

@@ -1,17 +1,26 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
+  import { getRowFilter } from "./filter";
 
-  /** One setting: label and hint on the left, its control on the right (or below with `stacked`). */
+  /**
+   * One setting: label and hint on the left, its control on the right. `stacked`: a wide control
+   * (gallery, list, field with buttons) takes the full width under the label instead.
+   * `keywords`: extra words the settings search finds it by. Hidden when a search does not match.
+   */
   let {
     label,
     hint,
     id,
     stacked = false,
+    keywords = "",
     children,
-  }: { label: string; hint?: string; id?: string; stacked?: boolean; children: Snippet } = $props();
+  }: { label: string; hint?: string; id?: string; stacked?: boolean; keywords?: string; children: Snippet } = $props();
+
+  const filter = getRowFilter();
+  const hidden = $derived(!!filter?.active && !filter.matches(`${label} ${hint ?? ""} ${keywords}`));
 </script>
 
-<div class="row" class:stacked>
+<div class="row" class:stacked data-setting={label} data-hidden={hidden || undefined}>
   <div class="text">
     {#if id}<label class="label" for={id}>{label}</label>{:else}<span class="label">{label}</span>{/if}
     {#if hint}<span class="hint">{hint}</span>{/if}
@@ -25,23 +34,28 @@
   /*
    * Label and control share the row while there is room; the control wraps below (right-aligned)
    * before the label gets narrower than ~160px, and on a narrow settings column (container query
-   * on `.inner`, SettingsPage) everything stacks.
+   * on `.inner`, SettingsPage) everything stacks. A stacked control is a block of the full width:
+   * its content (a grid, a field) stretches instead of shrinking to its narrowest size.
    */
   .row {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 10px 24px;
-    min-height: 58px;
-    padding: 12px 18px;
+    gap: var(--space-2) var(--space-5);
+    min-height: 56px;
+    padding: var(--space-3) var(--space-4);
   }
-  .row + :global(.row) {
+  .row[data-hidden] {
+    display: none;
+  }
+  /* A divider above every row that follows a visible one (rows hidden by a search excepted). */
+  .row:not([data-hidden]) ~ :global([data-setting]) {
     border-top: 1px solid var(--border);
   }
   .row.stacked {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
+    gap: var(--space-3);
   }
   .text {
     display: flex;
@@ -56,7 +70,7 @@
   }
   .hint {
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--text-xs);
     line-height: 1.45;
   }
   .control {
@@ -65,7 +79,7 @@
     flex-wrap: wrap;
     align-items: center;
     justify-content: flex-end;
-    gap: 10px;
+    gap: var(--space-2);
     max-width: 100%;
     margin-left: auto;
   }
@@ -74,7 +88,9 @@
     flex-basis: auto;
   }
   .stacked .control {
-    flex: auto;
+    display: block;
+    flex: none;
+    width: 100%;
     margin-left: 0;
   }
   @container settings (max-width: 520px) {
