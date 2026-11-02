@@ -99,7 +99,7 @@
 <style>
   .find {
     display: flex;
-    gap: 6px;
+    gap: var(--space-2);
   }
   .find input {
     flex: 1;
@@ -108,27 +108,27 @@
   .go {
     display: grid;
     place-items: center;
-    width: 30px;
-    border-radius: 8px;
+    width: var(--icon-button);
+    border-radius: var(--radius-sm);
     background: var(--surface);
     color: var(--text-muted);
   }
   .results {
     display: grid;
     gap: 1px;
-    margin: 6px 0 0;
+    margin: var(--space-2) 0 0;
     padding: 0;
     list-style: none;
   }
   .results button {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-2);
     width: 100%;
-    padding: 5px 6px;
-    border-radius: 8px;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
     color: var(--text);
-    font-size: 13px;
+    font-size: var(--text-sm);
     text-align: left;
   }
   .results button:hover {
@@ -137,14 +137,14 @@
   .results span {
     overflow: hidden;
     color: var(--text-faint);
-    font-size: 12px;
+    font-size: var(--text-xs);
     white-space: nowrap;
     text-overflow: ellipsis;
   }
   .now {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-3);
     color: var(--accent-text);
   }
   .now p {
@@ -152,19 +152,19 @@
   }
   .temp {
     color: var(--text);
-    font-size: 28px;
+    font-size: var(--text-xl);
     font-weight: 600;
     letter-spacing: -0.03em;
   }
   .where {
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--text-xs);
   }
   .days {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
-    margin: 12px 0 0;
+    gap: var(--space-2);
+    margin: var(--space-3) 0 0;
     padding: 0;
     list-style: none;
   }
@@ -172,12 +172,12 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    padding: 6px 0;
-    border-radius: 10px;
+    gap: var(--space-1);
+    padding: var(--space-2) 0;
+    border-radius: var(--radius-md);
     background: var(--surface);
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--text-xs);
   }
   .range {
     color: var(--text);

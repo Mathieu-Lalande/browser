@@ -39,19 +39,19 @@
   ul {
     display: grid;
     gap: 1px;
-    margin: 8px 0 0;
+    margin: var(--space-2) 0 0;
     padding: 0;
     list-style: none;
   }
   button {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
     width: 100%;
-    padding: 5px 6px;
-    border-radius: 8px;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
     color: var(--text);
-    font-size: 13px;
+    font-size: var(--text-sm);
     text-align: left;
   }
   button:hover {

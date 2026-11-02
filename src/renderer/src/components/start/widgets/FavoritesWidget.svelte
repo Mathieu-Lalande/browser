@@ -26,18 +26,18 @@
   .grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-    gap: 6px;
+    gap: var(--space-2);
   }
   .favorite {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
     min-width: 0;
-    padding: 8px 10px;
-    border-radius: 10px;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
     background: var(--surface);
     color: var(--text-muted);
-    font-size: 13px;
+    font-size: var(--text-sm);
   }
   .favorite:hover {
     background: var(--surface-hover);

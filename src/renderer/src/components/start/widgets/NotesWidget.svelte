@@ -20,14 +20,14 @@
     flex: 1;
     width: 100%;
     min-height: 110px;
-    padding: 8px 10px;
+    padding: var(--space-2) var(--space-3);
     border: 1px solid transparent;
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     outline: 0;
     background: var(--surface);
     color: var(--text);
     font: inherit;
-    font-size: 13px;
+    font-size: var(--text-sm);
     line-height: 1.5;
     resize: none;
     user-select: text;

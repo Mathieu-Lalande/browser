@@ -122,18 +122,18 @@
   .options {
     position: absolute;
     top: 40px;
-    right: 8px;
+    right: var(--space-2);
     z-index: 5;
     display: grid;
-    gap: 10px;
+    gap: var(--space-3);
     width: 300px;
-    padding: 12px;
+    padding: var(--space-3);
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: var(--radius-lg);
     background: var(--bg-elevated);
     box-shadow: 0 18px 50px -12px rgb(0 0 0 / 0.45);
     color: var(--text);
-    font-size: 13px;
+    font-size: var(--text-sm);
     text-align: left;
     animation: pop var(--motion-fast) var(--ease);
   }
@@ -146,19 +146,19 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
+    gap: var(--space-3);
     color: var(--text-muted);
   }
   .pins {
     display: grid;
-    gap: 6px;
+    gap: var(--space-2);
     color: var(--text-muted);
   }
   .pin {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 6px;
+    gap: var(--space-2);
     color: var(--text);
   }
   .pin span {
@@ -168,20 +168,17 @@
   }
   form {
     display: grid;
-    gap: 6px;
-  }
-  .invalid {
-    border-color: var(--danger, #e5484d);
+    gap: var(--space-2);
   }
   .note {
     margin: 0;
     color: var(--text-faint);
-    font-size: 12px;
+    font-size: var(--text-xs);
   }
   @keyframes pop {
     from {
       opacity: 0;
-      transform: translateY(-4px);
+      transform: translateY(calc(-1 * var(--space-1)));
     }
   }
 </style>

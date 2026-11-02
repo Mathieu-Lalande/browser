@@ -159,6 +159,26 @@
   color: #fff;
   background: linear-gradient(135deg, rgb(225 29 72 / 0.8), rgb(124 58 237 / 0.8));
 }
+/* One real screenshot per feature (docs/screenshots, converted to WebP). */
+.doc-shot {
+  margin: 0 0 24px;
+}
+.doc-shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-small);
+  box-shadow: var(--shadow);
+}
+.doc-phones {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  max-width: 600px;
+}
+.doc-phones img {
+  border-radius: 18px;
+}
 .doc-section h3 {
   margin: 28px 0 10px;
   font-size: 1.18rem;

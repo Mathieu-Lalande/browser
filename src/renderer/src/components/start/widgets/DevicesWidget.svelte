@@ -31,15 +31,15 @@
 <style>
   .devices {
     display: grid;
-    gap: 10px;
+    gap: var(--space-3);
   }
   h3 {
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin: 0 0 4px;
+    gap: var(--space-2);
+    margin: 0 0 var(--space-1);
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--text-xs);
     font-weight: 600;
   }
   ul {
@@ -52,10 +52,10 @@
   button {
     width: 100%;
     overflow: hidden;
-    padding: 5px 8px;
-    border-radius: 8px;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
     color: var(--text);
-    font-size: 13px;
+    font-size: var(--text-sm);
     text-align: left;
     white-space: nowrap;
     text-overflow: ellipsis;

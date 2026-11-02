@@ -57,11 +57,11 @@
     z-index: 21;
     display: flex;
     flex-direction: column;
-    width: min(560px, calc(100% - 32px));
-    max-height: calc(100% - 48px);
-    padding: 16px;
+    width: min(560px, calc(100% - var(--space-6)));
+    max-height: calc(100% - 2 * var(--space-5));
+    padding: var(--space-4);
     border: 1px solid var(--border);
-    border-radius: 18px;
+    border-radius: calc(var(--radius-lg) + var(--space-1));
     background: var(--bg-elevated);
     box-shadow: 0 30px 80px -20px rgb(0 0 0 / 0.5);
     transform: translate(-50%, -50%);
@@ -71,16 +71,16 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 10px;
+    margin-bottom: var(--space-3);
   }
   h2 {
     margin: 0;
-    font-size: 16px;
+    font-size: var(--text-md);
   }
   ul {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 6px;
+    gap: var(--space-2);
     margin: 0;
     padding: 0;
     overflow: auto;
@@ -89,11 +89,11 @@
   button {
     display: flex;
     align-items: flex-start;
-    gap: 10px;
+    gap: var(--space-3);
     width: 100%;
     height: 100%;
-    padding: 10px;
-    border-radius: 12px;
+    padding: var(--space-3);
+    border-radius: var(--radius-lg);
     color: var(--text);
     text-align: left;
   }
@@ -107,30 +107,30 @@
     display: grid;
     flex: none;
     place-items: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
+    width: var(--control-height);
+    height: var(--control-height);
+    border-radius: var(--radius-md);
     background: color-mix(in oklab, var(--accent) 16%, transparent);
     color: var(--accent-text);
   }
   .text {
     display: grid;
     gap: 2px;
-    font-size: 12px;
+    font-size: var(--text-xs);
   }
   .text span {
     color: var(--text-muted);
   }
   strong {
-    font-size: 13px;
+    font-size: var(--text-sm);
   }
   .badge {
-    margin-left: 6px;
-    padding: 1px 6px;
-    border-radius: 6px;
+    margin-left: var(--space-2);
+    padding: 1px var(--space-2);
+    border-radius: var(--radius-sm);
     background: var(--surface);
     color: var(--text-muted);
-    font-size: 10px;
+    font-size: calc(var(--text-xs) - 2px);
     font-style: normal;
     font-weight: 500;
   }
@@ -142,7 +142,7 @@
   @keyframes rise {
     from {
       opacity: 0;
-      transform: translate(-50%, calc(-50% + 8px));
+      transform: translate(-50%, calc(-50% + var(--space-2)));
     }
   }
 </style>

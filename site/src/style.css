@@ -551,7 +551,7 @@ code {
   position: relative;
   z-index: 1;
   margin-top: 64px;
-  aspect-ratio: 1280 / 860;
+  aspect-ratio: 1440 / 940;
   max-width: 1080px;
 }
 .stage-glow {
@@ -864,7 +864,7 @@ section {
 }
 .story-shots {
   position: relative;
-  aspect-ratio: 1280 / 820;
+  aspect-ratio: 1440 / 900;
 }
 .story-shot {
   position: absolute;
@@ -1006,6 +1006,21 @@ html:not(.js) .story-shot:first-child {
   .tile-wide {
     grid-column: span 2;
   }
+}
+/* A real screenshot under a tile's text, cropped to the top of the window. */
+.tile-shot {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: 18px;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  object-position: top left;
+  border-radius: var(--radius-small);
+  border: 1px solid var(--border);
+}
+.tile-wide .tile-shot {
+  aspect-ratio: 1440 / 900;
 }
 
 /* ---------- Privacy ---------- */

@@ -39,7 +39,7 @@
 
 <style>
   .count {
-    margin-left: 4px;
+    margin-left: var(--space-1);
     color: var(--text-faint);
     font-weight: 500;
   }
@@ -49,7 +49,7 @@
   ul {
     display: grid;
     gap: 2px;
-    margin: 6px 0 0;
+    margin: var(--space-2) 0 0;
     padding: 0;
     list-style: none;
   }
@@ -57,10 +57,10 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 6px;
-    min-height: 28px;
-    padding: 0 0 0 4px;
-    font-size: 13px;
+    gap: var(--space-2);
+    min-height: var(--hit-min);
+    padding: 0 0 0 var(--space-1);
+    font-size: var(--text-sm);
   }
   li.done :global(.label) {
     color: var(--text-faint);
@@ -75,10 +75,10 @@
   }
   .clear {
     align-self: flex-start;
-    margin-top: 6px;
-    padding: 2px 4px;
+    margin-top: var(--space-2);
+    padding: 2px var(--space-1);
     color: var(--text-faint);
-    font-size: 12px;
+    font-size: var(--text-xs);
   }
   .clear:hover {
     color: var(--text);

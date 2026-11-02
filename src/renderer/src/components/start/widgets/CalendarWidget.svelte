@@ -42,25 +42,25 @@
     text-transform: uppercase;
   }
   .today {
-    margin: -4px 0 8px;
+    margin: calc(-1 * var(--space-1)) 0 var(--space-2);
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--text-xs);
   }
   table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 12px;
+    font-size: var(--text-xs);
     font-variant-numeric: tabular-nums;
     text-align: center;
   }
   th {
-    padding-bottom: 4px;
+    padding-bottom: var(--space-1);
     color: var(--text-faint);
     font-weight: 500;
   }
   td {
-    height: 24px;
-    border-radius: 7px;
+    height: var(--space-5);
+    border-radius: var(--radius-sm);
     color: var(--text);
   }
   td.out {
@@ -74,6 +74,6 @@
   }
   .week {
     color: var(--text-faint);
-    font-size: 10px;
+    font-size: calc(var(--text-xs) - 2px);
   }
 </style>

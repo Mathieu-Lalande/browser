@@ -26,13 +26,13 @@
   .search {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-3);
     width: min(620px, 100%);
     height: 52px;
     margin: 0 auto;
-    padding: 0 18px;
+    padding: 0 var(--space-4);
     border: 1px solid var(--border);
-    border-radius: 16px;
+    border-radius: calc(var(--radius-lg) + var(--space-1));
     background: var(--bg-elevated);
     color: var(--text-faint);
     box-shadow: 0 20px 60px -20px color-mix(in oklab, var(--accent) 45%, transparent);
@@ -47,7 +47,7 @@
     outline: 0;
     background: transparent;
     color: var(--text);
-    font-size: 16px;
+    font-size: var(--text-md);
     user-select: text;
   }
 </style>

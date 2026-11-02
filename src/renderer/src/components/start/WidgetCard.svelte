@@ -140,13 +140,13 @@
     display: flex;
     min-width: 0;
     flex-direction: column;
-    border-radius: 18px;
+    border-radius: calc(var(--radius-lg) + var(--space-1));
     transition:
       opacity var(--motion-fast) var(--ease),
       box-shadow var(--motion-fast) var(--ease);
   }
   .card {
-    padding: 14px;
+    padding: var(--space-4);
     border: 1px solid var(--border);
     background: color-mix(in oklab, var(--bg-elevated) 82%, transparent);
     backdrop-filter: blur(12px);
@@ -156,7 +156,7 @@
     flex: 1;
     min-height: 0;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-2);
   }
   .editing {
     cursor: grab;
@@ -178,14 +178,14 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin: -4px -4px 8px;
+    margin: calc(-1 * var(--space-1)) calc(-1 * var(--space-1)) var(--space-2);
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--text-xs);
   }
   .handle {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--space-1);
   }
   .tools {
     display: flex;
@@ -196,13 +196,13 @@
     align-items: center;
     margin: 0;
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--text-xs);
     font-weight: 600;
     letter-spacing: 0.02em;
   }
   .widget :global(.widget-empty) {
     margin: 0;
     color: var(--text-faint);
-    font-size: 13px;
+    font-size: var(--text-sm);
   }
 </style>

@@ -6,11 +6,11 @@ directement le code de la version de bureau (`../src/shared` : URL et moteurs de
 historique et suggestions, recherche floue, palette de commandes, paramètres, moteur de thème,
 espaces, mode HTTPS uniquement).
 
-| Accueil | Onglets et espaces | Espace | Recherche |
-| --- | --- | --- | --- |
-| ![Accueil](../docs/screenshots/mobile-start-light.png) | ![Onglets](../docs/screenshots/mobile-tabs-dark.png) | ![Modifier un espace](../docs/screenshots/mobile-space-editor-dark.png) | ![Recherche](../docs/screenshots/mobile-search-light.png) |
+| Accueil | Onglets et espaces | Recherche | Menu de la page | Boosts |
+| --- | --- | --- | --- | --- |
+| ![Accueil](../docs/screenshots/mobile-start-light.png) | ![Onglets](../docs/screenshots/mobile-tabs-dark.png) | ![Recherche](../docs/screenshots/mobile-search-light.png) | ![Menu de la page](../docs/screenshots/mobile-menu-dark.png) | ![Boosts](../docs/screenshots/mobile-boosts-light.png) |
 
-(Captures faites avec le rendu web de développement : la page affichée est un faux contenu.)
+(Captures faites avec le rendu web (`expo export --platform web`) par `tests/e2e/mobile-screenshots.spec.ts` : la page affichée est un faux contenu.)
 
 ## L'essayer sur votre téléphone depuis Windows (Expo Go)
 

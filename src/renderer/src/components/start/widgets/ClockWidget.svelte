@@ -35,13 +35,13 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-2);
     text-align: center;
   }
   .time {
     margin: 0;
     color: var(--text-faint);
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.08em;
   }
@@ -61,6 +61,6 @@
     font-variant-numeric: tabular-nums;
   }
   .size-s .heading {
-    font-size: 30px;
+    font-size: var(--text-xl);
   }
 </style>

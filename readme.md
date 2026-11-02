@@ -61,14 +61,19 @@ Windows, macOS et Linux, avec son application iPhone et Android.
   appareil, chiffré, expiré après 7 jours (ADR-033).
 - Mises à jour automatiques depuis les releases GitHub, canal stable ou bêta (ADR-030).
 
-![Espaces et leur éditeur](docs/screenshots/spaces.png)
-![Page d'accueil](docs/screenshots/start-light.png)
+| | |
+| --- | --- |
+| ![Barre latérale : favoris, dossiers, espaces](docs/screenshots/sidebar-dark.png) | ![Page d'accueil personnalisable](docs/screenshots/start-light.png) |
+| ![Barre universelle](docs/screenshots/omnibox-dark.png) | ![Réponse instantanée de la barre universelle](docs/screenshots/omnibox-answer-light.png) |
+| ![Vue scindée](docs/screenshots/split-dark.png) | ![Mode lecture](docs/screenshots/reader-light.png) |
+| ![Aperçu d'un lien](docs/screenshots/peek-dark.png) | ![Options de la page](docs/screenshots/page-options-light.png) |
+| ![Menu de l'application](docs/screenshots/app-menu-dark.png) | ![Mode compact](docs/screenshots/compact-light.png) |
+| ![Paramètres et galerie de thèmes](docs/screenshots/settings-dark.png) | ![Raccourcis clavier](docs/screenshots/settings-shortcuts-light.png) |
+| ![Mots de passe](docs/screenshots/passwords-dark.png) | ![Boosts](docs/screenshots/boosts-light.png) |
+| ![Fenêtre privée](docs/screenshots/private-dark.png) | ![Mode édition de la page d'accueil](docs/screenshots/start-edit-light.png) |
 
-![Barre universelle](docs/screenshots/palette.png)
-![Vue scindée](docs/screenshots/split.png)
-
-![Paramètres](docs/screenshots/settings.png)
-![Fenêtre privée](docs/screenshots/private.png)
+Toutes les captures (clair et sombre) sont dans [`docs/screenshots/`](docs/screenshots/), régénérées par
+`tests/e2e/screenshots.spec.ts` et `tests/e2e/mobile-screenshots.spec.ts` (voir l'en-tête de chaque fichier).
 
 ## Installer
 
@@ -115,9 +120,9 @@ npm install
 npx expo start     # scannez le QR code ; même Wi-Fi, ou `npx expo start --tunnel`
 ```
 
-| Accueil | Onglets | Recherche |
-| --- | --- | --- |
-| ![Accueil mobile](docs/screenshots/mobile-start-light.png) | ![Onglets mobile](docs/screenshots/mobile-tabs-dark.png) | ![Recherche mobile](docs/screenshots/mobile-search-light.png) |
+| Accueil | Onglets | Menu de la page | Paramètres |
+| --- | --- | --- | --- |
+| ![Accueil mobile](docs/screenshots/mobile-start-light.png) | ![Onglets mobile](docs/screenshots/mobile-tabs-dark.png) | ![Menu de la page](docs/screenshots/mobile-menu-light.png) | ![Thèmes](docs/screenshots/mobile-themes-dark.png) |
 
 ## Scripts
 

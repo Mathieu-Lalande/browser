@@ -44,16 +44,16 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 10px;
+    gap: var(--space-3);
   }
   .site {
     display: flex;
     width: 88px;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
-    padding: 10px 4px;
-    border-radius: 12px;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-1);
+    border-radius: var(--radius-lg);
     color: var(--text-muted);
   }
   .site:hover {
@@ -67,17 +67,17 @@
     width: 44px;
     height: 44px;
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     background: var(--surface);
   }
   .pin {
     position: absolute;
-    top: -5px;
-    right: -5px;
+    top: calc(-1 * var(--space-1));
+    right: calc(-1 * var(--space-1));
     display: grid;
     place-items: center;
-    width: 16px;
-    height: 16px;
+    width: var(--icon-row);
+    height: var(--icon-row);
     border-radius: 50%;
     background: var(--accent);
     color: var(--on-accent);
@@ -85,7 +85,7 @@
   .name {
     width: 100%;
     overflow: hidden;
-    font-size: 12px;
+    font-size: var(--text-xs);
     text-align: center;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -93,7 +93,7 @@
   .empty {
     margin: 0;
     color: var(--text-faint);
-    font-size: 13px;
+    font-size: var(--text-sm);
     text-align: center;
   }
 </style>
