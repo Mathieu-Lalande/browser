@@ -1,6 +1,9 @@
 <script lang="ts">
   import ListRow from "../ui/ListRow.svelte";
   import Card from "../ui/Card.svelte";
+  import Button from "../ui/Button.svelte";
+  import EmptyState from "../ui/EmptyState.svelte";
+  import Page from "../ui/Page.svelte";
   import {
     BOOST_FONTS,
     DEFAULT_FILTERS,
@@ -90,24 +93,21 @@
   }
 </script>
 
-<div class="page" data-testid="boosts-page">
-  <div class="inner">
-    <header>
-      <span class="badge"><Icon name="rocket" size={20} /></span>
-      <h1>Boosts</h1>
-      {#if !browser.isPrivate && !draft}
-        <button class="action" onclick={() => edit(null)}><Icon name="plus" size={12} /> Nouveau boost</button>
-      {/if}
-    </header>
+{#snippet subtitle()}
+  {#if browser.isPrivate}
+    Les boosts s'appliquent aussi aux fenêtres privées (sans leur JavaScript, sauf autorisation), mais se modifient depuis une fenêtre normale.
+  {:else}
+    Personnalisez des sites : filtres de couleur, police, éléments masqués et CSS. Pour masquer un élément d'une page, utilisez
+    « Masquer des éléments » dans la palette de commandes ou les infos sur le site.
+  {/if}
+{/snippet}
 
-    <p class="intro">
-      {#if browser.isPrivate}
-        Les boosts s'appliquent aussi aux fenêtres privées (sans leur JavaScript, sauf autorisation), mais se modifient depuis une fenêtre normale.
-      {:else}
-        Personnalisez des sites : filtres de couleur, police, éléments masqués et CSS. Pour masquer un élément d'une page, utilisez
-        « Masquer des éléments » dans la palette de commandes ou les infos sur le site.
-      {/if}
-    </p>
+<Page icon="rocket" title="Boosts" {subtitle} testid="boosts-page">
+  {#snippet actions()}
+    {#if !browser.isPrivate && !draft}
+      <Button variant="primary" icon="plus" onclick={() => edit(null)}>Nouveau boost</Button>
+    {/if}
+  {/snippet}
 
     {#if draft}
       <Card as="form" class="editor" aria-label="Modifier le boost" onsubmit={(event) => (event.preventDefault(), void save())}>
@@ -202,8 +202,8 @@
 
         {#if error}<p class="error" role="alert"><Icon name="warning" size={14} /> {error}</p>{/if}
         <div class="buttons">
-          <button type="button" class="action" onclick={() => ((draft = null), (error = null))}>Annuler</button>
-          <button type="submit" class="action primary">Enregistrer</button>
+          <Button onclick={() => ((draft = null), (error = null))}>Annuler</Button>
+          <Button variant="primary" type="submit">Enregistrer</Button>
         </div>
       </Card>
     {/if}
@@ -236,59 +236,23 @@
         {/each}
       </Card>
     {:else if loaded && !draft}
-      <div class="empty">
-        <Icon name="rocket" size={28} />
-        <p>Aucun boost.</p>
-      </div>
+      <EmptyState
+        icon="rocket"
+        title="Aucun boost"
+        hint="Un boost change l'apparence d'un site : couleurs, police, éléments masqués ou CSS."
+      />
     {/if}
-  </div>
-</div>
+</Page>
 
 <style>
-  .page {
-    height: 100%;
-    overflow-y: auto;
-    animation: rise var(--motion-base) var(--ease);
-  }
-  .inner {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 36px 32px 64px;
-  }
-  header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  .badge {
-    display: grid;
-    place-items: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 11px;
-    background: color-mix(in oklab, var(--accent) 16%, transparent);
-    color: var(--accent-text);
-  }
-  h1 {
-    flex: 1;
-    margin: 0;
-    font-size: 22px;
-    font-weight: 650;
-    letter-spacing: -0.03em;
-  }
-  .intro,
   .hint {
     margin: 0;
     color: var(--text-muted);
     line-height: 1.5;
   }
   .hint {
-    font-size: 12px;
+    font-size: var(--text-xs);
   }
-  .action,
   .small {
     display: flex;
     flex: none;
@@ -296,28 +260,17 @@
     gap: 6px;
     white-space: nowrap;
   }
-  .action {
-    height: 30px;
-    padding: 0 12px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--surface);
-  }
-  .action:hover,
+
   .small:hover {
     background: var(--surface-hover);
   }
-  .action.primary {
-    border-color: transparent;
-    background: var(--accent);
-    color: var(--on-accent);
-  }
+
   .small {
     height: 26px;
     padding: 0 8px;
     border-radius: 7px;
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--text-xs);
   }
   :global(form.card.list.editor) {
     gap: 14px;
@@ -332,7 +285,7 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
-    font-size: 12px;
+    font-size: var(--text-xs);
     color: var(--text-muted);
   }
   input,
@@ -353,7 +306,7 @@
     box-sizing: border-box;
     resize: vertical;
     font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-    font-size: 12px;
+    font-size: var(--text-xs);
     line-height: 1.5;
   }
   fieldset {
@@ -408,7 +361,7 @@
     border: 1px solid color-mix(in oklab, var(--danger, #d93f45) 45%, transparent);
     border-radius: var(--radius);
     color: var(--text);
-    font-size: 12px;
+    font-size: var(--text-xs);
     line-height: 1.45;
   }
   .error {
@@ -446,7 +399,7 @@
   .detail {
     overflow: hidden;
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--text-xs);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -455,23 +408,8 @@
     align-items: center;
     gap: 6px;
     color: var(--text);
-    font-size: 12px;
+    font-size: var(--text-xs);
   }
-  .empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    padding: 48px 0 8px;
-    color: var(--text-muted);
-  }
-  .empty p {
-    margin: 0;
-  }
-  @keyframes rise {
-    from {
-      opacity: 0;
-      transform: translateY(4px);
-    }
-  }
+
+
 </style>

@@ -15,7 +15,7 @@ test("an unpacked MV3 extension applies its content script, and stops once disab
 
   await chrome.evaluate(() => (globalThis as unknown as Global).browser.commands.run("open-extensions"));
   const page = chrome.getByTestId("extensions-page");
-  await expect(page.getByText("Aucune extension installée.")).toBeVisible();
+  await expect(page.getByText("Aucune extension installée")).toBeVisible();
   await page.getByRole("button", { name: "Charger un dossier" }).click();
   await expect(page.getByText("« Extension de test » est installée.")).toBeVisible();
   await expect(page.locator("[data-extension-id]")).toHaveCount(1);

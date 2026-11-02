@@ -6,6 +6,10 @@
   import Icon from "../Icon.svelte";
   import IconButton from "../ui/IconButton.svelte";
   import ConfirmButton from "../ui/ConfirmButton.svelte";
+  import Button from "../ui/Button.svelte";
+  import EmptyState from "../ui/EmptyState.svelte";
+  import Page from "../ui/Page.svelte";
+  import SearchField from "../ui/SearchField.svelte";
 
   /**
    * `browser://passwords` (ADR-025): saved passwords, searched by site or username. The list has
@@ -89,29 +93,25 @@
   }
 </script>
 
-<div class="page" data-testid="passwords-page">
-  <div class="inner">
-    <header>
-      <span class="badge"><Icon name="key" size={20} /></span>
-      <h1>Mots de passe</h1>
-      {#if entries.length}
-        <ConfirmButton
-          variant="outlined"
-          question="Exporter en clair dans un fichier CSV ?"
-          confirmLabel="Exporter"
-          title="Exporter les mots de passe (fichier CSV non chiffré)"
-          onconfirm={exportCsv}
-        >
-          <Icon name="file-down" size={12} /> Exporter
-        </ConfirmButton>
-      {/if}
-    </header>
-
-    <p class="intro">
-      Proposés après une connexion, chiffrés avec le trousseau du système et stockés sur cet appareil uniquement. Un mot de passe n'est
-      rempli que sur le site exact où il a été enregistré, et seulement quand vous le demandez (clé de la barre d'adresse ou clic droit
-      dans un champ).
-    </p>
+<Page
+  icon="key"
+  title="Mots de passe"
+  subtitle="Proposés après une connexion, chiffrés avec le trousseau du système et stockés sur cet appareil uniquement. Un mot de passe n'est rempli que sur le site exact où il a été enregistré, et seulement quand vous le demandez (clé de la barre d'adresse ou clic droit dans un champ)."
+  testid="passwords-page"
+>
+  {#snippet actions()}
+    {#if entries.length}
+      <ConfirmButton
+        variant="outlined"
+        question="Exporter en clair dans un fichier CSV ?"
+        confirmLabel="Exporter"
+        title="Exporter les mots de passe (fichier CSV non chiffré)"
+        onconfirm={exportCsv}
+      >
+        <Icon name="file-down" size={14} /> Exporter
+      </ConfirmButton>
+    {/if}
+  {/snippet}
 
     {#if status && !status.available}
       <p class="notice error" role="alert"><Icon name="warning" size={14} /> <span>{status.message}</span></p>
@@ -127,21 +127,18 @@
     {/if}
 
     {#if entries.length}
-      <label class="search">
-        <Icon name="search" size={14} />
-        <input bind:value={query} placeholder="Rechercher un site ou un identifiant" aria-label="Rechercher dans les mots de passe" spellcheck="false" />
-      </label>
+      <SearchField bind:value={query} label="Rechercher dans les mots de passe" placeholder="Rechercher un site ou un identifiant" />
       <Card as="ul" aria-label="Mots de passe enregistrés">
         {#each shown as entry (entry.id)}
           <ListRow data-password-id={entry.id}>
             {#if editing?.id === entry.id}
               <form class="edit" onsubmit={saveEdit}>
                 <span class="site">{originLabel(entry.origin)}</span>
-                <input bind:value={editing.username} aria-label="Identifiant" placeholder="Identifiant" spellcheck="false" />
-                <input bind:value={editing.password} type="password" aria-label="Nouveau mot de passe" placeholder="Nouveau mot de passe (inchangé si vide)" autocomplete="new-password" />
+                <input class="ui-field" bind:value={editing.username} aria-label="Identifiant" placeholder="Identifiant" spellcheck="false" />
+                <input class="ui-field" bind:value={editing.password} type="password" aria-label="Nouveau mot de passe" placeholder="Nouveau mot de passe (inchangé si vide)" autocomplete="new-password" />
                 <span class="edit-actions">
-                  <button type="button" class="text-button" onclick={() => (editing = null)}>Annuler</button>
-                  <button type="submit" class="text-button strong">Enregistrer</button>
+                  <Button size="sm" variant="ghost" onclick={() => (editing = null)}>Annuler</Button>
+                  <Button size="sm" variant="primary" type="submit">Enregistrer</Button>
                 </span>
               </form>
             {:else}
@@ -188,11 +185,7 @@
         {/each}
       </Card>
     {:else if loaded}
-      <div class="empty">
-        <Icon name="key" size={28} />
-        <p>Aucun mot de passe enregistré.</p>
-        <p class="detail">Connectez-vous à un site : le navigateur proposera d'enregistrer le mot de passe.</p>
-      </div>
+      <EmptyState icon="key" title="Aucun mot de passe enregistré" hint="Connectez-vous à un site : le navigateur proposera d'enregistrer le mot de passe." />
     {/if}
 
     {#if never.length}
@@ -206,47 +199,9 @@
         {/each}
       </Card>
     {/if}
-  </div>
-</div>
+</Page>
 
 <style>
-  .page {
-    height: 100%;
-    overflow-y: auto;
-    animation: rise var(--motion-base) var(--ease);
-  }
-  .inner {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 36px 32px 64px;
-  }
-  header {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px 12px;
-  }
-  .badge {
-    display: grid;
-    place-items: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 11px;
-    background: color-mix(in oklab, var(--accent) 16%, transparent);
-    color: var(--accent-text);
-  }
-  h1 {
-    flex: 1 1 auto;
-    min-width: 0;
-    margin: 0;
-    white-space: nowrap;
-    font-size: 22px;
-    font-weight: 650;
-    letter-spacing: -0.03em;
-  }
   h2 {
     display: flex;
     align-items: center;
@@ -255,11 +210,7 @@
     font-size: 14px;
     font-weight: 600;
   }
-  .intro {
-    margin: 0;
-    color: var(--text-muted);
-    line-height: 1.5;
-  }
+
   .notice {
     display: flex;
     align-items: center;
@@ -276,27 +227,7 @@
   }
   .notice.error {
     border-color: color-mix(in oklab, var(--danger) 45%, transparent);
-    color: var(--danger);
-  }
-  .search {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    height: 34px;
-    padding: 0 12px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--surface);
-    color: var(--text-muted);
-  }
-  .search input,
-  .edit input {
-    flex: 1;
-    min-width: 0;
-    border: none;
-    background: transparent;
-    color: var(--text);
-    outline: none;
+    color: var(--danger-text);
   }
   :global(.row.empty-row) {
     color: var(--text-muted);
@@ -323,7 +254,7 @@
   }
   .detail {
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--text-xs);
   }
   .actions {
     display: flex;
@@ -353,34 +284,10 @@
     flex-direction: column;
     gap: 8px;
   }
-  .edit input {
-    height: 30px;
-    padding: 0 10px;
-    border: 1px solid var(--border);
-    border-radius: 7px;
-    background: var(--surface);
-  }
+
   .edit-actions {
     display: flex;
     justify-content: flex-end;
     gap: 6px;
-  }
-  .empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    padding: 48px 0 8px;
-    color: var(--text-muted);
-    text-align: center;
-  }
-  .empty p {
-    margin: 0;
-  }
-  @keyframes rise {
-    from {
-      opacity: 0;
-      transform: translateY(4px);
-    }
   }
 </style>

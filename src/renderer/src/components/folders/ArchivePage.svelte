@@ -6,7 +6,11 @@
   import { api, browser } from "../../lib/browser.svelte";
   import { settings } from "../../lib/settings.svelte";
   import Favicon from "../Favicon.svelte";
-  import Icon from "../Icon.svelte";
+  import Button from "../ui/Button.svelte";
+  import EmptyState from "../ui/EmptyState.svelte";
+  import IconButton from "../ui/IconButton.svelte";
+  import Page from "../ui/Page.svelte";
+  import SearchField from "../ui/SearchField.svelte";
 
   /**
    * `browser://archive` (ADR-022): tabs closed by auto-archiving, searchable, to restore or delete.
@@ -35,153 +39,48 @@
   const dateFormat = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
 </script>
 
-<div class="page" data-testid="archive-page">
-  <div class="inner">
-    <header>
-      <span class="badge"><Icon name="archive" size={20} /></span>
-      <h1>Onglets archivés</h1>
-      {#if !browser.isPrivate}
-        <button class="clear" disabled={!entries.length || query !== ""} onclick={() => api.archive.clear()}>
-          <Icon name="list-x" size={12} /> Tout supprimer
-        </button>
-      {/if}
-    </header>
+{#snippet subtitle()}
+  {#if delay === "never"}
+    L'archivage automatique est désactivé (Paramètres, Comportement).
+  {:else}
+    Les onglets laissés de côté plus de {delayLabel[delay]} sont fermés et rangés ici. Les onglets épinglés, les favoris, les onglets qui
+    jouent du son et ceux d'une vue scindée ne sont jamais archivés.
+  {/if}
+{/snippet}
 
-    <p class="intro">
-      {#if delay === "never"}
-        L'archivage automatique est désactivé (Paramètres, Comportement).
-      {:else}
-        Les onglets laissés de côté plus de {delayLabel[delay]} sont fermés et rangés ici. Les onglets épinglés, les favoris, les onglets qui
-        jouent du son et ceux d'une vue scindée ne sont jamais archivés.
-      {/if}
-    </p>
-
-    <label class="search">
-      <Icon name="search" size={16} />
-      <input bind:value={query} placeholder="Rechercher dans les onglets archivés" aria-label="Rechercher dans les onglets archivés" spellcheck="false" />
-    </label>
-
-    {#if entries.length}
-      <Card as="ul">
-        {#each entries as entry (entry.id)}
-          <ListRow dense data-archive-id={entry.id}>
-            <Favicon src={entry.favicon} />
-            <span class="text">
-              <span class="title">{entry.title}</span>
-              <span class="detail">{displayUrl(entry.url)} · archivé le {dateFormat.format(entry.archivedAt)}</span>
-            </span>
-            <button class="action" onclick={() => api.archive.restore(entry.id)} title="Rouvrir l'onglet">
-              <Icon name="archive-restore" size={12} /> Restaurer
-            </button>
-            {#if !browser.isPrivate}
-              <button class="action icon-only" aria-label={`Supprimer ${entry.title}`} title="Supprimer de l'archive" onclick={() => api.archive.remove(entry.id)}>
-                <Icon name="trash" size={12} />
-              </button>
-            {/if}
-          </ListRow>
-        {/each}
-      </Card>
-    {:else}
-      <p class="empty">{query ? "Aucun onglet archivé ne correspond à cette recherche." : "Aucun onglet archivé pour l'instant."}</p>
+<Page icon="archive" title="Onglets archivés" {subtitle} testid="archive-page">
+  {#snippet actions()}
+    {#if !browser.isPrivate}
+      <Button icon="list-x" disabled={!entries.length || query !== ""} onclick={() => api.archive.clear()}>Tout supprimer</Button>
     {/if}
-  </div>
-</div>
+  {/snippet}
+
+  <SearchField bind:value={query} label="Rechercher dans les onglets archivés" />
+
+  {#if entries.length}
+    <Card as="ul">
+      {#each entries as entry (entry.id)}
+        <ListRow dense data-archive-id={entry.id}>
+          <Favicon src={entry.favicon} />
+          <span class="text">
+            <span class="title">{entry.title}</span>
+            <span class="detail">{displayUrl(entry.url)} · archivé le {dateFormat.format(entry.archivedAt)}</span>
+          </span>
+          <Button size="sm" icon="archive-restore" title="Rouvrir l'onglet" onclick={() => api.archive.restore(entry.id)}>Restaurer</Button>
+          {#if !browser.isPrivate}
+            <IconButton size="row" icon="trash" iconSize={16} label={`Supprimer ${entry.title}`} title="Supprimer de l'archive" onclick={() => api.archive.remove(entry.id)} />
+          {/if}
+        </ListRow>
+      {/each}
+    </Card>
+  {:else if query}
+    <EmptyState icon="search" title="Aucun résultat" hint="Aucun onglet archivé ne correspond à cette recherche." />
+  {:else}
+    <EmptyState icon="archive" title="Aucun onglet archivé pour l'instant" hint="Les onglets inactifs depuis longtemps viendront se ranger ici, prêts à être rouverts." />
+  {/if}
+</Page>
 
 <style>
-  .page {
-    height: 100%;
-    overflow-y: auto;
-    animation: rise var(--motion-base) var(--ease);
-  }
-  .inner {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 36px 32px 64px;
-  }
-  header {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px 12px;
-  }
-  .badge {
-    display: grid;
-    place-items: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 11px;
-    background: color-mix(in oklab, var(--accent) 16%, transparent);
-    color: var(--accent-text);
-  }
-  h1 {
-    flex: 1 1 auto;
-    min-width: 0;
-    margin: 0;
-    white-space: nowrap;
-    font-size: 22px;
-    font-weight: 650;
-    letter-spacing: -0.03em;
-  }
-  .intro {
-    margin: 0;
-    color: var(--text-muted);
-    line-height: 1.5;
-  }
-  .clear,
-  .action {
-    display: flex;
-    flex: none;
-    align-items: center;
-    gap: 7px;
-    height: 30px;
-    padding: 0 12px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--surface);
-    white-space: nowrap;
-  }
-  .clear {
-    margin-left: auto;
-  }
-  .clear:hover:not(:disabled),
-  .action:hover {
-    background: var(--surface-hover);
-  }
-  .clear:disabled {
-    opacity: 0.45;
-  }
-  .icon-only {
-    width: 30px;
-    padding: 0;
-    justify-content: center;
-    color: var(--text-muted);
-  }
-  .search {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    height: 38px;
-    padding: 0 12px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--surface);
-    color: var(--text-faint);
-  }
-  .search:focus-within {
-    border-color: color-mix(in oklab, var(--accent) 60%, transparent);
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
-  }
-  input {
-    flex: 1;
-    min-width: 0;
-    border: 0;
-    outline: 0;
-    background: transparent;
-    user-select: text;
-  }
   .text {
     display: flex;
     flex: 1;
@@ -196,18 +95,6 @@
   }
   .detail {
     color: var(--text-muted);
-    font-size: 12px;
-  }
-  .empty {
-    margin: 0;
-    padding: 48px 0 8px;
-    color: var(--text-muted);
-    text-align: center;
-  }
-  @keyframes rise {
-    from {
-      opacity: 0;
-      transform: translateY(4px);
-    }
+    font-size: var(--text-xs);
   }
 </style>

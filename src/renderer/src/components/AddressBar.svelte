@@ -472,17 +472,15 @@
     align-items: center;
     gap: 2px;
   }
-  /* Hidden (and not clickable) until the bar is hovered or holds the keyboard focus. */
+  /* Hidden until the bar is hovered or holds the keyboard focus (a click is always a hover). */
   .actions .act {
     opacity: 0;
-    pointer-events: none;
     transition: opacity var(--motion-fast) var(--ease);
   }
   .address:hover .act,
   .address:focus-within .act,
   .act.keep {
     opacity: 1;
-    pointer-events: auto;
   }
   .address:hover .display,
   .address:focus-within .display {
