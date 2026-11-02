@@ -161,6 +161,3 @@ export function parseSession(data: unknown, version = SESSION_VERSION): Session 
   const root = data as Record<string, unknown>;
   return version < 2 ? migrateV1(root) : parseSpaces(root);
 }
-
-/** The session of a first launch: one empty window in the default space. */
-export const emptySession = (): Session => ({ spaces: [{ ...DEFAULT_SPACE }], windows: [] });

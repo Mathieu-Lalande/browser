@@ -1,4 +1,4 @@
-import { getCommand, type CommandContext, type CommandId } from "@shared/commands";
+import { type CommandContext, type CommandId } from "@shared/commands";
 import { fuzzyMatch, type Range } from "@shared/fuzzy";
 import { buildPalette, type PaletteItem, type PaletteSection, type RemoteTabInput } from "@shared/palette";
 import { mergeSuggestions, rankHistory, topSites } from "@shared/search";
@@ -180,6 +180,3 @@ export function buildSheet(input: SheetInput): SheetSection[] {
   }
   return sections.filter((section) => section.items.length > 0);
 }
-
-/** Label for a shared command, as shown in the sheet. */
-export const commandTitle = (id: CommandId) => getCommand(id).label;

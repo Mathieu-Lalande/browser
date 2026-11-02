@@ -1,4 +1,4 @@
-import { httpsUpgradeFor } from "@shared/https-only";
+import { httpsUpgradeFor, isHttpsUpgradeFailure as sharedIsHttpsUpgradeFailure } from "@shared/https-only";
 import { isNavigableUrl, isPageOpenableUrl } from "@shared/url";
 
 /**
@@ -51,25 +51,9 @@ export function initialLoad(url: string, httpExceptions: ReadonlySet<string>): {
   return upgraded ? { url: upgraded, upgradedFrom: url } : { url, upgradedFrom: null };
 }
 
-/**
- * Whether a failed load of an upgraded https URL means "this host does not do HTTPS" (offer the
- * http version) rather than "the host is unreachable". Error codes differ per platform:
- * iOS reports NSURLError codes, Android WebViewClient ERROR_* constants.
- */
+/** Whether a WebView load error on `platform` (Platform.OS) is a failed HTTPS upgrade (shared rules). */
 export function isHttpsUpgradeFailure(platform: string, code: number): boolean {
-  if (platform === "ios") {
-    // -1003 host not found, -1009 offline: http would fail too.
-    if (code === -1003 || code === -1009) return false;
-    // -1200…-1206 TLS/certificate errors, -1004 cannot connect (nothing on :443), -1005 lost,
-    // -1007 too many redirects (https → http loop), -1001 timed out.
-    return (code <= -1200 && code >= -1206) || code === -1004 || code === -1005 || code === -1007 || code === -1001;
-  }
-  if (platform === "android") {
-    // ERROR_HOST_LOOKUP (-2): http would fail too.
-    // ERROR_CONNECT (-6), ERROR_TIMEOUT (-8), ERROR_REDIRECT_LOOP (-9), ERROR_FAILED_SSL_HANDSHAKE (-11).
-    return code === -6 || code === -8 || code === -9 || code === -11;
-  }
-  return false;
+  return (platform === "ios" || platform === "android") && sharedIsHttpsUpgradeFailure(code, platform);
 }
 
 /**

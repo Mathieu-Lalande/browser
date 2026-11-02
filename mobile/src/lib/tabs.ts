@@ -1,5 +1,6 @@
 import { addSpace, DEFAULT_SPACE, isSpaceId, neighborSpace, removeSpace, sanitizeSpace, updateSpace } from "@shared/spaces";
 import type { CloseTabActivates } from "@shared/settings";
+import { closeSuccessor, pinnedFirst } from "@shared/tab-order";
 import type { SpaceId, SpaceInfo, SpaceInput, TabInterstitial, TabState } from "@shared/types";
 import { isNavigableUrl } from "@shared/url";
 
@@ -136,8 +137,7 @@ export function activeTab(model: TabsModel): MobileTab | null {
 
 /** Tabs of a space in display order: pinned first, then the others, each in opening order. */
 export function orderedTabs(model: TabsModel, spaceId: SpaceId = model.activeSpaceId): MobileTab[] {
-  const tabs = tabsInSpace(model, spaceId);
-  return [...tabs.filter((tab) => tab.isPinned), ...tabs.filter((tab) => !tab.isPinned)];
+  return pinnedFirst(tabsInSpace(model, spaceId), (tab) => tab.isPinned);
 }
 
 export interface OverviewGroups {
@@ -299,10 +299,9 @@ function successor(model: TabsModel, closing: MobileTab, activates: CloseTabActi
   const siblings = orderedTabs(model, closing.spaceId);
   const index = siblings.findIndex((tab) => tab.id === closing.id);
   const rest = siblings.filter((tab) => tab.id !== closing.id);
-  if (rest.length === 0) return null;
-  if (activates === "recent") return [...rest].sort((a, b) => b.lastActiveAt - a.lastActiveAt)[0];
-  if (activates === "previous") return siblings[index - 1] ?? siblings[index + 1] ?? null;
-  return siblings[index + 1] ?? siblings[index - 1] ?? null;
+  const mostRecent = (tabs: readonly MobileTab[]) =>
+    tabs.reduce<MobileTab | undefined>((best, tab) => (!best || tab.lastActiveAt > best.lastActiveAt ? tab : best), undefined);
+  return closeSuccessor(rest, index, activates, mostRecent) ?? null;
 }
 
 function closeTabs(model: TabsModel, ids: ReadonlySet<TabId>, activates: CloseTabActivates, now: number): TabsModel {

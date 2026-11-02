@@ -36,7 +36,7 @@ import { webHostname } from "@shared/hosts";
 import { hardenWebContents } from "./security";
 import type { SleepCandidate } from "./sleep";
 import type { SessionTab, SessionTabList } from "./storage/session";
-import { tabSlot } from "./tab-order";
+import { closeSuccessor, tabSlot } from "@shared/tab-order";
 import { onSiteZoomChange, rememberSiteZoom, siteZoomFactor } from "./zoom";
 import { nextZoomFactor, sameFactor } from "./zoom/levels";
 
@@ -826,14 +826,10 @@ export class TabManager {
 
   /** The tab to activate once the active tab, formerly at `index`, is removed. */
   private nextAfterClose(index: number): Tab | undefined {
-    const behavior = this.options.closeTabActivates;
-    if (behavior === "recent") {
+    return closeSuccessor(this.tabs, index, this.options.closeTabActivates, () => {
       const recentId = this.recent.at(-1);
-      const recent = recentId ? this.find(recentId) : undefined;
-      if (recent) return recent;
-    }
-    if (behavior === "previous" && index > 0) return this.tabs[index - 1];
-    return this.tabs[Math.min(index, this.tabs.length - 1)];
+      return recentId ? this.find(recentId) : undefined;
+    });
   }
 
   private insert(entry: SessionTab, index: number): Tab {

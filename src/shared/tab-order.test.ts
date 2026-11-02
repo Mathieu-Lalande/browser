@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { tabSlot } from "./tab-order";
+import { closeSuccessor, pinnedFirst, tabSlot } from "./tab-order";
 
 /** `p` = pinned, `u` = unpinned. */
 const list = (pattern: string) => [...pattern].map((kind) => ({ pinned: kind === "p" }));
@@ -31,5 +31,35 @@ describe("tabSlot", () => {
     expect(tabSlot(list("pu"), true, -5)).toBe(0);
     expect(tabSlot(list("pu"), false, Number.NaN)).toBe(2);
     expect(tabSlot([], false, 3)).toBe(0);
+  });
+});
+
+describe("pinnedFirst", () => {
+  it("puts pinned tabs first, keeping each group's order", () => {
+    const tabs = [
+      { id: "a", pinned: false },
+      { id: "b", pinned: true },
+      { id: "c", pinned: false },
+      { id: "d", pinned: true },
+    ];
+    expect(pinnedFirst(tabs, (tab) => tab.pinned).map((tab) => tab.id)).toEqual(["b", "d", "a", "c"]);
+  });
+});
+
+describe("closeSuccessor", () => {
+  // The closed tab was at index 1 of [a, X, b, c].
+  const rest = ["a", "b", "c"];
+  it("activates the next tab, or the previous one at the end", () => {
+    expect(closeSuccessor(rest, 1, "next")).toBe("b");
+    expect(closeSuccessor(rest, 3, "next")).toBe("c");
+    expect(closeSuccessor([], 0, "next")).toBeUndefined();
+  });
+  it("activates the previous tab, or the next one at the start", () => {
+    expect(closeSuccessor(rest, 1, "previous")).toBe("a");
+    expect(closeSuccessor(rest, 0, "previous")).toBe("a");
+  });
+  it("activates the most recent tab, else falls back to the next one", () => {
+    expect(closeSuccessor(rest, 1, "recent", () => "c")).toBe("c");
+    expect(closeSuccessor(rest, 1, "recent", () => undefined)).toBe("b");
   });
 });

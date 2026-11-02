@@ -18,13 +18,32 @@ export function httpsUpgradeFor(url: string, exceptions: ReadonlySet<string>): s
   return parsed.href;
 }
 
-/** Chromium net errors meaning "HTTPS does not work on this host" (rather than "the host is unreachable"). */
-export function isHttpsUpgradeFailure(code: number): boolean {
-  // -105 NAME_NOT_RESOLVED, -106 INTERNET_DISCONNECTED, -137 NAME_RESOLUTION_FAILED: http would fail too.
-  if (code === -105 || code === -106 || code === -137) return false;
-  // -1xx connection/TLS errors, -2xx certificate errors, -310 TOO_MANY_REDIRECTS (https → http loop),
-  // -324 EMPTY_RESPONSE.
-  return (code <= -100 && code > -300) || code === -310 || code === -324;
+/** Which engine reported a load error: Chromium (desktop), or the phone's WebView. */
+export type LoadErrorSource = "chromium" | "ios" | "android";
+
+const UPGRADE_FAILURES: Record<LoadErrorSource, (code: number) => boolean> = {
+  chromium: (code) => {
+    // -105 NAME_NOT_RESOLVED, -106 INTERNET_DISCONNECTED, -137 NAME_RESOLUTION_FAILED: http would fail too.
+    if (code === -105 || code === -106 || code === -137) return false;
+    // -1xx connection/TLS errors, -2xx certificate errors, -310 TOO_MANY_REDIRECTS (https → http loop),
+    // -324 EMPTY_RESPONSE.
+    return (code <= -100 && code > -300) || code === -310 || code === -324;
+  },
+  // NSURLError codes. -1003 host not found, -1009 offline: http would fail too.
+  // -1200…-1206 TLS/certificate errors, -1004 cannot connect (nothing on :443), -1005 lost,
+  // -1007 too many redirects (https → http loop), -1001 timed out.
+  ios: (code) => (code <= -1200 && code >= -1206) || code === -1004 || code === -1005 || code === -1007 || code === -1001,
+  // WebViewClient ERROR_* constants. ERROR_HOST_LOOKUP (-2): http would fail too.
+  // ERROR_CONNECT (-6), ERROR_TIMEOUT (-8), ERROR_REDIRECT_LOOP (-9), ERROR_FAILED_SSL_HANDSHAKE (-11).
+  android: (code) => code === -6 || code === -8 || code === -9 || code === -11,
+};
+
+/**
+ * Whether a failed load of an upgraded https URL means "HTTPS does not work on this host" (offer
+ * the http version) rather than "the host is unreachable". Error codes differ per engine.
+ */
+export function isHttpsUpgradeFailure(code: number, source: LoadErrorSource = "chromium"): boolean {
+  return UPGRADE_FAILURES[source](code);
 }
 
 /** HTTPS-Only state: per-host exceptions for this session and the upgrades in flight, per tab. */
