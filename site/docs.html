@@ -88,6 +88,7 @@
             <li><a href="#mobile">Application mobile</a></li>
             <li><a href="#premiers-pas">Premiers pas</a></li>
             <li><a href="#onglets">Onglets</a></li>
+            <li><a href="#menus">Menus et gestes</a></li>
             <li><a href="#espaces">Espaces et gestes</a></li>
             <li><a href="#vue-scindee">Vue scindée</a></li>
             <li><a href="#organisation">Dossiers, favoris, archivage</a></li>
@@ -222,7 +223,8 @@
             <li><strong>Passer d'un onglet à l'autre</strong> : <kbd>Ctrl</kbd> <kbd>Tab</kbd> / <kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>Tab</kbd>, ou <kbd>Ctrl</kbd> <kbd>1</kbd>…<kbd>9</kbd>.</li>
             <li><strong>Au clavier</strong> : la liste des onglets est un seul arrêt de tabulation ; <kbd>↑</kbd> <kbd>↓</kbd>, <kbd>Début</kbd> <kbd>Fin</kbd> pour se déplacer, <kbd>Entrée</kbd> pour afficher, <kbd>Suppr</kbd> pour fermer.</li>
             <li><strong>Menu de l'onglet</strong> (clic droit) : épingler, dupliquer, vue scindée, déplacer vers un espace ou un dossier, mettre en veille, couper le son, fermer.</li>
-            <li><strong>Menu de la page</strong> (clic droit dans la page) : ouvrir un lien en arrière-plan, en vue scindée, dans un autre espace ou en fenêtre privée, aperçu du lien, copier, enregistrer une image, rechercher la sélection, inspecter.</li>
+            <li><strong>Rouvrir l'onglet fermé</strong> : <kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>T</kbd> (<kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>T</kbd>), plusieurs fois pour remonter (25 derniers, jamais écrits sur le disque).</li>
+            <li><strong>Sélectionner plusieurs onglets</strong> : <kbd>Ctrl</kbd> + clic (<kbd>⌘</kbd> + clic sur Mac), ou « Sélectionner tous les onglets ». Une barre d'actions apparaît : nouveau dossier, déplacer vers un espace, fermer, annuler (<kbd>Échap</kbd>).</li>
           </ul>
           <h3>Mise en veille</h3>
           <p>
@@ -231,6 +233,37 @@
             son, attend une autorisation ou contient un formulaire en cours. Les commandes « Mettre l'onglet en veille »
             et « Mettre les autres onglets en veille » le font tout de suite.
           </p>
+        </section>
+
+        <!-- Menus & gestures -->
+        <section class="doc-section" id="menus" aria-labelledby="t-menus">
+          <h2 id="t-menus"><i data-icon="ellipsis"></i>Menus et gestes</h2>
+          <h3>Menu de l'application « … »</h3>
+          <p>
+            Le bouton « … » en tête de la rangée de navigation ouvre le menu complet : état de la synchronisation,
+            nouvel onglet et fenêtres, rangée de zoom (− % +) et plein écran, historique récent, favoris, téléchargements,
+            mots de passe, extensions et thèmes, imprimer, enregistrer la page, rechercher dans la page, plus d'outils
+            (captures, vidéo, lecture, boost, code source…), paramètres, aide (raccourcis, à propos, signaler un
+            problème) et quitter. Au clavier : flèches pour se déplacer, <kbd>→</kbd> ou <kbd>Entrée</kbd> pour ouvrir un sous-menu,
+            <kbd>←</kbd> ou <kbd>Échap</kbd> pour revenir.
+          </p>
+          <h3>Menus contextuels</h3>
+          <ul>
+            <li><strong>Espace vide de la barre latérale</strong> (clic droit) : nouvel onglet, nouveau dossier, actualiser, favori, sélectionner tous les onglets, rouvrir l'onglet fermé, mode compact, changer le côté de la barre latérale, modifier l'espace.</li>
+            <li><strong>Pastille d'espace</strong> (clic droit) : renommer, icône et couleur, déplacer à gauche ou à droite, supprimer (après confirmation).</li>
+            <li><strong>Page</strong> (clic droit) : précédent, suivant, actualiser et favori en tête, puis « Enregistrer la page sous… » (HTML complet ou MHTML), « Tout sélectionner », « Capture d'écran », « Afficher le code source » (<kbd>Ctrl</kbd> <kbd>U</kbd>), « Envoyer à un appareil » et « Inspecter ». Sur un lien : nouvel onglet, arrière-plan, vue scindée, autre espace, fenêtre privée, aperçu, copier.</li>
+          </ul>
+          <h3>Mode compact</h3>
+          <p>
+            Commande « Mode compact » (menu de la barre latérale ou barre universelle) : la barre latérale devient un rail
+            d'icônes qui se déplie au survol. Le mode zen reste prioritaire.
+          </p>
+          <h3>Gestes sur la page</h3>
+          <ul>
+            <li><strong>Pincer</strong> sur le pavé tactile ou <kbd>Ctrl</kbd> + molette : zoom de la page, mémorisé par site comme <kbd>Ctrl</kbd> <kbd>+</kbd>.</li>
+            <li><strong>Balayer à deux doigts</strong> horizontalement : page précédente ou suivante. Une flèche suit le geste ; il ne se déclenche que lorsque la page ne peut plus défiler dans ce sens.</li>
+            <li><strong>Plein écran</strong> : <kbd>F11</kbd> (<kbd>⌃</kbd> <kbd>⌘</kbd> <kbd>F</kbd>). Imprimer : <kbd>Ctrl</kbd> <kbd>P</kbd> (<kbd>⌘</kbd> <kbd>P</kbd>).</li>
+          </ul>
         </section>
 
         <!-- Spaces -->
@@ -246,6 +279,7 @@
             <li><strong>Balayage</strong> : glissez à deux doigts horizontalement sur le pavé tactile, le pointeur sur la barre latérale, ou d'un doigt sur un écran tactile. La liste suit le geste ; relâchez au-delà du quart pour changer d'espace.</li>
             <li><strong>Espace isolé</strong> : dans l'éditeur d'espace, cochez l'isolation pour lui donner ses propres cookies et connexions, comme un conteneur (deux comptes du même site côte à côte).</li>
             <li><strong>Déplacer un onglet</strong> : clic droit sur l'onglet, « Déplacer vers ».</li>
+            <li><strong>Modifier, réordonner, supprimer un espace</strong> : clic droit sur sa pastille, ou commande « Modifier le thème de l'espace ».</li>
           </ul>
           <p class="muted">Dans la page, un balayage à deux doigts (macOS) ou <kbd>Alt</kbd> <kbd>←</kbd> / <kbd>→</kbd> navigue en arrière et en avant.</p>
         </section>
@@ -413,7 +447,7 @@
           <ul>
             <li><strong>Téléchargements</strong> : enregistrés sans boîte de dialogue (ou toujours demander où, Paramètres, Téléchargements), avec pause, reprise et annulation. Les programmes et scripts attendent votre confirmation ; rien n'est ouvert automatiquement. Liste : <kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>J</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>L</kbd>) ou <code>browser://downloads</code>.</li>
             <li><strong>Rechercher dans la page</strong> : <kbd>Ctrl</kbd> <kbd>F</kbd>, puis <kbd>Entrée</kbd> / <kbd>Maj</kbd> <kbd>Entrée</kbd>, <kbd>F3</kbd> ou <kbd>Ctrl</kbd> <kbd>G</kbd> pour l'occurrence suivante. Le compteur et la casse sont gardés par onglet.</li>
-            <li><strong>Zoom</strong> : <kbd>Ctrl</kbd> <kbd>+</kbd> / <kbd>-</kbd> / <kbd>0</kbd>, mémorisé par site ; zoom par défaut dans Paramètres, Apparence.</li>
+            <li><strong>Zoom</strong> : <kbd>Ctrl</kbd> <kbd>+</kbd> / <kbd>-</kbd> / <kbd>0</kbd>, pincement ou <kbd>Ctrl</kbd> + molette, mémorisé par site ; zoom par défaut dans Paramètres, Apparence.</li>
             <li><strong>Médias</strong> : <kbd>Ctrl</kbd> <kbd>M</kbd> coupe le son de l'onglet ; « Image dans l'image » détache la vidéo.</li>
           </ul>
         </section>
@@ -480,6 +514,9 @@
                 <tr><td>Onglet 1 à 8, dernier onglet</td><td><kbd>Ctrl</kbd> <kbd>1</kbd>…<kbd>9</kbd></td><td><kbd>⌘</kbd> <kbd>1</kbd>…<kbd>9</kbd></td></tr>
                 <tr><td>Nouvelle fenêtre</td><td><kbd>Ctrl</kbd> <kbd>N</kbd></td><td><kbd>⌘</kbd> <kbd>N</kbd></td></tr>
                 <tr><td>Nouvelle fenêtre privée</td><td><kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>N</kbd></td><td><kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>N</kbd></td></tr>
+                <tr><td>Rouvrir l'onglet fermé</td><td><kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>T</kbd></td><td><kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>T</kbd></td></tr>
+                <tr><td>Sélectionner plusieurs onglets</td><td><kbd>Ctrl</kbd> + clic</td><td><kbd>⌘</kbd> + clic</td></tr>
+                <tr><td>Quitter</td><td><kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>Q</kbd></td><td><kbd>⌘</kbd> <kbd>Q</kbd></td></tr>
                 <tr><td>Couper le son de l'onglet</td><td><kbd>Ctrl</kbd> <kbd>M</kbd></td><td><kbd>⌃</kbd> <kbd>M</kbd></td></tr>
                 <tr class="group"><th colspan="3" scope="rowgroup">Navigation</th></tr>
                 <tr><td>Page précédente / suivante</td><td><kbd>Alt</kbd> <kbd>←</kbd> / <kbd>Alt</kbd> <kbd>→</kbd></td><td><kbd>⌘</kbd> <kbd>[</kbd> / <kbd>⌘</kbd> <kbd>]</kbd></td></tr>
@@ -493,6 +530,9 @@
                 <tr><td>Mode zen</td><td><kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>B</kbd></td><td><kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>B</kbd></td></tr>
                 <tr><td>Vue scindée</td><td><kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>\</kbd></td><td><kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>\</kbd></td></tr>
                 <tr><td>Zoom avant / arrière / taille réelle</td><td><kbd>Ctrl</kbd> <kbd>+</kbd> / <kbd>Ctrl</kbd> <kbd>-</kbd> / <kbd>Ctrl</kbd> <kbd>0</kbd></td><td><kbd>⌘</kbd> <kbd>+</kbd> / <kbd>⌘</kbd> <kbd>-</kbd> / <kbd>⌘</kbd> <kbd>0</kbd></td></tr>
+                <tr><td>Plein écran</td><td><kbd>F11</kbd></td><td><kbd>⌃</kbd> <kbd>⌘</kbd> <kbd>F</kbd></td></tr>
+                <tr><td>Afficher le code source</td><td><kbd>Ctrl</kbd> <kbd>U</kbd></td><td><kbd>⌘</kbd> <kbd>U</kbd></td></tr>
+                <tr><td>Imprimer</td><td><kbd>Ctrl</kbd> <kbd>P</kbd></td><td><kbd>⌘</kbd> <kbd>P</kbd></td></tr>
                 <tr><td>Mode lecture</td><td><kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>R</kbd></td><td><kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>R</kbd></td></tr>
                 <tr><td>Options de la page</td><td><kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>O</kbd></td><td><kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>O</kbd></td></tr>
                 <tr><td>Outils de développement</td><td><kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>I</kbd></td><td><kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>I</kbd></td></tr>
@@ -511,8 +551,8 @@
             </table>
           </div>
           <p class="muted">
-            Les autres commandes (épingler, mettre en veille, nouveau dossier, extensions, mots de passe, boosts,
-            synchroniser…) n'ont pas de raccourci par défaut : retrouvez-les dans la barre universelle, ou
+            Les autres commandes (épingler, mettre en veille, nouveau dossier, mode compact, enregistrer la page,
+            extensions, mots de passe, boosts, synchroniser…) n'ont pas de raccourci par défaut : retrouvez-les dans la barre universelle, ou
             attribuez-leur le vôtre.
           </p>
         </section>
@@ -566,6 +606,13 @@
             La synchronisation a lieu au démarrage, quelques secondes après chaque changement, toutes les 5 minutes, et
             sur le téléphone à chaque retour au premier plan (ou « Synchroniser maintenant »). Les onglets de vos autres
             appareils apparaissent dans la barre universelle et dans la vue des onglets du téléphone.
+          </p>
+          <h3>Envoyer un onglet à un appareil</h3>
+          <p>
+            Clic droit dans la page, « Envoyer à un appareil », puis choisissez l'appareil jumelé. L'adresse voyage
+            chiffrée de bout en bout et expire après 7 jours si elle n'est pas reçue. L'ordinateur destinataire l'ouvre en
+            arrière-plan avec une notification ; le téléphone demande « Ouvrir » ou « Plus tard » et la garde sous
+            « Autres appareils ». Jamais depuis une fenêtre privée.
           </p>
           <ul>
             <li><strong>Déconnecter cet appareil</strong> : arrête la synchronisation ici, les données locales restent.</li>

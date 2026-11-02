@@ -18,6 +18,10 @@ Windows, macOS et Linux, avec son application iPhone et Android.
 - Dossiers d'onglets imbriqués, grille des favoris commune aux espaces, archivage automatique des onglets
   inactifs (`browser://archive`) (ADR-022).
 - Mise en veille des onglets inactifs (jamais pendant du son, une autorisation ou un formulaire) (ADR-014).
+- Menus (ADR-033) : menu « … » de l'application (synchro, zoom, plein écran, historique, favoris, outils), clic
+  droit sur l'espace vide de la barre latérale (mode compact en rail d'icônes, côté de la barre) et sur les
+  pastilles d'espace (renommer, réordonner, supprimer) ; sélection de plusieurs onglets (`Ctrl`+clic) avec barre
+  d'actions ; rouvrir l'onglet fermé (`Ctrl+Maj+T`).
 
 **Trouver et agir**
 - Barre universelle (`Ctrl+K`, `⌘K`) : onglets de tous les espaces, favoris, historique, commandes, réglages,
@@ -27,7 +31,9 @@ Windows, macOS et Linux, avec son application iPhone et Android.
   mobile d'un site (ADR-026).
 - Options de la page (`Ctrl+Maj+O`) : zoom, captures d'écran (zone visible, page entière, élément), vidéo de
   l'onglet (`Ctrl+Alt+V`), QR code (ADR-031).
-- Menu contextuel complet des pages, infos sur le site, données des sites (ADR-021).
+- Menu contextuel complet des pages (enregistrer la page, code source `Ctrl+U`, imprimer `Ctrl+P`, capture,
+  envoyer à un appareil), infos sur le site, données des sites (ADR-021, 033).
+- Gestes sur la page : pincer ou `Ctrl`+molette pour zoomer, balayage à deux doigts pour précédent/suivant (ADR-033).
 - Téléchargements sans boîte de dialogue (pause, reprise, `browser://downloads`), recherche dans la page, zoom
   mémorisé par site, image dans l'image, son coupé par onglet (ADR-013).
 - Raccourcis personnalisables, conflits signalés (ADR-028).
@@ -51,7 +57,8 @@ Windows, macOS et Linux, avec son application iPhone et Android.
   `browser://passwords`), jamais d'invite en fenêtre privée (ADR-025).
 - Synchronisation chiffrée de bout en bout avec le téléphone (favoris, historique récent, onglets ouverts,
   espaces, thème, boosts) via un petit serveur que vous hébergez ([`server/`](server/README.md)), jumelage
-  par QR code ; jamais la navigation privée (ADR-019).
+  par QR code ; jamais la navigation privée (ADR-019). « Envoyer à un appareil » : un onglet vers un autre
+  appareil, chiffré, expiré après 7 jours (ADR-033).
 - Mises à jour automatiques depuis les releases GitHub, canal stable ou bêta (ADR-030).
 
 ![Espaces et leur éditeur](docs/screenshots/spaces.png)
@@ -154,6 +161,10 @@ commandes (`src/shared/commands.ts`) : « Maj » pour Shift sous Windows/Linux, 
 | `Ctrl+Maj+B` | `⇧⌘B` | Mode zen (barre latérale masquée, page bord à bord) |
 | `Ctrl+Alt+1…9`, `Ctrl+Alt+←/→` | `⌥⌘1…9`, `⌥⌘←/→` | Aller à l'espace n / espace précédent, suivant |
 | `Ctrl+Maj+\` | `⇧⌘\` | Vue scindée (l'onglet actif et le suivant côte à côte) / la quitter |
+| `Ctrl+Maj+T` | `⇧⌘T` | Rouvrir l'onglet fermé |
+| `Ctrl+U` / `Ctrl+P` | `⌘U` / `⌘P` | Code source / imprimer |
+| `F11` | `⌃⌘F` | Plein écran |
+| `Ctrl+Maj+Q` | `⌘Q` | Quitter |
 | `Ctrl+Alt+R` | `⌥⌘R` | Mode lecture |
 | `Ctrl+Maj+O` | `⇧⌘O` | Options de la page |
 | `Ctrl+Maj+S` / `Ctrl+Alt+S` | `⇧⌘S` / `⌥⌘S` | Capture de la zone visible / de la page entière |
