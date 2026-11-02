@@ -42,7 +42,7 @@ function settingsAdapter(): CollectionAdapter<SyncedSettings> {
     snapshot: () => new Map([[SETTINGS_RECORD, pickSyncedSettings(settings())]]),
     sanitize: (value, id) => (id === SETTINGS_RECORD ? sanitizeSyncedSettings(value) : null),
     apply: ({ upserts }) => {
-      for (const { data } of upserts) updateSettings(syncedSettingsPatch(data));
+      for (const { data } of upserts) updateSettings(syncedSettingsPatch(data, settings()));
     },
   };
 }

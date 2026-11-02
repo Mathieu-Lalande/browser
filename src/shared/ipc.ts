@@ -23,6 +23,8 @@ import type { SiteDataEntry, SiteInfo } from "./site-info";
 import type { SyncStatus } from "./sync/controller";
 import type { SharedTheme, ThemeDecodeResult } from "./theme-share";
 import type { UpdateStatus } from "./updates";
+import type { WeatherPlace } from "./start-widgets";
+import type { Forecast } from "./weather";
 import type {
   Bookmark,
   BookmarkInput,
@@ -104,6 +106,8 @@ export const Channels = {
   shortcutCapture: "settings:shortcut-capture",
   shortcutKey: "settings:shortcut-key",
   startImage: "settings:start-image",
+  weatherPlaces: "weather:places",
+  weatherForecast: "weather:forecast",
   tabToggleMute: "tab:toggle-mute",
   findQuery: "find:query",
   findStep: "find:step",
@@ -448,6 +452,14 @@ export interface BrowserApi {
      * image); null when there is none, it failed, or in a private window.
      */
     startImage(): Promise<string | null>;
+  };
+  /**
+   * The start page's weather widget (ADR-034): Open-Meteo, asked by main (no key, no cookies,
+   * 30 min cache). Empty / null when offline or on an error.
+   */
+  weather: {
+    places(query: string): Promise<WeatherPlace[]>;
+    forecast(latitude: number, longitude: number): Promise<Forecast | null>;
   };
   find: {
     /** Searches the tab's page for `query` (new search: the first match from the top is highlighted). */

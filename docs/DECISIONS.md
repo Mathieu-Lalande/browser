@@ -1593,3 +1593,46 @@ la page, il renvoie les molettes suivantes à main (`page-swipe:wheel`). macOS g
 **Conséquences.** Les messages du guetteur apparaissent au niveau « Verbose » des outils de développement de la page.
 Une page qui gère elle-même le défilement horizontal par script (sans débordement CSS) peut voir un balayage
 naviguer au bord : comme dans Chrome.
+
+## ADR-034 — Nouvel onglet personnalisable (widgets)
+
+**Contexte.** La page d'accueil (horloge, recherche, sites fréquents, deux interrupteurs) devait devenir une page
+qu'on arrange soi-même, comme les « nouveaux onglets » des navigateurs récents, sur le bureau et le téléphone.
+
+**Décision.** Un **modèle pur** `src/shared/start-widgets.ts` : `settings.startPage.widgets` est une liste ordonnée
+de `{ id, kind, size, options }` (12 au plus), validée par `sanitizeWidgets` (types inconnus, identifiants invalides
+ou en double, second exemplaire d'un widget unique, tailles non proposées : écartés ou corrigés ; options validées
+champ par champ par type). Catalogue `WIDGET_CATALOG` : horloge/salutation, recherche, sites fréquents (avec épingles
+modifiables), favoris, autres appareils (synchro), notes rapides, météo, calendrier, à faire, « Reprendre »
+(onglet fermé + onglets archivés). Opérations pures (ajouter, retirer, déplacer, décaler d'un cran, redimensionner,
+options), dispositions « Minimal », « Productif », « Complet » (qui réutilisent les widgets déjà présents, donc leurs
+notes) et réinitialisation. Les anciens `showClock`/`showTopSites` sont migrés à la lecture.
+- **Tailles** : S = une colonne, M = deux, L = toute la rangée, sur une grille de 4 colonnes (2 sur une page étroite,
+  requêtes de conteneur). L'horloge et la recherche sont dessinées sans carte.
+- **Mode édition** (bouton « Personnaliser ») : glisser-déposer des cartes, flèches pour déplacer la carte focalisée
+  (annoncé par une région `aria-live`), Suppr pour retirer, Entrée pour les options (popover dans la page : la page
+  d'accueil est dessinée par l'interface, aucune vue native au-dessus), galerie « Ajouter un widget », Échap ou
+  « Terminé » pour sortir. Contenu inerte pendant l'édition. Animations `flip` de 140 ms, 0 si mouvements réduits.
+- **Enregistrement** : `StartLayout` applique les modifications tout de suite et les envoie aux réglages,
+  immédiatement ou après 400 ms de pause pendant la saisie (notes, tâches), et à la fermeture de la page.
+- **Synchronisation** : la disposition se synchronise avec les réglages (ADR-019), **sans** le texte des notes ni
+  les tâches (`withoutLocalContent`), que l'application d'un enregistrement distant remet en place
+  (`withLocalContent`, par identifiant).
+- **Météo** : Open-Meteo, sans clé. Recherche de ville (API de géocodage) et prévisions demandées par main
+  (`weather:places`, `weather:forecast` ; CSP de l'interface inchangée) via la session en mémoire sans cookies de
+  l'image d'accueil, délai de 8 s, cache de 30 min (`WeatherClient` partagé, client HTTP injecté) ; analyse des
+  réponses par `parsePlaces`/`parseForecast` (JSON non fiable). Le widget n'est dans aucune disposition par défaut :
+  aucune requête tant qu'on ne l'ajoute pas ; mentionné dans la section Confidentialité.
+- **Fond dynamique** (`startPage.background = "dynamic"`) : deux maillages des couleurs d'accent qui dérivent
+  lentement ; immobiles quand les mouvements sont réduits (règle globale).
+- **Fenêtres privées** : la page fonctionne, mais les widgets qui révèlent des habitudes (sites fréquents, autres
+  appareils, « Reprendre ») ne s'affichent pas, et toute modification reste en mémoire : rien n'est enregistré.
+- **Téléphone** (`mobile/src/components/StartPage.tsx`, `StartWidgets.tsx`, `lib/startWidgets.ts`) : même liste,
+  types pris en charge : horloge, recherche, sites fréquents, favoris, autres appareils, notes, à faire, météo
+  (calendrier et « Reprendre » sont ignorés mais conservés). Appui long pour l'édition ; la poignée d'une carte se
+  glisse (`usePanGesture` + Reanimated : translation et opacité sur la même vue, pas d'animation de mise en page),
+  point d'arrivée par `dropIndex` ; lecteurs d'écran : actions « Monter », « Descendre », « Retirer ».
+
+**Conséquences.** `MAX_SETTINGS_PATCH` passe à 96 Ko (notes et tâches dans les réglages). Les notes vivent dans
+`settings.json` (en clair, comme le reste des réglages). Un ancien appareil qui synchronise `showClock: false` sans
+liste de widgets peut réimposer la disposition par défaut sans horloge.

@@ -6,7 +6,7 @@ import { downloadHandlers } from "./downloads";
 import { archiveHandlers, favoriteHandlers, folderHandlers, spaceHandlers } from "./organize";
 import { passwordHandlers } from "./passwords";
 import { boostHandlers, captureHandlers } from "./page";
-import { historyHandlers, settingsHandlers } from "./profile";
+import { historyHandlers, settingsHandlers, weatherHandlers } from "./profile";
 import { registerHandlers, type ChannelName, type Entry } from "./registry";
 import { startSyncBroadcast, syncHandlers, themeHandlers, updateHandlers } from "./services";
 import { extensionHandlers, siteInfoHandlers } from "./site";
@@ -45,6 +45,7 @@ const handlers = {
   ...spaceHandlers,
   ...historyHandlers,
   ...settingsHandlers,
+  ...weatherHandlers,
   ...downloadHandlers,
   ...siteInfoHandlers,
   ...extensionHandlers,

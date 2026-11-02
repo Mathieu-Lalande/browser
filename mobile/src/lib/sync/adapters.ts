@@ -82,7 +82,7 @@ function settingsAdapter(store: MobileSyncStore): CollectionAdapter<SyncedSettin
     snapshot: () => new Map([[SETTINGS_RECORD, pickSyncedSettings(store.settings())]]),
     sanitize: (value, id) => (id === SETTINGS_RECORD ? sanitizeSyncedSettings(value) : null),
     apply: ({ upserts }) => {
-      for (const { data } of upserts) store.setSettings(mergeSettings(store.settings(), syncedSettingsPatch(data)));
+      for (const { data } of upserts) store.setSettings(mergeSettings(store.settings(), syncedSettingsPatch(data, store.settings())));
     },
   };
 }

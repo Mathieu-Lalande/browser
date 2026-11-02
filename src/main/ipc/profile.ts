@@ -4,9 +4,11 @@ import type { BookmarkInput } from "@shared/types";
 import { profile } from "../profile";
 import { resetSettingsSection, settings, updateSettings } from "../settings";
 import { startImage } from "../start-image";
+import { weather } from "../weather";
+import { MAX_PLACE_QUERY } from "@shared/weather";
 import { BrowserController } from "../window";
 import { MAX_QUERY_LENGTH, MAX_RESULTS, MAX_SETTINGS_PATCH, MAX_URL_LENGTH } from "./limits";
-import { bool, defineHandlers, handle, handleUi, intIn, maxStr, on, opt, record, str, type Guard } from "./registry";
+import { bool, custom, defineHandlers, handle, handleUi, intIn, maxStr, on, opt, record, str, type Guard } from "./registry";
 
 /** Undefined (use the default) or an integer in 1…MAX_RESULTS. */
 const limit = opt(intIn(1, MAX_RESULTS));
@@ -56,4 +58,12 @@ export const settingsHandlers = defineHandlers({
     const { background, backgroundImage } = settings().startPage;
     return c.isPrivate || background !== "image" ? null : startImage(backgroundImage);
   }),
+});
+
+const coordinate = (max: number) => custom<number>((value) => typeof value === "number" && Number.isFinite(value) && Math.abs(value) <= max);
+
+/** Weather widget (ADR-034): main asks Open-Meteo; the UI only gives a search text or coordinates. */
+export const weatherHandlers = defineHandlers({
+  [Channels.weatherPlaces]: handleUi([maxStr(MAX_PLACE_QUERY)], (query) => weather().places(query)),
+  [Channels.weatherForecast]: handleUi([coordinate(90), coordinate(180)], (latitude, longitude) => weather().forecast(latitude, longitude)),
 });

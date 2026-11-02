@@ -1,4 +1,5 @@
 import { ACCENT_PRESETS, ARCHIVE_DELAY_OPTIONS, LIMITS, type CloseTabActivates, type NewTabPosition, type TabArchiveDelay, type ThemeMode } from "@shared/settings";
+import { addWidget } from "@shared/start-widgets";
 import { displayUrl, SEARCH_ENGINES } from "@shared/url";
 import { memo, useState, type ReactNode } from "react";
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
@@ -132,12 +133,22 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
               accessibilityLabel="Prénom affiché dans le message d'accueil"
             />
           </Row>
-          <Toggle label="Afficher l'heure" value={startPage.showClock} onChange={(showClock) => actions.updateSettings({ startPage: { showClock } })} />
-          <Toggle
-            label="Sites fréquents"
-            value={startPage.showTopSites}
-            onChange={(showTopSites) => actions.updateSettings({ startPage: { showTopSites } })}
-          />
+          {(["clock", "top-sites"] as const).map((kind) => {
+            const shown = startPage.widgets.some((widget) => widget.kind === kind);
+            return (
+              <Toggle
+                key={kind}
+                label={kind === "clock" ? "Afficher l'heure" : "Sites fréquents"}
+                detail={kind === "clock" ? "Maintenez la page d'accueil pour la personnaliser" : undefined}
+                value={shown}
+                onChange={(show) =>
+                  actions.updateSettings({
+                    startPage: { widgets: show ? addWidget(startPage.widgets, kind, kind === "clock" ? 0 : undefined) : startPage.widgets.filter((widget) => widget.kind !== kind) },
+                  })
+                }
+              />
+            );
+          })}
         </Group>
 
         <Group title="Onglets" icon="tabs">

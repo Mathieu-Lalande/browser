@@ -172,6 +172,10 @@ const api: BrowserApi = {
     onShortcutKey: (listener) => subscribe<KeyPress>(Channels.shortcutKey, listener),
     startImage: () => ipcRenderer.invoke(Channels.startImage),
   },
+  weather: {
+    places: (query) => ipcRenderer.invoke(Channels.weatherPlaces, query),
+    forecast: (latitude, longitude) => ipcRenderer.invoke(Channels.weatherForecast, latitude, longitude),
+  },
   find: {
     query: (tabId, query, matchCase) => send(Channels.findQuery, tabId, query, matchCase),
     step: (tabId, forward) => send(Channels.findStep, tabId, forward),

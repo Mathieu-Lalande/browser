@@ -18,6 +18,7 @@
   } from "@shared/settings";
   import { api, browser } from "../../lib/browser.svelte";
   import { internalFragment } from "@shared/internal";
+  import { LAYOUT_PRESETS, applyPreset } from "@shared/start-widgets";
   import { FONT_STACKS, backdrop } from "@shared/theme";
   import { SEARCH_ENGINES } from "@shared/url";
   import { settings } from "../../lib/settings.svelte";
@@ -451,15 +452,17 @@
             oninput={(event) => update({ startPage: { greetingName: event.currentTarget.value } })}
           />
         </Row>
-        <Row anchor="clock" label="Horloge">
-          <Toggle label="Horloge" checked={s.startPage.showClock} onchange={(showClock) => update({ startPage: { showClock } })} />
-        </Row>
-        <Row anchor="top-sites" label="Sites les plus visités">
-          <Toggle
-            label="Sites les plus visités"
-            checked={s.startPage.showTopSites}
-            onchange={(showTopSites) => update({ startPage: { showTopSites } })}
-          />
+        <Row
+          anchor="widgets"
+          label="Widgets"
+          hint="Horloge, recherche, sites fréquents, notes, météo… Bouton « Personnaliser » de la page d'accueil pour les ajouter, les déplacer et les régler."
+          keywords="horloge sites fréquents notes météo tâches calendrier disposition"
+        >
+          <div class="actions">
+            {#each LAYOUT_PRESETS as preset (preset.id)}
+              <Button size="sm" onclick={() => update({ startPage: { widgets: applyPreset(s.startPage.widgets, preset.id) } })}>{preset.label}</Button>
+            {/each}
+          </div>
         </Row>
         <Row anchor="background" label="Fond" hint={s.startPage.background === "image" ? "Adresse https d'une image." : undefined}>
           <div class="stack">
@@ -469,6 +472,7 @@
               options={[
                 { value: "theme" as StartBackground, label: "Thème" },
                 { value: "aurora" as StartBackground, label: "Aurore" },
+                { value: "dynamic" as StartBackground, label: "Dynamique" },
                 { value: "image" as StartBackground, label: "Image" },
               ]}
               onchange={(background) => update({ startPage: { background } })}
@@ -593,6 +597,14 @@
             checked={s.privacy.normalizeAcceptLanguage}
             onchange={(normalizeAcceptLanguage) => update({ privacy: { normalizeAcceptLanguage } })}
           />
+        </Row>
+        <Row
+          anchor="weather"
+          label="Widget Météo"
+          hint="Absent par défaut. Une fois ajouté, il envoie à Open-Meteo les coordonnées de la ville choisie (sans clé, sans cookie, réponses gardées 30 min) : rien d'autre ne quitte l'appareil."
+          keywords="open-meteo localisation réseau page d'accueil"
+        >
+          <span class="note">Réglé depuis la page d'accueil</span>
         </Row>
         <Row label="Mots de passe" hint="Identifiants enregistrés, chiffrés sur cet appareil." keywords="identifiants comptes connexion">
           <Button icon="key" onclick={() => api.commands.run("open-passwords")}>Gérer les mots de passe</Button>
@@ -923,6 +935,15 @@
     font-size: var(--text-xs);
   }
 
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .note {
+    color: var(--text-faint);
+    font-size: 12px;
+  }
   .stack {
     display: flex;
     flex-direction: column;

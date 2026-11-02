@@ -1,6 +1,7 @@
 import { isReservedAnywhere, needsModifier, normalizeAccelerator, parseAccelerator } from "./accelerators";
 import { isCommandId, type ShortcutOverrides } from "./commands";
 import { sanitizeSiteList } from "./site-info";
+import { defaultWidgets, migrateLegacyStartPage, sanitizeWidgets, type StartWidget } from "./start-widgets";
 import { DEFAULT_SEARCH_ENGINE, SEARCH_ENGINES, type SearchEngine } from "./url";
 
 /** User preferences, persisted as `settings.json` and applied live in every window. */
@@ -13,7 +14,8 @@ export type SidebarPosition = "left" | "right";
 export type NewTabPosition = "end" | "next";
 /** Which tab becomes active when the active one is closed. */
 export type CloseTabActivates = "next" | "previous" | "recent";
-export type StartBackground = "theme" | "aurora" | "image";
+/** "dynamic": a slowly moving mesh of the accent colors (still when motion is reduced). */
+export type StartBackground = "theme" | "aurora" | "dynamic" | "image";
 /** Idle time after which a background tab is put to sleep (its page unloaded), or never. */
 export type TabSleepDelay = "never" | "15m" | "30m" | "1h" | "2h";
 /** Idle time after which a tab is closed and kept in the archive (ADR-022), or never. */
@@ -58,8 +60,8 @@ export interface SearchSettings {
 }
 
 export interface StartPageSettings {
-  showClock: boolean;
-  showTopSites: boolean;
+  /** The new tab page's widgets, in order (ADR-034). */
+  widgets: StartWidget[];
   /** "Bonjour, <name>." — empty for a plain greeting. */
   greetingName: string;
   background: StartBackground;
@@ -186,7 +188,7 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   layout: { sidebarPosition: "left", sidebarWidth: 264, gutter: 8, zenMode: false, compactMode: false, favoritesHintDismissed: false },
   search: { engine: DEFAULT_SEARCH_ENGINE.id },
-  startPage: { showClock: true, showTopSites: true, greetingName: "", background: "theme", backgroundImage: "" },
+  startPage: { widgets: defaultWidgets(), greetingName: "", background: "theme", backgroundImage: "" },
   behavior: { restoreSession: true, newTabPosition: "end", closeTabActivates: "next", sleepTabsAfter: "30m", archiveTabsAfter: "7d" },
   privacy: { normalizeAcceptLanguage: false, blockThirdPartyCookies: false, thirdPartyCookieExceptions: [] },
   downloads: { folder: "", askWhere: false },
@@ -284,10 +286,9 @@ const schema: Schema = {
   },
   search: { engine: oneOf(...SEARCH_ENGINES.map((engine) => engine.id)) },
   startPage: {
-    showClock: bool,
-    showTopSites: bool,
+    widgets: sanitizeWidgets,
     greetingName: text(LIMITS.greetingName),
-    background: oneOf("theme", "aurora", "image"),
+    background: oneOf("theme", "aurora", "dynamic", "image"),
     backgroundImage: imageUrl,
   },
   behavior: {
@@ -329,7 +330,11 @@ export function sanitizeSettings(value: unknown, base: Settings = DEFAULT_SETTIN
       result.shortcuts = isRecord(root.shortcuts) ? sanitizeShortcuts(root.shortcuts) : { ...base.shortcuts };
       continue;
     }
-    const input = isRecord(root[section]) ? root[section] : {};
+    let input = isRecord(root[section]) ? root[section] : {};
+    if (section === "startPage") {
+      const migrated = migrateLegacyStartPage(input);
+      if (migrated) input = { ...input, widgets: migrated };
+    }
     const fields = schema[section] as Record<string, Field<unknown>>;
     const fallback = base[section] as unknown as Record<string, unknown>;
     result[section] = {};

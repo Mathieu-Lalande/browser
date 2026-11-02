@@ -80,3 +80,6 @@
 - Menus et gestes (ADR-033) : modèles purs `src/shared/menus.ts` (menu « … » overlay `app-menu` via `MenuList.svelte`,
   menus natifs barre latérale/espaces `src/main/context-menus.ts`), page `page-menu-model.ts` ; gestes de page
   `src/shared/page-gestures.ts` + guetteur en monde isolé `src/main/page-swipe-script.ts` ; collection de synchro `sent`.
+- Nouvel onglet personnalisable (ADR-034) : modèle pur `src/shared/start-widgets.ts` (`settings.startPage.widgets`, catalogue,
+  dispositions, notes/tâches jamais synchronisées), météo Open-Meteo `src/shared/weather.ts` demandée par main (`src/main/weather.ts`) ;
+  bureau `src/renderer/src/components/start/` (`StartLayout`, mode édition), mobile `StartPage.tsx`/`StartWidgets.tsx`.

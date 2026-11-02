@@ -4,6 +4,22 @@
   // space icons of src/shared/spaces.ts): call sites never import Lucide directly.
   import type { CommandIcon } from "@shared/commands";
   import type { SpaceIcon } from "@shared/spaces";
+  import type { WidgetIcon } from "@shared/start-widgets";
+  import type { WeatherIcon } from "@shared/weather";
+  import TrendingUp from "@lucide/svelte/icons/trending-up";
+  import MonitorSmartphone from "@lucide/svelte/icons/monitor-smartphone";
+  import StickyNote from "@lucide/svelte/icons/sticky-note";
+  import CloudSun from "@lucide/svelte/icons/cloud-sun";
+  import CloudMoon from "@lucide/svelte/icons/cloud-moon";
+  import CloudFog from "@lucide/svelte/icons/cloud-fog";
+  import CloudDrizzle from "@lucide/svelte/icons/cloud-drizzle";
+  import CloudRain from "@lucide/svelte/icons/cloud-rain";
+  import CloudSnow from "@lucide/svelte/icons/cloud-snow";
+  import CloudLightning from "@lucide/svelte/icons/cloud-lightning";
+  import ListTodo from "@lucide/svelte/icons/list-todo";
+  import GripVertical from "@lucide/svelte/icons/grip-vertical";
+  import MapPin from "@lucide/svelte/icons/map-pin";
+  import LayoutDashboard from "@lucide/svelte/icons/layout-dashboard";
   import type { Component } from "svelte";
   import AppWindow from "@lucide/svelte/icons/app-window";
   import ArrowLeft from "@lucide/svelte/icons/arrow-left";
@@ -327,9 +343,35 @@
     "venetian-mask": VenetianMask,
   } satisfies Record<SpaceIcon, LucideIcon>;
 
-  const icons: Record<string, LucideIcon> = { ...ui, ...spaces };
+  /** Start page widgets and weather conditions (ADR-034): Lucide names, like the space icons. */
+  const widgets = {
+    clock: Clock,
+    search: Search,
+    "trending-up": TrendingUp,
+    "layout-grid": LayoutGrid,
+    "monitor-smartphone": MonitorSmartphone,
+    "sticky-note": StickyNote,
+    "cloud-sun": CloudSun,
+    calendar: Calendar,
+    "list-todo": ListTodo,
+    "rotate-ccw-clock": History,
+    sun: Sun,
+    moon: Moon,
+    "cloud-moon": CloudMoon,
+    cloud: Cloud,
+    "cloud-fog": CloudFog,
+    "cloud-drizzle": CloudDrizzle,
+    "cloud-rain": CloudRain,
+    "cloud-snow": CloudSnow,
+    "cloud-lightning": CloudLightning,
+    "grip-vertical": GripVertical,
+    "map-pin": MapPin,
+    "layout-dashboard": LayoutDashboard,
+  } satisfies Record<WidgetIcon | WeatherIcon, LucideIcon> & Record<string, LucideIcon>;
 
-  export type IconName = keyof typeof ui | SpaceIcon;
+  const icons: Record<string, LucideIcon> = { ...ui, ...spaces, ...widgets };
+
+  export type IconName = keyof typeof ui | SpaceIcon | keyof typeof widgets;
 </script>
 
 <script lang="ts">

@@ -1,11 +1,30 @@
 import type { CommandIcon } from "@shared/commands";
 import type { SpaceIcon } from "@shared/spaces";
+import type { WidgetIcon } from "@shared/start-widgets";
+import type { WeatherIcon } from "@shared/weather";
 import type { LucideIcon } from "lucide-react-native";
 // Lucide icons (https://lucide.dev), imported one by one so the bundle only holds the ones used.
 import ArrowUpLeft from "lucide-react-native/icons/arrow-up-left";
 import BookOpen from "lucide-react-native/icons/book-open";
 import Briefcase from "lucide-react-native/icons/briefcase";
 import Calendar from "lucide-react-native/icons/calendar";
+import TrendingUp from "lucide-react-native/icons/trending-up";
+import MonitorSmartphone from "lucide-react-native/icons/monitor-smartphone";
+import StickyNote from "lucide-react-native/icons/sticky-note";
+import CloudSun from "lucide-react-native/icons/cloud-sun";
+import CloudMoon from "lucide-react-native/icons/cloud-moon";
+import CloudFog from "lucide-react-native/icons/cloud-fog";
+import CloudDrizzle from "lucide-react-native/icons/cloud-drizzle";
+import CloudRain from "lucide-react-native/icons/cloud-rain";
+import CloudSnow from "lucide-react-native/icons/cloud-snow";
+import CloudLightning from "lucide-react-native/icons/cloud-lightning";
+import ListTodo from "lucide-react-native/icons/list-todo";
+import RotateCcwClock from "lucide-react-native/icons/rotate-ccw-clock";
+import Sun from "lucide-react-native/icons/sun";
+import Moon from "lucide-react-native/icons/moon";
+import GripVertical from "lucide-react-native/icons/grip-vertical";
+import MapPin from "lucide-react-native/icons/map-pin";
+import LayoutDashboard from "lucide-react-native/icons/layout-dashboard";
 import Camera from "lucide-react-native/icons/camera";
 import Check from "lucide-react-native/icons/check";
 import ChefHat from "lucide-react-native/icons/chef-hat";
@@ -187,9 +206,35 @@ const spaces = {
   "venetian-mask": VenetianMask,
 } satisfies Record<SpaceIcon, LucideIcon>;
 
-const icons: Record<string, LucideIcon> = { ...ui, ...spaces };
+/** Start page widgets and weather conditions (ADR-034): Lucide names, shared with the desktop. */
+const widgets = {
+  clock: Clock,
+  search: Search,
+  "trending-up": TrendingUp,
+  "layout-grid": LayoutGrid,
+  "monitor-smartphone": MonitorSmartphone,
+  "sticky-note": StickyNote,
+  "cloud-sun": CloudSun,
+  calendar: Calendar,
+  "list-todo": ListTodo,
+  "rotate-ccw-clock": RotateCcwClock,
+  sun: Sun,
+  moon: Moon,
+  "cloud-moon": CloudMoon,
+  cloud: Cloud,
+  "cloud-fog": CloudFog,
+  "cloud-drizzle": CloudDrizzle,
+  "cloud-rain": CloudRain,
+  "cloud-snow": CloudSnow,
+  "cloud-lightning": CloudLightning,
+  "grip-vertical": GripVertical,
+  "map-pin": MapPin,
+  "layout-dashboard": LayoutDashboard,
+} satisfies Record<WidgetIcon | WeatherIcon, LucideIcon> & Record<string, LucideIcon>;
 
-export type IconName = keyof typeof ui | SpaceIcon;
+const icons: Record<string, LucideIcon> = { ...ui, ...spaces, ...widgets };
+
+export type IconName = keyof typeof ui | SpaceIcon | keyof typeof widgets;
 
 /** Icons of the shared command registry, mapped to ours. */
 export const COMMAND_ICONS: Partial<Record<CommandIcon, IconName>> = {

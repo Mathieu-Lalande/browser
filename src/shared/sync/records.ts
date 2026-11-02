@@ -1,5 +1,6 @@
 import { sanitizeSettings, type Settings, type SettingsPatch } from "../settings";
 import { isSpaceId, sanitizeSpace } from "../spaces";
+import { withLocalContent, withoutLocalContent } from "../start-widgets";
 import type { Bookmark, HistoryEntry, SpaceInfo } from "../types";
 import { isNavigableUrl } from "../url";
 import { isDeviceId } from "./hlc";
@@ -34,14 +35,18 @@ export interface SyncedSettings {
 
 export function pickSyncedSettings(settings: Settings): SyncedSettings {
   const { mode, accent, accent2 } = settings.appearance;
-  return { mode, accent, accent2, engine: settings.search.engine, startPage: { ...settings.startPage } };
+  // Start page widgets are synced without their notes and tasks, which stay on the device (ADR-034).
+  const startPage = { ...settings.startPage, widgets: withoutLocalContent(settings.startPage.widgets) };
+  return { mode, accent, accent2, engine: settings.search.engine, startPage };
 }
 
-export function syncedSettingsPatch(synced: SyncedSettings): SettingsPatch {
+/** The patch applying another device's settings; `local` (this device's) keeps its notes and tasks. */
+export function syncedSettingsPatch(synced: SyncedSettings, local?: Settings): SettingsPatch {
+  const widgets = local ? withLocalContent(synced.startPage.widgets, local.startPage.widgets) : synced.startPage.widgets;
   return {
     appearance: { mode: synced.mode, accent: synced.accent, accent2: synced.accent2 },
     search: { engine: synced.engine },
-    startPage: { ...synced.startPage },
+    startPage: { ...synced.startPage, widgets },
   };
 }
 
