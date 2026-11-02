@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Documentation — Browser</title>
+    <meta
+      name="description"
+      content="Guide d'utilisation de Browser : installation sur Windows, macOS, Linux et mobile, premiers pas, chaque fonctionnalité pas à pas, raccourcis clavier, synchronisation chiffrée et dépannage."
+    />
+    <meta name="theme-color" content="#0b0710" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="canonical" href="https://mathieu-lalande.github.io/browser/docs.html" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:site_name" content="Browser" />
+    <meta property="og:title" content="Documentation de Browser" />
+    <meta property="og:description" content="Installer Browser, prendre ses repères et maîtriser chaque fonctionnalité." />
+    <meta property="og:url" content="https://mathieu-lalande.github.io/browser/docs.html" />
+    <meta property="og:image" content="https://mathieu-lalande.github.io/browser/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="module" src="/src/docs.ts"></script>
+  </head>
+  <body class="docs-page">
+    <a class="skip" href="#contenu">Aller au contenu</a>
+
+    <header class="topbar scrolled">
+      <div class="topbar-inner container">
+        <a class="brand" href="./" aria-label="Browser, page d'accueil">
+          <img src="/img/icon.png" width="28" height="28" alt="" />
+          <span>Browser</span>
+        </a>
+        <nav class="site-menu" id="site-menu" aria-label="Navigation principale">
+          <ul class="nav-links">
+            <li><a href="./#fonctionnalites">Fonctionnalités</a></li>
+            <li><a href="./#confidentialite">Confidentialité</a></li>
+            <li><a href="./#mobile">Mobile</a></li>
+            <li><a href="docs.html" aria-current="page">Documentation</a></li>
+            <li><a href="./#telecharger">Télécharger</a></li>
+          </ul>
+        </nav>
+        <div class="nav-actions">
+          <a class="icon-btn" href="https://github.com/Mathieu-Lalande/browser" aria-label="Code source sur GitHub">
+            <i data-icon="code-xml"></i>
+          </a>
+          <a class="btn btn-small btn-primary nav-cta" href="./#telecharger">
+            <i data-icon="download"></i>
+            <span>Télécharger</span>
+          </a>
+          <button class="icon-btn menu-toggle" id="menu-toggle" type="button" aria-expanded="false" aria-controls="site-menu" aria-label="Ouvrir le menu">
+            <i data-icon="menu" class="when-closed"></i>
+            <i data-icon="x" class="when-open"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="docs-hero">
+      <div class="mesh mesh-soft" aria-hidden="true">
+        <span class="blob b1"></span>
+        <span class="blob b2"></span>
+        <span class="blob b3"></span>
+      </div>
+      <div class="container">
+        <p class="kicker">Documentation</p>
+        <h1>Le guide de Browser</h1>
+        <p class="lead-left">
+          Installer le navigateur, prendre ses repères et tirer parti de chaque fonctionnalité. Les raccourcis sont
+          donnés pour Windows et Linux, puis pour macOS.
+        </p>
+      </div>
+    </div>
+
+    <div class="docs-layout container">
+      <aside class="docs-aside" aria-label="Sommaire de la documentation">
+        <div class="doc-search">
+          <i data-icon="search"></i>
+          <label class="sr-only" for="doc-search">Filtrer la documentation</label>
+          <input id="doc-search" type="search" placeholder="Filtrer le guide" autocomplete="off" spellcheck="false" />
+          <kbd aria-hidden="true">/</kbd>
+        </div>
+        <p class="doc-search-status" id="doc-search-status" role="status"></p>
+        <nav class="toc" aria-label="Sections">
+          <ul>
+            <li><a href="#installation">Installation</a></li>
+            <li><a href="#mobile">Application mobile</a></li>
+            <li><a href="#premiers-pas">Premiers pas</a></li>
+            <li><a href="#onglets">Onglets</a></li>
+            <li><a href="#menus">Menus et gestes</a></li>
+            <li><a href="#espaces">Espaces et gestes</a></li>
+            <li><a href="#vue-scindee">Vue scindée</a></li>
+            <li><a href="#organisation">Dossiers, favoris, archivage</a></li>
+            <li><a href="#barre-universelle">Barre universelle</a></li>
+            <li><a href="#apercu">Aperçu des liens</a></li>
+            <li><a href="#lecture">Mode lecture</a></li>
+            <li><a href="#boosts">Boosts</a></li>
+            <li><a href="#mots-de-passe">Mots de passe</a></li>
+            <li><a href="#extensions">Extensions</a></li>
+            <li><a href="#captures">Options de la page, captures</a></li>
+            <li><a href="#pages">Téléchargements, recherche, zoom</a></li>
+            <li><a href="#confidentialite">Confidentialité</a></li>
+            <li><a href="#apparence">Apparence et thèmes</a></li>
+            <li><a href="#raccourcis">Raccourcis clavier</a></li>
+            <li><a href="#mises-a-jour">Mises à jour</a></li>
+            <li><a href="#synchronisation">Synchronisation</a></li>
+            <li><a href="#depannage">Dépannage</a></li>
+          </ul>
+        </nav>
+      </aside>
+
+      <main class="docs-content" id="contenu">
+        <!-- Installation -->
+        <section class="doc-section" id="installation" aria-labelledby="t-installation">
+          <h2 id="t-installation"><i data-icon="download"></i>Installation</h2>
+          <p>
+            Téléchargez la dernière version depuis la <a href="./#telecharger">page de téléchargement</a> : le bouton
+            principal détecte votre système. Tous les fichiers sont aussi dans les
+            <a href="https://github.com/Mathieu-Lalande/browser/releases">versions publiées sur GitHub</a>, avec
+            <code>SHA256SUMS.txt</code> pour les vérifier.
+          </p>
+          <h3>Windows 10 et 11</h3>
+          <ol>
+            <li>Téléchargez <code>Browser-Setup-&lt;version&gt;-x64.exe</code> (ou <code>-arm64.exe</code> pour Windows sur ARM).</li>
+            <li>Lancez-le. Choisissez une installation pour vous seul (sans droits administrateur, par défaut) ou pour tous les utilisateurs.</li>
+            <li>Si SmartScreen affiche « Windows a protégé votre ordinateur » : « Informations complémentaires » puis « Exécuter quand même » (les paquets ne sont pas encore signés).</li>
+          </ol>
+          <p>
+            L'installateur crée un raccourci dans le menu Démarrer, propose un raccourci sur le Bureau et se
+            désinstalle depuis Paramètres, Applications ; votre profil est conservé. La version portable
+            <code>Browser-&lt;version&gt;-win-x64.zip</code> se lance sans installation mais ne se met pas à jour seule.
+          </p>
+          <h3>macOS 12 ou plus récent</h3>
+          <ol>
+            <li>Téléchargez <code>Browser-&lt;version&gt;-mac-arm64.dmg</code> (Apple Silicon) ou <code>-mac-x64.dmg</code> (Intel).</li>
+            <li>Ouvrez le <code>.dmg</code> et glissez Browser dans Applications.</li>
+            <li>Au premier lancement, faites un clic droit sur Browser puis « Ouvrir » (l'app n'est pas encore notarisée), ou autorisez-la dans Réglages Système, Confidentialité et sécurité.</li>
+          </ol>
+          <h3>Linux 64 bits</h3>
+          <ul>
+            <li><strong>AppImage</strong> : rendez le fichier exécutable (<code>chmod +x Browser-*.AppImage</code>) puis lancez-le. Il se met à jour tout seul.</li>
+            <li><strong>Paquet .deb</strong> (Debian, Ubuntu) : <code>sudo apt install ./Browser-*.deb</code>. Mise à jour manuelle.</li>
+          </ul>
+          <h3>Vérifier un fichier</h3>
+          <p>
+            Comparez l'empreinte du fichier téléchargé avec celle de <code>SHA256SUMS.txt</code> :
+            <code>sha256sum &lt;fichier&gt;</code> (Linux), <code>shasum -a 256 &lt;fichier&gt;</code> (macOS) ou
+            <code>Get-FileHash &lt;fichier&gt;</code> (PowerShell).
+          </p>
+          <div class="callout">
+            <i data-icon="info"></i>
+            <p>
+              Pour compiler Browser vous-même (Node.js 22, <code>npm install</code> puis <code>npm run dev</code>),
+              suivez <a href="https://github.com/Mathieu-Lalande/browser/blob/master/docs/INSTALL.md">docs/INSTALL.md</a>.
+            </p>
+          </div>
+        </section>
+
+        <!-- Mobile -->
+        <section class="doc-section" id="mobile" aria-labelledby="t-mobile">
+          <h2 id="t-mobile"><i data-icon="smartphone"></i>Application mobile</h2>
+          <p>
+            L'application iPhone et Android n'est pas encore sur les stores. Deux façons de l'utiliser dès maintenant :
+          </p>
+          <h3>Avec Expo Go (le plus simple)</h3>
+          <ol>
+            <li>Installez <strong>Expo Go</strong> (App Store ou Play Store), version à jour (SDK 58).</li>
+            <li>Sur un ordinateur avec Node.js : clonez le dépôt, puis <code>cd mobile</code>, <code>npm install</code> et <code>npx expo start</code>.</li>
+            <li>Scannez le QR code (appareil photo sur iPhone, Expo Go sur Android). Même Wi-Fi requis, sinon <code>npx expo start --tunnel</code>.</li>
+          </ol>
+          <h3>En version compilée (TestFlight, APK)</h3>
+          <p>
+            Avec EAS Build, le service de compilation d'Expo (pas besoin de Mac) : <code>eas build --platform ios</code>
+            puis <code>eas submit</code> pour TestFlight (compte Apple Developer requis), ou
+            <code>eas build --platform android --profile preview</code> pour un <code>.apk</code> à installer directement.
+            Le détail est dans <a href="https://github.com/Mathieu-Lalande/browser/blob/master/docs/INSTALL.md#23-iphone-et-android-sans-expo-go">docs/INSTALL.md</a>.
+          </p>
+          <h3>Ce que fait l'application</h3>
+          <ul>
+            <li>Barre d'adresse en bas, repliée au défilement ; balayez-la pour changer d'onglet.</li>
+            <li>Recherche plein écran (même moteur que la barre universelle du bureau), vue des onglets en grille par espace, dossiers, favoris et archivage.</li>
+            <li>Navigation privée, HTTPS uniquement, mode lecture, version ordinateur d'un site, aperçu des liens par appui long.</li>
+            <li>Mots de passe dans le trousseau du téléphone, boosts (sans l'outil de masquage), thèmes partageables.</li>
+            <li>Synchronisation chiffrée avec le bureau (jumelage par QR code).</li>
+          </ul>
+          <p class="muted">Le bloqueur de pubs mobile arrivera avec la version compilée (phase 2).</p>
+        </section>
+
+        <!-- First steps -->
+        <section class="doc-section" id="premiers-pas" aria-labelledby="t-premiers-pas">
+          <h2 id="t-premiers-pas"><i data-icon="sparkles"></i>Premiers pas</h2>
+          <p>La fenêtre de Browser se compose de trois zones :</p>
+          <ul>
+            <li><strong>La barre latérale</strong> (à gauche, ou à droite dans Paramètres, Disposition) : barre d'adresse, grille des favoris, onglets épinglés, dossiers et onglets de l'espace courant, et en bas les espaces. Masquez-la avec <kbd>Ctrl</kbd> <kbd>S</kbd> (<kbd>⌘</kbd> <kbd>S</kbd>).</li>
+            <li><strong>La page</strong>, avec une petite marge réglable autour, ou bord à bord.</li>
+            <li><strong>La barre universelle</strong> qui flotte au-dessus de la page quand vous tapez <kbd>Ctrl</kbd> <kbd>K</kbd> (<kbd>⌘</kbd> <kbd>K</kbd>).</li>
+          </ul>
+          <p>
+            Tapez une adresse ou une recherche dans la barre d'adresse (<kbd>Ctrl</kbd> <kbd>L</kbd>) : la recherche
+            passe par DuckDuckGo par défaut (Paramètres, Recherche pour en changer). Les boutons de la barre (copier le
+            lien, zoom, favori, protections, options de la page) apparaissent au survol ; le cadenas, lui, reste
+            visible et ouvre les <strong>infos sur le site</strong>.
+          </p>
+          <p>
+            La page d'accueil affiche une salutation, l'horloge et vos sites les plus visités ; tout se règle dans
+            Paramètres, Page d'accueil. Les paramètres (<kbd>Ctrl</kbd> <kbd>,</kbd>) s'appliquent à chaud et se
+            retrouvent aussi en tapant leur nom dans la barre universelle.
+          </p>
+          <p>
+            Au démarrage, Browser restaure votre session : les onglets reviennent, chargés seulement quand vous les
+            ouvrez.
+          </p>
+        </section>
+
+        <!-- Tabs -->
+        <section class="doc-section" id="onglets" aria-labelledby="t-onglets">
+          <h2 id="t-onglets"><i data-icon="app-window"></i>Onglets</h2>
+          <ul>
+            <li><strong>Ouvrir, fermer</strong> : <kbd>Ctrl</kbd> <kbd>T</kbd>, <kbd>Ctrl</kbd> <kbd>W</kbd>. Où s'ouvre un nouvel onglet et lequel s'affiche après une fermeture : Paramètres, Comportement.</li>
+            <li><strong>Épingler</strong> : clic droit, « Épingler l'onglet », ou double-clic sur l'onglet. Un onglet épinglé reste en haut de la barre.</li>
+            <li><strong>Dupliquer</strong> avec son historique : <kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>K</kbd>.</li>
+            <li><strong>Passer d'un onglet à l'autre</strong> : <kbd>Ctrl</kbd> <kbd>Tab</kbd> / <kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>Tab</kbd>, ou <kbd>Ctrl</kbd> <kbd>1</kbd>…<kbd>9</kbd>.</li>
+            <li><strong>Au clavier</strong> : la liste des onglets est un seul arrêt de tabulation ; <kbd>↑</kbd> <kbd>↓</kbd>, <kbd>Début</kbd> <kbd>Fin</kbd> pour se déplacer, <kbd>Entrée</kbd> pour afficher, <kbd>Suppr</kbd> pour fermer.</li>
+            <li><strong>Menu de l'onglet</strong> (clic droit) : épingler, dupliquer, vue scindée, déplacer vers un espace ou un dossier, mettre en veille, couper le son, fermer.</li>
+            <li><strong>Rouvrir l'onglet fermé</strong> : <kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>T</kbd> (<kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>T</kbd>), plusieurs fois pour remonter (25 derniers, jamais écrits sur le disque).</li>
+            <li><strong>Sélectionner plusieurs onglets</strong> : <kbd>Ctrl</kbd> + clic (<kbd>⌘</kbd> + clic sur Mac), ou « Sélectionner tous les onglets ». Une barre d'actions apparaît : nouveau dossier, déplacer vers un espace, fermer, annuler (<kbd>Échap</kbd>).</li>
+          </ul>
+          <h3>Mise en veille</h3>
+          <p>
+            Un onglet inactif depuis le délai choisi (Paramètres, Comportement : jamais, 15 min, 30 min…) est mis en
+            veille : sa mémoire est libérée et il se recharge quand vous y revenez. Jamais pour un onglet qui joue du
+            son, attend une autorisation ou contient un formulaire en cours. Les commandes « Mettre l'onglet en veille »
+            et « Mettre les autres onglets en veille » le font tout de suite.
+          </p>
+        </section>
+
+        <!-- Menus & gestures -->
+        <section class="doc-section" id="menus" aria-labelledby="t-menus">
+          <h2 id="t-menus"><i data-icon="ellipsis"></i>Menus et gestes</h2>
+          <h3>Menu de l'application « … »</h3>
+          <p>
+            Le bouton « … » en tête de la rangée de navigation ouvre le menu complet : état de la synchronisation,
+            nouvel onglet et fenêtres, rangée de zoom (− % +) et plein écran, historique récent, favoris, téléchargements,
+            mots de passe, extensions et thèmes, imprimer, enregistrer la page, rechercher dans la page, plus d'outils
+            (captures, vidéo, lecture, boost, code source…), paramètres, aide (raccourcis, à propos, signaler un
+            problème) et quitter. Au clavier : flèches pour se déplacer, <kbd>→</kbd> ou <kbd>Entrée</kbd> pour ouvrir un sous-menu,
+            <kbd>←</kbd> ou <kbd>Échap</kbd> pour revenir.
+          </p>
+          <h3>Menus contextuels</h3>
+          <ul>
+            <li><strong>Espace vide de la barre latérale</strong> (clic droit) : nouvel onglet, nouveau dossier, actualiser, favori, sélectionner tous les onglets, rouvrir l'onglet fermé, mode compact, changer le côté de la barre latérale, modifier l'espace.</li>
+            <li><strong>Pastille d'espace</strong> (clic droit) : renommer, icône et couleur, déplacer à gauche ou à droite, supprimer (après confirmation).</li>
+            <li><strong>Page</strong> (clic droit) : précédent, suivant, actualiser et favori en tête, puis « Enregistrer la page sous… » (HTML complet ou MHTML), « Tout sélectionner », « Capture d'écran », « Afficher le code source » (<kbd>Ctrl</kbd> <kbd>U</kbd>), « Envoyer à un appareil » et « Inspecter ». Sur un lien : nouvel onglet, arrière-plan, vue scindée, autre espace, fenêtre privée, aperçu, copier.</li>
+          </ul>
+          <h3>Mode compact</h3>
+          <p>
+            Commande « Mode compact » (menu de la barre latérale ou barre universelle) : la barre latérale devient un rail
+            d'icônes qui se déplie au survol. Le mode zen reste prioritaire.
+          </p>
+          <h3>Gestes sur la page</h3>
+          <ul>
+            <li><strong>Pincer</strong> sur le pavé tactile ou <kbd>Ctrl</kbd> + molette : zoom de la page, mémorisé par site comme <kbd>Ctrl</kbd> <kbd>+</kbd>.</li>
+            <li><strong>Balayer à deux doigts</strong> horizontalement : page précédente ou suivante. Une flèche suit le geste ; il ne se déclenche que lorsque la page ne peut plus défiler dans ce sens.</li>
+            <li><strong>Plein écran</strong> : <kbd>F11</kbd> (<kbd>⌃</kbd> <kbd>⌘</kbd> <kbd>F</kbd>). Imprimer : <kbd>Ctrl</kbd> <kbd>P</kbd> (<kbd>⌘</kbd> <kbd>P</kbd>).</li>
+          </ul>
+        </section>
+
+        <!-- Spaces -->
+        <section class="doc-section" id="espaces" aria-labelledby="t-espaces">
+          <h2 id="t-espaces"><i data-icon="layers"></i>Espaces et gestes</h2>
+          <p>
+            Un espace regroupe des onglets autour d'un contexte (travail, études, loisirs), avec son nom, son icône
+            et sa couleur d'accent. Créez-en un avec le bouton « Nouvel espace », à côté des pastilles d'espace en bas de la
+            barre latérale, ou la commande du même nom.
+          </p>
+          <ul>
+            <li><strong>Changer d'espace</strong> : clic sur son icône, <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>←</kbd> / <kbd>→</kbd>, ou <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>1</kbd>…<kbd>9</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd> sur Mac).</li>
+            <li><strong>Balayage</strong> : glissez à deux doigts horizontalement sur le pavé tactile, le pointeur sur la barre latérale, ou d'un doigt sur un écran tactile. La liste suit le geste ; relâchez au-delà du quart pour changer d'espace.</li>
+            <li><strong>Espace isolé</strong> : dans l'éditeur d'espace, cochez l'isolation pour lui donner ses propres cookies et connexions, comme un conteneur (deux comptes du même site côte à côte).</li>
+            <li><strong>Déplacer un onglet</strong> : clic droit sur l'onglet, « Déplacer vers ».</li>
+            <li><strong>Modifier, réordonner, supprimer un espace</strong> : clic droit sur sa pastille, ou commande « Modifier le thème de l'espace ».</li>
+          </ul>
+          <p class="muted">Dans la page, un balayage à deux doigts (macOS) ou <kbd>Alt</kbd> <kbd>←</kbd> / <kbd>→</kbd> navigue en arrière et en avant.</p>
+        </section>
+
+        <!-- Split view -->
+        <section class="doc-section" id="vue-scindee" aria-labelledby="t-vue-scindee">
+          <h2 id="t-vue-scindee"><i data-icon="columns-2"></i>Vue scindée</h2>
+          <p>
+            Affichez deux à quatre onglets côte à côte : <kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>\</kbd> (<kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>\</kbd>)
+            associe l'onglet actif au suivant, et le même raccourci quitte la vue. Depuis le menu d'un onglet, « Vue
+            scindée » ; depuis la barre universelle, <kbd>Maj</kbd> <kbd>Entrée</kbd> ouvre un résultat à côté.
+          </p>
+          <p>Faites glisser les séparateurs pour ajuster les volets ; la disposition est restaurée au démarrage.</p>
+        </section>
+
+        <!-- Organisation -->
+        <section class="doc-section" id="organisation" aria-labelledby="t-organisation">
+          <h2 id="t-organisation"><i data-icon="folder-tree"></i>Dossiers, favoris, archivage</h2>
+          <h3>Dossiers</h3>
+          <p>
+            Commande « Nouveau dossier » ou menu d'un onglet. Glissez-déposez les onglets dedans ; un dossier peut en
+            contenir d'autres (4 niveaux), avoir une icône et se replier (l'onglet actif reste visible). Un lien ouvert
+            depuis un onglet rangé reste dans le même dossier.
+          </p>
+          <h3>Favoris</h3>
+          <ul>
+            <li><kbd>Ctrl</kbd> <kbd>D</kbd> ajoute ou retire la page des favoris (gérés dans Paramètres, Données).</li>
+            <li>« Ajouter aux favoris (tous les espaces) » place le site dans la <strong>grille des favoris</strong>, en haut de la barre latérale, commune à tous les espaces.</li>
+          </ul>
+          <h3>Archivage automatique</h3>
+          <p>
+            Les onglets que vous n'ouvrez plus sont archivés après le délai choisi (Paramètres, Comportement : jamais,
+            12 h, 24 h, 7 jours par défaut, 30 jours). Jamais l'onglet affiché, épinglé, de la grille des favoris, qui
+            joue du son ou en vue scindée. Retrouvez-les avec la commande « Onglets archivés »
+            (<code>browser://archive</code>) ou le filtre de la barre universelle.
+          </p>
+        </section>
+
+        <!-- Universal bar -->
+        <section class="doc-section" id="barre-universelle" aria-labelledby="t-barre-universelle">
+          <h2 id="t-barre-universelle"><i data-icon="command"></i>Barre universelle</h2>
+          <p>
+            <kbd>Ctrl</kbd> <kbd>K</kbd> (<kbd>⌘</kbd> <kbd>K</kbd>) ouvre une recherche floue sur les onglets de tous
+            les espaces, la grille des favoris, les favoris, l'historique, les commandes (avec leur raccourci), les
+            réglages, les onglets de vos autres appareils et les onglets archivés. Rien n'est envoyé au moteur de
+            recherche pendant la frappe.
+          </p>
+          <h3>Réponses instantanées</h3>
+          <p>Calculées sur votre ordinateur, affichées en tête ; <kbd>Entrée</kbd> copie le résultat.</p>
+          <ul>
+            <li>Calculs : <code>12*7+3</code>, <code>(1,5+2)^2</code>, <code>15%</code>.</li>
+            <li>Conversions : <code>12 km en miles</code>, <code>350 F en C</code>, <code>2 To en Go</code> (longueur, masse, température, volume, vitesse, données).</li>
+            <li>Heure d'une ville : <code>heure à Tokyo</code> ; bases : <code>0xff</code>, <code>255 en binaire</code>.</li>
+          </ul>
+          <h3>Filtres et touches</h3>
+          <table>
+            <tbody>
+              <tr><td><code>@onglets</code> <code>@o</code></td><td>Seulement les onglets</td></tr>
+              <tr><td><code>@favoris</code> <code>@f</code></td><td>Seulement les favoris</td></tr>
+              <tr><td><code>@historique</code> <code>@h</code></td><td>Seulement l'historique</td></tr>
+              <tr><td><code>@commandes</code> <code>@c</code></td><td>Seulement les actions</td></tr>
+              <tr><td><code>@réglages</code> <code>@r</code></td><td>Seulement les paramètres</td></tr>
+              <tr><td><kbd>Entrée</kbd></td><td>Ouvrir ici</td></tr>
+              <tr><td><kbd>Ctrl</kbd> <kbd>Entrée</kbd></td><td>Nouvel onglet</td></tr>
+              <tr><td><kbd>Maj</kbd> <kbd>Entrée</kbd></td><td>Côte à côte (vue scindée)</td></tr>
+              <tr><td><kbd>Alt</kbd> <kbd>Entrée</kbd></td><td>En arrière-plan</td></tr>
+              <tr><td><kbd>Tab</kbd></td><td>Compléter avec la ligne choisie</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- Link peek -->
+        <section class="doc-section" id="apercu" aria-labelledby="t-apercu">
+          <h2 id="t-apercu"><i data-icon="eye"></i>Aperçu des liens</h2>
+          <p>
+            <kbd>Maj</kbd> + clic sur un lien, ou clic droit puis « Aperçu du lien » : la page s'ouvre dans une carte
+            flottante au-dessus de l'onglet. Gardez-la avec « Ouvrir dans un onglet » (sans rechargement) ou « Ouvrir
+            en vue scindée », ou fermez-la avec <kbd>Échap</kbd> ou un clic à côté. Rien n'est ajouté à l'historique.
+          </p>
+          <p class="muted">Sur le téléphone, un appui long sur un lien propose l'aperçu dans une feuille.</p>
+        </section>
+
+        <!-- Reader -->
+        <section class="doc-section" id="lecture" aria-labelledby="t-lecture">
+          <h2 id="t-lecture"><i data-icon="book-open-text"></i>Mode lecture et version mobile</h2>
+          <p>
+            Sur un article, <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>R</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>R</kbd>) ou
+            Options de la page, « Mode lecture » : le texte et ses images seuls, dans une mise en page calme. Le même
+            raccourci revient à la page.
+          </p>
+          <p>
+            « Demander la version mobile » (Options de la page) recharge le site comme le verrait un téléphone ; sur
+            l'application mobile, l'inverse : « version ordinateur ».
+          </p>
+        </section>
+
+        <!-- Boosts -->
+        <section class="doc-section" id="boosts" aria-labelledby="t-boosts">
+          <h2 id="t-boosts"><i data-icon="wand-sparkles"></i>Boosts</h2>
+          <p>Un boost personnalise un site (ou un domaine et ses sous-domaines, <code>*.exemple.fr</code>) :</p>
+          <ul>
+            <li>filtres de couleur (inversion, gris, sépia, luminosité, contraste) et police ;</li>
+            <li>éléments masqués : commande « Masquer des éléments », puis cliquez sur ce qui gêne (<kbd>Échap</kbd> pour terminer) ;</li>
+            <li>CSS personnalisé, et un script en option (désactivé par défaut, avec un avertissement).</li>
+          </ul>
+          <p>
+            Créez et modifiez vos boosts depuis Options de la page, « Boost du site », ou la page
+            <code>browser://boosts</code> (commande « Boosts »). Ils sont synchronisés ; un script reçu d'un autre
+            appareil reste désactivé tant que vous ne l'avez pas accepté.
+          </p>
+        </section>
+
+        <!-- Passwords -->
+        <section class="doc-section" id="mots-de-passe" aria-labelledby="t-mots-de-passe">
+          <h2 id="t-mots-de-passe"><i data-icon="key-round"></i>Mots de passe</h2>
+          <ul>
+            <li><strong>Enregistrer</strong> : après une connexion, Browser propose d'enregistrer l'identifiant (ou « Jamais pour ce site »).</li>
+            <li><strong>Remplir</strong> : uniquement à votre demande, avec la clé qui apparaît dans la barre d'adresse sur un site connu, ou « Remplir le mot de passe » du menu de la page. Un mot de passe n'est proposé que sur le site exact où il a été enregistré.</li>
+            <li><strong>Gérer</strong> : commande « Mots de passe » (<code>browser://passwords</code>) : recherche, affichage, modification, suppression, export CSV compatible Chrome et Firefox.</li>
+          </ul>
+          <p>
+            Les mots de passe sont chiffrés par le trousseau du système (Windows, macOS, Linux). Aucune invite en
+            fenêtre privée. Ils ne sont pas synchronisés.
+          </p>
+        </section>
+
+        <!-- Extensions -->
+        <section class="doc-section" id="extensions" aria-labelledby="t-extensions">
+          <h2 id="t-extensions"><i data-icon="puzzle"></i>Extensions</h2>
+          <p>
+            Commande « Extensions » (<code>browser://extensions</code>, aussi depuis Paramètres, Comportement) :
+            ajoutez un <strong>dossier non empaqueté</strong> ou un fichier <strong>.zip / .crx</strong>. Activez,
+            désactivez ou retirez-les depuis la même page.
+          </p>
+          <p class="muted">
+            Support partiel, celui d'Electron : scripts de contenu et une partie des API <code>chrome.*</code>, sans
+            bouton d'action ni fenêtre surgissante d'extension, et jamais en fenêtre privée.
+          </p>
+        </section>
+
+        <!-- Page options & captures -->
+        <section class="doc-section" id="captures" aria-labelledby="t-captures">
+          <h2 id="t-captures"><i data-icon="camera"></i>Options de la page, captures et vidéo</h2>
+          <p>
+            Le bouton <strong>Options de la page</strong>, au bout de la barre d'adresse (<kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>O</kbd>),
+            réunit : copier le lien, zoom (−, pourcentage pour revenir au défaut, +), captures, vidéo, mode lecture,
+            version mobile, boost du site, infos sur le site et QR code de la page.
+          </p>
+          <ul>
+            <li><strong>Zone visible</strong> : <kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>S</kbd> (<kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>S</kbd>).</li>
+            <li><strong>Page entière</strong> : <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>S</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>S</kbd>), sans faire défiler la page.</li>
+            <li><strong>Un élément</strong> : « Capture d'écran d'un élément », survolez puis cliquez (<kbd>Échap</kbd> annule).</li>
+          </ul>
+          <p>Un aperçu s'affiche en bas à droite : « Copier » ou « Enregistrer » (PNG, dans le dossier des téléchargements).</p>
+          <p>
+            <strong>Vidéo de l'onglet</strong> : <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>V</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>V</kbd>)
+            démarre et arrête l'enregistrement (image et son de l'onglet seulement). Un point rouge et un minuteur
+            restent visibles dans la barre d'adresse ; à l'arrêt, le fichier WebM vous est proposé.
+          </p>
+        </section>
+
+        <!-- Downloads, find, zoom -->
+        <section class="doc-section" id="pages" aria-labelledby="t-pages">
+          <h2 id="t-pages"><i data-icon="hard-drive-download"></i>Téléchargements, recherche, zoom, médias</h2>
+          <ul>
+            <li><strong>Téléchargements</strong> : enregistrés sans boîte de dialogue (ou toujours demander où, Paramètres, Téléchargements), avec pause, reprise et annulation. Les programmes et scripts attendent votre confirmation ; rien n'est ouvert automatiquement. Liste : <kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>J</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>L</kbd>) ou <code>browser://downloads</code>.</li>
+            <li><strong>Rechercher dans la page</strong> : <kbd>Ctrl</kbd> <kbd>F</kbd>, puis <kbd>Entrée</kbd> / <kbd>Maj</kbd> <kbd>Entrée</kbd>, <kbd>F3</kbd> ou <kbd>Ctrl</kbd> <kbd>G</kbd> pour l'occurrence suivante. Le compteur et la casse sont gardés par onglet.</li>
+            <li><strong>Zoom</strong> : <kbd>Ctrl</kbd> <kbd>+</kbd> / <kbd>-</kbd> / <kbd>0</kbd>, pincement ou <kbd>Ctrl</kbd> + molette, mémorisé par site ; zoom par défaut dans Paramètres, Apparence.</li>
+            <li><strong>Médias</strong> : <kbd>Ctrl</kbd> <kbd>M</kbd> coupe le son de l'onglet ; « Image dans l'image » détache la vidéo.</li>
+          </ul>
+        </section>
+
+        <!-- Privacy -->
+        <section class="doc-section" id="confidentialite" aria-labelledby="t-confidentialite">
+          <h2 id="t-confidentialite"><i data-icon="shield-check"></i>Confidentialité et sécurité</h2>
+          <ul>
+            <li><strong>Bloqueur de pubs et traqueurs</strong> (listes EasyList et uBlock) actif partout, avec un compteur par onglet ; désactivez-le pour un site depuis le bouclier de la barre d'adresse ou les infos sur le site.</li>
+            <li><strong>HTTPS uniquement</strong> : chaque adresse passe en https ; si le site ne le permet pas, une page vous demande avant de continuer.</li>
+            <li><strong>Fenêtres surgissantes</strong> : une page ne peut ouvrir une fenêtre qu'après un vrai clic.</li>
+            <li><strong>Autorisations</strong> (caméra, micro, notifications…) demandées site par site, révocables dans les infos sur le site.</li>
+            <li><strong>Moins d'empreinte</strong> : Global Privacy Control, identité de navigateur sans trace d'Electron, langue envoyée aux sites uniformisable (Paramètres, Confidentialité).</li>
+            <li><strong>Cookies tiers</strong> bloquables, données d'un site effaçables (commande « Effacer les données du site », ou Paramètres, Données des sites).</li>
+          </ul>
+          <h3>Fenêtres privées</h3>
+          <p>
+            <kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>N</kbd> (<kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>N</kbd>) : chaque fenêtre privée a sa
+            session en mémoire, effacée à sa fermeture. Ni historique, ni session restaurée, ni autorisation mémorisée,
+            ni mot de passe proposé, ni extension, et rien de synchronisé.
+          </p>
+          <h3>Ce qui reste chez vous</h3>
+          <p>
+            Historique, favoris, mots de passe, sessions et réglages restent dans votre profil local. Rien n'est envoyé
+            ailleurs, sauf la synchronisation si vous l'activez, chiffrée de bout en bout, et la vérification des mises à
+            jour (GitHub). Les pages internes <code>browser://</code> ne sont jamais accessibles aux sites web.
+          </p>
+        </section>
+
+        <!-- Appearance -->
+        <section class="doc-section" id="apparence" aria-labelledby="t-apparence">
+          <h2 id="t-apparence"><i data-icon="palette"></i>Apparence et thèmes</h2>
+          <p>
+            Paramètres, Apparence : thème clair, sombre ou automatique, couleur d'accent et couleur secondaire (la
+            palette dérivée reste lisible), arrière-plan, police, densité, arrondis, ombres, animations réduites,
+            curseur main. Disposition : barre latérale à gauche ou à droite, largeur, marge autour de la page.
+          </p>
+          <ul>
+            <li><strong>Galerie</strong> : huit thèmes prêts à l'emploi, avec un aperçu.</li>
+            <li><strong>Partager</strong> votre thème : code <code>browser-theme:v1:…</code> à copier, fichier <code>.browsertheme</code> ou QR code. Pour importer, collez un code ou choisissez un fichier : un aperçu s'affiche avant d'appliquer.</li>
+            <li><strong>Mode zen</strong> : <kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>B</kbd> (<kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>B</kbd>), la page seule, bord à bord.</li>
+          </ul>
+        </section>
+
+        <!-- Shortcuts -->
+        <section class="doc-section" id="raccourcis" aria-labelledby="t-raccourcis">
+          <h2 id="t-raccourcis"><i data-icon="keyboard"></i>Raccourcis clavier</h2>
+          <p>
+            Raccourcis par défaut. Chacun peut être changé ou retiré dans Paramètres, Raccourcis clavier : appuyez sur
+            la nouvelle combinaison ; un conflit avec une autre commande vous est signalé, et les combinaisons
+            réservées par le système sont refusées.
+          </p>
+          <div class="table-wrap">
+            <table class="shortcut-table">
+              <thead>
+                <tr><th scope="col">Action</th><th scope="col">Windows, Linux</th><th scope="col">macOS</th></tr>
+              </thead>
+              <tbody>
+                <tr class="group"><th colspan="3" scope="rowgroup">Onglets et fenêtres</th></tr>
+                <tr><td>Nouvel onglet</td><td><kbd>Ctrl</kbd> <kbd>T</kbd></td><td><kbd>⌘</kbd> <kbd>T</kbd></td></tr>
+                <tr><td>Fermer l'onglet</td><td><kbd>Ctrl</kbd> <kbd>W</kbd></td><td><kbd>⌘</kbd> <kbd>W</kbd></td></tr>
+                <tr><td>Dupliquer l'onglet</td><td><kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>K</kbd></td><td><kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>K</kbd></td></tr>
+                <tr><td>Onglet suivant / précédent</td><td><kbd>Ctrl</kbd> <kbd>Tab</kbd> / <kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>Tab</kbd></td><td><kbd>⌃</kbd> <kbd>Tab</kbd> / <kbd>⌃</kbd> <kbd>⇧</kbd> <kbd>Tab</kbd></td></tr>
+                <tr><td>Onglet 1 à 8, dernier onglet</td><td><kbd>Ctrl</kbd> <kbd>1</kbd>…<kbd>9</kbd></td><td><kbd>⌘</kbd> <kbd>1</kbd>…<kbd>9</kbd></td></tr>
+                <tr><td>Nouvelle fenêtre</td><td><kbd>Ctrl</kbd> <kbd>N</kbd></td><td><kbd>⌘</kbd> <kbd>N</kbd></td></tr>
+                <tr><td>Nouvelle fenêtre privée</td><td><kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>N</kbd></td><td><kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>N</kbd></td></tr>
+                <tr><td>Rouvrir l'onglet fermé</td><td><kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>T</kbd></td><td><kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>T</kbd></td></tr>
+                <tr><td>Sélectionner plusieurs onglets</td><td><kbd>Ctrl</kbd> + clic</td><td><kbd>⌘</kbd> + clic</td></tr>
+                <tr><td>Quitter</td><td><kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>Q</kbd></td><td><kbd>⌘</kbd> <kbd>Q</kbd></td></tr>
+                <tr><td>Couper le son de l'onglet</td><td><kbd>Ctrl</kbd> <kbd>M</kbd></td><td><kbd>⌃</kbd> <kbd>M</kbd></td></tr>
+                <tr class="group"><th colspan="3" scope="rowgroup">Navigation</th></tr>
+                <tr><td>Page précédente / suivante</td><td><kbd>Alt</kbd> <kbd>←</kbd> / <kbd>Alt</kbd> <kbd>→</kbd></td><td><kbd>⌘</kbd> <kbd>[</kbd> / <kbd>⌘</kbd> <kbd>]</kbd></td></tr>
+                <tr><td>Actualiser</td><td><kbd>Ctrl</kbd> <kbd>R</kbd>, <kbd>F5</kbd></td><td><kbd>⌘</kbd> <kbd>R</kbd>, <kbd>F5</kbd></td></tr>
+                <tr><td>Barre d'adresse</td><td><kbd>Ctrl</kbd> <kbd>L</kbd></td><td><kbd>⌘</kbd> <kbd>L</kbd></td></tr>
+                <tr><td>Copier l'URL</td><td><kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>C</kbd></td><td><kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>C</kbd></td></tr>
+                <tr><td>Rechercher dans la page</td><td><kbd>Ctrl</kbd> <kbd>F</kbd></td><td><kbd>⌘</kbd> <kbd>F</kbd></td></tr>
+                <tr><td>Occurrence suivante / précédente</td><td><kbd>F3</kbd> ou <kbd>Ctrl</kbd> <kbd>G</kbd> / <kbd>Maj</kbd> <kbd>F3</kbd> ou <kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>G</kbd></td><td><kbd>⌘</kbd> <kbd>G</kbd> / <kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>G</kbd></td></tr>
+                <tr class="group"><th colspan="3" scope="rowgroup">Affichage</th></tr>
+                <tr><td>Afficher/masquer la barre latérale</td><td><kbd>Ctrl</kbd> <kbd>S</kbd></td><td><kbd>⌘</kbd> <kbd>S</kbd></td></tr>
+                <tr><td>Mode zen</td><td><kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>B</kbd></td><td><kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>B</kbd></td></tr>
+                <tr><td>Vue scindée</td><td><kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>\</kbd></td><td><kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>\</kbd></td></tr>
+                <tr><td>Zoom avant / arrière / taille réelle</td><td><kbd>Ctrl</kbd> <kbd>+</kbd> / <kbd>Ctrl</kbd> <kbd>-</kbd> / <kbd>Ctrl</kbd> <kbd>0</kbd></td><td><kbd>⌘</kbd> <kbd>+</kbd> / <kbd>⌘</kbd> <kbd>-</kbd> / <kbd>⌘</kbd> <kbd>0</kbd></td></tr>
+                <tr><td>Plein écran</td><td><kbd>F11</kbd></td><td><kbd>⌃</kbd> <kbd>⌘</kbd> <kbd>F</kbd></td></tr>
+                <tr><td>Afficher le code source</td><td><kbd>Ctrl</kbd> <kbd>U</kbd></td><td><kbd>⌘</kbd> <kbd>U</kbd></td></tr>
+                <tr><td>Imprimer</td><td><kbd>Ctrl</kbd> <kbd>P</kbd></td><td><kbd>⌘</kbd> <kbd>P</kbd></td></tr>
+                <tr><td>Mode lecture</td><td><kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>R</kbd></td><td><kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>R</kbd></td></tr>
+                <tr><td>Options de la page</td><td><kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>O</kbd></td><td><kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>O</kbd></td></tr>
+                <tr><td>Outils de développement</td><td><kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>I</kbd></td><td><kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>I</kbd></td></tr>
+                <tr class="group"><th colspan="3" scope="rowgroup">Espaces</th></tr>
+                <tr><td>Espace suivant / précédent</td><td><kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>→</kbd> / <kbd>←</kbd></td><td><kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>→</kbd> / <kbd>←</kbd></td></tr>
+                <tr><td>Espace 1 à 8, dernier espace</td><td><kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>1</kbd>…<kbd>9</kbd></td><td><kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>1</kbd>…<kbd>9</kbd></td></tr>
+                <tr class="group"><th colspan="3" scope="rowgroup">Bibliothèque et outils</th></tr>
+                <tr><td>Barre universelle</td><td><kbd>Ctrl</kbd> <kbd>K</kbd></td><td><kbd>⌘</kbd> <kbd>K</kbd></td></tr>
+                <tr><td>Paramètres</td><td><kbd>Ctrl</kbd> <kbd>,</kbd></td><td><kbd>⌘</kbd> <kbd>,</kbd></td></tr>
+                <tr><td>Ajouter aux favoris</td><td><kbd>Ctrl</kbd> <kbd>D</kbd></td><td><kbd>⌘</kbd> <kbd>D</kbd></td></tr>
+                <tr><td>Téléchargements</td><td><kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>J</kbd></td><td><kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>L</kbd></td></tr>
+                <tr><td>Capture de la zone visible</td><td><kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>S</kbd></td><td><kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>S</kbd></td></tr>
+                <tr><td>Capture de la page entière</td><td><kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>S</kbd></td><td><kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>S</kbd></td></tr>
+                <tr><td>Enregistrer une vidéo de l'onglet</td><td><kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>V</kbd></td><td><kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>V</kbd></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="muted">
+            Les autres commandes (épingler, mettre en veille, nouveau dossier, mode compact, enregistrer la page,
+            extensions, mots de passe, boosts, synchroniser…) n'ont pas de raccourci par défaut : retrouvez-les dans la barre universelle, ou
+            attribuez-leur le vôtre.
+          </p>
+        </section>
+
+        <!-- Updates -->
+        <section class="doc-section" id="mises-a-jour" aria-labelledby="t-mises-a-jour">
+          <h2 id="t-mises-a-jour"><i data-icon="refresh-cw"></i>Mises à jour</h2>
+          <p>
+            Browser vérifie les nouvelles versions 30 secondes après le démarrage puis toutes les 6 heures, les
+            télécharge en arrière-plan et les installe au prochain redémarrage, ou tout de suite avec « Redémarrer pour
+            mettre à jour » (barre latérale, menu Fichier ou barre universelle). Paramètres, Mises à jour :
+            téléchargement automatique, canal <strong>Stable</strong> ou <strong>Bêta</strong>, « Rechercher des mises à jour ».
+          </p>
+          <ul>
+            <li>Windows : automatique avec l'installateur ; la version portable <code>.zip</code> se met à jour à la main.</li>
+            <li>Linux : l'AppImage se met à jour seule, le paquet <code>.deb</code> non.</li>
+            <li>macOS : tant que l'app n'est pas signée par un certificat Developer ID, Browser affiche « Mise à jour manuelle requise » avec un lien vers la nouvelle version.</li>
+          </ul>
+          <p>Vos onglets, favoris et réglages sont conservés d'une version à l'autre.</p>
+        </section>
+
+        <!-- Sync -->
+        <section class="doc-section" id="synchronisation" aria-labelledby="t-synchronisation">
+          <h2 id="t-synchronisation"><i data-icon="cloud-cog"></i>Synchronisation chiffrée</h2>
+          <p>
+            Favoris (et la grille des favoris), historique des 90 derniers jours, onglets ouverts, espaces, thème,
+            moteur de recherche, page d'accueil et boosts se synchronisent entre vos ordinateurs et votre téléphone.
+            Tout est chiffré sur l'appareil (XChaCha20-Poly1305) avant l'envoi : le serveur ne voit que des données
+            illisibles. Les fenêtres privées et les mots de passe ne sont jamais synchronisés.
+          </p>
+          <h3>1. Déployer votre serveur</h3>
+          <p>
+            Aucun serveur n'est fourni : la synchronisation reste désactivée tant que vous n'en avez pas. Le dossier
+            <code>server/</code> du dépôt contient un petit relais sans dépendance (Node 22, Docker) et des guides pour un
+            VPS avec Caddy, Fly.io ou Render : voir
+            <a href="https://github.com/Mathieu-Lalande/browser/blob/master/server/README.md">server/README.md</a>.
+            Choisissez un <code>REGISTRATION_SECRET</code>, sans quoi n'importe qui pourrait créer un compte sur votre serveur.
+          </p>
+          <h3>2. Premier appareil</h3>
+          <ol>
+            <li>Paramètres (<kbd>Ctrl</kbd> <kbd>,</kbd>), Synchronisation, <em>Premier appareil</em>.</li>
+            <li>Collez l'adresse du serveur (<code>https://sync.exemple.fr</code>) et le code d'inscription, puis « Activer la synchronisation ». La clé de chiffrement est créée sur cet appareil.</li>
+          </ol>
+          <h3>3. Jumeler les autres</h3>
+          <ol>
+            <li>Sur le premier appareil : « Afficher le code de jumelage ». Ce code donne accès à toutes vos données synchronisées : ne le partagez pas.</li>
+            <li>Sur le téléphone : Paramètres, Synchronisation, « Scanner le code de jumelage » (ou collez le code texte).</li>
+            <li>Sur un autre ordinateur : <em>Rejoindre un compte existant</em> et collez le code.</li>
+          </ol>
+          <p>
+            La synchronisation a lieu au démarrage, quelques secondes après chaque changement, toutes les 5 minutes, et
+            sur le téléphone à chaque retour au premier plan (ou « Synchroniser maintenant »). Les onglets de vos autres
+            appareils apparaissent dans la barre universelle et dans la vue des onglets du téléphone.
+          </p>
+          <h3>Envoyer un onglet à un appareil</h3>
+          <p>
+            Clic droit dans la page, « Envoyer à un appareil », puis choisissez l'appareil jumelé. L'adresse voyage
+            chiffrée de bout en bout et expire après 7 jours si elle n'est pas reçue. L'ordinateur destinataire l'ouvre en
+            arrière-plan avec une notification ; le téléphone demande « Ouvrir » ou « Plus tard » et la garde sous
+            « Autres appareils ». Jamais depuis une fenêtre privée.
+          </p>
+          <ul>
+            <li><strong>Déconnecter cet appareil</strong> : arrête la synchronisation ici, les données locales restent.</li>
+            <li><strong>Réinitialiser</strong> (code perdu, appareil volé) : efface le compte sur le serveur et en crée un nouveau avec une nouvelle clé ; jumelez à nouveau vos appareils.</li>
+          </ul>
+          <p class="muted">Pour essayer en local : <code>cd server &amp;&amp; npm ci &amp;&amp; npm run build &amp;&amp; npm start</code>, puis l'adresse <code>http://&lt;IP-du-PC&gt;:8787</code> (http n'est accepté que sur le réseau local).</p>
+        </section>
+
+        <!-- Troubleshooting -->
+        <section class="doc-section" id="depannage" aria-labelledby="t-depannage">
+          <h2 id="t-depannage"><i data-icon="circle-help"></i>Dépannage et questions</h2>
+          <dl class="faq-dl">
+            <dt>Windows affiche « Windows a protégé votre ordinateur ».</dt>
+            <dd>Les paquets ne sont pas encore signés : « Informations complémentaires », puis « Exécuter quand même ». Vérifiez le fichier avec <code>SHA256SUMS.txt</code> si vous le souhaitez.</dd>
+            <dt>macOS dit que l'application ne peut pas être ouverte.</dt>
+            <dd>Clic droit sur Browser dans Applications, « Ouvrir » ; ou Réglages Système, Confidentialité et sécurité, « Ouvrir quand même ».</dd>
+            <dt>L'AppImage ne se lance pas sous Linux.</dt>
+            <dd>Rendez-la exécutable (<code>chmod +x</code>). Sur certaines distributions récentes, installez aussi <code>libfuse2</code>.</dd>
+            <dt>En développement, <code>npm run dev</code> ne trouve pas Electron.</dt>
+            <dd>Electron 44 ne télécharge plus son binaire à l'installation : <code>scripts/ensure-electron.mjs</code> le fait au <code>postinstall</code> et avant <code>npm run dev</code>. Relancez <code>npm install</code> (ou <code>node scripts/ensure-electron.mjs</code>), en vérifiant l'accès réseau ou le proxy.</dd>
+            <dt><code>npm install</code> échoue sur un conflit de dépendances.</dt>
+            <dd>Le fichier <code>.npmrc</code> du dépôt active <code>legacy-peer-deps</code> ; lancez la commande à la racine du dépôt. Sous Windows, évitez un dossier synchronisé par OneDrive.</dd>
+            <dt>Un site ne fonctionne pas correctement.</dt>
+            <dd>Désactivez les protections pour ce site (bouclier de la barre d'adresse), puis rechargez. Si le site refuse le https, la page HTTPS uniquement propose de continuer.</dd>
+            <dt>Un onglet se recharge quand j'y reviens.</dt>
+            <dd>Il était en veille pour libérer la mémoire. Allongez le délai ou choisissez « Jamais » dans Paramètres, Comportement.</dd>
+            <dt>Un onglet a disparu.</dt>
+            <dd>Il a peut-être été archivé : commande « Onglets archivés » ou filtre de la barre universelle.</dd>
+            <dt>La synchronisation ne démarre pas.</dt>
+            <dd>Vérifiez l'adresse (https obligatoire hors réseau local), le code d'inscription, et que le serveur répond. L'état et la dernière erreur s'affichent dans Paramètres, Synchronisation.</dd>
+            <dt>Les mots de passe ne sont pas proposés à l'enregistrement.</dt>
+            <dd>Jamais en fenêtre privée ; sous Linux, un trousseau système (GNOME Keyring, KWallet) est nécessaire, sinon rien n'est enregistré.</dd>
+            <dt>Où est mon profil ?</dt>
+            <dd>Dans le dossier de données de l'application (<code>%APPDATA%\Browser</code>, <code>~/Library/Application Support/Browser</code> ou <code>~/.config/Browser</code>). Il est conservé à la désinstallation.</dd>
+          </dl>
+          <p>
+            Une autre question ? Ouvrez un ticket sur
+            <a href="https://github.com/Mathieu-Lalande/browser/issues">GitHub</a>.
+          </p>
+        </section>
+      </main>
+    </div>
+
+    <footer class="footer">
+      <div class="container footer-inner">
+        <div class="footer-brand">
+          <a class="brand" href="./">
+            <img src="/img/icon.png" width="24" height="24" alt="" loading="lazy" />
+            <span>Browser</span>
+          </a>
+          <p class="muted small">Rapide, privé, entièrement personnalisable.</p>
+        </div>
+        <nav aria-label="Pied de page">
+          <ul class="footer-links">
+            <li><a href="./">Accueil</a></li>
+            <li><a href="./#telecharger">Télécharger</a></li>
+            <li><a href="https://github.com/Mathieu-Lalande/browser">Code source</a></li>
+            <li><a href="https://github.com/Mathieu-Lalande/browser/releases">Versions</a></li>
+          </ul>
+        </nav>
+        <p class="muted small">© 2026 Mathieu Lalande</p>
+      </div>
+    </footer>
+  </body>
+</html>
