@@ -5,6 +5,7 @@ import type { Bounds, BrowserState, SpaceId, SpaceInfo, SpaceInput, SpacePeek, T
 import { hardenSession } from "./security";
 import type { SessionWindow } from "./storage/session";
 import { TabManager, type TabManagerHooks, type TabOptions } from "./tabs";
+import { Emitter } from "@shared/emitter";
 
 /** Tabs of a neighbour space sent for the swipe preview. */
 const PEEK_TABS = 40;
@@ -23,7 +24,7 @@ export interface SpaceChange {
  */
 class SpaceRegistry {
   private spaces: SpaceInfo[] = [{ ...DEFAULT_SPACE }];
-  private readonly listeners = new Set<(change: SpaceChange) => void>();
+  private readonly changes = new Emitter<SpaceChange>();
 
   init(spaces: readonly SpaceInfo[] | undefined): void {
     if (spaces?.length) this.spaces = [...spaces];
@@ -102,12 +103,11 @@ class SpaceRegistry {
   }
 
   onChange(listener: (change: SpaceChange) => void): () => void {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
+    return this.changes.on(listener);
   }
 
   private notify(change: SpaceChange): void {
-    for (const listener of [...this.listeners]) listener(change);
+    this.changes.emit(change);
   }
 }
 

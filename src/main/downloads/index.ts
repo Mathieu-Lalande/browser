@@ -9,6 +9,7 @@ import { profile } from "../profile";
 import { settings, updateSettings } from "../settings";
 import { isDangerousFile, sanitizeFilename, uniqueFilename } from "./files";
 import { applySnapshot, type DownloadViewer, type ItemSnapshot } from "./list";
+import { Emitter } from "@shared/emitter";
 
 /**
  * Downloads (ADR-013): saved straight to the downloads folder without a dialog (unless the user
@@ -30,7 +31,7 @@ const itemSessions = new Map<string, Session>();
 const retries = new WeakMap<Session, Set<string>>();
 /** Paths promised to running downloads, so two of them never pick the same unique name. */
 const reserved = new Set<string>();
-const listeners = new Set<Listener>();
+const changes = new Emitter<DownloadsChange>();
 const pending = new Set<string>();
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
 let quarantineSwept = false;
@@ -43,8 +44,7 @@ export function downloadsFolder(current: Settings = settings()): string {
 }
 
 export function onDownloadsChanged(listener: Listener): () => void {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
+  return changes.on(listener);
 }
 
 /** The downloads a window sees (`downloadViewerOf` its private session, or null for a normal window). */
@@ -242,7 +242,7 @@ function flush(removed: string[] = []): void {
   const updated = [...pending].map((id) => downloads.get(id)).filter((entry) => entry !== undefined);
   pending.clear();
   const change: DownloadsChange = { updated: updated.map((entry) => ({ ...entry })), removed };
-  for (const listener of listeners) listener(change);
+  changes.emit(change);
 }
 
 function forget(id: string): void {

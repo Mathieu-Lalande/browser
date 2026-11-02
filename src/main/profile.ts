@@ -10,6 +10,7 @@ import { JsonFile, flushAll } from "./storage/json-file";
 import { ARCHIVE_VERSION, Archive, FAVORITES_VERSION, Favorites } from "./storage/organize";
 import { SESSION_VERSION, parseSession, type Session } from "./storage/session";
 import { SiteZoom, ZOOM_VERSION } from "./zoom/levels";
+import { Emitter } from "@shared/emitter";
 
 /** Everything the browser persists in the user's profile directory (`userData`). */
 export interface Profile {
@@ -123,10 +124,8 @@ export function openProfile(dir = app.getPath("userData")): Profile {
   const zoom = new SiteZoom(zoomFile.load() ?? {});
   let settings = settingsFile.load() ?? sanitizeSettings(undefined);
   let boosts: readonly Boost[] = boostsFile.load() ?? [];
-  const listeners = new Set<(what: ProfileChange) => void>();
-  const changed = (what: ProfileChange) => {
-    for (const listener of listeners) listener(what);
-  };
+  const changes = new Emitter<ProfileChange>();
+  const changed = (what: ProfileChange) => changes.emit(what);
 
   current = {
     history,
@@ -174,10 +173,7 @@ export function openProfile(dir = app.getPath("userData")): Profile {
       settingsFile.scheduleSave(() => settings);
       changed("settings");
     },
-    onChange: (listener) => {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
+    onChange: (listener) => changes.on(listener),
     // Each store in its own try: one failure never keeps the others from being written.
     flush: () => flushAll([historyFile, bookmarksFile, sessionFile, settingsFile, downloadsFile, zoomFile, favoritesFile, archiveFile, boostsFile]),
   };

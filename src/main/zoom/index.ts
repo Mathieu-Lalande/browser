@@ -3,6 +3,7 @@ import { webHostname } from "@shared/hosts";
 import { isPrivateSession } from "../private";
 import { profile } from "../profile";
 import { sameFactor } from "./levels";
+import { Emitter } from "@shared/emitter";
 
 /**
  * Per-site zoom, remembered by host in `zoom.json` and shared by every window (and, later, every
@@ -12,7 +13,7 @@ import { sameFactor } from "./levels";
  */
 
 type Listener = (host: string) => void;
-const listeners = new Set<Listener>();
+const changes = new Emitter<string>();
 /** Private sessions' own levels (host → factor), for the window's lifetime. */
 const privateLevels = new WeakMap<Session, Map<string, number>>();
 
@@ -38,10 +39,9 @@ export function rememberSiteZoom(url: string, factor: number, defaultFactor: num
     if (!zoom.set(host, factor, defaultFactor)) return;
     saveZoom();
   }
-  for (const listener of listeners) listener(host);
+  changes.emit(host);
 }
 
 export function onSiteZoomChange(listener: Listener): () => void {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
+  return changes.on(listener);
 }

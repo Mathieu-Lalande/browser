@@ -6,6 +6,7 @@ import { BrowserController } from "../window";
 import { canSelfUpdate, createElectronUpdater } from "./electron-updater";
 import { FakeUpdater, isFakeScenario } from "./fake";
 import { UpdateService, type Updater } from "./service";
+import { Emitter } from "@shared/emitter";
 
 /**
  * Desktop auto-updates (ADR-030). Real updates only in a packaged app, unless started with
@@ -16,15 +17,14 @@ import { UpdateService, type Updater } from "./service";
 const TEST_SCENARIO = !app.isPackaged ? process.env.BROWSER_TEST_UPDATER : undefined;
 
 let service: UpdateService | null = null;
-const listeners = new Set<(status: UpdateStatus) => void>();
+const statuses = new Emitter<UpdateStatus>();
 
 export function updateService(): UpdateService | null {
   return service;
 }
 
 export function onUpdateStatus(listener: (status: UpdateStatus) => void): () => void {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
+  return statuses.on(listener);
 }
 
 async function pickUpdater(): Promise<{ updater: Updater | null; canInstall: boolean }> {
@@ -40,7 +40,7 @@ async function pickUpdater(): Promise<{ updater: Updater | null; canInstall: boo
 
 function broadcast(status: UpdateStatus): void {
   for (const controller of BrowserController.all()) controller.send(Channels.updatesChanged, status);
-  for (const listener of listeners) listener(status);
+  statuses.emit(status);
 }
 
 /** Starts the updater (after the first window); its IPC is in ../ipc/services. */

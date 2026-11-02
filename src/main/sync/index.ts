@@ -12,6 +12,7 @@ import { BrowserController } from "../window";
 import { desktopAdapters } from "./adapters";
 import { credentialsStore } from "./credentials";
 import { nodeRandomBytes } from "./random";
+import { Emitter } from "@shared/emitter";
 
 /**
  * Desktop sync service (ADR-019): the shared `SyncController` wired to the profile, Electron's
@@ -25,7 +26,7 @@ const TEST_DEBOUNCE_MS = (!app.isPackaged && Number(process.env.BROWSER_TEST_SYN
 const TEST_INTERVAL_MS = (!app.isPackaged && Number(process.env.BROWSER_TEST_SYNC_INTERVAL_MS)) || undefined;
 
 type Listener = (status: SyncStatus) => void;
-const listeners = new Set<Listener>();
+const statuses = new Emitter<SyncStatus>();
 let controller: SyncController | null = null;
 /** Set while remote changes are applied: they must not schedule another sync. */
 let applying = false;
@@ -78,7 +79,7 @@ export function syncController(): SyncController {
       if (!state) stateFile.flush();
     },
     onStatus: (status) => {
-      for (const listener of listeners) listener(status);
+      statuses.emit(status);
     },
     debounceMs: TEST_DEBOUNCE_MS,
     intervalMs: TEST_INTERVAL_MS,
@@ -97,6 +98,5 @@ export function startSync(): void {
 }
 
 export function onSyncStatus(listener: Listener): () => void {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
+  return statuses.on(listener);
 }

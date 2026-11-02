@@ -2,6 +2,7 @@ import { nativeTheme } from "electron";
 import { mergeSettings, resetSettings, sameSettings, type Settings, type SettingsSection } from "@shared/settings";
 import { derivePalette, type ResolvedMode } from "@shared/theme";
 import { profile } from "./profile";
+import { Emitter } from "@shared/emitter";
 
 /**
  * Main-process side of the settings: the single writer of `settings.json`. Every change goes
@@ -10,22 +11,21 @@ import { profile } from "./profile";
  */
 
 type Listener = (settings: Settings) => void;
-const listeners = new Set<Listener>();
+const changes = new Emitter<Settings>();
 
 export function settings(): Settings {
   return profile().settings;
 }
 
 export function onSettingsChanged(listener: Listener): () => void {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
+  return changes.on(listener);
 }
 
 function commit(next: Settings): Settings {
   if (sameSettings(next, settings())) return next;
   profile().saveSettings(next);
   applyNativeTheme(next);
-  for (const listener of listeners) listener(next);
+  changes.emit(next);
   return next;
 }
 

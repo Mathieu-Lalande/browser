@@ -13,6 +13,7 @@ import { PermissionPrompts, permissionKinds } from "./permissions";
 import { ShieldsAllowList } from "./shields";
 import { settings } from "../settings";
 import { stripsCookies, withoutHeaders } from "../site-info/domains";
+import { Emitter } from "@shared/emitter";
 
 /** What a tab wants to hear about from the privacy layer. */
 export interface TabPrivacyHooks {
@@ -53,7 +54,7 @@ const tabs = new Map<
 >();
 let privacy: PrivacyState | undefined;
 const ephemeral = new WeakMap<Session, EphemeralState>();
-const shieldsListeners = new Set<() => void>();
+const shieldsChanges = new Emitter();
 
 /** Lists are downloaded in a separate in-memory session, outside the filtered default one. */
 async function fetchList(url: string): Promise<string> {
@@ -238,17 +239,17 @@ export function setShieldsEnabled(url: string, enabled: boolean, ses?: Session):
   const own = ses && ephemeral.get(ses);
   if (own) {
     own.shields.set(host, enabled);
-    for (const listener of [...shieldsListeners]) listener();
+    shieldsChanges.emit();
   } else {
     void privacy?.shields.setEnabled(host, enabled);
   }
 }
 
 export function onShieldsChange(listener: () => void): () => void {
-  shieldsListeners.add(listener);
+  const unsubscribeOwn = shieldsChanges.on(listener);
   const unsubscribe = privacy?.shields.onChange(listener);
   return () => {
-    shieldsListeners.delete(listener);
+    unsubscribeOwn();
     unsubscribe?.();
   };
 }

@@ -1,10 +1,11 @@
 import { JsonFileWriter, readJsonFile } from "./json-file";
+import { Emitter } from "@shared/emitter";
 
 /** Hostnames where the user turned protections off, persisted as `{ "disabledHosts": [...] }`. */
 export class ShieldsAllowList {
   private readonly hosts: Set<string>;
   private readonly writer: JsonFileWriter;
-  private readonly listeners = new Set<() => void>();
+  private readonly changes = new Emitter();
 
   constructor(file: string) {
     this.writer = new JsonFileWriter(file);
@@ -21,12 +22,11 @@ export class ShieldsAllowList {
     const key = host.toLowerCase();
     if (enabled) this.hosts.delete(key);
     else this.hosts.add(key);
-    for (const listener of this.listeners) listener();
+    this.changes.emit();
     return this.writer.save({ disabledHosts: [...this.hosts].sort() });
   }
 
   onChange(listener: () => void): () => void {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
+    return this.changes.on(listener);
   }
 }
