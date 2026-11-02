@@ -472,7 +472,7 @@
     display: grid;
   }
   .copy.done .glyph {
-    animation: check-pop 0.32s var(--ease);
+    animation: check-pop var(--motion-base) var(--ease);
   }
   .copied {
     position: absolute;

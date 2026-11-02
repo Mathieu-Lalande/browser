@@ -60,7 +60,7 @@
     padding: 24px;
     overflow-y: auto;
     text-align: center;
-    animation: rise 0.25s var(--ease);
+    animation: rise var(--motion-base) var(--ease);
   }
   .badge {
     display: grid;

@@ -294,7 +294,7 @@
   }
   .shell.tinted {
     background: radial-gradient(120% 80% at 0% 0%, color-mix(in oklab, var(--space-color) 14%, transparent), transparent 60%);
-    transition: background 0.3s var(--ease);
+    transition: background var(--motion-base) var(--ease);
   }
   .shell.right {
     flex-direction: row-reverse;

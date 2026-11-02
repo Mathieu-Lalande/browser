@@ -125,7 +125,7 @@
     gap: 6px;
     height: 100%;
     padding: 24px;
-    animation: rise 0.4s var(--ease);
+    animation: rise var(--motion-base) var(--ease);
   }
   /* Optional backgrounds, behind the content (z-index -1 within the isolated section). */
   .start.aurora::before,

@@ -16,6 +16,9 @@
   --gutter: 8px;
   --font: "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Motion tokens: short enough never to hold up input; 0ms when motion is reduced (below). */
+  --motion-fast: 120ms;
+  --motion-base: 160ms;
   /* Theme tokens: overridden on :root by lib/theme.ts from the settings (these are fallbacks). */
   --accent-text: #a89bff;
   --on-accent: #ffffff;
@@ -141,6 +144,10 @@ button {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+  }
   *,
   *::before,
   *::after {
@@ -152,6 +159,10 @@ button {
 }
 
 /* "Réduire les animations" setting: same effect as the OS preference. */
+:root[data-reduce-motion] {
+  --motion-fast: 0ms;
+  --motion-base: 0ms;
+}
 :root[data-reduce-motion] *,
 :root[data-reduce-motion] *::before,
 :root[data-reduce-motion] *::after {

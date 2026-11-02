@@ -78,7 +78,7 @@
   .value {
     stroke: var(--accent);
     stroke-linecap: round;
-    transition: stroke-dashoffset 0.3s linear;
+    transition: stroke-dashoffset var(--motion-base) linear;
   }
   .ring.indeterminate {
     animation: spin 1s linear infinite;

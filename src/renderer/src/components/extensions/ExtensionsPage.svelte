@@ -146,7 +146,7 @@
   .page {
     height: 100%;
     overflow-y: auto;
-    animation: rise 0.3s var(--ease);
+    animation: rise var(--motion-base) var(--ease);
   }
   .inner {
     display: flex;

@@ -185,7 +185,7 @@
     inset: 0 auto 0 0;
     border-radius: 2px;
     background: linear-gradient(90deg, var(--accent), var(--accent-2));
-    transition: width 0.25s linear;
+    transition: width var(--motion-base) linear;
   }
   .paused .bar {
     background: var(--text-faint);

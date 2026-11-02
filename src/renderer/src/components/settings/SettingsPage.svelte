@@ -594,7 +594,7 @@
   .settings {
     display: flex;
     height: 100%;
-    animation: rise 0.3s var(--ease);
+    animation: rise var(--motion-base) var(--ease);
   }
   .toc {
     display: flex;
