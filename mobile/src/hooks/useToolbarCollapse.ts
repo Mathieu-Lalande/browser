@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Easing, useSharedValue, withTiming } from "react-native-reanimated";
+import { useSharedValue } from "react-native-reanimated";
 import { initialCollapse, nextCollapse } from "../lib/gestures";
+import { settle } from "../lib/motion";
 import { useEvent } from "./useEvent";
 
 /**
@@ -14,7 +15,7 @@ export function useToolbarCollapse({ enabled, reduceMotion, tabId, loadSeq }: { 
 
   const apply = useCallback(
     (value: boolean) => {
-      collapse.value = withTiming(value ? 1 : 0, { duration: reduceMotion ? 0 : 220, easing: Easing.out(Easing.cubic) });
+      collapse.value = settle(value ? 1 : 0, reduceMotion);
       setCollapsed(value);
     },
     [collapse, reduceMotion],

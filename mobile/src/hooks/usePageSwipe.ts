@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { interpolate, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import { interpolate, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
+import { settle } from "../lib/motion";
 import { swipeTarget, type TabsModel } from "../lib/tabs";
 import type { Theme } from "../state/theme";
 import { useEvent } from "./useEvent";
@@ -37,7 +38,7 @@ export function usePageSwipe({
     haptic("light");
     if (!reduceMotion) {
       shift.value = direction * width * 0.3;
-      shift.value = withSpring(0, { damping: 22, stiffness: 220 });
+      shift.value = settle(0, false);
     }
     if (destination.kind === "tab") onActivate(destination.id);
     else onNewTab();

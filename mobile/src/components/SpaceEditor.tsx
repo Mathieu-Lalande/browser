@@ -3,7 +3,7 @@ import type { SpaceInfo } from "@shared/types";
 import { memo, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
-import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBrowserActions, useBrowserState } from "../state/BrowserProvider";
 import { useTheme } from "../state/theme";
@@ -12,7 +12,7 @@ import { Tap } from "./ui";
 
 /** Bottom sheet to rename a space and pick its icon (Lucide grid) and color (shared lists), or delete it. */
 export const SpaceEditor = memo(function SpaceEditor({ space, onClose }: { space: SpaceInfo; onClose: () => void }) {
-  const { colors, dark, reduceMotion, haptic } = useTheme();
+  const { colors, dark, haptic } = useTheme();
   const { model } = useBrowserState();
   const actions = useBrowserActions();
   const insets = useSafeAreaInsets();
@@ -27,13 +27,11 @@ export const SpaceEditor = memo(function SpaceEditor({ space, onClose }: { space
 
   return (
     <View style={StyleSheet.absoluteFill}>
-      <Animated.View entering={FadeIn.duration(160)} exiting={FadeOut.duration(120)} style={[StyleSheet.absoluteFill, { backgroundColor: colors.scrim }]}>
+      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: colors.scrim }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={save} accessibilityLabel="Fermer" />
       </Animated.View>
       <KeyboardAvoidingView behavior="padding" style={styles.avoid} pointerEvents="box-none">
         <Animated.View
-          entering={reduceMotion ? FadeIn : SlideInDown.springify().damping(22).stiffness(260)}
-          exiting={reduceMotion ? FadeOut : SlideOutDown.duration(180)}
           style={[styles.sheet, { backgroundColor: colors.bgElevated, paddingBottom: insets.bottom + 16 }]}
           accessibilityViewIsModal
         >

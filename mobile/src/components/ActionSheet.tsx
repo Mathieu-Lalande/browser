@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
-import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../state/theme";
 import { Icon, type IconName } from "./Icon";
@@ -33,18 +33,16 @@ interface Props {
 
 /** Native-feeling bottom sheet menu (link long-press, tab context menu, page actions). */
 export const ActionSheet = memo(function ActionSheet({ menu, onClose, onReplace }: Props) {
-  const { colors, haptic, reduceMotion } = useTheme();
+  const { colors, haptic } = useTheme();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   if (!menu) return null;
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-      <Animated.View entering={FadeIn.duration(160)} exiting={FadeOut.duration(140)} style={[StyleSheet.absoluteFill, { backgroundColor: colors.scrim }]}>
+      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: colors.scrim }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityRole="button" accessibilityLabel="Fermer le menu" />
       </Animated.View>
       <Animated.View
-        entering={reduceMotion ? FadeIn.duration(120) : SlideInDown.springify().damping(22).stiffness(260)}
-        exiting={reduceMotion ? FadeOut.duration(100) : SlideOutDown.duration(180)}
         style={[styles.sheet, { backgroundColor: colors.bgElevated, paddingBottom: insets.bottom + 10, maxHeight: height * 0.8 }]}
         accessibilityViewIsModal
       >

@@ -3,7 +3,7 @@ import { addWidget } from "@shared/start-widgets";
 import { displayUrl, SEARCH_ENGINES } from "@shared/url";
 import { memo, useState, type ReactNode } from "react";
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
-import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { APP_VERSION } from "../lib/version";
 import { useBrowserActions, useBrowserState } from "../state/BrowserProvider";
@@ -21,7 +21,7 @@ import { IconButton, SiteIcon, Tap } from "./ui";
 
 /** Settings: search engine, theme/accent, start page, tabs, privacy, favorites, about. */
 export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClose: () => void }) {
-  const { colors, dark, reduceMotion, haptic } = useTheme();
+  const { colors, dark, haptic } = useTheme();
   const { settings, mobile, bookmarks } = useBrowserState();
   const actions = useBrowserActions();
   const insets = useSafeAreaInsets();
@@ -46,8 +46,6 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
 
   return (
     <Animated.View
-      entering={reduceMotion ? FadeIn.duration(120) : SlideInDown.springify().damping(24).stiffness(240)}
-      exiting={reduceMotion ? FadeOut.duration(100) : SlideOutDown.duration(200)}
       style={[StyleSheet.absoluteFill, { backgroundColor: colors.bg, paddingTop: insets.top }]}
       accessibilityViewIsModal
     >

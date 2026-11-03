@@ -1,7 +1,7 @@
 import { memo, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
-import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../state/theme";
 import { Icon } from "./Icon";
@@ -9,7 +9,7 @@ import { Tap } from "./ui";
 
 /** Bottom sheet to name a folder of the tab overview (ADR-022). */
 export const FolderNameSheet = memo(function FolderNameSheet({ initial, onSave, onClose }: { initial: string; onSave: (name: string) => void; onClose: () => void }) {
-  const { colors, reduceMotion } = useTheme();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [name, setName] = useState(initial);
 
@@ -20,13 +20,11 @@ export const FolderNameSheet = memo(function FolderNameSheet({ initial, onSave, 
 
   return (
     <View style={StyleSheet.absoluteFill}>
-      <Animated.View entering={FadeIn.duration(160)} exiting={FadeOut.duration(120)} style={[StyleSheet.absoluteFill, { backgroundColor: colors.scrim }]}>
+      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: colors.scrim }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Annuler" />
       </Animated.View>
       <KeyboardAvoidingView behavior="padding" style={styles.avoid} pointerEvents="box-none">
         <Animated.View
-          entering={reduceMotion ? FadeIn : SlideInDown.springify().damping(22).stiffness(260)}
-          exiting={reduceMotion ? FadeOut : SlideOutDown.duration(180)}
           style={[styles.sheet, { backgroundColor: colors.bgElevated, paddingBottom: insets.bottom + 16 }]}
           accessibilityViewIsModal
         >

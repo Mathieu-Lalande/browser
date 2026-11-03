@@ -1,6 +1,7 @@
 import { memo, useState, type ReactNode } from "react";
 import { Image, Pressable, StyleSheet, Text, View, type PressableProps, type StyleProp, type ViewStyle } from "react-native";
-import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
+import Animated, { useAnimatedStyle, useSharedValue } from "react-native-reanimated";
+import { MOTION, settle } from "../lib/motion";
 import { faviconUrl, monogram } from "../lib/site";
 import { useTheme } from "../state/theme";
 import { Icon, type IconName } from "./Icon";
@@ -14,7 +15,7 @@ interface TapProps extends Omit<PressableProps, "style"> {
   children?: ReactNode;
 }
 
-/** Pressable with a springy press-down effect (skipped with reduced motion). */
+/** Pressable with a short press-down effect, no spring (dim only with reduced motion, `lib/motion`). */
 export function Tap({ style, pressScale = 0.95, children, onPressIn, onPressOut, ...props }: TapProps) {
   const { reduceMotion } = useTheme();
   const scale = useSharedValue(1);
@@ -24,13 +25,13 @@ export function Tap({ style, pressScale = 0.95, children, onPressIn, onPressOut,
     <AnimatedPressable
       {...props}
       onPressIn={(event) => {
-        if (reduceMotion) pressed.value = withTiming(1, { duration: 60 });
-        else scale.value = withSpring(pressScale, { damping: 20, stiffness: 500 });
+        if (reduceMotion) pressed.value = 1;
+        else scale.value = settle(pressScale, false, undefined, MOTION.pressMs);
         onPressIn?.(event);
       }}
       onPressOut={(event) => {
-        pressed.value = withTiming(0, { duration: 120 });
-        scale.value = withSpring(1, { damping: 14, stiffness: 300 });
+        pressed.value = settle(0, reduceMotion, undefined, MOTION.pressMs);
+        scale.value = settle(1, reduceMotion, undefined, MOTION.pressMs);
         onPressOut?.(event);
       }}
       style={[style, animated]}

@@ -1,8 +1,8 @@
 import * as Haptics from "expo-haptics";
 import { createContext, use, useMemo, type ReactNode } from "react";
 import { Platform, useColorScheme } from "react-native";
-import { useReducedMotion } from "react-native-reanimated";
 import { colorsFor, type AppColors } from "../lib/colors";
+import { useSystemReduceMotion } from "../lib/motion";
 import { PRIVATE_SPACE_ID } from "../lib/tabs";
 import { useBrowserState } from "./BrowserProvider";
 
@@ -10,7 +10,7 @@ export interface Theme {
   colors: AppColors;
   dark: boolean;
   isPrivate: boolean;
-  /** System "reduce motion" or the app setting: animations become instant fades. */
+  /** System "reduce motion" or the app setting: every animation becomes instant (`lib/motion`). */
   reduceMotion: boolean;
   haptic: (kind?: "selection" | "light" | "medium" | "success" | "warning") => void;
 }
@@ -26,7 +26,7 @@ export function useTheme(): Theme {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const { settings, mobile, model } = useBrowserState();
   const system = useColorScheme();
-  const systemReduceMotion = useReducedMotion();
+  const systemReduceMotion = useSystemReduceMotion();
   const isPrivate = model.activeSpaceId === PRIVATE_SPACE_ID;
   const spaceColor = model.spaces.find((space) => space.id === model.activeSpaceId)?.color ?? null;
 

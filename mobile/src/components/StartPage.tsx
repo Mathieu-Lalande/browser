@@ -335,7 +335,7 @@ function Gallery({ visible, widgets, isPrivate, onClose, onAdd }: { visible: boo
   const { colors } = useTheme();
   const kinds = WIDGET_KINDS.filter((kind) => WIDGET_CATALOG[kind].mobile && !(isPrivate && WIDGET_CATALOG[kind].revealsHabits));
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: withAlpha("#000000", 0.4) }]} onPress={onClose} accessibilityLabel="Fermer" />
       <View style={[styles.sheet, { backgroundColor: colors.bgElevated }]} accessibilityViewIsModal>
         <Text style={[styles.sheetTitle, { color: colors.text }]} accessibilityRole="header">

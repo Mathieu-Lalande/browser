@@ -3,7 +3,8 @@ import type { SpaceInfo } from "@shared/types";
 import { memo, useMemo } from "react";
 import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
-import Animated, { FadeIn, interpolate, useAnimatedStyle, useSharedValue, withSpring, withTiming, type SharedValue } from "react-native-reanimated";
+import Animated, { interpolate, useAnimatedStyle, useSharedValue, type SharedValue } from "react-native-reanimated";
+import { settle } from "../lib/motion";
 import { scheduleOnRN } from "react-native-worklets";
 import { pagerTarget, rubberBand } from "../lib/gestures";
 import { pagerPages } from "../lib/organize";
@@ -142,7 +143,7 @@ export const TabOverview = memo(function TabOverview(props: Props) {
     props.onShowSpace(pages[index]);
     // The new space's grid comes in from the side the finger went to.
     pageX.value = reduceMotion ? 0 : direction * width * 0.35;
-    pageX.value = withSpring(0, { damping: 22, stiffness: 260 });
+    pageX.value = settle(0, reduceMotion);
   };
   const pager = usePanGesture({
     activeOffsetX: [-16, 16],
@@ -156,11 +157,11 @@ export const TabOverview = memo(function TabOverview(props: Props) {
       "worklet";
       const target = pagerTarget(pageIndex, pages.length, event.translationX, event.velocityX, width);
       if (target === pageIndex) {
-        pageX.value = withSpring(0, { damping: 20, stiffness: 240 });
+        pageX.value = settle(0, reduceMotion);
         return;
       }
       const direction = target > pageIndex ? 1 : -1;
-      pageX.value = withTiming(-direction * width * 0.6, { duration: reduceMotion ? 0 : 140 }, () => scheduleOnRN(showPage, target, direction));
+      pageX.value = settle(-direction * width * 0.6, reduceMotion, () => scheduleOnRN(showPage, target, direction));
     },
   });
   const pageStyle = useAnimatedStyle(() => ({
@@ -185,7 +186,6 @@ export const TabOverview = memo(function TabOverview(props: Props) {
       layout={geometry.layout}
       active={tab.id === activeId}
       progress={progress}
-      reduceMotion={reduceMotion}
       onPress={props.onSelect}
       onClose={props.onCloseTab}
       onLongPress={props.onTabMenu}
@@ -243,7 +243,7 @@ export const TabOverview = memo(function TabOverview(props: Props) {
           <FolderGroup key={folder.id} folder={folder} tabs={filed} renderTab={renderTab} onToggle={props.onToggleFolder} onLongPress={props.onFolderMenu} />
         ))}
         {tabs.length === 0 && (
-          <Animated.View entering={FadeIn} style={styles.empty}>
+          <Animated.View style={styles.empty}>
             <Icon name={isPrivate ? "mask" : "tabs"} size={36} color={colors.textFaint} />
             <Text style={[styles.emptyTitle, { color: colors.text }]}>{isPrivate ? "Aucun onglet privé" : "Aucun onglet"}</Text>
             <Text style={[styles.emptyText, { color: colors.textMuted }]}>Touchez + pour ouvrir un nouvel onglet{isPrivate ? " privé" : ""}.</Text>

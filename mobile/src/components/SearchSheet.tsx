@@ -3,7 +3,7 @@ import { searchEngineOf } from "@shared/settings";
 import { memo, useDeferredValue, useMemo, useRef, useState, type ComponentRef } from "react";
 import { Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
-import Animated, { FadeIn, FadeOut, SlideInDown } from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { isBookmarked } from "../lib/bookmarks";
 import { focusOnFirstLayout } from "../lib/focus";
@@ -28,7 +28,7 @@ interface Props {
  * bookmarks + history (frecency), actions from the command registry.
  */
 export const SearchSheet = memo(function SearchSheet({ initialText, onSubmit, onPick, onClose }: Props) {
-  const { colors, dark, isPrivate, reduceMotion } = useTheme();
+  const { colors, dark, isPrivate } = useTheme();
   const { model, bookmarks, settings, sync } = useBrowserState();
   const history = useHistoryEntries();
   const insets = useSafeAreaInsets();
@@ -63,8 +63,6 @@ export const SearchSheet = memo(function SearchSheet({ initialText, onSubmit, on
 
   return (
     <Animated.View
-      entering={FadeIn.duration(reduceMotion ? 80 : 160)}
-      exiting={FadeOut.duration(120)}
       style={[StyleSheet.absoluteFill, { backgroundColor: colors.bg }]}
       accessibilityViewIsModal
     >
@@ -106,7 +104,6 @@ export const SearchSheet = memo(function SearchSheet({ initialText, onSubmit, on
         </ScrollView>
 
         <Animated.View
-          entering={reduceMotion ? undefined : SlideInDown.springify().damping(24).stiffness(280)}
           style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 10), borderTopColor: colors.hairline, backgroundColor: colors.bgElevated }]}
         >
           <View style={[styles.field, { backgroundColor: dark ? "rgba(255,255,255,0.08)" : "rgba(20,16,40,0.06)" }]} onLayout={onFieldLayout}>
