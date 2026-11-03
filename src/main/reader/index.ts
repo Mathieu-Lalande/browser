@@ -3,6 +3,7 @@ import { mapReaderImages, readerImageSources, sanitizeReaderArticle, type Reader
 import type { TabId } from "@shared/types";
 import { fetchImageDataUrl } from "../favicons";
 import { faviconRequestUrl } from "../privacy";
+import { appServices } from "../services";
 import type { BrowserController } from "../window";
 import { extractArticle } from "./page";
 
@@ -20,16 +21,6 @@ const IMAGE_TIMEOUT_MS = 5000;
 /** Articles kept (most recent last), by tab id. */
 const MAX_ARTICLES = 16;
 
-const articles = new Map<TabId, ReaderArticle>();
-/** One extraction per tab at a time (a double press of the shortcut). */
-const busy = new Set<TabId>();
-
-function remember(tabId: TabId, article: ReaderArticle): void {
-  articles.delete(tabId);
-  articles.set(tabId, article);
-  if (articles.size > MAX_ARTICLES) articles.delete(articles.keys().next().value!);
-}
-
 /** Fetches the first images like favicons are (tab session, shields, HTTPS-Only); the others are dropped. */
 async function withImages(contents: WebContents, article: ReaderArticle): Promise<ReaderArticle> {
   const sources = [...new Set(readerImageSources(article.content))].slice(0, MAX_IMAGES);
@@ -43,36 +34,53 @@ async function withImages(contents: WebContents, article: ReaderArticle): Promis
   return { ...article, content: mapReaderImages(article.content, (src) => fetched.get(src) ?? null) };
 }
 
-/** "Mode lecture": shows the active page's article in place of the page, or goes back to the page. */
-export async function toggleReader(c: BrowserController, tabId: TabId): Promise<void> {
-  const tab = c.tabs.getState().tabs.find((entry) => entry.id === tabId);
-  if (!tab) return;
-  if (tab.reader) {
-    c.tabs.setReader(tabId, false);
-    return;
+/** The articles extracted for tabs in reader mode (most recent last), one extraction per tab at a time. */
+export class ReaderService {
+  private readonly articles = new Map<TabId, ReaderArticle>();
+  /** One extraction per tab at a time (a double press of the shortcut). */
+  private readonly busy = new Set<TabId>();
+
+  /** "Mode lecture": shows the active page's article in place of the page, or goes back to the page. */
+  async toggle(c: BrowserController, tabId: TabId): Promise<void> {
+    const tab = c.tabs.getState().tabs.find((entry) => entry.id === tabId);
+    if (!tab) return;
+    if (tab.reader) {
+      c.tabs.setReader(tabId, false);
+      return;
+    }
+    const contents = c.tabs.pageOf(tabId);
+    if (!contents || this.busy.has(tabId)) return;
+    this.busy.add(tabId);
+    try {
+      const url = contents.getURL();
+      const raw = await extractArticle(contents);
+      if (contents.isDestroyed() || contents.getURL() !== url) return;
+      const article = sanitizeReaderArticle(raw, url);
+      // Nothing worth reading: the page stays as it is (the address bar only offers pages that look readable).
+      if (!article) return;
+      const complete = await withImages(contents, article);
+      if (contents.isDestroyed() || contents.getURL() !== url) return;
+      this.remember(tabId, complete);
+      c.tabs.setReader(tabId, true, url);
+    } finally {
+      this.busy.delete(tabId);
+    }
   }
-  const contents = c.tabs.pageOf(tabId);
-  if (!contents || busy.has(tabId)) return;
-  busy.add(tabId);
-  try {
-    const url = contents.getURL();
-    const raw = await extractArticle(contents);
-    if (contents.isDestroyed() || contents.getURL() !== url) return;
-    const article = sanitizeReaderArticle(raw, url);
-    // Nothing worth reading: the page stays as it is (the address bar only offers pages that look readable).
-    if (!article) return;
-    const complete = await withImages(contents, article);
-    if (contents.isDestroyed() || contents.getURL() !== url) return;
-    remember(tabId, complete);
-    c.tabs.setReader(tabId, true, url);
-  } finally {
-    busy.delete(tabId);
+
+  /** The article the chrome UI draws for a tab in reader mode (null otherwise). */
+  article(c: BrowserController, tabId: TabId): ReaderArticle | null {
+    const tab = c.tabs.getState().tabs.find((entry) => entry.id === tabId);
+    const article = this.articles.get(tabId);
+    return tab?.reader && article && article.url === c.tabs.pageOf(tabId)?.getURL() ? article : null;
+  }
+
+  private remember(tabId: TabId, article: ReaderArticle): void {
+    this.articles.delete(tabId);
+    this.articles.set(tabId, article);
+    if (this.articles.size > MAX_ARTICLES) this.articles.delete(this.articles.keys().next().value!);
   }
 }
 
-/** The article the chrome UI draws for a tab in reader mode (null otherwise). */
-export function readerArticle(c: BrowserController, tabId: TabId): ReaderArticle | null {
-  const tab = c.tabs.getState().tabs.find((entry) => entry.id === tabId);
-  const article = articles.get(tabId);
-  return tab?.reader && article && article.url === c.tabs.pageOf(tabId)?.getURL() ? article : null;
-}
+// Function facades over the app's reader service (commands and IPC handlers).
+export const toggleReader = (c: BrowserController, tabId: TabId): Promise<void> => appServices().reader.toggle(c, tabId);
+export const readerArticle = (c: BrowserController, tabId: TabId): ReaderArticle | null => appServices().reader.article(c, tabId);

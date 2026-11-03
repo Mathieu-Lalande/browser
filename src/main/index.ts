@@ -4,9 +4,10 @@ import { tabArchiveDelayMs, tabSleepDelayMs } from "@shared/settings";
 import { registerAppScheme, serveAppScheme } from "./app-protocol";
 import { registerIpc } from "./ipc";
 import { installMenu } from "./menu";
-import { flushProfile, openProfile } from "./profile";
+import { flushProfile, openProfile, profile } from "./profile";
 import { hardenApp, hardenSession } from "./security";
-import { applyNativeTheme, settings as currentSettings } from "./settings";
+import { buildAppServices } from "./services";
+import { applyNativeTheme, onSettingsChanged, settings as currentSettings, updateSettings } from "./settings";
 import { startTabSleeper } from "./sleep";
 import { startSync } from "./sync";
 import { startUpdates } from "./updates";
@@ -59,6 +60,19 @@ if (!app.requestSingleInstanceLock()) {
     // The profile comes first: session hardening reads the settings (Accept-Language).
     const { previousSession, settings } = openProfile();
     serveAppScheme();
+    // The app's services (downloads, extensions, passwords…), each session service installed in
+    // every tab session by `hardenSession`.
+    const services = buildAppServices({
+      paths: { userData: app.getPath("userData"), downloads: app.getPath("downloads") },
+      profile,
+      settings: currentSettings,
+      updateSettings,
+      onSettingsChanged,
+      appName: app.getName(),
+      locale: app.getLocale(),
+      testHooks: { plainKeychain: !app.isPackaged && process.env.BROWSER_TEST_PLAIN_KEYCHAIN === "1" },
+    });
+    BrowserController.watchServices(services);
     hardenSession();
     registerIpc();
     installMenu();

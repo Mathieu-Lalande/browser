@@ -1,7 +1,13 @@
 # Browser — notes pour les agents
 
 - Stack : Electron 44 (process principal en TS), Svelte 5 runes (interface), electron-vite, Vitest, Playwright.
-- Lire `docs/DECISIONS.md` (modèle de sécurité) avant de toucher `src/main/security.ts`, le preload ou l'IPC.
+- Lire `docs/DECISIONS.md` (modèle de sécurité) avant de toucher `src/main/security.ts`, `src/main/session-hardener.ts`,
+  le preload ou l'IPC.
+- Services du process principal : conteneur `AppServices` (`src/main/services.ts`) construit une fois dans `src/main/index.ts`
+  (chemins, profil, réglages passés aux constructeurs) ; l'état vit dans les instances (`DownloadService`, `ExtensionService`,
+  `PasswordVaultStore`, `ReaderService`, `StartImageCache`), les fonctions exportées des modules n'en sont que des façades.
+  Une fonctionnalité par session implémente `SessionService` (`install`/`release`) : `SessionHardener` les installe dans l'ordre
+  à chaque `hardenSession` (jamais d'appel à la main). Fenêtres : registre `WindowRegistry` (`src/main/window-registry.ts`).
 - Contrat IPC unique : `src/shared/ipc.ts` (`Channels` + `BrowserApi`). Tout nouveau canal : l'ajouter là,
   l'exposer dans `src/preload/index.ts`, l'ajouter à la table de sa fonctionnalité dans `src/main/ipc/` (arguments vérifiés, émetteur = fenêtre connue).
 - Registre IPC : `src/main/ipc/registry.ts` (validateurs typés `str`, `opt(…)`…, `on`/`handle`/`onUi`/`handleUi`,
@@ -25,10 +31,11 @@
   voir ADR-011. Pages internes `browser://…` dessinées par l'interface : ADR-012 (jamais accessibles aux pages web).
 - Fenêtres privées (ADR-014) : tout ce qui écrit dans le profil vérifie `BrowserController.isPrivate`
   (par fenêtre) ou `isPrivateSession(session)` (`src/main/private.ts`, par session : téléchargements, zoom…).
-- Mise en veille des onglets : un onglet déchargé = `view` null + URL (mécanisme unique de `TabManager`),
+- Onglets : `src/main/tabs/` — façade `TabManager` (`manager.ts`) sur `TabStore`, `TabLayout`, `TabLifecycle`, `TabEvents`,
+  `TabFolders`, `TabPageActions`. Mise en veille : un onglet déchargé = `view` null + URL (mécanisme unique de `TabLifecycle`),
   politique pure dans `src/main/sleep.ts`. Packaging/CI : ADR-015 (`npm run dist:dir`, test `packaging`).
-- Téléchargements, recherche dans la page, zoom par site, médias : ADR-013. `installDownloads(session)`
-  (`src/main/downloads/`) est idempotente et doit être appliquée à chaque session d'onglets.
+- Téléchargements, recherche dans la page, zoom par site, médias : ADR-013. `DownloadService`
+  (`src/main/downloads/service.ts`) est un `SessionService` idempotent, installé dans chaque session d'onglets par `hardenSession`.
 - Application mobile : `mobile/` (Expo SDK 58 / React Native, ADR-016), importe `src/shared` via `@shared/*`
   (jamais de copie) : `src/shared` doit rester pur (ni Electron, ni Node, ni DOM). Vérifications dans `mobile/` :
   `npx tsc --noEmit && npx jest && npx expo export --platform android`.
@@ -50,7 +57,7 @@
   (`src/shared/favorites.ts`, `favorites.json`, collection de synchro `favorites`), geste à deux doigts entre
   espaces (`src/shared/space-swipe.ts`), archivage (`src/shared/archive.ts`, `browser://archive`) ; côté main :
   `src/main/organize.ts`. Le téléphone a sa version (`mobile/src/lib/organize.ts`, dossiers dans `tabs.ts`).
-- Extensions (ADR-024) : `src/main/extensions/` (`installExtensions(session)` via `hardenSession`, idempotente),
+- Extensions (ADR-024) : `src/main/extensions/` (`ExtensionService`, `SessionService` installé par `hardenSession`),
   `browser://extensions`, `extensions.json` ; l'interface vit dans sa propre session `src/main/ui-session.ts`.
 - Mots de passe (ADR-025) : modèle `src/shared/passwords.ts`, main `src/main/passwords/` (coffre `safeStorage`,
   capture/remplissage par scripts en monde isolé, jamais de preload), `browser://passwords`, popovers overlay
