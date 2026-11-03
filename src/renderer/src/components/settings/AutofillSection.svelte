@@ -84,7 +84,8 @@
   <p class="note">Les adresses et les cartes ne sont ni proposées ni enregistrées en navigation privée.</p>
 {:else}
   {#if status && !status.available}
-    <p class="notice" role="alert"><Icon name="warning" size={14} /> <span>{status.message}</span></p>
+    <!-- A standing state of the device, not an event: no alert role (the page has other alerts). -->
+    <p class="notice"><Icon name="warning" size={14} /> <span>{status.message}</span></p>
   {:else if status?.weak}
     <p class="notice"><Icon name="warning" size={14} /> <span>Aucun trousseau système : la protection de ces données est faible sur cet appareil.</span></p>
   {/if}
