@@ -103,7 +103,7 @@ test("choosing a combination already in use asks before taking it", async ({ app
 
   // Search, then reset everything.
   await section.getByRole("searchbox", { name: "Rechercher un raccourci" }).fill("fenetre");
-  await expect(section.getByRole("button", { name: "Modifier le raccourci" })).toHaveCount(2); // Nouvelle fenêtre (privée)
+  await expect(section.getByRole("button", { name: "Modifier le raccourci" })).toHaveCount(3); // Nouvelle fenêtre (privée), Rouvrir la fenêtre fermée
   await section.getByRole("button", { name: "Tout réinitialiser" }).click();
   await section.getByRole("button", { name: "Réinitialiser", exact: true }).click();
   await expect(newWindow).toHaveText("CtrlN");

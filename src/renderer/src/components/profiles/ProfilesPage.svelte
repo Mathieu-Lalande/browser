@@ -65,7 +65,7 @@
   {/snippet}
 
   {#if editing}
-    <Card as="form" variant="section" class="editor" aria-label={editing.id ? "Modifier le profil" : "Nouveau profil"} onsubmit={save}>
+    <Card as="form" variant="section" class="profile-editor" aria-label={editing.id ? "Modifier le profil" : "Nouveau profil"} onsubmit={save}>
       <label class="field">
         <span>Nom</span>
         <!-- svelte-ignore a11y_autofocus -->
@@ -148,7 +148,7 @@
 </Page>
 
 <style>
-  :global(.editor) {
+  :global(.profile-editor) {
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
