@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getCommand, type CommandId } from "@shared/commands";
-  import { buildAppMenu, closedEntryOf, type MenuNode, type PageLink } from "@shared/menus";
+  import { buildAppMenu, closedEntryOf, profileEntryOf, type MenuNode, type PageLink } from "@shared/menus";
+  import type { ProfilesView } from "@shared/profiles";
   import type { ClosedLists } from "@shared/recovery";
   import type { Bounds } from "@shared/types";
   import { api, browser } from "../lib/browser.svelte";
@@ -26,6 +27,7 @@
   let history = $state<PageLink[]>([]);
   let bookmarks = $state<PageLink[]>([]);
   let closed = $state<ClosedLists | undefined>(undefined);
+  let profiles = $state<ProfilesView | null>(null);
 
   const tab = $derived(browser.activeTab);
   const isWeb = $derived(!!tab && /^(https?|file):/.test(tab.url) && !tab.interstitial);
@@ -38,6 +40,10 @@
     );
     api.recovery.closed().then(
       (lists) => (closed = lists),
+      () => {},
+    );
+    api.profiles.list().then(
+      (view) => (profiles = view),
       () => {},
     );
     api.bookmarks.list().then(
@@ -55,6 +61,7 @@
       favorites: (browser.state.favorites ?? []).map(({ url, title }) => ({ url, title })),
       recording: !!browser.state.recording,
       closed,
+      profiles,
     }),
   );
 
@@ -81,6 +88,11 @@
       const entry = closedEntryOf(node.id)!;
       onClose(false);
       api.recovery.reopen(entry.kind, entry.index);
+    } else if (node.kind === "action" && profileEntryOf(node.id)) {
+      onClose(false);
+      void api.profiles.open(profileEntryOf(node.id)!);
+    } else if (node.kind === "action" && node.id === "profile-current") {
+      runCommand("open-profiles");
     } else if (node.kind === "link") {
       onClose(false);
       api.tabs.create(node.url);

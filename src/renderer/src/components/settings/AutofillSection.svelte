@@ -160,14 +160,18 @@
 
 <style>
   .note {
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
     color: var(--text-muted);
     font-size: var(--text-sm);
   }
+  /* Lines of the section card itself: the inner margin of its rows (`Row`). */
   .notice {
     display: flex;
     align-items: center;
     gap: var(--space-2);
-    margin: 0 0 var(--space-2);
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
     color: var(--danger);
     font-size: var(--text-xs);
   }

@@ -81,6 +81,8 @@ export type CommandId =
   | "reopen-closed-window"
   | "open-task-manager"
   | "open-profiles"
+  | "new-profile"
+  | "open-autofill"
   | "select-all-tabs"
   | "toggle-compact-mode"
   | "toggle-sidebar-position"
@@ -163,7 +165,10 @@ export type CommandIcon =
   | "import"
   | "pencil"
   | "activity"
-  | "users";
+  | "users"
+  | "user-plus"
+  | "credit-card"
+  | "library";
 
 /** What a command's label and availability may depend on. */
 export interface CommandContext {
@@ -563,6 +568,17 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
     keywords: ["profile", "profil", "utilisateur", "changer de profil", "sauvegarde", "backup", "exporter", "restaurer"],
     icon: "users",
   },
+  "new-profile": {
+    label: "Nouveau profil",
+    menuLabel: "Nouveau profil…",
+    keywords: ["new profile", "créer un profil", "ajouter un profil", "utilisateur"],
+    icon: "user-plus",
+  },
+  "open-autofill": {
+    label: "Adresses et paiements",
+    keywords: ["autofill", "remplissage automatique", "adresses", "cartes bancaires", "paiement", "formulaires"],
+    icon: "credit-card",
+  },
   "select-all-tabs": {
     label: "Sélectionner tous les onglets",
     keywords: ["select all tabs", "sélection", "plusieurs onglets", "multiple"],
@@ -724,6 +740,7 @@ export const COMMAND_GROUPS: readonly { label: string; ids: readonly CommandId[]
       "open-archive",
       "open-downloads",
       "open-passwords",
+      "open-autofill",
       "highlight-selection",
       "open-notes",
       "open-boosts",
@@ -744,6 +761,7 @@ export const COMMAND_GROUPS: readonly { label: string; ids: readonly CommandId[]
       "install-update",
       "open-settings",
       "open-profiles",
+      "new-profile",
       "open-task-manager",
       "keyboard-shortcuts",
       "about",

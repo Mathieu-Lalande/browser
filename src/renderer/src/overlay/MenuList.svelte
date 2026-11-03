@@ -99,6 +99,7 @@
         <MenuItem
           role="menuitem"
           icon={node.icon}
+          color={node.color}
           label={node.label}
           data-node={node.id}
           aria-haspopup="menu"
@@ -126,6 +127,7 @@
         <MenuItem
           role="menuitem"
           icon={node.kind === "link" ? "globe" : (node.icon ?? "more")}
+          color={node.kind === "action" ? node.color : undefined}
           label={node.label}
           keys={node.kind === "action" ? node.hint : undefined}
           title={node.kind === "link" ? node.url : undefined}

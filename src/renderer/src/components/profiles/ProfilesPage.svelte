@@ -1,12 +1,16 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import { PROFILE_COLORS, PROFILE_ICONS, type ProfileIcon, type ProfileInfo, type ProfilesView } from "@shared/profiles";
+  import { internalFragment } from "@shared/internal";
   import { api, browser } from "../../lib/browser.svelte";
   import Icon from "../Icon.svelte";
   import Button from "../ui/Button.svelte";
   import Card from "../ui/Card.svelte";
   import ConfirmButton from "../ui/ConfirmButton.svelte";
   import EmptyState from "../ui/EmptyState.svelte";
+  import ListRow from "../ui/ListRow.svelte";
   import Page from "../ui/Page.svelte";
+  import Row from "../ui/Row.svelte";
   import Toggle from "../ui/Toggle.svelte";
   import BackupCard from "./BackupCard.svelte";
 
@@ -26,6 +30,12 @@
 
   $effect(() => {
     void load();
+  });
+
+  /** `browser://profiles#new` (command « Nouveau profil… »): the editor opens on arrival. */
+  const fragment = $derived(internalFragment(browser.activeTab?.url ?? ""));
+  $effect(() => {
+    if (fragment === "new" && !browser.isPrivate) untrack(startCreate);
   });
 
   function startCreate(): void {
@@ -65,79 +75,91 @@
   {/snippet}
 
   {#if editing}
-    <Card as="form" variant="section" class="profile-editor" aria-label={editing.id ? "Modifier le profil" : "Nouveau profil"} onsubmit={save}>
-      <label class="field">
-        <span>Nom</span>
-        <!-- svelte-ignore a11y_autofocus -->
-        <input class="ui-field" maxlength="40" bind:value={editing.name} placeholder="Travail, Études…" autofocus />
-      </label>
-      <div class="field">
-        <span>Couleur</span>
-        <div class="swatches" role="radiogroup" aria-label="Couleur">
-          {#each PROFILE_COLORS as color (color)}
-            <button
-              type="button"
-              class="swatch"
-              role="radio"
-              aria-checked={editing.color === color}
-              aria-label={color}
-              style:background={color}
-              onclick={() => editing && (editing.color = color)}
-            ></button>
-          {/each}
+    <Card as="form" variant="section" aria-label={editing.id ? "Modifier le profil" : "Nouveau profil"} onsubmit={save}>
+      <div class="editor">
+        <label class="field">
+          <span>Nom</span>
+          <!-- svelte-ignore a11y_autofocus -->
+          <input class="ui-field" maxlength="40" bind:value={editing.name} placeholder="Travail, Études…" autofocus />
+        </label>
+        <div class="field">
+          <span>Couleur</span>
+          <div class="swatches" role="radiogroup" aria-label="Couleur">
+            {#each PROFILE_COLORS as color (color)}
+              <button
+                type="button"
+                class="swatch"
+                role="radio"
+                aria-checked={editing.color === color}
+                aria-label={color}
+                style:background={color}
+                onclick={() => editing && (editing.color = color)}
+              ></button>
+            {/each}
+          </div>
         </div>
-      </div>
-      <div class="field">
-        <span>Icône</span>
-        <div class="icons" role="radiogroup" aria-label="Icône">
-          {#each PROFILE_ICONS as icon (icon)}
-            <button type="button" class="icon" role="radio" aria-checked={editing.icon === icon} aria-label={icon} onclick={() => editing && (editing.icon = icon)}>
-              <Icon name={icon} size={16} />
-            </button>
-          {/each}
+        <div class="field">
+          <span>Icône</span>
+          <div class="icons" role="radiogroup" aria-label="Icône">
+            {#each PROFILE_ICONS as icon (icon)}
+              <button type="button" class="icon" role="radio" aria-checked={editing.icon === icon} aria-label={icon} onclick={() => editing && (editing.icon = icon)}>
+                <Icon name={icon} size={16} />
+              </button>
+            {/each}
+          </div>
         </div>
-      </div>
-      <div class="buttons">
-        <Button variant="quiet" onclick={() => (editing = null)}>Annuler</Button>
-        <Button type="submit" variant="primary" disabled={!editing.name.trim()}>{editing.id ? "Enregistrer" : "Créer le profil"}</Button>
+        <div class="buttons">
+          <Button variant="quiet" onclick={() => (editing = null)}>Annuler</Button>
+          <Button type="submit" variant="primary" disabled={!editing.name.trim()}>{editing.id ? "Enregistrer" : "Créer le profil"}</Button>
+        </div>
       </div>
     </Card>
   {/if}
 
-  {#if view}
-    <Card>
-      {#each view.profiles as profile (profile.id)}
-        <li class="profile" data-profile={profile.id}>
-          <span class="avatar" style:background={profile.color}><Icon name={profile.icon} size={16} /></span>
-          <span class="name">
-            {profile.name}
-            {#if profile.id === view.current}<span class="current">Profil actuel</span>{/if}
-          </span>
-          {#if profile.id !== view.current}
-            <Button size="sm" icon="open" onclick={() => api.profiles.open(profile.id)}>Ouvrir</Button>
-          {/if}
-          {#if !browser.isPrivate}
-            <Button size="sm" variant="quiet" icon="pencil" onclick={() => startEdit(profile)}>Modifier</Button>
-            {#if profile.id !== view.current && profile.id !== "default"}
-              <ConfirmButton question="Supprimer ce profil et toutes ses données ?" confirmLabel="Supprimer" onconfirm={() => remove(profile.id)}>
-                <Icon name="trash" size={14} /> Supprimer
-              </ConfirmButton>
-            {/if}
-          {/if}
-        </li>
-      {/each}
-    </Card>
-    {#if !browser.isPrivate}
-      <Card as="div" variant="section">
-        <div class="row">
-          <span class="label">
-            Choisir le profil au démarrage
-            <span class="hint">Sinon, le dernier profil utilisé s'ouvre.</span>
-          </span>
-          <Toggle label="Choisir le profil au démarrage" checked={view.askOnLaunch} onchange={setAsk} />
-        </div>
+  {#if view?.profiles.length}
+    <section class="ui-section">
+      <Card as="ul" aria-label="Profils">
+        {#each view.profiles as profile (profile.id)}
+          {@const current = profile.id === view.current}
+          <ListRow data-profile={profile.id}>
+            <span class="avatar" style:background={profile.color}><Icon name={profile.icon} size={16} /></span>
+            <span class="name">{profile.name}</span>
+            {#if current}<span class="badge">Profil actuel</span>{/if}
+            <span class="actions">
+              {#if !current}
+                <Button size="sm" icon="open" onclick={() => api.profiles.open(profile.id)}>Ouvrir</Button>
+              {/if}
+              {#if !browser.isPrivate}
+                <Button size="sm" variant="quiet" icon="pencil" onclick={() => startEdit(profile)}>Modifier</Button>
+                {#if !current && profile.id !== "default"}
+                  <ConfirmButton question="Supprimer ce profil et toutes ses données ?" confirmLabel="Supprimer" title={`Supprimer ${profile.name}`} onconfirm={() => remove(profile.id)}>
+                    <Icon name="trash" size={14} /> Supprimer
+                  </ConfirmButton>
+                {/if}
+              {/if}
+            </span>
+          </ListRow>
+        {/each}
       </Card>
+      {#if view.profiles.length === 1}
+        <p class="ui-section-hint">
+          Un seul profil pour l'instant. Créez-en un autre pour séparer, par exemple, le travail et la vie personnelle : chacun garde ses propres données.
+        </p>
+      {/if}
+    </section>
+
+    {#if !browser.isPrivate}
+      <section class="ui-section" aria-labelledby="launch-title">
+        <h2 class="ui-section-title" id="launch-title">Démarrage</h2>
+        <Card as="div" variant="section">
+          <Row label="Choisir le profil au démarrage" hint="Sinon, le dernier profil utilisé s'ouvre." anchor="ask-on-launch">
+            <Toggle label="Choisir le profil au démarrage" checked={view.askOnLaunch} onchange={setAsk} />
+          </Row>
+        </Card>
+      </section>
     {/if}
+  {:else if view}
+    <EmptyState icon="users" title="Aucun profil" hint="Créez un profil pour séparer vos réglages, votre historique et vos mots de passe." />
   {:else}
     <EmptyState icon="users" title="Chargement des profils…" />
   {/if}
@@ -148,11 +170,12 @@
 </Page>
 
 <style>
-  :global(.profile-editor) {
+  /* Same inner margin as a settings row (`Row`). */
+  .editor {
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
-    margin-bottom: var(--space-4);
+    padding: var(--space-4);
   }
   .field {
     display: flex;
@@ -173,7 +196,9 @@
     border-radius: var(--radius-pill);
   }
   .swatch[aria-checked="true"] {
-    box-shadow: 0 0 0 2px var(--bg-elevated), 0 0 0 4px var(--text);
+    box-shadow:
+      0 0 0 2px var(--bg-elevated),
+      0 0 0 4px var(--text);
   }
   .icon {
     display: grid;
@@ -192,46 +217,38 @@
     justify-content: flex-end;
     gap: var(--space-2);
   }
-  .profile {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    padding: var(--space-2) var(--space-3);
-  }
   .avatar {
     display: grid;
     place-items: center;
     flex: none;
-    width: 30px;
-    height: 30px;
+    width: var(--field-height);
+    height: var(--field-height);
     border-radius: var(--radius-pill);
     color: #fff;
   }
   .name {
-    flex: 1;
     min-width: 0;
     overflow: hidden;
+    font-weight: 600;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .current {
-    margin-left: var(--space-2);
-    color: var(--text-muted);
+  .badge {
+    flex: none;
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-pill);
+    background: color-mix(in oklab, var(--accent) 16%, transparent);
+    color: var(--accent-text);
     font-size: var(--text-xs);
+    font-weight: 600;
+    line-height: 1.7;
   }
-  .row {
+  .actions {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: var(--space-3);
-    margin-top: var(--space-4);
-  }
-  .label {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-  }
-  .hint {
-    color: var(--text-muted);
-    font-size: var(--text-xs);
+    justify-content: flex-end;
+    gap: var(--space-1);
+    margin-left: auto;
   }
 </style>

@@ -26,11 +26,11 @@
 
   let withPasswords = $state(false);
   let exportSecret = $state("");
-  let exportMessage = $state("");
+  /** One status line for the last export or import (a single live region). */
+  let message = $state("");
   let summary = $state<BackupSummary | null>(null);
   let mode = $state<BackupMode>("merge");
   let importSecret = $state("");
-  let importMessage = $state("");
   let busy = $state(false);
 
   const exportReady = $derived(!withPasswords || exportSecret.length >= MIN_PASSPHRASE);
@@ -39,15 +39,15 @@
     busy = true;
     const result = await api.backup.export(withPasswords ? exportSecret : null).catch(() => ({ ok: false as const, message: "L'export a échoué." }));
     busy = false;
-    exportMessage = result.ok ? "Sauvegarde enregistrée." : result.message;
+    message = result.ok ? "Sauvegarde enregistrée." : result.message;
     if (result.ok) exportSecret = "";
   }
 
   async function pick(): Promise<void> {
-    importMessage = "";
+    message = "";
     const result = await api.backup.inspect().catch(() => ({ ok: false as const, message: "Le fichier n'a pas pu être lu." }));
     if (result.ok) summary = result.summary;
-    else importMessage = result.message;
+    else message = result.message;
   }
 
   async function apply(): Promise<void> {
@@ -58,41 +58,40 @@
     if (result.ok) {
       summary = null;
       importSecret = "";
-      importMessage = "Sauvegarde importée.";
-    } else importMessage = result.message;
+      message = "Sauvegarde importée.";
+    } else message = result.message;
   }
 
   const dateFormat = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeStyle: "short" });
 </script>
 
-<h2 class="heading">Sauvegarde du profil</h2>
-<Card as="div" variant="section" data-testid="backup">
-  <div class="block">
-    <p class="intro">Exporte les réglages, favoris, historique, sessions, boosts, notes et la page d'accueil dans un fichier. Les cookies n'en font jamais partie.</p>
-    <Checkbox checked={withPasswords} onchange={(checked) => (withPasswords = checked)}>Inclure les mots de passe (chiffrés avec une phrase secrète)</Checkbox>
-    {#if withPasswords}
-      <input
-        class="ui-field"
-        type="password"
-        autocomplete="new-password"
-        aria-label="Phrase secrète de la sauvegarde"
-        placeholder="Phrase secrète ({MIN_PASSPHRASE} caractères au moins)"
-        bind:value={exportSecret}
-      />
-    {/if}
-    <div class="buttons">
-      <Button icon="file-down" disabled={busy || !exportReady} onclick={doExport}>Exporter le profil…</Button>
-      {#if exportMessage}<span class="message" role="status">{exportMessage}</span>{/if}
+<section class="ui-section" aria-labelledby="backup-title">
+  <h2 class="ui-section-title" id="backup-title">Sauvegarde du profil</h2>
+  <Card as="div" variant="section" data-testid="backup">
+    <div class="body">
+      <p class="ui-section-hint">
+        Exporte les réglages, favoris, historique, sessions, boosts, notes et la page d'accueil dans un fichier. Les cookies n'en font jamais partie.
+      </p>
+      <Checkbox checked={withPasswords} onchange={(checked) => (withPasswords = checked)}>Inclure les mots de passe (chiffrés avec une phrase secrète)</Checkbox>
+      {#if withPasswords}
+        <input
+          class="ui-field"
+          type="password"
+          autocomplete="new-password"
+          aria-label="Phrase secrète de la sauvegarde"
+          placeholder="Phrase secrète ({MIN_PASSPHRASE} caractères au moins)"
+          bind:value={exportSecret}
+        />
+      {/if}
+      <div class="buttons">
+        <Button variant="primary" icon="file-down" disabled={busy || !exportReady} onclick={doExport}>Exporter le profil…</Button>
+        <Button icon="file-up" disabled={busy} onclick={pick}>Importer une sauvegarde…</Button>
+        {#if message}<span class="message" role="status">{message}</span>{/if}
+      </div>
     </div>
-  </div>
 
-  <div class="block">
-    <div class="buttons">
-      <Button icon="file-up" disabled={busy} onclick={pick}>Importer une sauvegarde…</Button>
-      {#if importMessage}<span class="message" role="status">{importMessage}</span>{/if}
-    </div>
     {#if summary}
-      <div class="summary" aria-label="Contenu de la sauvegarde">
+      <div class="body summary" aria-label="Contenu de la sauvegarde">
         <p>
           Sauvegarde{summary.profileName ? ` du profil « ${summary.profileName} »` : ""}{summary.createdAt ? `, ${dateFormat.format(summary.createdAt)}` : ""} :
         </p>
@@ -111,7 +110,7 @@
           ]}
           onchange={(value) => (mode = value)}
         />
-        <p class="hint">
+        <p class="ui-section-hint">
           {mode === "merge" ? "Ajoute ce qui manque, garde vos réglages et vos données actuelles." : "Remplace les réglages et les données de ce profil par ceux de la sauvegarde."}
         </p>
         {#if summary.hasPasswords}
@@ -124,50 +123,43 @@
             bind:value={importSecret}
           />
         {/if}
-        <div class="buttons">
+        <div class="buttons end">
           <Button variant="quiet" onclick={() => (summary = null)}>Annuler</Button>
           <Button variant={mode === "replace" ? "danger" : "primary"} disabled={busy} onclick={apply}>{mode === "merge" ? "Fusionner" : "Remplacer"}</Button>
         </div>
       </div>
     {/if}
-  </div>
-</Card>
+  </Card>
+</section>
 
 <style>
-  .heading {
-    margin: var(--space-5) 0 var(--space-2);
-    font-size: var(--text-md);
-  }
-  .block {
+  /* The card's content keeps the same inner margin as a settings row (`Row`). */
+  .body {
     display: flex;
     flex-direction: column;
-    gap: var(--space-2);
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-4);
   }
-  .block + .block {
-    margin-top: var(--space-4);
-    padding-top: var(--space-4);
+  .body + .body {
     border-top: 1px solid var(--border);
   }
-  .intro,
-  .hint {
-    margin: 0;
-    color: var(--text-muted);
-    font-size: var(--text-xs);
+  .body > :global(.ui-field) {
+    align-self: stretch;
   }
   .buttons {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+    align-self: stretch;
     gap: var(--space-2);
+  }
+  .buttons.end {
+    justify-content: flex-end;
   }
   .message {
     color: var(--text-muted);
     font-size: var(--text-xs);
-  }
-  .summary {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
   }
   .summary p {
     margin: 0;
