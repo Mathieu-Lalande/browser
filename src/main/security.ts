@@ -1,4 +1,4 @@
-import { app, session, shell, type Session, type WebContents } from "electron";
+import { app, session, shell, type BrowserWindowConstructorOptions, type Session, type WebContents, type WebPreferences } from "electron";
 import { isLocalFileUrl, isNavigableUrl, isPageOpenableUrl } from "@shared/url";
 import { UserActivation, isActivatingInput, isPeekGesture } from "./activation";
 import { appServices } from "./app-services-ref";
@@ -32,8 +32,34 @@ export function releaseSession(ses: Session): void {
   appServices().hardener.release(ses);
 }
 
+/**
+ * What every tab's page runs with (`TabManager` views, popups adopted as tabs). Electron merges it
+ * over what a `window.open` page inherits from its opener, whatever its features string asks.
+ */
+export const TAB_WEB_PREFERENCES: WebPreferences = {
+  sandbox: true,
+  contextIsolation: true,
+  nodeIntegration: false,
+  nodeIntegrationInSubFrames: false,
+  webSecurity: true,
+  allowRunningInsecureContent: false,
+  spellcheck: true,
+  // Chromium's built-in PDF viewer (ADR-039): a component extension in its own sandboxed
+  // process; no other plugin exists in Electron. Attachments still download.
+  plugins: true,
+};
+
+/** What `createWindow` receives: the page Chromium created for `window.open` (missing from the typings). */
+export type PopupOptions = BrowserWindowConstructorOptions & { webContents?: WebContents };
+
 interface TabHooks {
   openTab(url: string, foreground: boolean): void;
+  /**
+   * A popup the gesture allowed: wraps the page Chromium created for it (`options.webContents`,
+   * which keeps `window.opener`, its name and `window.close()`) in a tab next to the opener and
+   * returns it. Absent (link peek): the URL opens in a fresh tab, without opener.
+   */
+  adoptPopup?(options: PopupOptions, url: string, foreground: boolean): WebContents;
   /** A page tried to open `url` without a recent user gesture (the popup blocker said no). */
   popupBlocked(url: string): void;
   /** A Shift+click on a link (trusted input): preview it in the link peek (ADR-027). Absent: a new tab. */
@@ -72,8 +98,21 @@ export function hardenWebContents(contents: WebContents, hooks: TabHooks): void 
       // Chromium opens a Shift+clicked link as a new window without features (window.open with
       // features, e.g. a sign-in popup, keeps opening a tab); the click itself was a real one.
       if (disposition === "new-window" && !features && tab.hooks.peek && tab.activation.consumePeek(Date.now())) tab.hooks.peek(url);
-      else if (tab.activation.consumeOpen(Date.now())) tab.hooks.openTab(url, disposition !== "background-tab");
-      else tab.hooks.popupBlocked(url);
+      else if (tab.activation.consumeOpen(Date.now())) {
+        const foreground = disposition !== "background-tab";
+        const adopt = tab.hooks.adoptPopup;
+        if (!adopt) tab.hooks.openTab(url, foreground);
+        // A real popup (SSO sign-ins): its page keeps the opener (postMessage, opener.location),
+        // its name and `window.close()`; Chromium itself leaves `noopener` links without opener.
+        // Never a native window: the page always becomes a tab, with the tabs' preferences.
+        else
+          return {
+            action: "allow",
+            outlivesOpener: true,
+            overrideBrowserWindowOptions: { webPreferences: TAB_WEB_PREFERENCES },
+            createWindow: (options) => adopt(options, url, foreground),
+          };
+      } else tab.hooks.popupBlocked(url);
     } else if (isExternalUrl(url) && tab.activation.consumeExternal(Date.now())) {
       void shell.openExternal(url);
     }

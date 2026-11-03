@@ -6,7 +6,7 @@ import { normalizeThemeColor } from "@shared/site-color";
 import { loadFavicon } from "../favicons";
 import { attachTabPrivacy, httpsFallbackFor } from "../privacy";
 import { PageFind } from "../find";
-import { hardenWebContents } from "../security";
+import { hardenWebContents, type PopupOptions } from "../security";
 import { parsePageWheel } from "../page-swipe-script";
 import { parseAnnotatorMessage } from "../annotations/page";
 import { showsWebPage, withoutHash, type Tab, type TabManagerHooks } from "./model";
@@ -30,6 +30,8 @@ export interface EventDeps {
   zoom(id: TabId, direction: 1 | -1): void;
   /** The page closed itself (`window.close()`): the tab goes away. */
   pageClosed(tab: Tab): void;
+  /** Makes a popup page opened by `opener` (ADR-018) a tab right after it; returns that page. */
+  adoptPopup(opener: Tab, options: PopupOptions, url: string, foreground: boolean): WebContents;
 }
 
 /** `contents.on`, remembering each listener so that `Tab.unwire` can take them all off again. */
@@ -86,6 +88,7 @@ export class TabEvents {
         // A link opened from a filed tab stays in its folder.
         deps.create(url, { activate: foreground, index, folderId: tab.state.folderId });
       },
+      adoptPopup: (options, url, foreground) => deps.adoptPopup(tab, options, url, foreground),
       peek: deps.hooks.peekLink && ((url) => deps.hooks.peekLink?.(tab.id, url)),
       popupBlocked: (url) => {
         // The notice keeps the last blocked popup of the page; "Ouvrir" opens it (openBlockedPopup).

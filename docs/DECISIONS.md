@@ -577,7 +577,14 @@ quelques crochets de test actifs en production. Chaque point a son test de régr
   modificateurs sur un clic synthétique) : il choisit seulement premier/arrière-plan. Une fenêtre bloquée
   s'annonce dans une bande au-dessus de la page (`PopupBar`, comme la barre d'autorisation) :
   « Fenêtre surgissante bloquée », « Ouvrir » (main garde l'URL, le renderer ne désigne que l'onglet),
-  « Ignorer » ; effacée à la navigation suivante.
+  « Ignorer » ; effacée à la navigation suivante. Une fenêtre permise n'est plus rouverte à neuf
+  (`deny` + nouvel onglet, qui perdait `window.opener` et cassait les connexions SSO type Okta) :
+  `setWindowOpenHandler` répond `allow` + `createWindow`, et `TabManager.adoptPopup` enveloppe la page
+  créée par Chromium dans un onglet placé après l'ouvreur (même session, donc même fenêtre privée ;
+  préférences `TAB_WEB_PREFERENCES` imposées par `overrideBrowserWindowOptions`, jamais de fenêtre
+  native). `opener.postMessage`, cible nommée et `about:blank` puis navigation fonctionnent ; l'onglet
+  affiche « Chargement… » sur fond blanc jusqu'au premier document ; `window.close()` le ferme et
+  réactive l'ouvreur. L'aperçu Maj+clic (ADR-027) et la bande « Ouvrir » gardent le nouvel onglet.
 - **`mailto:` / `tel:`** : seulement après un geste (le même, partagé avec les fenêtres) et au plus une
   fois toutes les 3 s par onglet.
 - **Interface sur `app://`** (`src/main/app-protocol.ts`, règles pures `app-files.ts`). Schéma
