@@ -1,3 +1,4 @@
+import type { AutofillChoice } from "../lib/autofill";
 import type { AnnotationsData, TextQuote } from "@shared/annotations/model";
 import type { MediaProbe } from "@shared/media";
 import type { PasswordCapture } from "@shared/passwords";
@@ -33,6 +34,8 @@ export interface WebTabProps {
   boosts?: readonly BoostPayload[];
   /** The page's media state (ADR-035), null when a new document starts loading. Private tabs too: nothing is kept. */
   onMedia?: (tabId: string, probe: MediaProbe | null) => void;
+  /** Autofill (ADR-041): a new `seq` fills the page's form with the chosen address or card (normal tabs only). */
+  autofillRequest?: { seq: number; choice: AutofillChoice } | null;
   /** Page translation (ADR-036): a new `seq` starts translating the page, or restores the original. */
   translateRequest?: { seq: number; action: "translate" | "restore" } | null;
   /** Texts of the page to translate (validated): resolves to the translations to write back. */

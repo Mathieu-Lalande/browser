@@ -16,6 +16,7 @@ import { useMiniPlayer } from "../hooks/useMiniPlayer";
 import { useOverviewTransition } from "../hooks/useOverviewTransition";
 import { usePageSwipe } from "../hooks/usePageSwipe";
 import { usePasswordMenus } from "../hooks/usePasswordMenus";
+import { useAutofillMenus } from "../hooks/useAutofillMenus";
 import { useReader } from "../hooks/useReader";
 import { useShareActions } from "../hooks/useShareActions";
 import { useSiteMenus } from "../hooks/useSiteMenus";
@@ -247,6 +248,7 @@ export function BrowserScreen() {
   const { onHighlight, onHighlightPress } = useHighlights({ model, annotations, activeId: tab?.id, busy: !!menu || overlay !== "none", actions, haptic, setMenu, copy });
   const mini = useMiniPlayer({ tab, shown: overlay === "none", actions });
   const passwordMenus = usePasswordMenus({ tab, model, busy: !!menu || overlay !== "none", actions, haptic, setMenu });
+  const autofillMenus = useAutofillMenus(tab);
   const reader = useReader({ tab, visible: overlay === "none" });
 
   const toggleDesktopSite = useEvent((tabId: string) =>
@@ -282,6 +284,8 @@ export function BrowserScreen() {
     boostMenu: () => boostMenu(),
     passwordsMenu: passwordMenus.passwordsMenu,
     hasPasswords: passwordMenus.tabPasswords.length > 0,
+    autofillMenu: autofillMenus.menu,
+    autofillSections: autofillMenus.sections,
     openReader: reader.open,
     translated: !!tab && translation.translated.has(tab.id),
     toggleTranslation: () => void (tab && translation.toggle(tab.id, isPrivateTab(tab))),
@@ -388,6 +392,7 @@ export function BrowserScreen() {
               boosts={isPrivateTab(candidate) ? privateBoosts : normalBoosts}
               onMedia={mini.onMedia}
               translateRequest={translation.requests[candidate.id] ?? null}
+              autofillRequest={autofillMenus.requests[candidate.id] ?? null}
               onTranslateBatch={translation.batch}
               onTranslateReset={translation.reset}
               annotations={annotations}

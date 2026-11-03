@@ -119,7 +119,13 @@ if (!app.requestSingleInstanceLock()) {
       locationEnv: { platform: process.platform, home: homedir(), localAppData: process.env.LOCALAPPDATA, appData: process.env.APPDATA },
       testHooks: app.isPackaged
         ? {}
-        : { plainKeychain: process.env.BROWSER_TEST_PLAIN_KEYCHAIN === "1", importChromiumDir: process.env.BROWSER_TEST_IMPORT_DIR || undefined },
+        : {
+            plainKeychain: process.env.BROWSER_TEST_PLAIN_KEYCHAIN === "1",
+            importChromiumDir: process.env.BROWSER_TEST_IMPORT_DIR || undefined,
+            notifications: process.env.BROWSER_TEST_NOTIFICATIONS === "1",
+          },
+      // Touch ID passkeys need a signed build whose entitlements list this group (ADR-041): none yet.
+      touchIdKeychainGroup: null,
     });
     BrowserController.watchServices(services);
     hardenSession();

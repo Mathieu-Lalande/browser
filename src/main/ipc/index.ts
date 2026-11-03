@@ -7,6 +7,7 @@ import { mediaHandlers } from "./media";
 import { annotationHandlers } from "./annotations";
 import { archiveHandlers, favoriteHandlers, folderHandlers, spaceHandlers } from "./organize";
 import { passwordHandlers } from "./passwords";
+import { autofillHandlers, spellcheckHandlers } from "./autofill";
 import { boostHandlers, captureHandlers } from "./page";
 import { historyHandlers, settingsHandlers, weatherHandlers } from "./profile";
 import { defaultBrowserHandlers, drmHandlers, importHandlers } from "./import";
@@ -33,6 +34,7 @@ type EventChannel = (typeof Channels)[
   | "archiveChanged"
   | "extensionsChanged"
   | "passwordsChanged"
+  | "autofillChanged"
   | "boostsChanged"
   | "peekState"
   | "mediaChanged"
@@ -57,6 +59,8 @@ const handlers = {
   ...siteInfoHandlers,
   ...extensionHandlers,
   ...passwordHandlers,
+  ...autofillHandlers,
+  ...spellcheckHandlers,
   ...boostHandlers,
   ...captureHandlers,
   ...syncHandlers,

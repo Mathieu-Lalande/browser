@@ -33,6 +33,9 @@ export interface BrowserMenusDeps {
   boostMenu: () => MenuSpec | null;
   passwordsMenu: () => MenuSpec | null;
   hasPasswords: boolean;
+  /** Saved addresses / cards for the page's form (ADR-041; none in a private tab). */
+  autofillMenu: (section: "address" | "card") => MenuSpec | null;
+  autofillSections: readonly ("address" | "card")[];
   /** Page tools of the page menu. */
   openReader: (tabId: string) => void;
   translated: boolean;
@@ -65,6 +68,12 @@ export function useBrowserMenus(deps: BrowserMenusDeps) {
         ...(mobileSiteInfo(tab.url) ? [{ key: "site-info", label: "Infos sur le site", icon: "info" as const, onPress: () => deps.siteInfoMenu() ?? undefined }] : []),
         ...(boostHostOf(tab.url) ? [{ key: "boost", label: "Boost du site", icon: "rocket" as const, onPress: () => deps.boostMenu() ?? undefined }] : []),
         ...(deps.hasPasswords ? [{ key: "passwords", label: "Remplir le mot de passe", icon: "key" as const, onPress: () => deps.passwordsMenu() ?? undefined }] : []),
+        ...deps.autofillSections.map((section) => ({
+          key: `autofill-${section}`,
+          label: section === "card" ? "Remplir une carte de paiement" : "Remplir une adresse",
+          icon: section === "card" ? ("credit-card" as const) : ("map-pin" as const),
+          onPress: () => deps.autofillMenu(section) ?? undefined,
+        })),
         { key: "reader", label: "Mode lecture", icon: "reader", onPress: () => deps.openReader(tab.id) },
         {
           key: "translate",

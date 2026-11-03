@@ -14,6 +14,7 @@ import { MediaWatchGuard, newMediaNonce } from "../lib/media";
 import { desktopUserAgent, parseReaderMessage, readerScript } from "../lib/reader";
 import { TranslateBridge, translateNonce } from "../lib/translate";
 import { AnnotateBridge, annotateNonce, marksFor } from "../lib/annotations";
+import { AutofillBridge, autofillNonce } from "../lib/autofill";
 import { useBrowserActions, useEvent } from "../state/BrowserProvider";
 import { LoadError } from "./LoadError";
 import type { WebTabProps } from "./webTabTypes";
@@ -28,6 +29,7 @@ const newCaptureNonce = () => captureNonce(getRandomBytes);
 const newWatchNonce = () => newMediaNonce(getRandomBytes);
 const newTranslateNonce = () => translateNonce(getRandomBytes);
 const newAnnotateNonce = () => annotateNonce(getRandomBytes);
+const newAutofillNonce = () => autofillNonce(getRandomBytes);
 /** The selection menu's extra item (ADR-037). */
 const HIGHLIGHT_MENU = [{ label: "Surligner", key: "highlight" }];
 /** Only these schemes may ever reach the native view (navigation policy: `decideNavigation`). */
@@ -60,6 +62,7 @@ export const WebTab = memo(function WebTab({
   boosts = NO_BOOSTS,
   onMedia,
   translateRequest = null,
+  autofillRequest = null,
   onTranslateBatch,
   onTranslateReset,
   annotations,
@@ -138,6 +141,15 @@ export const WebTab = memo(function WebTab({
     const script = annotateBridge.current?.redraw(marksFor(annotations, currentUrl.current));
     if (script) ref.current?.injectJavaScript(script);
   }, [annotations, isPrivate]);
+  // Autofill (ADR-041): on the user's tap only, a nonce per request, never in a private tab.
+  const autofillBridge = useRef<AutofillBridge | null>(null);
+  autofillBridge.current ??= new AutofillBridge(newAutofillNonce);
+  useEffect(() => {
+    if (!autofillRequest || isPrivate) return;
+    const script = autofillBridge.current?.start(currentUrl.current, autofillRequest.choice);
+    if (script) ref.current?.injectJavaScript(script);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autofillRequest?.seq]);
   const onCustomMenu = useEvent((event: { nativeEvent: { key: string } }) => {
     if (event.nativeEvent.key !== "highlight") return;
     const script = annotateBridge.current?.capture();
@@ -146,6 +158,7 @@ export const WebTab = memo(function WebTab({
 
   const onLoadStart = useEvent(() => {
     annotateBridge.current?.loadStarted();
+    autofillBridge.current?.loadStarted();
     if (translateBridge.current?.active) onTranslateReset?.(id);
     translateBridge.current?.loadStarted();
     captureGuard.current?.loadStarted();
@@ -254,6 +267,12 @@ export const WebTab = memo(function WebTab({
           () => {},
         );
       }
+      return;
+    }
+    // A form described for this tab's fill request: the values go in by field index.
+    const fill = isPrivate ? undefined : autofillBridge.current?.parse(event.nativeEvent.data, event.nativeEvent.url, currentUrl.current);
+    if (fill !== undefined) {
+      if (fill) ref.current?.injectJavaScript(fill);
       return;
     }
     const annotate = isPrivate ? undefined : annotateBridge.current?.parse(event.nativeEvent.data, event.nativeEvent.url, currentUrl.current);

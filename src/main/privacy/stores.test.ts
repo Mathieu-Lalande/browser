@@ -150,6 +150,15 @@ describe("permissionKinds", () => {
     expect(permissionKinds("openExternal")).toBeNull();
     expect(permissionKinds("usb")).toBeNull();
   });
+
+  it("asks for notifications, never grants device access, and has nothing to gate for WebAuthn (ADR-041)", () => {
+    expect(permissionKinds("notifications")).toEqual(["notifications"]);
+    // WebHID/serial device pickers are refused; passkeys and security keys do not go through the
+    // session permission handlers at all in Electron 44 (Permissions-Policy is Chromium's).
+    for (const permission of ["hid", "serial", "usb", "publickey-credentials-get", "publickey-credentials-create", "unknown"]) {
+      expect(permissionKinds(permission)).toBeNull();
+    }
+  });
 });
 
 describe("PermissionPrompts", () => {

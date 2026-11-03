@@ -289,6 +289,19 @@ export function sitePermissions(ses: Session, topOrigin: string): ReturnType<Per
   return promptsOf(ses).store.entriesFor(topOrigin);
 }
 
+/**
+ * Sets one decision from the site info popover (ADR-041): remembered, except in a private
+ * window's session where it lasts until the window closes.
+ */
+export function setSitePermission(ses: Session, origin: string, kind: PermissionKind, allow: boolean, topOrigin: string): void {
+  void promptsOf(ses).store.set(origin, kind, allow ? "allow" : "deny", !ephemeral.has(ses), topOrigin);
+}
+
+/** Whether `origin`, in the page `contents` shows, was allowed `kind` (e.g. notifications, ADR-041). */
+export function permissionGranted(contents: WebContents, origin: string, kind: PermissionKind): boolean {
+  return promptsOf(contents.session).check(origin, [kind], contents.getURL());
+}
+
 /** Forgets one decision: the site (or the frame embedded in it) will ask again. */
 export function forgetSitePermission(ses: Session, origin: string, kind: PermissionKind, topOrigin: string): void {
   void promptsOf(ses).store.forget(origin, kind, topOrigin);

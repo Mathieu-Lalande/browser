@@ -100,6 +100,8 @@
             <li><a href="#notes">Notes et surlignages</a></li>
             <li><a href="#boosts">Boosts</a></li>
             <li><a href="#mots-de-passe">Mots de passe</a></li>
+            <li><a href="#formulaires">Adresses, cartes, clés d'accès</a></li>
+            <li><a href="#notifications">Notifications et orthographe</a></li>
             <li><a href="#extensions">Extensions</a></li>
             <li><a href="#captures">Options de la page, captures</a></li>
             <li><a href="#pages">Téléchargements, zoom, médias</a></li>
@@ -558,6 +560,43 @@
           </p>
         </section>
 
+        <!-- Autofill, passkeys (ADR-041) -->
+        <section class="doc-section" id="formulaires" aria-labelledby="t-formulaires">
+          <h2 id="t-formulaires"><i data-icon="credit-card"></i>Adresses, cartes et clés d'accès</h2>
+          <ul>
+            <li><strong>Enregistrer</strong> : après l'envoi d'un formulaire de livraison ou de paiement, Browser propose « Enregistrer cette adresse ? » ou « Enregistrer cette carte ? ». Les champs sont reconnus en français et en anglais (formats d'adresse France/Europe, Royaume-Uni, Amérique du Nord).</li>
+            <li><strong>Remplir</strong> : en entrant dans un champ reconnu, une liste propose vos adresses ou cartes ; aussi « Remplir une adresse » du menu de la page (bureau et téléphone).</li>
+            <li><strong>Gérer</strong> : Paramètres, « Adresses et paiements ». Afficher le numéro complet d'une carte demande Touch ID (Mac) ou une confirmation du système.</li>
+          </ul>
+          <p>
+            Tout est chiffré par le trousseau du système (téléphone : trousseau iOS / Keystore Android). Le code de
+            sécurité (CVC) n'est <strong>jamais</strong> enregistré. Rien n'est proposé ni enregistré en navigation
+            privée. Les adresses peuvent être synchronisées (désactivé par défaut, chiffré de bout en bout) ; les
+            cartes ne quittent jamais l'appareil.
+          </p>
+          <h3>Clés d'accès (passkeys) et clés de sécurité</h3>
+          <ul>
+            <li><strong>Windows</strong> : tout passe par Windows Hello (clés d'accès de ce PC, clés USB/NFC avec leur code PIN, connexion avec un téléphone par QR code).</li>
+            <li><strong>macOS</strong> : les clés de sécurité USB sans code PIN fonctionnent. Touch ID et les clés d'accès iCloud ne sont pas disponibles dans les versions actuelles (il faut une version signée avec un droit de trousseau dédié) ; pas de connexion par téléphone.</li>
+            <li><strong>Linux</strong> : clés de sécurité USB sans code PIN (l'utilisateur doit avoir accès au périphérique, règles udev) ; aucun authentificateur intégré.</li>
+            <li>Plusieurs comptes pour un site : Browser vous demande lequel utiliser.</li>
+          </ul>
+        </section>
+
+        <!-- Notifications, spell checking (ADR-041) -->
+        <section class="doc-section" id="notifications" aria-labelledby="t-notifications">
+          <h2 id="t-notifications"><i data-icon="bell"></i>Notifications et orthographe</h2>
+          <ul>
+            <li><strong>Notifications</strong> : un site doit d'abord en demander l'autorisation (barre au-dessus de la page). Elles s'affichent avec le nom et l'icône du site ; un clic ramène l'onglet. Changer d'avis : Infos sur le site (Autoriser, Bloquer, Réinitialiser).</li>
+            <li><strong>Ne pas déranger</strong> : Paramètres, Notifications.</li>
+            <li><strong>Orthographe</strong> : Paramètres, Orthographe : langues des dictionnaires (Windows, Linux ; macOS suit les langues du système), mots ajoutés au dictionnaire ; suggestions et « Ajouter au dictionnaire » au clic droit.</li>
+          </ul>
+          <p>
+            Les notifications « push » reçues quand le site est fermé (service workers, Web Push) ne sont pas prises
+            en charge par Electron : seuls les onglets ouverts peuvent en afficher.
+          </p>
+        </section>
+
         <!-- Extensions -->
         <section class="doc-section" id="extensions" aria-labelledby="t-extensions">
           <h2 id="t-extensions"><i data-icon="puzzle"></i>Extensions</h2>
@@ -823,6 +862,10 @@
             <dd>Ils exigent le module de contenus protégés Widevine. Vérifiez Paramètres, Confidentialité, « Contenus protégés (DRM) » : l'interrupteur doit être activé et une version de Widevine affichée. Au tout premier lancement, le module se télécharge en quelques secondes ; relancez le navigateur s'il indique « installation en cours ». Sous Linux, Widevine n'est pas disponible. Certains services réservent la haute définition aux navigateurs dont la plateforme est vérifiée (signature VMP des versions publiées).</dd>
             <dt>Google refuse la connexion (« Ce navigateur ou cette application n'est peut-être pas sécurisé »).</dt>
             <dd>Browser se présente comme Google Chrome de la même version, ce qui suffit d'ordinaire. Si Google refuse malgré tout, mettez Browser à jour, réessayez depuis <code>accounts.google.com</code> plutôt que depuis une fenêtre surgissante, et désactivez les protections pour ce site le temps de la connexion. Signalez-le sur GitHub en précisant la version : les contrôles de Google évoluent.</dd>
+            <dt>Un site ne trouve pas ma clé d'accès (passkey) ou ma clé de sécurité.</dt>
+            <dd>Sous Windows, la connexion passe par Windows Hello : vérifiez qu'il est configuré. Sous macOS et Linux, seules les clés de sécurité USB sans code PIN fonctionnent ; Touch ID, le trousseau iCloud et la connexion avec un téléphone ne sont pas disponibles. Voir « Adresses, cartes et clés d'accès ».</dd>
+            <dt>Je ne reçois pas les notifications d'un site fermé.</dt>
+            <dd>Normal : les notifications « push » en arrière-plan ne sont pas prises en charge. Gardez l'onglet ouvert (il peut être en arrière-plan), et vérifiez que « Ne pas déranger » est désactivé.</dd>
             <dt>macOS dit que l'application ne peut pas être ouverte.</dt>
             <dd>Clic droit sur Browser dans Applications, « Ouvrir » ; ou Réglages Système, Confidentialité et sécurité, « Ouvrir quand même ».</dd>
             <dt>L'AppImage ne se lance pas sous Linux.</dt>

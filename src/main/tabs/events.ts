@@ -127,6 +127,7 @@ export class TabEvents {
       hooks.boostPage?.(contents);
       hooks.gesturePage?.(contents);
       hooks.pageReady?.(tab.id, contents);
+      hooks.notifyPage?.(tab.id, contents);
       hooks.translatePage?.(tab.id, contents);
       hooks.annotatePage?.(tab.id, contents);
     });

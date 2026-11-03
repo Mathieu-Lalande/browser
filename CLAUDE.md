@@ -129,3 +129,10 @@
   permission `mediaKeySystem` selon `privacy.protectedContent`), modèle pur `src/shared/drm.ts`, ligne `DrmRow` ; signature VMP
   `scripts/vmp-sign.cjs` (secrets `EVS_*`) ; `Sec-CH-UA` = marques de Google Chrome (`chromeBrands`, `src/main/fingerprint.ts`) ;
   Azure Trusted Signing / `publisherName` écrits par release.yml seulement si les secrets existent (jamais dans `package.json`).
+- Formulaires, clés d'accès, notifications, orthographe (ADR-041) : modèle pur `src/shared/autofill/` (classement des champs
+  `classifyForm`, Luhn/marques, formats d'adresse, `fillPlan`, jamais de CVC), main `src/main/autofill/` (`AutofillService`,
+  `EncryptedStore` `autofill.json`, mondes isolés 1014/1015, popovers overlay `autofill-save`/`autofill-fill`), section
+  `AutofillSection`, collection de synchro `addresses` facultative (cartes jamais) ; mobile `mobile/src/lib/autofill.ts`
+  (nonce par demande). `PasskeyService` (`src/main/webauthn.ts`, `@shared/webauthn`), `NotificationCenter`
+  (`src/main/notifications/`, shim + relais monde isolé 1016, crochet `BROWSER_TEST_NOTIFICATIONS`), `SpellcheckService`
+  (`src/main/spellcheck.ts`) : `SessionService` installés par `hardenSession`.

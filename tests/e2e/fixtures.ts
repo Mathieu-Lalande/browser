@@ -260,6 +260,18 @@ function startServer(): Promise<{ server: Server; origin: string; log: ServerLog
         `<title>Boost</title><div class="promo"><div id="ad" style="width:240px;height:90px;background:#c33">Publicité</div></div>` +
           `<p id="text">Le contenu reste.</p>`,
       );
+    } else if (path.startsWith("/address-form")) {
+      // A French checkout form without autocomplete attributes (ADR-041); the POST lands on a welcome page.
+      res.end(
+        `<title>Adresse</title><form method="post" action="/welcome">` +
+          `<label for="prenom">Prénom</label><input id="prenom" name="prenom">` +
+          `<label for="nom">Nom</label><input id="nom" name="nom">` +
+          `<label for="adresse">Adresse</label><input id="adresse" name="adresse">` +
+          `<label for="cp">Code postal</label><input id="cp" name="cp">` +
+          `<label for="ville">Ville</label><input id="ville" name="ville">` +
+          `<label for="pays">Pays</label><select id="pays" name="pays"><option value="">—</option><option value="FR">France</option><option value="BE">Belgique</option></select>` +
+          `<button id="submit">Valider</button></form>`,
+      );
     } else if (path.startsWith("/login")) {
       // A plain login form (ADR-025); the POST lands on a welcome page.
       res.end(

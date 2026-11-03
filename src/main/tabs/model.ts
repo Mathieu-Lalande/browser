@@ -82,6 +82,8 @@ export interface TabManagerHooks {
   contextMenu?(tabId: TabId, params: Electron.ContextMenuParams): void;
   /** A new document of the tab's page is ready (dom-ready): password form watching, ADR-025. */
   pageReady?(tabId: TabId, contents: WebContents): void;
+  /** A new document is ready (dom-ready), private windows included: web notifications relay (ADR-041). */
+  notifyPage?(tabId: TabId, contents: WebContents): void;
   /** A new document is ready (dom-ready), private windows included: boosts (ADR-029). */
   boostPage?(contents: WebContents): void;
   /** Saved passwords exist for the URL's origin (reading only: also in private windows). */

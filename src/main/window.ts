@@ -165,6 +165,8 @@ export class BrowserController {
       boosts: appServices().boosts,
       contextMenu: (tabId, params) => pageMenu?.(this, tabId, params),
       watchPasswordForms: (tabId, contents) => watchPasswordForms(this, tabId, contents),
+      watchAutofill: (tabId, contents) => appServices().autofill.watch(this, tabId, contents),
+      watchNotifications: (tabId, contents) => appServices().notifications.watch(this, tabId, contents),
       watchPageWheel,
     });
     this.spaces = new SpaceManager(
@@ -452,6 +454,10 @@ export class BrowserController {
     services.passwords.onChanged(() => {
       BrowserController.refreshAll();
       for (const controller of windows.all()) controller.send(Channels.passwordsChanged);
+    });
+    // Addresses and cards changed: the settings section re-lists them (ADR-041).
+    services.autofill.onChanged(() => {
+      for (const controller of windows.all()) controller.send(Channels.autofillChanged);
     });
   }
 

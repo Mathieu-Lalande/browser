@@ -165,6 +165,29 @@ export interface AnnotationSettings {
   sync: boolean;
 }
 
+/** Addresses and payment cards (ADR-041). */
+export interface AutofillSettings {
+  /** Offer to save addresses from submitted forms, and suggest them. */
+  addresses: boolean;
+  /** Same for payment cards (never their security code). */
+  cards: boolean;
+  /** Opt-in: the `addresses` sync collection (end-to-end encrypted). Cards are never synced. */
+  syncAddresses: boolean;
+}
+
+/** Web notifications (ADR-041). */
+export interface NotificationSettings {
+  /** "Ne pas déranger": notifications of sites are dropped silently. */
+  doNotDisturb: boolean;
+}
+
+/** Spell checking of text fields (ADR-041). */
+export interface SpellcheckSettings {
+  enabled: boolean;
+  /** Dictionaries (Chromium codes: "fr", "en-US"…); empty: the system language. */
+  languages: string[];
+}
+
 export interface Settings {
   appearance: AppearanceSettings;
   layout: LayoutSettings;
@@ -177,6 +200,9 @@ export interface Settings {
   updates: UpdateSettings;
   translate: TranslateSettings;
   annotations: AnnotationSettings;
+  autofill: AutofillSettings;
+  notifications: NotificationSettings;
+  spellcheck: SpellcheckSettings;
   /**
    * Keyboard shortcuts chosen by the user (desktop, ADR-028): only the commands that differ from
    * the registry. A patch replaces the whole map.
@@ -259,10 +285,21 @@ export const DEFAULT_SETTINGS: Settings = {
     neverSites: [],
   },
   annotations: { sync: false },
+  autofill: { addresses: true, cards: true, syncAddresses: false },
+  notifications: { doNotDisturb: false },
+  spellcheck: { enabled: true, languages: [] },
   shortcuts: {},
 };
 
 export const SETTINGS_SECTIONS = Object.keys(DEFAULT_SETTINGS) as SettingsSection[];
+
+/** Spell checker dictionary codes ("fr", "en-US", "pt-BR"), at most 8, without duplicates. */
+export const MAX_SPELL_LANGUAGES = 8;
+export const isSpellLanguage = (value: unknown): value is string => typeof value === "string" && /^[a-z]{2,3}(-[A-Z]{2})?$/.test(value);
+function sanitizeSpellLanguages(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  return [...new Set(value.filter(isSpellLanguage))].slice(0, MAX_SPELL_LANGUAGES);
+}
 
 // --- Validation -------------------------------------------------------------------------------
 
@@ -387,6 +424,9 @@ const schema: Schema = {
     neverSites: sanitizeSiteKeys,
   },
   annotations: { sync: bool },
+  autofill: { addresses: bool, cards: bool, syncAddresses: bool },
+  notifications: { doNotDisturb: bool },
+  spellcheck: { enabled: bool, languages: sanitizeSpellLanguages },
 };
 
 /**

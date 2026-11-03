@@ -10,6 +10,9 @@
   import SearchField from "../ui/SearchField.svelte";
   import { queryFilter, setRowFilter } from "../ui/filter";
   import AppearanceSection from "./AppearanceSection.svelte";
+  import AutofillSection from "./AutofillSection.svelte";
+  import NotificationsSection from "./NotificationsSection.svelte";
+  import SpellcheckSection from "./SpellcheckSection.svelte";
   import BehaviorSection from "./BehaviorSection.svelte";
   import DataSection from "./DataSection.svelte";
   import DownloadsSection from "./DownloadsSection.svelte";
@@ -36,8 +39,11 @@
     { id: "behavior", label: "Comportement", icon: "sliders" },
     { id: "shortcuts", label: "Raccourcis clavier", icon: "keyboard" },
     { id: "privacy", label: "Confidentialité", icon: "shield" },
+    { id: "autofill", label: "Adresses et paiements", icon: "credit-card" },
     { id: "siteData", label: "Données des sites", icon: "cookie" },
+    { id: "notifications", label: "Notifications", icon: "bell" },
     { id: "translate", label: "Traduction", icon: "languages" },
+    { id: "spellcheck", label: "Orthographe", icon: "spell-check" },
     { id: "downloads", label: "Téléchargements", icon: "download" },
     { id: "data", label: "Données", icon: "database" },
     { id: "sync", label: "Synchronisation", icon: "cloud" },
@@ -242,8 +248,29 @@
         <PrivacySection />
       </Section>
 
+      <Section
+        id="autofill"
+        icon="credit-card"
+        title="Adresses et paiements"
+        description="Adresses et cartes chiffrées sur cet appareil, proposées dans les formulaires."
+        keywords="autofill remplissage automatique carte bancaire adresse"
+        onReset={() => settings.reset("autofill")}
+      >
+        <AutofillSection />
+      </Section>
+
       <Section id="siteData" icon="cookie" title="Données des sites" description="Cookies et stockage laissés par les sites, et cookies tiers.">
         <SiteDataSection />
+      </Section>
+
+      <Section
+        id="notifications"
+        icon="bell"
+        title="Notifications"
+        description="Les alertes que les sites ouverts peuvent afficher sur le bureau."
+        onReset={() => settings.reset("notifications")}
+      >
+        <NotificationsSection />
       </Section>
 
       <Section
@@ -255,6 +282,17 @@
         onReset={() => settings.reset("translate")}
       >
         <TranslateSection />
+      </Section>
+
+      <Section
+        id="spellcheck"
+        icon="spell-check"
+        title="Orthographe"
+        description="Vérification de l'orthographe dans les champs de texte des pages."
+        keywords="correcteur dictionnaire spellcheck"
+        onReset={() => settings.reset("spellcheck")}
+      >
+        <SpellcheckSection />
       </Section>
 
       <Section

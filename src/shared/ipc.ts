@@ -10,6 +10,18 @@ import type { ImportItem, ImportProgress, ImportSource, ImportSummary, PasswordI
 import type { ExtensionInfo, ExtensionInstallResult } from "./extensions";
 import type { FolderId, FolderInput } from "./folders";
 import type {
+  AddressInput,
+  AutofillAnswer,
+  AutofillList,
+  AutofillPrompt,
+  AutofillResult,
+  AutofillRevealResult,
+  AutofillStatus,
+  AutofillSuggestions,
+} from "./autofill/ipc";
+import type { CardInput } from "./autofill/model";
+import type { FieldSection } from "./autofill/classify";
+import type {
   PasswordAccounts,
   PasswordEdit,
   PasswordPrompt,
@@ -171,6 +183,7 @@ export const Channels = {
   recordingFinish: "recording:finish",
   siteInfoGet: "site-info:get",
   siteInfoResetPermission: "site-info:reset-permission",
+  siteInfoSetPermission: "site-info:set-permission",
   siteInfoClearData: "site-info:clear-data",
   siteInfoAllowThirdPartyCookies: "site-info:allow-third-party-cookies",
   siteDataList: "site-data:list",
@@ -213,6 +226,21 @@ export const Channels = {
   passwordsFill: "passwords:fill",
   passwordsPrompt: "passwords:prompt",
   passwordsAnswer: "passwords:answer",
+  autofillStatus: "autofill:status",
+  autofillList: "autofill:list",
+  autofillPutAddress: "autofill:put-address",
+  autofillPutCard: "autofill:put-card",
+  autofillRemove: "autofill:remove",
+  autofillRevealCard: "autofill:reveal-card",
+  autofillChanged: "autofill:changed",
+  autofillSuggestions: "autofill:suggestions",
+  autofillFill: "autofill:fill",
+  autofillPrompt: "autofill:prompt",
+  autofillAnswer: "autofill:answer",
+  spellcheckLanguages: "spellcheck:languages",
+  spellcheckWords: "spellcheck:words",
+  spellcheckAddWord: "spellcheck:add-word",
+  spellcheckRemoveWord: "spellcheck:remove-word",
   readerArticle: "reader:article",
   translateShow: "translate:show",
   translatePanel: "translate:panel",
@@ -378,6 +406,35 @@ export interface BrowserApi {
     /** Overlay: what the save prompt shows for a pending capture. */
     prompt(captureId: string): Promise<PasswordPrompt | null>;
     answer(captureId: string, answer: PromptAnswer): Promise<PasswordResult>;
+  };
+  /**
+   * Addresses and payment cards (ADR-041). Lists show a card by its last digits: its number only
+   * comes through `revealCard`, after main asked the user itself (Touch ID or a native dialog).
+   * Changes are refused from a private window.
+   */
+  autofill: {
+    status(): Promise<AutofillStatus>;
+    list(): Promise<AutofillList>;
+    /** Adds (null id) or replaces an address. */
+    putAddress(id: string | null, address: AddressInput): Promise<AutofillResult>;
+    /** Adds (null id, number required) or edits a card (an empty number keeps the saved one). */
+    putCard(id: string | null, card: CardInput): Promise<AutofillResult>;
+    remove(section: FieldSection, id: string): Promise<AutofillResult>;
+    revealCard(id: string): Promise<AutofillRevealResult>;
+    onChanged(listener: () => void): () => void;
+    /** Overlay: what the suggestion popover offers for the tab's focused form. */
+    suggestions(tabId: TabId): Promise<AutofillSuggestions | null>;
+    fill(tabId: TabId, id: string): Promise<boolean>;
+    /** Overlay: the save prompt after a submitted form. */
+    prompt(captureId: string): Promise<AutofillPrompt | null>;
+    answer(captureId: string, answer: AutofillAnswer): Promise<AutofillResult>;
+  };
+  /** Spell checking (ADR-041): dictionaries offered and in use, the custom words. */
+  spellcheck: {
+    languages(): Promise<{ available: string[]; current: string[] }>;
+    words(): Promise<string[]>;
+    addWord(word: string): Promise<void>;
+    removeWord(word: string): Promise<void>;
   };
   /**
    * Reader mode (ADR-026): main extracts and validates the article (command "toggle-reader"); the
@@ -679,6 +736,8 @@ export interface BrowserApi {
     get(tabId: TabId): Promise<SiteInfo | null>;
     /** Forgets one permission decision taken on the tab's site; resolves to the updated info. */
     resetPermission(tabId: TabId, origin: string, kind: PermissionKind): Promise<SiteInfo | null>;
+    /** Allows or blocks one permission for a site of the tab (notifications…, ADR-041). */
+    setPermission(tabId: TabId, origin: string, kind: PermissionKind, allow: boolean): Promise<SiteInfo | null>;
     /** Clears the site's cookies and storage in the tab's session, then reloads the tab. */
     clearData(tabId: TabId): Promise<SiteInfo | null>;
     /** Third-party cookie blocking: makes the tab's site an exception (refused in private windows). */

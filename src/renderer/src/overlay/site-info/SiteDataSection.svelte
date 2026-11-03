@@ -25,6 +25,9 @@
   const resetPermission = async (permission: SitePermission) =>
     apply(await api.siteInfo.resetPermission(tabId, permission.origin, permission.kind).catch(() => null));
 
+  /** Allow ⇄ block, from the popover (ADR-041): the site then neither asks nor gets it. */
+  const flipPermission = async (permission: SitePermission) =>
+    apply(await api.siteInfo.setPermission(tabId, permission.origin, permission.kind, permission.decision !== "allow").catch(() => null));
   const allowThirdParty = async (allow: boolean) => apply(await api.siteInfo.allowThirdPartyCookies(tabId, allow).catch(() => null));
 </script>
 
@@ -64,6 +67,14 @@
               {permission.decision === "allow" ? "Autorisé" : "Bloqué"}{permission.remembered ? "" : " jusqu'à la fermeture"}{permission.origin !== info.origin ? ` · ${permission.origin}` : ""}
             </span>
           </span>
+          <Button
+            variant="quiet"
+            size="sm"
+            onclick={() => flipPermission(permission)}
+            aria-label="{permission.decision === 'allow' ? 'Bloquer' : 'Autoriser'} : {PERMISSION_LABELS[permission.kind]}"
+          >
+            {permission.decision === "allow" ? "Bloquer" : "Autoriser"}
+          </Button>
           <Button
             variant="quiet"
             size="sm"

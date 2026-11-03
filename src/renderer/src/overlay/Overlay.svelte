@@ -7,6 +7,7 @@
   import DownloadsPanel from "./DownloadsPanel.svelte";
   import LinkPeekPanel from "./LinkPeekPanel.svelte";
   import PasswordPanel from "./PasswordPanel.svelte";
+  import AutofillPanel from "./AutofillPanel.svelte";
   import SiteInfoPanel from "./SiteInfoPanel.svelte";
   import PageOptionsPanel from "./PageOptionsPanel.svelte";
   import CaptureResultPanel from "./CaptureResultPanel.svelte";
@@ -117,6 +118,10 @@
         <TranslatePanel anchor={current.request.anchor} tabId={current.request.tabId} onClose={close} />
       {:else if current.request.kind === "annotation" && current.request.annotationId}
         <AnnotationPanel anchor={current.request.anchor} annotationId={current.request.annotationId} onClose={close} />
+      {:else if current.request.kind === "autofill-save"}
+        <AutofillPanel kind="save" anchor={current.request.anchor} captureId={current.request.captureId} onClose={close} />
+      {:else if current.request.kind === "autofill-fill"}
+        <AutofillPanel kind="fill" anchor={current.request.anchor} tabId={current.request.tabId} onClose={close} />
       {:else if current.request.kind === "password-fill"}
         <PasswordPanel kind="fill" anchor={current.request.anchor} tabId={current.request.tabId} onClose={close} />
       {/if}

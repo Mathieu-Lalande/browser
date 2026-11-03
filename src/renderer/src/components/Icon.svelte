@@ -173,6 +173,10 @@
   import Notebook from "@lucide/svelte/icons/notebook";
   import Import from "@lucide/svelte/icons/import";
   import FileSpreadsheet from "@lucide/svelte/icons/file-spreadsheet";
+  import CreditCard from "@lucide/svelte/icons/credit-card";
+  import Bell from "@lucide/svelte/icons/bell";
+  import BellOff from "@lucide/svelte/icons/bell-off";
+  import SpellCheck from "@lucide/svelte/icons/spell-check";
 
   type LucideIcon = Component<Record<string, unknown>>;
 
@@ -263,6 +267,10 @@
     qr: QrCode,
     unlink: Unlink,
     key: KeyRound,
+    "credit-card": CreditCard,
+    bell: Bell,
+    "bell-off": BellOff,
+    "spell-check": SpellCheck,
     // Reader mode (ADR-026).
     reader: BookOpen,
     "type": Type,

@@ -1,4 +1,5 @@
 import type { AnnotationsData } from "@shared/annotations/model";
+import { addressRecord, mergeSyncedAddresses, sanitizeSyncedAddress, type AutofillData, type SyncedAddress } from "@shared/autofill/model";
 import { annotationRecords, mergeAnnotations, sanitizeSyncedAnnotation, type SyncedAnnotation } from "@shared/annotations/sync";
 import { boostRecord, mergeBoosts, sanitizeSyncedBoost, type Boost, type SyncedBoost } from "@shared/boosts";
 import { favoriteLocalId, favoriteRecord, mergeFavorites, sanitizeSyncedFavorite, type Favorite, type SyncedFavorite } from "@shared/favorites";
@@ -46,6 +47,8 @@ export interface BookmarkFolder {
 }
 
 export interface MobileSyncStore {
+  /** Saved addresses (ADR-041, opt-in): cards are never handed to sync. */
+  autofill?: { current: AutofillData; replace(next: AutofillData): unknown };
   settings(): Settings;
   setSettings(next: Settings): void;
   model(): TabsModel;
@@ -196,8 +199,20 @@ function annotationsAdapter(store: MobileSyncStore): CollectionAdapter<SyncedAnn
   };
 }
 
+/** Saved addresses (ADR-041), opt-in (`settings.autofill.syncAddresses`), same records as the desktop. */
+function addressesAdapter(store: MobileSyncStore, autofill: NonNullable<MobileSyncStore["autofill"]>): CollectionAdapter<SyncedAddress> {
+  return {
+    name: "addresses",
+    enabled: () => store.settings().autofill.syncAddresses,
+    snapshot: () => new Map(autofill.current.addresses.map((entry) => [entry.id, addressRecord(entry)])),
+    sanitize: (value) => sanitizeSyncedAddress(value),
+    apply: ({ upserts, deletes }) => void autofill.replace(mergeSyncedAddresses(autofill.current, upserts, deletes)),
+  };
+}
+
 export function mobileAdapters(store: MobileSyncStore): CollectionAdapter[] {
   return [
+    ...(store.autofill ? [addressesAdapter(store, store.autofill)] : []),
     settingsAdapter(store),
     spacesAdapter(store),
     bookmarksAdapter(store),
