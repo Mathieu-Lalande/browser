@@ -9,6 +9,8 @@
   import HistoryPage from "./history/HistoryPage.svelte";
   import ImportPage from "./import/ImportPage.svelte";
   import SettingsPage from "./settings/SettingsPage.svelte";
+  import TasksPage from "./tasks/TasksPage.svelte";
+  import ProfilesPage from "./profiles/ProfilesPage.svelte";
 
   /** A `browser://` page drawn by the chrome (ADR-012), in the viewport or in a split pane. */
   let { page }: { page: InternalPage } = $props();
@@ -32,4 +34,8 @@
   <HistoryPage />
 {:else if page === "import"}
   <ImportPage />
+{:else if page === "tasks"}
+  <TasksPage />
+{:else if page === "profiles"}
+  <ProfilesPage />
 {/if}

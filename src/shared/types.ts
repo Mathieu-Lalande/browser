@@ -1,3 +1,5 @@
+import type { RecoverySummary } from "./recovery";
+import type { PrintPreviewInfo } from "./print";
 import type { CaptureResult, RecordingState } from "./capture";
 import type { Boost } from "./boosts";
 import type { FolderId, TabFolder } from "./folders";
@@ -141,6 +143,8 @@ export interface BrowserState extends TabsState {
   isPrivate?: boolean;
   /** The favorites grid, shared by every space (ADR-022). */
   favorites?: FavoriteTile[];
+  /** After an unclean shutdown: the session the start page offers to restore (ADR-042). */
+  recovery?: RecoverySummary | null;
   /**
    * The spaces just before and after the shown one, as the sidebar draws them beside it while a
    * two-finger swipe slides between spaces (ADR-022). Capped: only what fits on screen.
@@ -227,6 +231,8 @@ export type OverlayKind =
   | "page-swipe"
   | "translate"
   | "annotation"
+  /** Print preview (ADR-042): options drawn here, the PDF in a native view above. */
+  | "print-preview"
   /** Tab hover preview (ADR-038): passive, never focused, its view only as large as the card. */
   | "tab-preview";
 
@@ -248,6 +254,8 @@ export interface OverlayRequest {
   annotationId?: string;
   /** Tab hover preview (ADR-038): what the card shows (updates are new requests of the same kind). */
   preview?: TabPreview;
+  /** Print preview (ADR-042): the page's title and the dialog's geometry. */
+  print?: PrintPreviewInfo;
   /** The overlay view covers only this part of the window (default: all of it). */
   region?: Bounds;
 }

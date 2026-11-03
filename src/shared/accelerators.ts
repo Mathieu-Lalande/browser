@@ -227,6 +227,8 @@ export function isReservedAnywhere(value: string): boolean {
 
 /** Without Ctrl, Alt or Cmd, a key would stop typing (Shift+A is "A"): only F-keys may go bare. */
 export function needsModifier(parsed: ParsedAccelerator): boolean {
+  // Shift+Échap types nothing either (Chrome's task manager, ADR-042).
+  if (parsed.key === "Escape" && parsed.modifiers.includes("Shift")) return false;
   return !isFunctionKey(parsed.key) && !parsed.modifiers.some((modifier) => modifier !== "Shift");
 }
 

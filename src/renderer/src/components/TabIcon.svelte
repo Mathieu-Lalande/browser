@@ -10,6 +10,8 @@
   const INTERNAL_ICONS: Record<InternalPage, IconName> = { settings: "settings", downloads: "download", archive: "archive", extensions: "extension", passwords: "key",
     boosts: "rocket",
     notes: "notebook",
+    tasks: "activity",
+    profiles: "users",
     history: "history",
     import: "import",
   };

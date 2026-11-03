@@ -27,6 +27,11 @@ import type { ReaderArticle } from "./reader";
 import type { TranslateProviderId } from "./translate/providers";
 import type { TranslateKeysStatus, TranslatePanelState, TranslateResultMessage, TranslateRuleChange } from "./translate/state";
 import type { Settings, SettingsPatch, SettingsSection } from "./settings";
+import type { ClosedLists } from "./recovery";
+import type { ProfileId, ProfileInfo, ProfileInput, ProfilesView } from "./profiles";
+import type { TaskRow } from "./tasks";
+import type { PrintOptions, PrintPrinter, PrintResult } from "./print";
+import type { BackupMode, BackupSummary } from "./backup";
 import type { KeyPress } from "./accelerators";
 import type { SiteDataEntry, SiteInfo } from "./site-info";
 import type { SyncStatus } from "./sync/controller";
@@ -253,6 +258,26 @@ export const Channels = {
   mediaDismiss: "media:dismiss",
   tabPreviewShow: "tab-preview:show",
   tabPreviewHide: "tab-preview:hide",
+  // ADR-042: crash recovery, profiles, task manager, print preview, backups.
+  recoveryRestore: "recovery:restore",
+  recoveryDismiss: "recovery:dismiss",
+  recoveryClosed: "recovery:closed",
+  recoveryReopen: "recovery:reopen",
+  profilesList: "profiles:list",
+  profilesCreate: "profiles:create",
+  profilesUpdate: "profiles:update",
+  profilesRemove: "profiles:remove",
+  profilesOpen: "profiles:open",
+  profilesSetAsk: "profiles:set-ask",
+  tasksList: "tasks:list",
+  tasksKill: "tasks:kill",
+  printUpdate: "print:update",
+  printPrinters: "print:printers",
+  printRun: "print:run",
+  printClose: "print:close",
+  backupExport: "backup:export",
+  backupInspect: "backup:inspect",
+  backupApply: "backup:apply",
 } as const;
 
 /** Outcome of a sync action (errors are messages for the user: they do not cross IPC as exceptions). */
@@ -713,6 +738,45 @@ export interface BrowserApi {
    * Cookies and site data of the profile (default session and isolated spaces), for the settings.
    * Null in a private window, which never manages the profile's data.
    */
+  /** ADR-042: the "Restaurer la session ?" card and recently closed tabs and windows. */
+  recovery: {
+    /** Reopens the offered windows (all when null); this window goes if it only shows a start page. */
+    restore(indexes: number[] | null): Promise<number>;
+    dismiss(): void;
+    closed(): Promise<ClosedLists>;
+    reopen(kind: "tab" | "window", index: number): void;
+  };
+  /** ADR-042: user profiles (`browser://profiles`). Changes are refused in a private window. */
+  profiles: {
+    list(): Promise<ProfilesView>;
+    create(input: ProfileInput): Promise<ProfileInfo | null>;
+    update(id: ProfileId, input: ProfileInput): Promise<boolean>;
+    remove(id: ProfileId): Promise<boolean>;
+    /** Opens the profile in a new window (its own instance of the app). */
+    open(id: ProfileId): Promise<boolean>;
+    setAskOnLaunch(ask: boolean): Promise<void>;
+  };
+  /** ADR-042: `browser://tasks`. */
+  tasks: {
+    list(): Promise<TaskRow[]>;
+    /** Ends a tab renderer process (the tab shows its crash page). */
+    kill(pid: number): Promise<boolean>;
+  };
+  /** ADR-042: the print preview (overlay page only). */
+  print: {
+    update(options: PrintOptions): Promise<PrintResult>;
+    printers(): Promise<PrintPrinter[]>;
+    run(options: PrintOptions): Promise<PrintResult>;
+    close(): void;
+  };
+  /** ADR-042: profile backups (refused in a private window). */
+  backup: {
+    /** With a passphrase, the passwords come along, sealed with it. */
+    export(passphrase: string | null): Promise<{ ok: true } | { ok: false; message: string }>;
+    /** Picks a file and summarizes it. */
+    inspect(): Promise<{ ok: true; summary: BackupSummary } | { ok: false; message: string }>;
+    apply(mode: BackupMode, passphrase: string | null): Promise<{ ok: true } | { ok: false; message: string }>;
+  };
   siteData: {
     list(): Promise<SiteDataEntry[] | null>;
     /** Clears a site's cookies and storage everywhere in the profile; resolves to the new list. */

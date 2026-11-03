@@ -60,7 +60,7 @@ export const SETTINGS_INDEX: readonly SettingEntry[] = [
   entry("startPage", "widgets", "Widgets de la page d'accueil", ["horloge", "heure", "notes", "météo", "tâches", "widgets"]),
   entry("startPage", "background", "Fond de la page d'accueil", ["image", "fond", "wallpaper"]),
   entry("behavior", "default-browser", "Navigateur par défaut", ["défaut", "default", "liens", "pdf", "html"]),
-  entry("behavior", "restore-session", "Restaurer la session au démarrage", ["session", "démarrage", "rouvrir"]),
+  entry("behavior", "restore-session", "Au démarrage", ["session", "démarrage", "rouvrir", "restaurer", "reprendre"]),
   entry("behavior", "new-tab-position", "Ouvrir les nouveaux onglets", ["position", "nouvel onglet"]),
   entry("behavior", "after-close", "Après la fermeture d'un onglet, afficher", ["fermer", "fermeture"]),
   entry("behavior", "sleep", "Mettre en veille les onglets inactifs", ["veille", "mémoire", "sleep"]),

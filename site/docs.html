@@ -107,6 +107,7 @@
             <li><a href="#apparence">Apparence et thèmes</a></li>
             <li><a href="#raccourcis">Raccourcis clavier</a></li>
             <li><a href="#mises-a-jour">Mises à jour</a></li>
+            <li><a href="#profils">Profils, sauvegarde, plantages</a></li>
             <li><a href="#synchronisation">Synchronisation</a></li>
             <li><a href="#depannage">Dépannage</a></li>
           </ul>
@@ -764,6 +765,20 @@
             <li>macOS : tant que l'app n'est pas signée par un certificat Developer ID, Browser affiche « Mise à jour manuelle requise » avec un lien vers la nouvelle version.</li>
           </ul>
           <p>Vos onglets, favoris et réglages sont conservés d'une version à l'autre.</p>
+        </section>
+
+        <!-- Profiles, backups, recovery (ADR-042) -->
+        <section class="doc-section" id="profils" aria-labelledby="t-profils">
+          <h2 id="t-profils"><i data-icon="refresh-cw"></i>Profils, sauvegarde et plantages</h2>
+          <ul>
+            <li><strong>Reprise après plantage</strong> : la session (fenêtres, espaces, onglets, dossiers, vue scindée) est enregistrée en continu. Si Browser s'est mal fermé, la page d'accueil propose « Restaurer la session ? » : tout restaurer, choisir les fenêtres ou ignorer. Paramètres, Comportement, « Au démarrage » : reprendre où vous en étiez ou la page d'accueil.</li>
+            <li><strong>Récemment fermés</strong> : menu « … », Historique ; « Rouvrir la fenêtre fermée » avec <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Maj</kbd>+<kbd>T</kbd>.</li>
+            <li><strong>Page plantée</strong> : un onglet dont le processus s'arrête affiche « Cette page a planté » avec « Actualiser » ; le reste du navigateur continue.</li>
+            <li><strong>Gestionnaire de tâches</strong> (<kbd>Maj</kbd>+<kbd>Échap</kbd>, <code>browser://tasks</code>) : mémoire et processeur de chaque onglet, extension et service, triables ; « Terminer le processus » arrête un onglet gourmand.</li>
+            <li><strong>Imprimer</strong> (<kbd>Ctrl</kbd>+<kbd>P</kbd>) : aperçu avec pages, orientation, marges, échelle, arrière-plans, puis « Enregistrer en PDF » ou une imprimante.</li>
+            <li><strong>Profils</strong> (<code>browser://profiles</code>) : chaque profil a ses réglages, historique, favoris, mots de passe, sessions et sa synchronisation. « Ouvrir » ouvre une fenêtre de ce profil ; « Choisir le profil au démarrage » affiche la liste au lancement.</li>
+            <li><strong>Sauvegarde</strong> : « Exporter le profil… » écrit un fichier <code>.browserbackup</code> (les mots de passe seulement si vous le cochez, chiffrés par une phrase secrète ; jamais les cookies). « Importer une sauvegarde… » montre son contenu, puis fusionne ou remplace.</li>
+          </ul>
         </section>
 
         <!-- Sync -->

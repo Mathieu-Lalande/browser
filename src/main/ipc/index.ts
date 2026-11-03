@@ -16,6 +16,7 @@ import { extensionHandlers, siteInfoHandlers } from "./site";
 import { tabHandlers } from "./tabs";
 import { translateHandlers } from "./translate";
 import { windowHandlers } from "./window";
+import { lifecycleHandlers } from "./lifecycle";
 
 /** Channels main sends to the UI (the preload subscribes to them): no handler. */
 type EventChannel = (typeof Channels)[
@@ -68,6 +69,7 @@ const handlers = {
   ...defaultBrowserHandlers,
   ...drmHandlers,
   ...importHandlers,
+  ...lifecycleHandlers,
 } satisfies Record<RequestChannel, Entry> & { [C in EventChannel]?: never };
 
 export function registerIpc(): void {

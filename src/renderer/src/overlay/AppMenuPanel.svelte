@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getCommand, type CommandId } from "@shared/commands";
-  import { buildAppMenu, type MenuNode, type PageLink } from "@shared/menus";
+  import { buildAppMenu, closedEntryOf, type MenuNode, type PageLink } from "@shared/menus";
+  import type { ClosedLists } from "@shared/recovery";
   import type { Bounds } from "@shared/types";
   import { api, browser } from "../lib/browser.svelte";
   import { platform } from "../lib/platform.svelte";
@@ -24,6 +25,7 @@
   let innerHeight = $state(window.innerHeight);
   let history = $state<PageLink[]>([]);
   let bookmarks = $state<PageLink[]>([]);
+  let closed = $state<ClosedLists | undefined>(undefined);
 
   const tab = $derived(browser.activeTab);
   const isWeb = $derived(!!tab && /^(https?|file):/.test(tab.url) && !tab.interstitial);
@@ -32,6 +34,10 @@
   $effect(() => {
     api.history.search("", 50).then(
       (entries) => (history = [...entries].sort((a, b) => b.lastVisit - a.lastVisit).map(({ url, title }) => ({ url, title }))),
+      () => {},
+    );
+    api.recovery.closed().then(
+      (lists) => (closed = lists),
       () => {},
     );
     api.bookmarks.list().then(
@@ -48,6 +54,7 @@
       bookmarks,
       favorites: (browser.state.favorites ?? []).map(({ url, title }) => ({ url, title })),
       recording: !!browser.state.recording,
+      closed,
     }),
   );
 
@@ -70,7 +77,11 @@
 
   function run(node: MenuNode): void {
     if (node.kind === "command") runCommand(node.id);
-    else if (node.kind === "link") {
+    else if (node.kind === "action" && closedEntryOf(node.id)) {
+      const entry = closedEntryOf(node.id)!;
+      onClose(false);
+      api.recovery.reopen(entry.kind, entry.index);
+    } else if (node.kind === "link") {
       onClose(false);
       api.tabs.create(node.url);
     }

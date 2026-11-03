@@ -78,6 +78,14 @@ Windows, macOS et Linux, avec son application iPhone et Android.
   par QR code ; jamais la navigation privée (ADR-019). « Envoyer à un appareil » : un onglet vers un autre
   appareil, chiffré, expiré après 7 jours (ADR-033).
 - Mises à jour automatiques depuis les releases GitHub, canal stable ou bêta (ADR-030).
+- Reprise après plantage : session enregistrée en continu, carte « Restaurer la session ? » après une fermeture
+  anormale, « Rouvrir la fenêtre fermée » (`Ctrl+Alt+Maj+T`), onglets et fenêtres récemment fermés dans le menu
+  Historique, page « Cette page a planté » au lieu d'un onglet mort (ADR-042).
+- Profils (`browser://profiles`) : réglages, historique, favoris, mots de passe, sessions et synchronisation
+  séparés, choix au démarrage ; sauvegarde du profil en fichier `.browserbackup` (mots de passe chiffrés par une
+  phrase secrète, jamais de cookies), import avec aperçu, fusion ou remplacement (ADR-042).
+- Gestionnaire de tâches (`browser://tasks`, `Maj+Échap`) et aperçu avant impression avec enregistrement en PDF
+  (`Ctrl+P`) (ADR-042).
 
 | | |
 | --- | --- |

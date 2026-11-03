@@ -7,6 +7,7 @@
   import type { WidgetIcon } from "@shared/start-widgets";
   import type { WeatherIcon } from "@shared/weather";
   import TrendingUp from "@lucide/svelte/icons/trending-up";
+  import Activity from "@lucide/svelte/icons/activity";
   import MonitorSmartphone from "@lucide/svelte/icons/monitor-smartphone";
   import StickyNote from "@lucide/svelte/icons/sticky-note";
   import CloudSun from "@lucide/svelte/icons/cloud-sun";
@@ -321,6 +322,9 @@
     highlighter: Highlighter,
     "notebook-pen": NotebookPen,
     notebook: Notebook,
+    // Task manager and profiles (ADR-042).
+    activity: Activity,
+    users: Users,
   } satisfies Record<string, LucideIcon> & Record<CommandIcon, LucideIcon>;
 
   /** Space icons: their stored names are Lucide's own. */

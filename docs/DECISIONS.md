@@ -1980,3 +1980,53 @@ dans `app-update.yml` d'une version non signée, il ferait refuser toutes les mi
 publications, à suivre à chaque montée de version : choisir le tag `v<version>+wvcus` correspondant).
 Premier lancement sous Windows/macOS : jusqu'à 6 s d'attente le temps de télécharger le CDM. Sans
 secrets EVS, Widevine est présent mais les grands services refusent (ou limitent) la lecture.
+
+
+## ADR-042 — Reprise après plantage, profils, gestionnaire de tâches, impression, sauvegarde
+
+**Contexte.** Un navigateur de tous les jours doit survivre à ses propres plantages et à ceux des pages, séparer
+plusieurs usages (travail, personnel), montrer ce qui consomme, imprimer proprement et se sauvegarder.
+
+**Décision.**
+- **Session et plantage.** La session (fenêtres, espaces, onglets, dossiers, vue scindée) était déjà écrite de façon
+  atomique et différée (`JsonFile`, 1 s). Un marqueur `running.marker` est écrit à l'ouverture du profil et effacé à
+  `will-quit`, après l'écriture des fichiers ; le trouver au démarrage signale une fermeture anormale. `startupPlan`
+  (pur) : après un plantage **rien ne se rouvre seul** (une page peut en être la cause), la carte « Restaurer la
+  session ? » de la page d'accueil (`BrowserState.recovery`, jamais en privé) propose tout restaurer, choisir les
+  fenêtres ou ignorer ; sinon le réglage « Au démarrage : reprendre où j'en étais / page d'accueil »
+  (`behavior.restoreSession`) décide. Positions de défilement non conservées (pas de moyen fiable sans script dans
+  la page). La fenêtre vide qui demande la restauration se ferme.
+- **Récemment fermés.** Les onglets fermés gardent leur titre (`TabStore.closedTabs`, par espace) ; les fenêtres
+  normales fermées parmi d'autres sont mémorisées (10, en mémoire seulement) : commande « Rouvrir la fenêtre fermée »
+  (`CmdOrCtrl+Alt+Shift+T`, `Ctrl+Maj+N` étant la fenêtre privée), entrées dans le sous-menu Historique du menu « … ».
+- **Page plantée.** `render-process-gone` (hors `clean-exit`) donne à l'onglet un `loadError` `PAGE_CRASHED` :
+  `LoadErrorPage` affiche « Cette page a planté » ; « Actualiser » recharge l'adresse (`loadURL` crée un renderer).
+- **Profils.** `profiles.json` à la racine des données ; « Personnel » (`default`) garde la racine elle-même :
+  **aucune donnée ne bouge** à la mise à jour. Les autres profils vivent dans `Profiles/<id>/` (réglages, historique,
+  favoris, mots de passe, sessions, synchronisation, partitions Chromium). L'état du processus principal (profil,
+  services, espaces) étant global, **chaque profil ouvert est une instance** de l'application lancée avec
+  `--profile=<id>` (`userData` changé avant le verrou d'instance unique, qui est par dossier) : l'isolement est
+  complet par construction, au prix d'un processus principal par profil (écart assumé à « un seul processus »).
+  Choix au démarrage : le dernier utilisé, ou `browser://profiles` en premier onglet si « Choisir le profil au
+  démarrage » et plusieurs profils. Suppression : jamais « Personnel » ni le profil ouvert, confirmation, dossier effacé.
+- **Gestionnaire de tâches** (`browser://tasks`, `Maj+Échap` : Échap avec Maj n'écrit rien, autorisé par
+  `needsModifier`). `app.getAppMetrics()` relié aux `webContents.getOSProcessId()` des onglets, de l'interface et des
+  pages d'arrière-plan d'extensions (`buildTaskRows`, pur) ; titres masqués pour les fenêtres privées ; mesure à la
+  demande toutes les 2 s tant que la page est affichée. « Terminer le processus » : seulement un renderer d'onglet
+  (`forcefullyCrashRenderer`), jamais le navigateur, le GPU ou l'interface.
+- **Impression.** « Imprimer… » (`Ctrl+P`) : `printToPDF` dans un fichier temporaire affiché par le lecteur PDF de
+  Chromium dans une `WebContentsView` (session en mémoire `print-preview`, bac à sable, aucune navigation) placée
+  au-dessus du calque overlay comme l'aperçu des liens ; l'overlay `print-preview` dessine les options (pages,
+  orientation, marges, échelle, arrière-plans, copies, destination). « Enregistrer en PDF » : boîte de dialogue de
+  main ; imprimante : `webContents.print` (`printerOptions`). Le temporaire est effacé à la fermeture.
+- **Sauvegarde** (`.browserbackup`, `src/shared/backup.ts`) : JSON des réglages, favoris, grille, historique,
+  session, boosts, notes et archive (la page d'accueil est dans les réglages) ; **jamais de cookies ni de données
+  de sites**. Mots de passe seulement si coché, scellés par une phrase secrète (scrypt N=2^15 + XChaCha20-Poly1305,
+  `@noble`), vérifiée avant toute modification. Import : fichier choisi par main (64 Mo au plus), résumé, puis
+  « Fusionner » (ajoute ce qui manque, garde les réglages) ou « Remplacer » ; chaque section repasse par le
+  validateur de son fichier ; la session importée est proposée par la carte de restauration. Refusé en privé.
+
+**Conséquences.** Tests : unitaires (plan de démarrage, marqueur, service de reprise, profils et chemins, relevé
+des processus, options d'impression, codec et mauvaise phrase secrète), e2e `tests/e2e/lifecycle.spec.ts`
+(processus tué puis carte, profil isolé, tâche terminée puis page plantée, PDF écrit, aller-retour de sauvegarde).
+Crochets non empaquetés : `BROWSER_TEST_PRINT_PDF`, `BROWSER_TEST_BACKUP_EXPORT`, `BROWSER_TEST_BACKUP_IMPORT`.

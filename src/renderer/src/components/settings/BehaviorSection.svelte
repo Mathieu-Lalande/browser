@@ -6,7 +6,6 @@
   import DefaultBrowserRow from "./DefaultBrowserRow.svelte";
   import Row from "../ui/Row.svelte";
   import Segmented from "../ui/Segmented.svelte";
-  import Toggle from "../ui/Toggle.svelte";
 
   /** Settings > Comportement: session restore, where tabs open, sleep and archiving, extensions. */
 
@@ -15,11 +14,20 @@
 </script>
 
 <DefaultBrowserRow />
-<Row anchor="restore-session" label="Restaurer la session au démarrage" hint="Rouvre les onglets de la dernière fois (chargés à la demande).">
-  <Toggle
-    label="Restaurer la session au démarrage"
-    checked={s.behavior.restoreSession}
-    onchange={(restoreSession) => update({ behavior: { restoreSession } })}
+<Row
+  anchor="restore-session"
+  label="Au démarrage"
+  hint="Les onglets reviennent chargés à la demande. Après un plantage, la page d'accueil propose de restaurer la session."
+  keywords="restaurer la session reprendre"
+>
+  <Segmented
+    label="Au démarrage"
+    value={s.behavior.restoreSession ? "resume" : "home"}
+    options={[
+      { value: "resume", label: "Reprendre où j'en étais" },
+      { value: "home", label: "Page d'accueil" },
+    ]}
+    onchange={(choice) => update({ behavior: { restoreSession: choice === "resume" } })}
   />
 </Row>
 <Row anchor="new-tab-position" label="Ouvrir les nouveaux onglets">

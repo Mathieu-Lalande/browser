@@ -12,7 +12,13 @@ export interface LoadError {
   url: string;
 }
 
-export type LoadErrorFamily = "dns" | "offline" | "refused" | "reset" | "timeout" | "certificate" | "redirects" | "unreachable" | "blocked" | "other";
+/**
+ * Not a net error: the page's renderer process crashed or was ended (task manager, ADR-042). The
+ * tab shows "Cette page a planté" with a reload button, like a failed load.
+ */
+export const PAGE_CRASHED = -100000;
+
+export type LoadErrorFamily = "crashed" | "dns" | "offline" | "refused" | "reset" | "timeout" | "certificate" | "redirects" | "unreachable" | "blocked" | "other";
 
 export interface LoadErrorText {
   family: LoadErrorFamily;
@@ -24,6 +30,11 @@ export interface LoadErrorText {
 }
 
 const TEXTS: Record<LoadErrorFamily, Omit<LoadErrorText, "family">> = {
+  crashed: {
+    title: "Cette page a planté",
+    message: "Le processus qui affichait {host} s'est arrêté. Le reste du navigateur n'est pas touché.",
+    advice: "Actualisez la page pour la recharger. Si elle plante encore, elle consomme peut-être trop de mémoire.",
+  },
   dns: {
     title: "Site introuvable",
     message: "L'adresse de {host} n'a pas pu être trouvée.",
@@ -78,6 +89,7 @@ const TEXTS: Record<LoadErrorFamily, Omit<LoadErrorText, "family">> = {
 
 /** The family of a Chromium net error code. */
 export function loadErrorFamily(code: number): LoadErrorFamily {
+  if (code === PAGE_CRASHED) return "crashed";
   if (code === -105 || code === -137) return "dns"; // NAME_NOT_RESOLVED, NAME_RESOLUTION_FAILED
   if (code === -106 || code === -21) return "offline"; // INTERNET_DISCONNECTED, NETWORK_CHANGED
   if (code === -102) return "refused"; // CONNECTION_REFUSED

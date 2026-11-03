@@ -23,7 +23,7 @@ import { persistentWindows, sessionOnClose, tabHooksFor } from "./private-guards
 import { profile } from "./profile";
 import { onSettingsChanged, settings, updateSettings, windowBackground } from "./settings";
 import { SpaceManager, spaces } from "./spaces";
-import type { SessionWindow } from "./storage/session";
+import type { Session as SavedSession, SessionWindow } from "./storage/session";
 import type { TabManager, TabManagerHooks } from "./tabs";
 import { uiSession } from "./ui-session";
 import { PageGestures } from "./page-swipe";
@@ -188,7 +188,10 @@ export class BrowserController {
         if (page) layers.push({ contents: page, bounds: this.tabs.viewBounds });
         return layers;
       },
-      dismissed: () => this.peek.close(),
+      dismissed: () => {
+        this.peek.close();
+        appServices().print.close(this);
+      },
     });
     this.peek = new LinkPeek(this);
     this.previews = new TabPreviews(this);
@@ -231,6 +234,8 @@ export class BrowserController {
     // Windows/Linux); closing one of several windows forgets it. Private windows never count.
     const outcome = sessionOnClose(this, BrowserController.all());
     if (outcome === "keep") BrowserController.saveSession(true);
+    // "Rouvrir la fenêtre fermée" (ADR-042): normal windows only, in memory.
+    if (outcome === "forget") appServices().recovery.rememberWindow(this.spaces.snapshot());
     windows.remove(chromeId);
     if (outcome === "forget") BrowserController.saveSession();
     this.media.destroy();
@@ -251,7 +256,13 @@ export class BrowserController {
   }
 
   private withFavorites(state: BrowserState): BrowserState {
-    return { ...state, favorites: favoriteTiles(this), recording: appServices().capture.recorder.stateOf(this) };
+    return {
+      ...state,
+      favorites: favoriteTiles(this),
+      recording: appServices().capture.recorder.stateOf(this),
+      // The "Restaurer la session ?" card (ADR-042), never in a private window.
+      recovery: this.isPrivate ? null : appServices().recovery.summary(),
+    };
   }
 
   /** Shows `browser://archive` (ADR-022). */
@@ -462,10 +473,15 @@ export class BrowserController {
   static saveSession(now = false): void {
     if (quitting || persistentWindows(BrowserController.all()).length === 0) return;
     const { saveSession, flush } = profile();
-    saveSession(() => ({
+    saveSession(() => BrowserController.sessionSnapshot());
+    if (now) flush();
+  }
+
+  /** The spaces and normal windows, as session.json holds them. */
+  static sessionSnapshot(): SavedSession {
+    return {
       spaces: spaces.list(),
       windows: persistentWindows(BrowserController.all()).map((controller) => controller.spaces.snapshot()),
-    }));
-    if (now) flush();
+    };
   }
 }

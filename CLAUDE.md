@@ -121,6 +121,13 @@
   lecteur PDF (`plugins: true`) ; `browser://history` (`History.page/removeMany/removeSince`, jamais en privé) ;
   import `src/shared/import/` (parseurs purs) + `src/main/import/` (`ImportService`, SQLite via `node:sqlite` sur une copie,
   crochet `BROWSER_TEST_IMPORT_DIR`), `browser://import`, mots de passe par CSV seulement.
+- Reprise, profils, tâches, impression, sauvegarde (ADR-042) : marqueur `running.marker` (`src/main/recovery/crash-marker.ts`) →
+  `startupPlan` (`src/shared/recovery.ts`) ; `RecoveryService` (session proposée via `BrowserState.recovery`, carte
+  `start/RestoreSessionCard`, fenêtres fermées en mémoire) ; plantage d'onglet = `loadError` `PAGE_CRASHED` ; profils
+  `src/shared/profiles.ts` + `ProfileService` (`profiles.json` à la racine, « Personnel » = racine, autres `Profiles/<id>`,
+  une instance par profil via `--profile=<id>`), `browser://profiles` ; `TaskManagerService` (`src/main/tasks.ts`,
+  `browser://tasks`, `Maj+Échap`) ; `PrintService` (`src/main/print/`, overlay `print-preview` + vue PDF au-dessus) ;
+  codec `src/shared/backup.ts` (scrypt + XChaCha20) + `BackupService` ; crochets `BROWSER_TEST_PRINT_PDF`, `BROWSER_TEST_BACKUP_*`.
 - Aperçu des onglets au survol et thème dynamique (ADR-038) : purs `src/shared/tab-preview.ts` (`ThumbnailCache`, `HoverIntent`,
   géométrie) et `src/shared/site-color.ts` ; main `src/main/tab-preview.ts` (captures en mémoire, overlay passif `tab-preview`
   limité à la carte par `OverlayRequest.region`), action `use:tabPreview`, accent animé `lib/dynamic-accent.ts` via `accentVariables`.

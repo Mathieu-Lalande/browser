@@ -14,6 +14,8 @@ export const INTERNAL_PAGES = {
   notes: { title: "Notes et surlignages" },
   history: { title: "Historique" },
   import: { title: "Importer des données" },
+  tasks: { title: "Gestionnaire de tâches" },
+  profiles: { title: "Profils" },
 } as const;
 
 export type InternalPage = keyof typeof INTERNAL_PAGES;

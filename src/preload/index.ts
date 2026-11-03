@@ -294,6 +294,35 @@ const api: BrowserApi = {
     clearData: (tabId) => ipcRenderer.invoke(Channels.siteInfoClearData, tabId),
     allowThirdPartyCookies: (tabId, allow) => ipcRenderer.invoke(Channels.siteInfoAllowThirdPartyCookies, tabId, allow),
   },
+  recovery: {
+    restore: (indexes) => ipcRenderer.invoke(Channels.recoveryRestore, indexes),
+    dismiss: () => send(Channels.recoveryDismiss),
+    closed: () => ipcRenderer.invoke(Channels.recoveryClosed),
+    reopen: (kind, index) => send(Channels.recoveryReopen, kind, index),
+  },
+  profiles: {
+    list: () => ipcRenderer.invoke(Channels.profilesList),
+    create: (input) => ipcRenderer.invoke(Channels.profilesCreate, input),
+    update: (id, input) => ipcRenderer.invoke(Channels.profilesUpdate, id, input),
+    remove: (id) => ipcRenderer.invoke(Channels.profilesRemove, id),
+    open: (id) => ipcRenderer.invoke(Channels.profilesOpen, id),
+    setAskOnLaunch: (ask) => ipcRenderer.invoke(Channels.profilesSetAsk, ask),
+  },
+  tasks: {
+    list: () => ipcRenderer.invoke(Channels.tasksList),
+    kill: (pid) => ipcRenderer.invoke(Channels.tasksKill, pid),
+  },
+  print: {
+    update: (options) => ipcRenderer.invoke(Channels.printUpdate, options),
+    printers: () => ipcRenderer.invoke(Channels.printPrinters),
+    run: (options) => ipcRenderer.invoke(Channels.printRun, options),
+    close: () => send(Channels.printClose),
+  },
+  backup: {
+    export: (passphrase) => ipcRenderer.invoke(Channels.backupExport, passphrase),
+    inspect: () => ipcRenderer.invoke(Channels.backupInspect),
+    apply: (mode, passphrase) => ipcRenderer.invoke(Channels.backupApply, mode, passphrase),
+  },
   siteData: {
     list: () => ipcRenderer.invoke(Channels.siteDataList),
     remove: (site) => ipcRenderer.invoke(Channels.siteDataRemove, site),

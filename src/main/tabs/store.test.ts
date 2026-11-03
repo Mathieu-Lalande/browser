@@ -67,8 +67,13 @@ describe("TabStore", () => {
     store.rememberClosed("", 0);
     expect(store.canReopenClosed).toBe(false);
     for (let i = 0; i < 30; i++) store.rememberClosed(`https://${i}.example/`, i);
-    expect(store.popClosed()).toEqual({ url: "https://29.example/", index: 29 });
-    let count = 1;
+    expect(store.popClosed()).toEqual({ url: "https://29.example/", index: 29, title: "" });
+    store.rememberClosed("https://titled.example/", 3, "Titled");
+    expect(store.closedTabs()[0]).toEqual({ url: "https://titled.example/", index: 3, title: "Titled" });
+    // A given entry of the list (app menu, ADR-042).
+    expect(store.popClosed(1)?.url).toBe("https://28.example/");
+    expect(store.popClosed()?.title).toBe("Titled");
+    let count = 2;
     while (store.popClosed()) count++;
     expect(count).toBe(25);
   });

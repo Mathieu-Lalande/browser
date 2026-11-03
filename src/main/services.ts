@@ -22,6 +22,13 @@ import { trackCertificates } from "./site-info/certificates";
 import { StartImageCache } from "./start-image";
 import type { AdapterDeps } from "./sync/adapters";
 import { SyncService } from "./sync/service";
+import { BackupService } from "./backup/service";
+import { PrintService } from "./print/service";
+import type { ProfileService } from "./profiles/service";
+import { RecoveryService } from "./recovery/service";
+import type { Session as SavedSession, SessionWindow } from "./storage/session";
+import { TaskManagerService, type TaskManagerDeps } from "./tasks";
+import { spaces } from "./spaces";
 
 export interface SessionOptions {
   /**
@@ -76,8 +83,20 @@ export interface AppConfig {
   /** castLabs' `components` API (Widevine, ADR-040), null with stock Electron. */
   components: ComponentsPort | null;
   platform: string;
+  /** The user profiles and the open one (ADR-042). */
+  profiles: ProfileService;
+  /** Opens a browser window with saved tabs (`BrowserController`), ADR-042. */
+  openWindow(saved: SessionWindow): unknown;
+  /** The open windows as session.json holds them (ADR-042: backups). */
+  session(): SavedSession;
+  /** `app.getAppMetrics()` and `webContents.getAllWebContents()` (task manager, ADR-042). */
+  processes: Pick<TaskManagerDeps, "metrics" | "allContents">;
   /** Test hooks honored by an unpackaged app only (ADR-018). */
   testHooks?: {
+    /** ADR-042: files used instead of the print and backup dialogs. */
+    printPdfPath?: string;
+    backupExportPath?: string;
+    backupImportPath?: string;
     plainKeychain?: boolean;
     /** A Chromium "User Data" folder listed as an extra import source. */
     importChromiumDir?: string;
@@ -100,6 +119,12 @@ export class AppServices {
   readonly defaultBrowser: DefaultBrowserService;
   readonly imports: ImportService;
   readonly widevine: WidevineService;
+  /** Crash recovery and recently closed windows (ADR-042). */
+  readonly recovery: RecoveryService;
+  readonly profiles: ProfileService;
+  readonly tasks: TaskManagerService;
+  readonly print: PrintService;
+  readonly backup: BackupService;
   /** Installed into each tab session, in this order. */
   readonly sessionServices: readonly SessionService[];
   readonly hardener: SessionHardener;
@@ -147,6 +172,23 @@ export class AppServices {
       enabled: () => config.settings().privacy.protectedContent,
       platform: config.platform,
     });
+    this.recovery = new RecoveryService({ windows, openWindow: (saved) => config.openWindow(saved) });
+    this.profiles = config.profiles;
+    this.tasks = new TaskManagerService({ windows, ...config.processes });
+    this.print = new PrintService({ downloadsFolder: () => this.downloads.folder(), testSavePath: config.testHooks?.printPdfPath });
+    this.backup = new BackupService({
+      profile: () => config.profile(),
+      profileName: () => this.profiles.info().name,
+      replaceSettings: (next) => config.updateSettings(next),
+      vault: this.passwords,
+      session: () => config.session(),
+      spaces,
+      offerSession: (session) => this.recovery.offer(session),
+      refreshAll: () => windows.refreshAll(),
+      downloadsFolder: () => this.downloads.folder(),
+      testExportPath: config.testHooks?.backupExportPath,
+      testImportPath: config.testHooks?.backupImportPath,
+    });
     // Downloads: tab pages only, no automatic opening, dangerous types confirmed first (ADR-013); a
     // private session's ones never reach the history (ADR-014). Extensions: ADR-024.
     this.sessionServices = [privacyService, this.downloads, this.extensions, certificateService];
@@ -161,6 +203,7 @@ export class AppServices {
 
   dispose(): void {
     this.sync.stop();
+    this.print.dispose();
     for (const service of this.sessionServices) service.dispose?.();
   }
 }

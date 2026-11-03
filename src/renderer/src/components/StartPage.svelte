@@ -11,6 +11,7 @@
   import { StartLayout } from "./start/layout.svelte";
   import WidgetCard from "./start/WidgetCard.svelte";
   import DefaultBrowserPrompt from "./start/DefaultBrowserPrompt.svelte";
+  import RestoreSessionCard from "./start/RestoreSessionCard.svelte";
   import WidgetGallery from "./start/WidgetGallery.svelte";
   import Button from "./ui/Button.svelte";
   import Segmented from "./ui/Segmented.svelte";
@@ -172,6 +173,7 @@
     <h1 class="visually-hidden">Nouvel onglet</h1>
   {/if}
 
+  <RestoreSessionCard />
   <DefaultBrowserPrompt />
 
   <div class="board" bind:this={board}>

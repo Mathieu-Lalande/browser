@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isCommandId } from "./commands";
-import { buildAppMenu, buildSidebarMenu, buildSpaceMenu, menuCommands, nodeLabel, type MenuNode } from "./menus";
+import { buildAppMenu, buildSidebarMenu, closedEntryOf, buildSpaceMenu, menuCommands, nodeLabel, type MenuNode } from "./menus";
 import type { TabState } from "./types";
 
 const tab = (overrides: Partial<TabState> = {}): TabState =>
@@ -60,8 +60,22 @@ describe("app menu", () => {
 
   it("lists recent history and offers to reopen a closed tab", () => {
     const history = find(buildAppMenu(context), "history");
-    expect(history?.kind === "submenu" && history.children.map((node) => node.kind)).toEqual(["link", "separator", "command", "command"]);
+    expect(history?.kind === "submenu" && history.children.map((node) => node.kind)).toEqual(["link", "separator", "command", "command", "command"]);
     expect(find(buildAppMenu(context), "history-0")).toMatchObject({ url: "https://a.example/", label: "A" });
+  });
+
+  it("lists recently closed windows and tabs (ADR-042)", () => {
+    const closed = {
+      windows: [{ index: 0, title: "Docs", tabCount: 3 }],
+      tabs: [{ index: 0, title: "", url: "https://b.example/" }],
+    };
+    const menu = buildAppMenu({ ...context, closed });
+    expect(find(menu, "closed-window-0")).toMatchObject({ kind: "action", label: "Docs (3 onglets)" });
+    expect(find(menu, "closed-tab-0")).toMatchObject({ kind: "action", label: "https://b.example/" });
+    expect(closedEntryOf("closed-tab-12")).toEqual({ kind: "tab", index: 12 });
+    expect(closedEntryOf("history-0")).toBeNull();
+    const reopen = find(buildAppMenu({ ...context, closed: { windows: [], tabs: [] } }), "reopen-closed-window");
+    expect(reopen).toMatchObject({ enabled: false });
   });
 
   it("disables page commands without a web page, and has no boosts in private windows", () => {

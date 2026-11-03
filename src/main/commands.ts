@@ -122,10 +122,14 @@ const RUNNERS: Record<CommandId, Runner> = {
   "screenshot-full": (c) => void appServices().capture.capture(c, "full"),
   "screenshot-element": (c) => void appServices().capture.capture(c, "element"),
   "record-video": (c) => appServices().capture.recorder.toggle(c),
+  // Print preview (ADR-042).
   print: (c) => printPage(c),
   "save-page": (c) => void savePage(c),
   "view-source": (c) => viewSource(c),
   "reopen-closed-tab": (c) => void c.tabs.reopenClosed(),
+  "reopen-closed-window": () => void appServices().recovery.reopenWindow(),
+  "open-task-manager": (c) => c.openInternal("tasks"),
+  "open-profiles": (c) => c.openInternal("profiles"),
   "select-all-tabs": (c) => c.sendUiCommand("select-all-tabs"),
   "toggle-compact-mode": () => void updateSettings({ layout: { compactMode: !settings().layout.compactMode } }),
   "toggle-sidebar-position": () => void updateSettings({ layout: { sidebarPosition: settings().layout.sidebarPosition === "left" ? "right" : "left" } }),
@@ -146,6 +150,7 @@ const RUNNERS: Record<CommandId, Runner> = {
 const WINDOWLESS: Partial<Record<CommandId, () => void>> = {
   "new-window": () => new BrowserController(),
   "new-private-window": () => openPrivateWindow(),
+  "reopen-closed-window": () => void appServices().recovery.reopenWindow(),
   "install-update": () => installUpdate(),
   quit: () => app.quit(),
 };

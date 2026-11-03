@@ -14,6 +14,13 @@ export interface TabDefaults {
   defaultZoom: number;
 }
 
+/** A closed tab, for "Rouvrir l'onglet fermé" and the app menu's list. */
+export interface ClosedTab {
+  url: string;
+  index: number;
+  title: string;
+}
+
 /** Pinned flags of a tab list, for `tabSlot`. */
 const pinnedFlags = (tabs: readonly Tab[]) => tabs.map((tab) => ({ pinned: tab.state.isPinned }));
 
@@ -27,7 +34,7 @@ export class TabStore {
   /** Tab ids, least recently activated first (for "close → back to the last used tab"). */
   private recent: TabId[] = [];
   /** Recently closed tabs, last one at the end. */
-  private readonly closed: { url: string; index: number }[] = [];
+  private readonly closed: ClosedTab[] = [];
 
   constructor(private readonly newId: () => string = randomUUID) {}
 
@@ -168,9 +175,9 @@ export class TabStore {
   }
 
   /** "Rouvrir l'onglet fermé" (ADR-033): kept in memory only, with the window (private ones too). */
-  rememberClosed(url: string, index: number): void {
+  rememberClosed(url: string, index: number, title = ""): void {
     if (!url) return;
-    this.closed.push({ url, index });
+    this.closed.push({ url, index, title });
     if (this.closed.length > MAX_CLOSED_TABS) this.closed.shift();
   }
 
@@ -178,8 +185,16 @@ export class TabStore {
     return this.closed.length > 0;
   }
 
-  popClosed(): { url: string; index: number } | undefined {
-    return this.closed.pop();
+  /** Takes a closed tab, `at` positions from the most recent (0: the last one). */
+  popClosed(at = 0): ClosedTab | undefined {
+    const index = this.closed.length - 1 - at;
+    if (index < 0 || index >= this.closed.length) return undefined;
+    return this.closed.splice(index, 1)[0];
+  }
+
+  /** The closed tabs, most recent first (app menu, ADR-042). */
+  closedTabs(): readonly ClosedTab[] {
+    return [...this.closed].reverse();
   }
 
   /** The saved form of the tabs; `onScreen` tabs are being seen right now. */

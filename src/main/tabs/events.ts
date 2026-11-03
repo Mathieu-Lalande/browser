@@ -3,6 +3,7 @@ import type { FolderId } from "@shared/folders";
 import type { TabId } from "@shared/types";
 import { displayUrl, isPageOpenableUrl } from "@shared/url";
 import { normalizeThemeColor } from "@shared/site-color";
+import { PAGE_CRASHED } from "@shared/load-error";
 import { loadFavicon } from "../favicons";
 import { attachTabPrivacy, httpsFallbackFor } from "../privacy";
 import { PageFind } from "../find";
@@ -275,6 +276,14 @@ export class TabEvents {
   /** Failed loads: the HTTPS-Only interstitial, or the chrome UI's error page. */
   private bindLoadErrors(tab: Tab, contents: WebContents, on: Listen): void {
     const { deps } = this;
+    // The page's renderer crashed or was ended (task manager): "Cette page a planté" (ADR-042).
+    on("render-process-gone", (_event, details) => {
+      if (details.reason === "clean-exit" || !showsWebPage(tab.state.url)) return;
+      tab.state.isLoading = false;
+      tab.state.loadError = { code: PAGE_CRASHED, description: details.reason, url: tab.state.url };
+      deps.layout.syncAttachment();
+      deps.emit();
+    });
     on("did-fail-load", (_event, code, description, url, isMainFrame) => {
       // -3 is ERR_ABORTED: a navigation replaced by another one, not a real failure.
       // A parked page's failures do not concern the start/internal page shown in the tab.

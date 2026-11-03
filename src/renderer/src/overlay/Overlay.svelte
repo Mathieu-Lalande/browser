@@ -15,6 +15,7 @@
   import TranslatePanel from "./TranslatePanel.svelte";
   import AnnotationPanel from "./AnnotationPanel.svelte";
   import TabPreviewCard from "./TabPreviewCard.svelte";
+  import PrintPreviewPanel from "./PrintPreviewPanel.svelte";
 
   // Root of the overlay layer (src/main/overlay.ts): a transparent page above the tab views,
   // attached only while a floating UI is open.
@@ -117,6 +118,8 @@
         <TranslatePanel anchor={current.request.anchor} tabId={current.request.tabId} onClose={close} />
       {:else if current.request.kind === "annotation" && current.request.annotationId}
         <AnnotationPanel anchor={current.request.anchor} annotationId={current.request.annotationId} onClose={close} />
+      {:else if current.request.kind === "print-preview" && current.request.print}
+        <PrintPreviewPanel info={current.request.print} onClose={close} />
       {:else if current.request.kind === "password-fill"}
         <PasswordPanel kind="fill" anchor={current.request.anchor} tabId={current.request.tabId} onClose={close} />
       {/if}

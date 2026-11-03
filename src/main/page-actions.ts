@@ -3,6 +3,7 @@ import { dialog, type WebContents } from "electron";
 import type { Bounds, TabId } from "@shared/types";
 import { isViewSourceUrl } from "@shared/url";
 import { downloadsFolder } from "./downloads";
+import { appServices } from "./app-services-ref";
 import type { BrowserController } from "./window";
 
 /**
@@ -21,8 +22,10 @@ export function webPageOf(c: BrowserController, tabId = c.tabs.activeTabId): { t
   return { tabId: tab.id, contents, url: tab.url, title: tab.title };
 }
 
+/** "Imprimer…": the print preview (ADR-042), in the overlay layer. */
 export function printPage(c: BrowserController, tabId?: TabId): void {
-  webPageOf(c, tabId)?.contents.print({}, () => {});
+  const page = webPageOf(c, tabId);
+  if (page) void appServices().print.open(c, page.contents, page.title, page.tabId);
 }
 
 /** A file name from the page title (what Chromium's own "Save as" proposes). */

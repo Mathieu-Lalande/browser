@@ -78,6 +78,9 @@ export type CommandId =
   | "save-page"
   | "view-source"
   | "reopen-closed-tab"
+  | "reopen-closed-window"
+  | "open-task-manager"
+  | "open-profiles"
   | "select-all-tabs"
   | "toggle-compact-mode"
   | "toggle-sidebar-position"
@@ -158,7 +161,9 @@ export type CommandIcon =
   | "notebook"
   | "history"
   | "import"
-  | "pencil";
+  | "pencil"
+  | "activity"
+  | "users";
 
 /** What a command's label and availability may depend on. */
 export interface CommandContext {
@@ -539,6 +544,25 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
     accelerator: "CmdOrCtrl+Shift+T",
     icon: "undo",
   },
+  // ADR-042.
+  "reopen-closed-window": {
+    label: "Rouvrir la fenêtre fermée",
+    keywords: ["reopen window", "restaurer la fenêtre", "fenêtre fermée", "undo close window"],
+    accelerator: "CmdOrCtrl+Alt+Shift+T",
+    icon: "undo",
+  },
+  "open-task-manager": {
+    label: "Gestionnaire de tâches",
+    keywords: ["task manager", "processus", "mémoire", "cpu", "tâches", "performances"],
+    accelerator: "Shift+Escape",
+    icon: "activity",
+  },
+  "open-profiles": {
+    label: "Profils",
+    menuLabel: "Profils et sauvegarde…",
+    keywords: ["profile", "profil", "utilisateur", "changer de profil", "sauvegarde", "backup", "exporter", "restaurer"],
+    icon: "users",
+  },
   "select-all-tabs": {
     label: "Sélectionner tous les onglets",
     keywords: ["select all tabs", "sélection", "plusieurs onglets", "multiple"],
@@ -660,6 +684,7 @@ export const COMMAND_GROUPS: readonly { label: string; ids: readonly CommandId[]
       "new-folder",
       "toggle-split",
       "reopen-closed-tab",
+      "reopen-closed-window",
       "select-all-tabs",
       "quit",
     ],
@@ -718,6 +743,8 @@ export const COMMAND_GROUPS: readonly { label: string; ids: readonly CommandId[]
       "check-updates",
       "install-update",
       "open-settings",
+      "open-profiles",
+      "open-task-manager",
       "keyboard-shortcuts",
       "about",
       "report-issue",

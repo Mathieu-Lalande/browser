@@ -29,7 +29,7 @@ import {
   type TabOptions,
 } from "./model";
 import { TabPageActions } from "./page-actions";
-import { TabStore } from "./store";
+import { TabStore, type ClosedTab } from "./store";
 
 /**
  * Owns the web pages of one space of one window: each tab is a sandboxed WebContentsView that is
@@ -222,7 +222,7 @@ export class TabManager {
     const index = this.store.indexOf(id);
     const tab = this.remove(id);
     if (!tab) return;
-    this.store.rememberClosed(tab.state.url, index);
+    this.store.rememberClosed(tab.state.url, index, tab.state.title);
     unwire(tab);
     liveContents(tab)?.close();
   }
@@ -232,9 +232,14 @@ export class TabManager {
     return this.store.canReopenClosed;
   }
 
-  /** Reopens the last closed tab where it was (its URL: the page loads again). */
-  reopenClosed(): TabId | null {
-    const last = this.store.popClosed();
+  /** The closed tabs of this list, most recent first (app menu, ADR-042). */
+  closedTabs(): readonly ClosedTab[] {
+    return this.store.closedTabs();
+  }
+
+  /** Reopens a closed tab (the last one by default) where it was (its URL: the page loads again). */
+  reopenClosed(at = 0): TabId | null {
+    const last = this.store.popClosed(at);
     if (!last) return null;
     return this.create(last.url, { index: Math.min(Math.max(0, last.index), this.store.length) });
   }
@@ -402,7 +407,9 @@ export class TabManager {
     const tab = this.store.find(id);
     if (!tab || !showsWebPage(tab.state.url)) return;
     const contents = liveContents(tab);
-    if (contents) contents.reload();
+    // A crashed page (ADR-042) gets a new renderer by loading its address again.
+    if (contents?.isCrashed()) void contents.loadURL(tab.state.url).catch(() => {});
+    else if (contents) contents.reload();
     else this.lifecycle.wake(tab);
   }
 

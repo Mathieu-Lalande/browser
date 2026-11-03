@@ -1,4 +1,5 @@
 import { getCommand, type CommandIcon, type CommandId } from "./commands";
+import type { ClosedLists } from "./recovery";
 import type { TabState } from "./types";
 
 /**
@@ -82,6 +83,35 @@ export interface AppMenuContext {
   favorites: readonly PageLink[];
   bookmarks: readonly PageLink[];
   recording?: boolean;
+  /** Recently closed tabs (of the space shown) and windows (ADR-042). */
+  closed?: ClosedLists;
+}
+
+/** How many recently closed tabs and windows the Historique submenu lists. */
+export const APP_MENU_CLOSED = 8;
+
+/** The ids of "Récemment fermés" entries: `closed-tab-<n>`, `closed-window-<n>` (n: 0 = most recent). */
+export function closedEntryOf(id: string): { kind: "tab" | "window"; index: number } | null {
+  const match = /^closed-(tab|window)-(\d+)$/.exec(id);
+  return match ? { kind: match[1] as "tab" | "window", index: Number(match[2]) } : null;
+}
+
+function closedNodes(closed: ClosedLists | undefined): MenuNode[] {
+  if (!closed) return [];
+  const windows: MenuNode[] = closed.windows.slice(0, APP_MENU_CLOSED).map((entry) => ({
+    kind: "action",
+    id: `closed-window-${entry.index}`,
+    label: `${entry.title} (${entry.tabCount} onglet${(entry.tabCount ?? 0) > 1 ? "s" : ""})`,
+    icon: "window",
+  }));
+  const tabs: MenuNode[] = closed.tabs.slice(0, APP_MENU_CLOSED).map((entry) => ({
+    kind: "action",
+    id: `closed-tab-${entry.index}`,
+    label: entry.title || entry.url || "Onglet",
+    icon: "undo",
+  }));
+  if (!windows.length && !tabs.length) return [];
+  return [separator, ...windows, separator, ...tabs];
 }
 
 /** How many recent pages the Historique submenu lists, and bookmarks the Favoris one. */
@@ -99,6 +129,8 @@ export function buildAppMenu(context: AppMenuContext): MenuNode[] {
     separator,
     command("open-history"),
     command("reopen-closed-tab"),
+    command("reopen-closed-window", { enabled: context.closed ? context.closed.windows.length > 0 : undefined }),
+    ...closedNodes(context.closed),
   ];
   const bookmarks: MenuNode[] = [
     command("toggle-bookmark", { label: tab?.isBookmarked ? "Retirer cette page des favoris" : "Ajouter cette page aux favoris" }),

@@ -12,6 +12,7 @@
   let { tab, error }: { tab: TabState; error: LoadError } = $props();
 
   const ICONS: Record<LoadErrorFamily, IconName> = {
+    crashed: "bug",
     dns: "globe-off",
     offline: "wifi-off",
     refused: "server-off",

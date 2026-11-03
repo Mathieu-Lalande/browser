@@ -1,6 +1,11 @@
+import { spawn } from "node:child_process";
 import { statSync } from "node:fs";
 import { homedir } from "node:os";
-import { app, shell } from "electron";
+import { app, shell, webContents } from "electron";
+import { launchProfile, profileFromArgs, shouldPickProfile } from "@shared/profiles";
+import { startupPlan } from "@shared/recovery";
+import { CrashMarker } from "./recovery/crash-marker";
+import { ProfileService, profileDir, readProfiles } from "./profiles/service";
 import { ARCHIVE_CHECK_MS } from "@shared/archive";
 import { tabArchiveDelayMs, tabSleepDelayMs } from "@shared/settings";
 import { registerAppScheme, serveAppScheme } from "./app-protocol";
@@ -43,6 +48,18 @@ app.setName("Browser");
 // Lets tests run isolated profiles. A packaged app ignores it: an environment variable must not
 // silently redirect a user's profile; `--user-data-dir=<dir>` (Chromium's switch) does that openly.
 if (!app.isPackaged && process.env.BROWSER_PROFILE_DIR) app.setPath("userData", process.env.BROWSER_PROFILE_DIR);
+// User profiles (ADR-042): the root holds `profiles.json` and "Personnel"'s data (unchanged from
+// older versions); any other profile lives in `Profiles/<id>`, in its own instance of the app.
+const profileRoot = app.getPath("userData");
+const askedProfile = profileFromArgs(process.argv);
+const profilesAtLaunch = readProfiles(profileRoot);
+const currentProfile = launchProfile(profilesAtLaunch, askedProfile);
+if (profileDir(profileRoot, currentProfile) !== profileRoot) {
+  app.setPath("userData", profileDir(profileRoot, currentProfile));
+  app.setPath("sessionData", profileDir(profileRoot, currentProfile));
+}
+/** Test hooks (unpackaged only): files written or read instead of the print and backup dialogs. */
+const testHook = (name: string) => (!app.isPackaged && process.env[name]) || undefined;
 hardenApp();
 // The chrome UI and the overlay are served from app:// (registered before ready).
 registerAppScheme();
@@ -92,6 +109,16 @@ if (!app.requestSingleInstanceLock()) {
   void app.whenReady().then(async () => {
     // The profile comes first: session hardening reads the settings (Accept-Language).
     const { previousSession, settings } = openProfile();
+    // Unclean shutdown detection (ADR-042): the marker goes on a clean quit only.
+    const marker = new CrashMarker(app.getPath("userData"));
+    const unclean = marker.begin();
+    app.on("will-quit", () => marker.end());
+    const profiles = new ProfileService(profileRoot, currentProfile, {
+      args: process.argv.slice(1),
+      packaged: app.isPackaged,
+      spawn: (args) => spawn(process.execPath, args, { detached: true, stdio: "ignore", env: process.env }).unref(),
+    });
+    profiles.markUsed();
     serveAppScheme();
     // The app's services (downloads, extensions, passwords…), each session service installed in
     // every tab session by `hardenSession`.
@@ -117,9 +144,19 @@ if (!app.requestSingleInstanceLock()) {
       components: castlabsComponents(),
       platform: process.platform,
       locationEnv: { platform: process.platform, home: homedir(), localAppData: process.env.LOCALAPPDATA, appData: process.env.APPDATA },
+      profiles,
+      openWindow: (saved) => new BrowserController(saved),
+      session: () => BrowserController.sessionSnapshot(),
+      processes: { metrics: () => app.getAppMetrics(), allContents: () => webContents.getAllWebContents() },
       testHooks: app.isPackaged
         ? {}
-        : { plainKeychain: process.env.BROWSER_TEST_PLAIN_KEYCHAIN === "1", importChromiumDir: process.env.BROWSER_TEST_IMPORT_DIR || undefined },
+        : {
+            plainKeychain: process.env.BROWSER_TEST_PLAIN_KEYCHAIN === "1",
+            importChromiumDir: process.env.BROWSER_TEST_IMPORT_DIR || undefined,
+            printPdfPath: testHook("BROWSER_TEST_PRINT_PDF"),
+            backupExportPath: testHook("BROWSER_TEST_BACKUP_EXPORT"),
+            backupImportPath: testHook("BROWSER_TEST_BACKUP_IMPORT"),
+          },
     });
     BrowserController.watchServices(services);
     hardenSession();
@@ -142,9 +179,14 @@ if (!app.requestSingleInstanceLock()) {
     await services.widevine.prepare();
     // Spaces are kept even when windows are not restored.
     spaces.init(previousSession?.spaces);
-    const restore = settings.behavior.restoreSession ? (previousSession?.windows ?? []) : [];
-    if (restore.length) for (const saved of restore) new BrowserController(saved);
+    // After a crash nothing reopens by itself: the start page offers the session (ADR-042).
+    const saved = previousSession?.windows ?? [];
+    const plan = startupPlan({ unclean, restoreSession: settings.behavior.restoreSession, savedWindows: saved.length });
+    if (plan === "offer" && previousSession) services.recovery.offer(previousSession);
+    if (plan === "restore") for (const window of saved) new BrowserController(window);
     else new BrowserController();
+    // Several profiles and "Choisir le profil au démarrage": the first window shows the picker.
+    if (shouldPickProfile(profilesAtLaunch, askedProfile)) BrowserController.all().find((window) => !window.isPrivate)?.openInternal("profiles");
     launches.ready();
     // End-to-end encrypted sync (ADR-019): off unless an account was set up on this device.
     services.sync.start();
