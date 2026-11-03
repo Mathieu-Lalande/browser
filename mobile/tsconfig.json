@@ -16,6 +16,7 @@
   },
   "include": [
     "index.ts",
+    "app.config.ts",
     "src/**/*.ts",
     "src/**/*.tsx"
   ]

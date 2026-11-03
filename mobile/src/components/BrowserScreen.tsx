@@ -8,6 +8,7 @@ import { Alert, Platform, StyleSheet, View, useWindowDimensions } from "react-na
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAndroidBack } from "../hooks/useAndroidBack";
+import { useIncomingLinks } from "../hooks/useIncomingLinks";
 import { useBrowserMenus } from "../hooks/useBrowserMenus";
 import { useEvent } from "../hooks/useEvent";
 import { useHighlights } from "../hooks/useHighlights";
@@ -141,6 +142,14 @@ export function BrowserScreen() {
       haptic("light");
       setOverlay("none");
     }
+  });
+
+  // Links opened with the app (Android default browser, iOS once entitled): a new tab each.
+  useIncomingLinks((url) => {
+    actions.openUrl(url);
+    overview.reset();
+    setMenu(null);
+    setOverlay("none");
   });
 
   const { siteInfoMenu, showSiteInfo, boostMenu } = useSiteMenus({ tab, boosts, actions, haptic, setMenu, copy });

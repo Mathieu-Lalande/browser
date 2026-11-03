@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Politique de confidentialité — Browser</title>
+    <meta name="description" content="Politique de confidentialité de Browser (ordinateur, iOS, Android) : aucune donnée collectée, synchronisation chiffrée de bout en bout, fonctions facultatives détaillées." />
+    <meta name="theme-color" content="#0b0710" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="canonical" href="https://mathieu-lalande.github.io/browser/privacy.html" />
+    <link rel="alternate" hreflang="fr" href="https://mathieu-lalande.github.io/browser/privacy.html" />
+    <link rel="alternate" hreflang="en" href="https://mathieu-lalande.github.io/browser/privacy.html#english" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:site_name" content="Browser" />
+    <meta property="og:title" content="Politique de confidentialité de Browser" />
+    <meta property="og:description" content="Browser ne collecte aucune donnée." />
+    <meta property="og:url" content="https://mathieu-lalande.github.io/browser/privacy.html" />
+    <meta property="og:image" content="https://mathieu-lalande.github.io/browser/og.png" />
+    <script type="module" src="/src/legal.ts"></script>
+  </head>
+  <body class="docs-page">
+    <a class="skip" href="#contenu">Aller au contenu</a>
+
+    <header class="topbar scrolled">
+      <div class="topbar-inner container">
+        <a class="brand" href="./" aria-label="Browser, page d'accueil">
+          <img src="/img/icon.png" width="28" height="28" alt="" />
+          <span>Browser</span>
+        </a>
+        <nav class="site-menu" id="site-menu" aria-label="Navigation principale">
+          <ul class="nav-links">
+            <li><a href="./#fonctionnalites">Fonctionnalités</a></li>
+            <li><a href="./#confidentialite">Confidentialité</a></li>
+            <li><a href="./#mobile">Mobile</a></li>
+            <li><a href="docs.html">Documentation</a></li>
+            <li><a href="support.html">Assistance</a></li>
+          </ul>
+        </nav>
+        <div class="nav-actions">
+          <a class="icon-btn" href="https://github.com/Mathieu-Lalande/browser" aria-label="Code source sur GitHub">
+            <i data-icon="code-xml"></i>
+          </a>
+          <a class="btn btn-small btn-primary nav-cta" href="./#telecharger">
+            <i data-icon="download"></i>
+            <span>Télécharger</span>
+          </a>
+          <button class="icon-btn menu-toggle" id="menu-toggle" type="button" aria-expanded="false" aria-controls="site-menu" aria-label="Ouvrir le menu">
+            <i data-icon="menu" class="when-closed"></i>
+            <i data-icon="x" class="when-open"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="docs-hero">
+      <div class="mesh mesh-soft" aria-hidden="true">
+        <span class="blob b1"></span>
+        <span class="blob b2"></span>
+        <span class="blob b3"></span>
+      </div>
+      <div class="container">
+        <p class="kicker">Confidentialité</p>
+        <h1>Politique de confidentialité</h1>
+        <p class="lead-left">
+          Browser ne collecte aucune donnée. Cette page décrit, pour l'ordinateur, l'iPhone, l'iPad et Android,
+          ce qui reste sur votre appareil et ce qui n'en sort que si vous le décidez.
+          <a href="#english" lang="en">English version below.</a>
+        </p>
+      </div>
+    </div>
+
+    <main class="legal-layout container" id="contenu">
+      <div class="docs-content">
+        <section class="doc-section" id="resume" aria-labelledby="t-resume">
+          <h2 id="t-resume"><i data-icon="shield-check"></i>En résumé</h2>
+          <ul>
+            <li>Pas de compte, pas de publicité, pas de traceur, pas de statistiques d'utilisation, pas de rapport de plantage envoyé automatiquement.</li>
+            <li>Le développeur ne reçoit, ne stocke et ne vend aucune donnée vous concernant.</li>
+            <li>Votre historique, vos onglets, favoris, notes, mots de passe et réglages restent sur votre appareil.</li>
+            <li>Les fonctions qui contactent un service tiers sont facultatives, désactivées par défaut, et utilisent le serveur ou la clé que vous fournissez.</li>
+          </ul>
+          <p>Dernière mise à jour : 3 novembre 2026.</p>
+        </section>
+
+        <section class="doc-section" id="appareil" aria-labelledby="t-appareil">
+          <h2 id="t-appareil"><i data-icon="smartphone"></i>Ce qui reste sur votre appareil</h2>
+          <p>
+            Historique, onglets, espaces, favoris, notes et surlignages, boosts, thèmes et réglages sont enregistrés
+            localement. Les mots de passe et les données de formulaires sont chiffrés par le système (trousseau iOS,
+            Keystore Android, stockage sécurisé de l'ordinateur). Les onglets et fenêtres privés n'enregistrent rien.
+          </p>
+          <p>
+            Les pages que vous visitez reçoivent ce que tout navigateur leur envoie (adresse IP, en-têtes) : leur
+            traitement relève de la politique de chaque site.
+          </p>
+        </section>
+
+        <section class="doc-section" id="facultatif" aria-labelledby="t-facultatif">
+          <h2 id="t-facultatif"><i data-icon="toggle-left"></i>Fonctions facultatives</h2>
+          <h3>Synchronisation</h3>
+          <p>
+            Désactivée par défaut. Elle passe par un serveur que vous déployez vous-même. Les données sont chiffrées sur
+            l'appareil (XChaCha20-Poly1305) avant l'envoi : le serveur ne voit jamais de clair. Rien de ce qui est privé
+            n'est synchronisé. Le jumelage par QR code utilise l'appareil photo, uniquement pendant le scan.
+          </p>
+          <h3>Assistant IA</h3>
+          <p>
+            Désactivé par défaut. Si vous l'activez avec votre propre clé Anthropic, le texte de la page et votre
+            question sont envoyés à Anthropic, uniquement quand vous le demandez. Leur traitement relève de la politique
+            de confidentialité d'Anthropic.
+          </p>
+          <h3>Traduction</h3>
+          <p>
+            Désactivée par défaut. Si vous choisissez un service (DeepL, LibreTranslate ou Google) avec votre clé, le
+            texte de la page lui est envoyé quand vous demandez une traduction.
+          </p>
+          <h3>Météo du nouvel onglet</h3>
+          <p>Si vous ajoutez le widget météo, le nom de la ville choisie est envoyé à Open-Meteo, sans clé ni cookie.</p>
+          <h3>Sur ordinateur seulement</h3>
+          <p>
+            Browser vérifie les mises à jour auprès de GitHub (téléchargement des fichiers de version, rien sur vous).
+            Les rapports de plantage restent sur l'ordinateur ; ils ne sont envoyés que si vous cochez « Envoyer les
+            rapports de plantage » (désactivé par défaut). L'application mobile n'envoie aucun rapport.
+          </p>
+        </section>
+
+        <section class="doc-section" id="droits" aria-labelledby="t-droits">
+          <h2 id="t-droits"><i data-icon="user-check"></i>Vos droits et contact</h2>
+          <p>
+            Comme aucune donnée n'est collectée, il n'y a rien à consulter ni à supprimer chez nous : désinstaller
+            l'application efface ses données ; les données synchronisées se trouvent sur votre propre serveur. Ces
+            applications s'adressent aux adultes (accès Internet non filtré).
+          </p>
+          <p>
+            Questions : <a href="https://github.com/Mathieu-Lalande/browser/issues">ouvrez un ticket sur GitHub</a> ou
+            consultez la page <a href="support.html">Assistance</a>. Toute modification de cette politique sera publiée
+            sur cette page.
+          </p>
+        </section>
+
+        <div lang="en">
+          <section class="doc-section" id="english" aria-labelledby="t-english">
+            <h2 id="t-english"><i data-icon="languages"></i>Privacy policy (English)</h2>
+            <p><strong>Browser collects no data.</strong> Last updated: November 3, 2026.</p>
+            <ul>
+              <li>No account, no ads, no trackers, no usage analytics, no automatic crash reports.</li>
+              <li>The developer receives, stores and sells no data about you.</li>
+              <li>History, tabs, bookmarks, notes, passwords and settings stay on your device; passwords and form data are encrypted by the system keychain. Private tabs and windows save nothing.</li>
+              <li>Websites you visit receive what any browser sends them (IP address, headers), under their own policies.</li>
+            </ul>
+            <h3>Optional features (off by default)</h3>
+            <ul>
+              <li><strong>Sync</strong> goes through a server you run yourself. Data is end-to-end encrypted on the device (XChaCha20-Poly1305): the server never sees it in the clear. Nothing private is synced. QR-code pairing uses the camera only while scanning.</li>
+              <li><strong>AI assistant</strong>: with your own Anthropic key, the page text and your question are sent to Anthropic, only when you ask.</li>
+              <li><strong>Translation</strong>: with the service you choose (DeepL, LibreTranslate or Google) and your key, the page text is sent to it when you ask for a translation.</li>
+              <li><strong>Weather widget</strong>: the city you choose is sent to Open-Meteo, with no key or cookie.</li>
+              <li><strong>Desktop only</strong>: update checks go to GitHub (release files, nothing about you); crash reports stay on the computer unless you tick "Send crash reports" (off by default). The mobile app sends no reports.</li>
+            </ul>
+            <h3>Your rights and contact</h3>
+            <p>
+              Since no data is collected, there is nothing to access or delete on our side: uninstalling the app removes
+              its data; synced data lives on your own server. Questions:
+              <a href="https://github.com/Mathieu-Lalande/browser/issues">open a GitHub issue</a> or see the
+              <a href="support.html">Support</a> page.
+            </p>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="container footer-inner">
+        <div class="footer-brand">
+          <a class="brand" href="./">
+            <img src="/img/icon.png" width="24" height="24" alt="" loading="lazy" />
+            <span>Browser</span>
+          </a>
+          <p class="muted small">Rapide, privé, entièrement personnalisable.</p>
+        </div>
+        <nav aria-label="Pied de page">
+          <ul class="footer-links">
+            <li><a href="./">Accueil</a></li>
+            <li><a href="docs.html">Documentation</a></li>
+            <li><a href="support.html">Assistance</a></li>
+            <li><a href="privacy.html" aria-current="page">Confidentialité</a></li>
+            <li><a href="https://github.com/Mathieu-Lalande/browser">Code source</a></li>
+          </ul>
+        </nav>
+        <p class="muted small">© 2026 Mathieu Lalande</p>
+      </div>
+    </footer>
+  </body>
+</html>

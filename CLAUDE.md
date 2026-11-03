@@ -155,3 +155,6 @@
   seul, réducteur d'événements, Markdown → arbre du lecteur assaini), main `src/main/assistant/` (SDK `@anthropic-ai/sdk`
   en flux, `PageAssistant` par fenêtre, monde isolé 1017, crochet `BROWSER_TEST_ANTHROPIC_URL`), panneau `AssistantPanel`
   (`Ctrl+Alt+A`), `@ia`, section `AssistantSection` ; mobile `AssistantSheet` + `mobile/src/lib/assistant*.ts`.
+- Stores mobiles (INSTALL 2.3) : `mobile/app.json` + `app.config.ts` (projet EAS, `eas update`, `IOS_DEFAULT_BROWSER=1` seulement après l'accord d'Apple),
+  `mobile/eas.json` (numéros de build tenus par EAS), fiches et réponses confidentialité/chiffrement `mobile/store/`, liens entrants
+  `useIncomingLinks` (nouvel onglet), workflow `mobile-release.yml` ; pages `site/privacy.html`/`support.html`.

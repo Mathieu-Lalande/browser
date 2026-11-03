@@ -223,42 +223,178 @@ releases s'il n'y en a pas encore ou si l'API ne répond pas.
 
 En local : `cd site && npm ci && npm run dev` (ou `npm run build && npm run preview`).
 
-### 2.3 iPhone (et Android) sans Expo Go
+### 2.3 iPhone et Android : TestFlight, App Store, Google Play (EAS)
 
-Expo Go sert au développement. Pour avoir **Browser comme une vraie app** sur l'écran d'accueil,
-avec son icône, il faut une version compilée. Depuis Windows, on passe par **EAS Build** (le
-service de compilation d'Expo, qui compile iOS dans le cloud : pas besoin de Mac).
+Expo Go sert au développement. Pour avoir **Browser comme une vraie app**, il faut une version
+compilée. On passe par **EAS** (le service d'Expo) : il compile iOS dans le cloud (pas besoin de Mac)
+et envoie les builds aux stores. Tout est prêt dans le dépôt :
 
-Étapes (une fois) :
+| Fichier | Rôle |
+| --- | --- |
+| `mobile/app.json` | Nom « Browser », identifiants `com.mathieulalande.browser`, icônes, écran de démarrage, textes des permissions (français), chiffrement, liens http/https (Android) |
+| `mobile/app.config.ts` | Partie dynamique : identifiant du projet EAS, `eas update`, navigateur par défaut iOS |
+| `mobile/eas.json` | Profils `development` (dev client), `preview` (APK / iOS ad hoc), `production` (stores, numéro de build incrémenté par EAS) et envoi aux stores |
+| `mobile/store/` | Fiches FR/EN, réponses de confidentialité et de chiffrement, images Google Play, captures |
+| `.github/workflows/mobile-release.yml` | Build + envoi depuis GitHub (bouton *Run workflow*) |
+
+**Versions** : `expo.version` (`app.json`, à garder égal à `mobile/src/lib/version.ts`) est la version
+affichée (0.1.0). Le numéro de build iOS (`buildNumber`) et Android (`versionCode`) est tenu **par EAS**
+(`"appVersionSource": "remote"`) et incrémenté à chaque build `production` (`autoIncrement`) : ne
+pas les écrire dans `app.json`. Pour une nouvelle version visible, monter `expo.version`.
+
+#### Étape 1 : comptes (une fois)
+
+1. **Expo** : créer un compte gratuit sur https://expo.dev.
+2. **Apple Developer Program** (99 $/an) : https://developer.apple.com/programs/enroll/ avec ton
+   identifiant Apple (double authentification activée). Compte « Individuel » : le nom affiché sur
+   l'App Store sera le tien. Validation : de quelques heures à deux jours. C'est le même compte que
+   pour signer la version macOS du bureau.
+3. **Google Play Console** (25 $, une fois) : https://play.google.com/console/signup, compte
+   personnel, vérification d'identité. Attention : un **compte personnel récent** doit faire tester
+   l'app par au moins 12 testeurs pendant 14 jours (test fermé) avant de pouvoir la publier en
+   production ; le test **interne** utilisé ici n'a pas cette limite.
+
+#### Étape 2 : lier le projet à Expo (une fois)
 
 ```powershell
 cd mobile
+npm install
 npm install -g eas-cli
-eas login                 # compte Expo gratuit
-eas build:configure       # crée eas.json
+eas login
+eas init                  # crée le projet sur expo.dev
 ```
 
-**iPhone :**
+`eas init` affiche un identifiant de projet : l'ajouter dans `app.json`, sous `expo` :
+`"extra": { "eas": { "projectId": "<identifiant>" } }` (s'il ne l'a pas fait lui-même). Cela active aussi
+`eas update`. Puis fixer le premier numéro de build : `eas build:version:set` (choisir 1, pour iOS
+puis pour Android).
 
-1. Il faut un **compte Apple Developer Program** (payant, annuel) : Apple n'autorise pas l'installation
-   durable d'une app sur iPhone sans ce compte (sans Mac). C'est aussi celui qui sert à signer la
-   version macOS du bureau.
-2. `eas build --platform ios --profile production`, puis `eas submit --platform ios`.
-3. L'app arrive dans **TestFlight** : tu l'installes sur ton iPhone via l'app TestFlight, et tu peux
-   inviter des testeurs. Chaque nouvelle version se publie de la même façon.
-4. **App Store** (public) : fiche, captures, politique de confidentialité, puis revue d'Apple. Apple
-   exige qu'un navigateur iOS utilise WebKit : c'est le cas (`react-native-webview` → WKWebView).
-   Optionnel ensuite : demander le droit d'être **navigateur par défaut** sur iOS.
+#### Étape 3 : créer l'app dans App Store Connect
 
-**Android :**
+1. https://appstoreconnect.apple.com → **Apps** → **+** → **Nouvelle app** : plateforme iOS, nom
+   « Browser » (s'il est pris, « Browser – Navigateur privé » : le nom sous l'icône reste
+   « Browser »), langue principale **Français**, identifiant de lot `com.mathieulalande.browser`
+   (s'il n'est pas proposé : https://developer.apple.com/account/resources/identifiers → **+** →
+   App IDs → App, Bundle ID explicite `com.mathieulalande.browser`), SKU `browser-mobile`.
+2. Noter l'**identifiant Apple** de l'app (*Informations sur l'app* → *Identifiant Apple*, un nombre)
+   et ton **Team ID** (https://developer.apple.com/account → *Membership*).
+3. Dans `mobile/eas.json`, sous `submit.production.ios`, ajouter
+   `"ascAppId": "<identifiant Apple de l'app>"` et `"appleTeamId": "<Team ID>"` (ce ne sont pas des
+   secrets).
 
-- Pour toi : `eas build --platform android --profile preview` produit un `.apk` à installer
-  directement (autoriser les « sources inconnues »).
-- Public : compte Google Play Console (paiement unique), `eas build --platform android` (fichier
-  `.aab`), puis `eas submit --platform android`.
+#### Étape 4 : premier build iOS et TestFlight
 
-**Mises à jour rapides** : une fois l'app compilée, `eas update` envoie les changements de code
-JavaScript sans repasser par la revue des stores (le code natif, lui, demande un nouveau build).
+```powershell
+eas build --platform ios --profile production
+```
+
+La première fois, EAS demande de se connecter au compte Apple et crée **lui-même** le certificat de
+distribution et le profil de provisionnement (répondre oui). Puis :
+
+```powershell
+eas submit --platform ios --latest
+```
+
+EAS propose de créer une **clé d'API App Store Connect** : accepter (elle est stockée sur EAS et
+sert aussi à GitHub Actions). Une dizaine de minutes après, le build apparaît dans **App Store
+Connect → TestFlight** :
+
+1. **Conformité à l'export** : l'app déclare utiliser du chiffrement (`ITSAppUsesNonExemptEncryption`
+   = `true`, à cause de la synchronisation chiffrée). Répondre comme indiqué dans
+   [`mobile/store/README.md`](../mobile/store/README.md) (section « Conformité à l'export » :
+   algorithmes standard, disponibilité en France).
+2. **Test interne** : *TestFlight* → *Testeurs internes* → **+**, s'ajouter (jusqu'à 100 membres de
+   l'équipe App Store Connect, sans revue d'Apple).
+3. Sur l'iPhone, installer l'app **TestFlight**, accepter l'invitation, installer Browser.
+4. Testeurs externes (jusqu'à 10 000, par lien public) : demandent une revue rapide d'Apple et la
+   page *Informations de test* (adresse de contact, description).
+
+#### Étape 5 : créer l'app dans la Play Console et premier envoi
+
+1. https://play.google.com/console → **Créer une application** : nom « Browser », langue par défaut
+   **Français – fr-FR**, application, gratuite ; accepter les déclarations.
+2. **Premier fichier à la main** (Google n'accepte l'envoi par API qu'après un premier envoi) :
+   ```powershell
+   eas build --platform android --profile production
+   ```
+   Télécharger le `.aab` depuis la page du build (lien affiché), puis Play Console → *Tester et
+   publier* → **Tests internes** → *Créer une release* → déposer le `.aab` (accepter la **signature
+   d'application par Google Play**) → enregistrer, publier pour le test interne.
+3. **Testeurs** : *Tests internes* → *Testeurs* → créer une liste (ton adresse Gmail), copier le lien
+   d'inscription, l'ouvrir sur le téléphone Android puis installer depuis le Play Store.
+4. **Clé de compte de service** pour `eas submit` (une fois) : Google Cloud Console → projet lié à la
+   Play Console → *IAM* → *Comptes de service* → créer, puis *Clés* → *Ajouter une clé* → JSON. Dans la
+   Play Console → *Utilisateurs et autorisations* → inviter l'adresse du compte de service, droits
+   « Publier sur les canaux de test » et « Gérer les releases » pour l'app Browser. Enregistrer le
+   fichier sous `mobile/secrets/google-play-service-account.json` (ignoré par git). Ensuite :
+   ```powershell
+   eas submit --platform android --latest     # piste « internal », en brouillon
+   ```
+5. Les **fiches** : textes, mots-clés et liens dans `mobile/store/fr-FR/listing.md` et
+   `en-US/listing.md` ; icône 512×512 et image de présentation 1024×500 dans `mobile/store/graphics/` ;
+   questionnaires *Sécurité des données*, *Classification du contenu*, *Public cible* et confidentialité
+   App Store : réponses dans `mobile/store/README.md`. Politique de confidentialité :
+   https://mathieu-lalande.github.io/browser/privacy.html ; assistance :
+   https://mathieu-lalande.github.io/browser/support.html.
+
+#### Étape 6 : captures d'écran
+
+```powershell
+cd mobile
+npm run store:screenshots        # sous Linux/WSL (Playwright + Electron du dépôt)
+```
+
+Produit `mobile/store/screenshots/<appareil>/` aux tailles exigées : iPhone 6,9" (1320×2868),
+iPhone 6,5" (1284×2778), iPad 13" (2064×2752, obligatoire car l'app accepte l'iPad) et téléphone
+Android (1080×1920). `SCREENSHOT_THEME=light` pour la version claire. Les icônes de l'app se
+régénèrent depuis `build/icon.png` avec `npm run store:icons` (ImageMagick).
+
+#### Étape 7 : versions suivantes
+
+- Depuis le PC : `eas build --platform all --profile production --auto-submit` (build iOS et
+  Android, numéro de build incrémenté, envoi à TestFlight et au test interne Play).
+- Depuis GitHub : ajouter les secrets du dépôt (*Settings → Secrets and variables → Actions*) :
+  `EXPO_TOKEN` (https://expo.dev → *Account settings* → *Access tokens*), et pour l'envoi
+  `ASC_APP_ID`, `APPLE_TEAM_ID`, `GOOGLE_SERVICE_ACCOUNT_JSON` (contenu du fichier JSON), plus
+  `EAS_PROJECT_ID` si `app.json` ne le contient pas. Puis *Actions* → **Mobile release** → *Run
+  workflow*. Sans `EXPO_TOKEN`, le workflow ne fait rien.
+- **Correctifs JavaScript seuls** (sans code natif ni nouvelle dépendance native) :
+  `eas update --channel production --message "…"` ; les apps installées le récupèrent au lancement
+  suivant. La version d'exécution suit `expo.version` : après un changement natif, monter la version
+  et refaire un build.
+- **Publication** : App Store Connect → page de la version → choisir le build, remplir la fiche,
+  *Soumettre pour vérification* (classification 17+, « Accès Internet illimité »). Play Console →
+  promouvoir la release du test interne vers la production.
+
+Profils utiles pendant le développement : `eas build --profile development` (dev client, à la place
+d'Expo Go, puis `npx expo start --dev-client`) et `--profile preview` (APK à installer directement
+sur Android ; iOS « ad hoc », après `eas device:create` pour enregistrer l'iPhone).
+
+#### Navigateur par défaut
+
+**Android** : l'app déclare ouvrir les liens `http`/`https` (`intentFilters` de `app.json`) : après
+installation, *Paramètres → Applications → Applications par défaut → Application de navigateur* →
+Browser. Un lien ouvert depuis une autre app arrive dans un **nouvel onglet**
+(`mobile/src/hooks/useIncomingLinks.ts`). Le lien `browser-mobile://open?url=<adresse encodée>` fait
+de même sur les deux systèmes.
+
+**iOS** : être navigateur par défaut demande le droit `com.apple.developer.web-browser`, accordé par
+Apple sur demande :
+
+1. Avoir l'app dans App Store Connect (étape 3). Vérifier les exigences d'Apple : champ d'adresse
+   et recherche, vraies pages web (WKWebView), pas d'interface limitée à quelques sites, pas de
+   redirection vers une autre app ou un site imposé.
+2. Envoyer la demande : https://developer.apple.com/contact/request/web-browser-entitlement/
+   (identifiant de lot `com.mathieulalande.browser`). Réponse d'Apple par e-mail, souvent sous
+   quelques jours à quelques semaines.
+3. Une fois accordé : developer.apple.com → *Identifiers* → `com.mathieulalande.browser` →
+   cocher la capacité « Default Web Browser » (elle n'apparaît qu'après l'accord).
+4. Construire avec `IOS_DEFAULT_BROWSER=1` (par exemple dans `eas.json`, `build.production.env`) :
+   `app.config.ts` ajoute alors le droit et la déclaration des schémas `http`/`https` exigée par Apple.
+   Puis `eas credentials` → iOS → production → régénérer le profil de provisionnement (il doit
+   contenir le nouveau droit) et refaire un build. **Ne pas** activer cette variable avant l'accord :
+   le profil de provisionnement ne pourrait pas être créé.
+5. Sur l'iPhone : *Réglages → Apps → Browser → App de navigation par défaut*.
 
 **Phase 2 mobile** (`docs/ROADMAP.md`) : la version compilée permet d'ajouter du code natif, et
 donc le bloqueur de pubs et de vrais onglets privés isolés sur Android. La synchronisation avec le
