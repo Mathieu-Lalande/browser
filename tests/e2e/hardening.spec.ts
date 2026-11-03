@@ -141,7 +141,27 @@ test("a real click opens one tab per gesture, never a data: or app: page (MEDIUM
   expect((await tabUrls(app)).filter((url) => url.includes("/popped"))).toEqual([server.url("/popped?a")]);
 });
 
-test("mailto: needs a user gesture and is rate-limited (LOW-1)", async ({ app, chrome, server }) => {
+test("a sign-in popup keeps its opener, becomes a tab and closes back to it (SSO)", async ({ app, chrome, server }) => {
+  const tabs = chrome.locator(".tabs [role=tab]");
+  for (const button of ["#named", "#direct"]) {
+    await visit(chrome, server.url("/sso-start"), "Site");
+    const before = await tabs.count();
+    await clickInTab(app, server.url("/sso-start"), button);
+    // The popup is a tab of the window, on screen, on the login page.
+    await expect(tabs).toHaveCount(before + 1);
+    await expect(chrome.locator(".tab.active .title")).toHaveText("SSO login");
+    // It answered its opener (window.opener.postMessage) then closed itself (window.close()).
+    await expect(tabs).toHaveCount(before);
+    await expect(chrome.locator(".tab.active .title")).toHaveText("Signed in: ok");
+    expect((await tabUrls(app)).some((url) => url.includes("/sso-login"))).toBe(false);
+  }
+
+  // Without a gesture, still blocked.
+  await evalInTab(app, server.url("/sso-start"), `document.querySelector("#named").click()`);
+  await expect(chrome.getByRole("status", { name: "Fenêtre surgissante bloquée" })).toBeVisible();
+});
+
+test("mailto: needs a user gesture and is rate-limited (LOW-1)",async ({ app, chrome, server }) => {
   await app.evaluate(({ shell }) => {
     const g = globalThis as unknown as { launched: string[] };
     g.launched = [];

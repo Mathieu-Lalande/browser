@@ -8,6 +8,7 @@ import { InPageVisits } from "../activation";
 import { onShieldsChange, shieldsEnabledFor } from "../privacy";
 import type { SleepCandidate } from "../sleep";
 import type { SessionTab, SessionTabList } from "../storage/session";
+import { TAB_WEB_PREFERENCES, type PopupOptions } from "../security";
 import { onSiteZoomChange } from "../zoom";
 import { sameFactor } from "../zoom/levels";
 import { TabEvents } from "./events";
@@ -30,6 +31,9 @@ import {
 } from "./model";
 import { TabPageActions } from "./page-actions";
 import { TabStore } from "./store";
+
+/** Title of a popup tab until its page names itself. */
+const POPUP_TITLE = "Chargement…";
 
 /**
  * Owns the web pages of one space of one window: each tab is a sandboxed WebContentsView that is
@@ -98,6 +102,7 @@ export class TabManager {
       activate: (id) => this.activate(id),
       zoom: (id, direction) => this.zoom(id, direction),
       pageClosed: (tab) => this.pageClosed(tab),
+      adoptPopup: (opener, options, url, foreground) => this.adoptPopup(opener, options, url, foreground),
     });
     this.folders = new TabFolders({ store, close: (id) => this.close(id), emit });
     // Shields toggled for a site (from any window) apply to every tab showing it.
@@ -590,6 +595,43 @@ export class TabManager {
     return tab.id;
   }
 
+  /**
+   * A page opened by `window.open` after a gesture (ADR-018): the page Chromium created keeps its
+   * opener, name and `window.close()`, and becomes a tab right after `opener` (in its folder). It
+   * shows "Chargement…" on white until it commits a document; when it closes itself while on
+   * screen, its opener comes back.
+   */
+  private adoptPopup(opener: Tab, options: PopupOptions, url: string, foreground: boolean): WebContents {
+    const view = new WebContentsView({
+      ...(options.webContents ? { webContents: options.webContents } : {}),
+      webPreferences: { ...(this.session ? { session: this.session } : {}), ...TAB_WEB_PREFERENCES },
+    });
+    view.setBorderRadius(this.options.pageRadius);
+    view.setBackgroundColor("#ffffff");
+    const contents = view.webContents;
+    const folderId = opener.state.folderId && this.folders.has(opener.state.folderId) ? opener.state.folderId : undefined;
+    const openerIndex = this.store.indexOf(opener.id);
+    const index = openerIndex >= 0 ? openerIndex + 1 : this.store.newTabIndex(this.options.newTabPosition);
+    const tab = this.insert({ url: url || "about:blank", title: POPUP_TITLE, favicon: null, pinned: false, folderId }, index);
+    if (folderId) this.folders.reorder();
+    tab.view = view;
+    tab.state.isLoading = true;
+    // Before the tab's own listeners (which remove it): was it on screen when it closed itself?
+    contents.once("destroyed", () => {
+      const shown = this.store.active === tab.id;
+      queueMicrotask(() => {
+        if (shown && this.store.find(opener.id) && !this.store.find(tab.id)) this.activate(opener.id);
+      });
+    });
+    this.events.wire(tab, contents);
+    this.actions.applyZoom(tab);
+    // No page from Chromium (never seen for window.open): load the address in ours.
+    if (!options.webContents) void contents.loadURL(url).catch(() => {});
+    if (foreground) this.activate(tab.id);
+    this.emit();
+    return contents;
+  }
+
   /** Position of a tab in the list (-1 if unknown). */
   indexOf(id: TabId): number {
     return this.store.indexOf(id);
@@ -686,18 +728,7 @@ export class TabManager {
 
   private createView(): WebContentsView {
     const view = new WebContentsView({
-      webPreferences: {
-        ...(this.session ? { session: this.session } : {}),
-        sandbox: true,
-        contextIsolation: true,
-        nodeIntegration: false,
-        webSecurity: true,
-        allowRunningInsecureContent: false,
-        spellcheck: true,
-        // Chromium's built-in PDF viewer (ADR-039): a component extension in its own sandboxed
-        // process; no other plugin exists in Electron. Attachments still download.
-        plugins: true,
-      },
+      webPreferences: { ...(this.session ? { session: this.session } : {}), ...TAB_WEB_PREFERENCES },
     });
     view.setBorderRadius(this.options.pageRadius);
     view.setBackgroundColor("#ffffff");

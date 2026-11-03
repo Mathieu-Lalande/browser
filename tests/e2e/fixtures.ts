@@ -133,6 +133,17 @@ function startServer(): Promise<{ server: Server; origin: string; log: ServerLog
           `<button id="app" onclick="window.open('app://browser/index.html')">app</button>` +
           `<a id="mail" href="mailto:hello@example.com">mail</a>`,
       );
+    } else if (path.startsWith("/sso-start")) {
+      // An SSO sign-in (Okta…): a named popup set up empty then sent to the login page, or opened
+      // on it directly; the popup answers its opener, which names itself after the answer.
+      res.end(
+        `<title>Site</title><style>button{display:block;width:200px;height:40px;margin:8px}</style>` +
+          `<button id="named" onclick="const w = window.open('', 'sso', 'width=500,height=600'); w.location = '/sso-login'">named</button>` +
+          `<button id="direct" onclick="window.open('/sso-login', 'sso2', 'width=500,height=600')">direct</button>` +
+          `<script>addEventListener("message", (e) => { document.title = "Signed in: " + e.data; });</script>`,
+      );
+    } else if (path.startsWith("/sso-login")) {
+      res.end(`<title>SSO login</title><script>window.opener.postMessage("ok", "*"); setTimeout(() => window.close(), 1000);</script>`);
     } else if (path.startsWith("/push-storm")) {
       res.end(`<title>Storm</title><script>for (let i = 0; i < 200; i++) history.pushState(null, "", "/push-storm/" + i);</script>`);
     } else if (path.startsWith("/embedder")) {
