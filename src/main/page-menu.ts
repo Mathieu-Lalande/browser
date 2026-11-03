@@ -144,7 +144,8 @@ function runEntry(id: string, c: BrowserController, tabId: TabId, contents: WebC
       return contents.selectAll();
     case "spell-add":
       // The dictionary is part of the profile: a private window adds nothing to it.
-      if (!c.isPrivate && params.misspelledWord) contents.session.addWordToSpellCheckerDictionary(params.misspelledWord);
+      // Every profile session's dictionary (isolated spaces too), ADR-041.
+      if (!c.isPrivate && params.misspelledWord) appServices().spellcheck.addWord(params.misspelledWord, contents.session);
       return;
     case "page-back":
       return c.tabs.back(tabId);
@@ -176,6 +177,9 @@ function runEntry(id: string, c: BrowserController, tabId: TabId, contents: WebC
       return c.showSiteInfo(undefined, tabId);
     case "password-fill":
       return fillFromMenu(c, tabId);
+    case "autofill-address":
+    case "autofill-card":
+      return void appServices().autofill.offerFromMenu(c, tabId, id === "autofill-card" ? "card" : "address");
     case "inspect":
       return contents.inspectElement(params.x, params.y);
   }
@@ -220,6 +224,7 @@ export function buildPageContextMenu(c: BrowserController, tabId: TabId, params:
     canSplit: !(c.tabs.splitVisible && (split?.tabIds.length ?? 0) >= MAX_SPLIT_TABS),
     engine: searchEngineOf(settings()),
     hasPasswords: hasPasswordsFor(contents.getURL()),
+    autofill: appServices().autofill.menuSections(c),
     isBookmarked: tab.isBookmarked,
     translated: !!tab.translated,
     canAnnotate: annotationUrl(contents.getURL()) !== null,

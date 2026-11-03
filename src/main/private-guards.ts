@@ -15,7 +15,7 @@ export interface MaybePrivate {
  * Tab integrations for a window: a private window keeps the bookmark star (reading) and the page
  * context menu (which checks `isPrivate` itself) and the saved-passwords key (filling reads the
  * vault), but neither records visits nor updates titles/favicons in the history (so no top sites
- * either), nor watches login forms (never a save prompt, ADR-025).
+ * either), nor watches login or address forms (never a save prompt, ADR-025, ADR-041).
  */
 export function tabHooksFor(hooks: TabManagerHooks, isPrivate: boolean): TabManagerHooks {
   return isPrivate
@@ -32,6 +32,8 @@ export function tabHooksFor(hooks: TabManagerHooks, isPrivate: boolean): TabMana
         gesturePage: hooks.gesturePage,
         pageWheel: hooks.pageWheel,
         pageZoom: hooks.pageZoom,
+        // Web notifications (ADR-041): shown, nothing kept (permissions live in the window's memory).
+        notifyPage: hooks.notifyPage,
         // The media hub keeps nothing beyond the pages' lifetime (ADR-035).
         media: hooks.media,
         // Translation (ADR-036): only after the window's own consent, rules kept in memory.

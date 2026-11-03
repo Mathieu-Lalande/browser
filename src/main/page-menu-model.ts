@@ -38,6 +38,8 @@ export interface PageMenuContext {
   engine: SearchEngine;
   /** Passwords are saved for the page's origin (ADR-025): fields offer to fill them. */
   hasPasswords?: boolean;
+  /** Saved addresses / cards that fields can be filled with (ADR-041; none in a private window). */
+  autofill?: readonly ("address" | "card")[];
   /** The page shows a translation (ADR-036): the entry offers the original back. */
   translated?: boolean;
   /** The page can be annotated (a web page): a selection offers "Surligner" (ADR-037). */
@@ -141,7 +143,13 @@ export function buildPageMenu(params: PageMenuParams, context: PageMenuContext):
     sections.push(media);
   }
 
-  if (editable && context.hasPasswords) sections.push([{ id: "password-fill", label: "Remplir le mot de passe" }]);
+  if (editable && (context.hasPasswords || context.autofill?.length)) {
+    const fill: PageMenuEntry[] = [];
+    if (context.hasPasswords) fill.push({ id: "password-fill", label: "Remplir le mot de passe" });
+    if (context.autofill?.includes("address")) fill.push({ id: "autofill-address", label: "Remplir une adresse" });
+    if (context.autofill?.includes("card")) fill.push({ id: "autofill-card", label: "Remplir une carte de paiement" });
+    sections.push(fill);
+  }
 
   if (editable) {
     const flags = params.editFlags;

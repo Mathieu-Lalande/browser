@@ -36,38 +36,47 @@ export interface SecretStore {
  * as JSON in chunks `passwords.0`, `passwords.1`… and their count in `passwords.n`.
  */
 export const CHUNK_SIZE = 1800;
-const COUNT_KEY = "passwords.n";
-const chunkKey = (index: number) => `passwords.${index}`;
 /** Larger than this, the vault is refused rather than written partially. */
 const MAX_CHUNKS = 2000;
 
-export async function loadVault(store: SecretStore): Promise<PasswordVault> {
-  const count = Number(await store.getItemAsync(COUNT_KEY));
-  if (!Number.isInteger(count) || count <= 0 || count > MAX_CHUNKS) return EMPTY_VAULT;
+/** A JSON document read from chunks `<prefix>.0…` (count in `<prefix>.n`); null when missing or damaged. */
+export async function readChunks(store: SecretStore, prefix: string): Promise<unknown> {
+  const count = Number(await store.getItemAsync(`${prefix}.n`));
+  if (!Number.isInteger(count) || count <= 0 || count > MAX_CHUNKS) return null;
   const parts: string[] = [];
   for (let index = 0; index < count; index++) {
-    const part = await store.getItemAsync(chunkKey(index));
-    if (part === null) return EMPTY_VAULT;
+    const part = await store.getItemAsync(`${prefix}.${index}`);
+    if (part === null) return null;
     parts.push(part);
   }
   try {
-    return sanitizeVault(JSON.parse(parts.join("")));
+    return JSON.parse(parts.join(""));
   } catch {
-    return EMPTY_VAULT;
+    return null;
   }
 }
 
-export async function saveVault(store: SecretStore, vault: PasswordVault, options?: object): Promise<void> {
-  const json = JSON.stringify(vault);
+/** Writes a JSON document in chunks (see `readChunks`); `tooLarge`: the French error when it does not fit. */
+export async function writeChunks(store: SecretStore, prefix: string, value: unknown, options?: object, tooLarge = "Trop de données enregistrées."): Promise<void> {
+  const json = JSON.stringify(value);
   const count = Math.ceil(json.length / CHUNK_SIZE);
-  if (count > MAX_CHUNKS) throw new Error("Trop de mots de passe enregistrés.");
-  const previous = Number(await store.getItemAsync(COUNT_KEY)) || 0;
+  if (count > MAX_CHUNKS) throw new Error(tooLarge);
+  const countKey = `${prefix}.n`;
+  const previous = Number(await store.getItemAsync(countKey)) || 0;
   // Readers trust the count: it is lowered first, and raised once every chunk is written.
-  if (previous > count) await store.setItemAsync(COUNT_KEY, String(count), options);
-  for (let index = 0; index < count; index++) await store.setItemAsync(chunkKey(index), json.slice(index * CHUNK_SIZE, (index + 1) * CHUNK_SIZE), options);
-  await store.setItemAsync(COUNT_KEY, String(count), options);
-  for (let index = count; index < previous && index < MAX_CHUNKS; index++) await store.deleteItemAsync(chunkKey(index));
+  if (previous > count) await store.setItemAsync(countKey, String(count), options);
+  for (let index = 0; index < count; index++) await store.setItemAsync(`${prefix}.${index}`, json.slice(index * CHUNK_SIZE, (index + 1) * CHUNK_SIZE), options);
+  await store.setItemAsync(countKey, String(count), options);
+  for (let index = count; index < previous && index < MAX_CHUNKS; index++) await store.deleteItemAsync(`${prefix}.${index}`);
 }
+
+export async function loadVault(store: SecretStore): Promise<PasswordVault> {
+  const value = await readChunks(store, "passwords");
+  return value === null ? EMPTY_VAULT : sanitizeVault(value);
+}
+
+export const saveVault = (store: SecretStore, vault: PasswordVault, options?: object): Promise<void> =>
+  writeChunks(store, "passwords", vault, options, "Trop de mots de passe enregistrés.");
 
 /** In-memory vault with its secure-store persistence; listeners hear every change. */
 export class PasswordStore {

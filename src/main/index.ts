@@ -156,7 +156,10 @@ if (!app.requestSingleInstanceLock()) {
             printPdfPath: testHook("BROWSER_TEST_PRINT_PDF"),
             backupExportPath: testHook("BROWSER_TEST_BACKUP_EXPORT"),
             backupImportPath: testHook("BROWSER_TEST_BACKUP_IMPORT"),
+            notifications: process.env.BROWSER_TEST_NOTIFICATIONS === "1",
           },
+      // Touch ID passkeys need a signed build whose entitlements list this group (ADR-041): none yet.
+      touchIdKeychainGroup: null,
     });
     BrowserController.watchServices(services);
     hardenSession();

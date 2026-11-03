@@ -27,6 +27,10 @@ export interface PageHooksDeps {
   contextMenu(tabId: TabId, params: Electron.ContextMenuParams): void;
   /** Password form watching in a new document (ADR-025). */
   watchPasswordForms(tabId: TabId, contents: WebContents): void;
+  /** Address and card form watching in a new document (ADR-041; never in a private window). */
+  watchAutofill(tabId: TabId, contents: WebContents): void;
+  /** The web notifications relay of a new document (ADR-041). */
+  watchNotifications(tabId: TabId, contents: WebContents): void;
   /** The page swipe's wheel watcher in a new document (ADR-033). */
   watchPageWheel(contents: WebContents): void;
 }
@@ -44,7 +48,11 @@ export class PageHooks {
     return {
       ...base,
       contextMenu: (tabId, params) => this.deps.contextMenu(tabId, params),
-      pageReady: (tabId, contents) => this.deps.watchPasswordForms(tabId, contents),
+      pageReady: (tabId, contents) => {
+        this.deps.watchPasswordForms(tabId, contents);
+        this.deps.watchAutofill(tabId, contents);
+      },
+      notifyPage: (tabId, contents) => this.deps.watchNotifications(tabId, contents),
       boostPage: (contents) => boosts.boostPage(contents, features.isPrivate),
       peekLink: (tabId, url) => features.peek.open(tabId, url),
       gesturePage: (contents) => this.deps.watchPageWheel(contents),

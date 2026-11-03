@@ -577,7 +577,14 @@ quelques crochets de test actifs en production. Chaque point a son test de régr
   modificateurs sur un clic synthétique) : il choisit seulement premier/arrière-plan. Une fenêtre bloquée
   s'annonce dans une bande au-dessus de la page (`PopupBar`, comme la barre d'autorisation) :
   « Fenêtre surgissante bloquée », « Ouvrir » (main garde l'URL, le renderer ne désigne que l'onglet),
-  « Ignorer » ; effacée à la navigation suivante.
+  « Ignorer » ; effacée à la navigation suivante. Une fenêtre permise n'est plus rouverte à neuf
+  (`deny` + nouvel onglet, qui perdait `window.opener` et cassait les connexions SSO type Okta) :
+  `setWindowOpenHandler` répond `allow` + `createWindow`, et `TabManager.adoptPopup` enveloppe la page
+  créée par Chromium dans un onglet placé après l'ouvreur (même session, donc même fenêtre privée ;
+  préférences `TAB_WEB_PREFERENCES` imposées par `overrideBrowserWindowOptions`, jamais de fenêtre
+  native). `opener.postMessage`, cible nommée et `about:blank` puis navigation fonctionnent ; l'onglet
+  affiche « Chargement… » sur fond blanc jusqu'au premier document ; `window.close()` le ferme et
+  réactive l'ouvreur. L'aperçu Maj+clic (ADR-027) et la bande « Ouvrir » gardent le nouvel onglet.
 - **`mailto:` / `tel:`** : seulement après un geste (le même, partagé avec les fenêtres) et au plus une
   fois toutes les 3 s par onglet.
 - **Interface sur `app://`** (`src/main/app-protocol.ts`, règles pures `app-files.ts`). Schéma
@@ -1981,6 +1988,70 @@ publications, à suivre à chaque montée de version : choisir le tag `v<version
 Premier lancement sous Windows/macOS : jusqu'à 6 s d'attente le temps de télécharger le CDM. Sans
 secrets EVS, Widevine est présent mais les grands services refusent (ou limitent) la lecture.
 
+## ADR-041 — Adresses et cartes, clés d'accès, notifications, orthographe
+
+**Contexte.** Il manquait au navigateur ce qu'un navigateur principal offre dans les formulaires et autour :
+remplissage des adresses et cartes, clés d'accès (WebAuthn), notifications des sites, choix des
+dictionnaires. Contraintes : pas de preload pour les pages (ADR-003), rien d'écrit en fenêtre privée
+(ADR-014), le serveur de synchronisation ne voit jamais de clair (ADR-019).
+
+**Décision — adresses et cartes.** Modèle pur `src/shared/autofill/` partagé bureau/téléphone :
+- *Classement des champs* (`classifyField`/`classifyForm`) : jetons `autocomplete` d'abord (sections,
+  `shipping`/`billing` ignorés), puis mots fr/en du nom, id, libellé, texte indicatif et `aria-label`
+  (accents retirés), avec le contexte du formulaire (« Nom » seul = nom complet, « nom » dans un formulaire
+  de carte = titulaire, deuxième rue = ligne 2). Les champs de connexion, recherche, codes promo, IBAN… sont
+  écartés. Testé sur des formulaires types (français sans attributs, américain avec, cartes).
+- *Cartes* : Luhn, marques par préfixes IIN et longueurs, expiration « MM/AA », mois/année séparés ou listes.
+  Le **code de sécurité n'est jamais enregistré** : classé `cc-csc` pour n'être ni lu ni rempli, le script de
+  page ne transmet même pas la valeur d'un champ dont le nom l'évoque.
+- *Bureau* : un seul document chiffré par `safeStorage` (`autofill.json`, `EncryptedStore`, même règles que le
+  coffre des mots de passe : rien sans trousseau, fichier indéchiffrable jamais écrasé). Le script de veille
+  (monde isolé 1014) ne fait que **décrire** les champs (et leurs valeurs à l'envoi) ; main classe, propose
+  « Enregistrer cette adresse/carte ? » (overlay `autofill-save`), et à la première entrée dans un champ
+  reconnu d'un formulaire (ou flèche bas) ouvre la liste `autofill-fill` sous le champ ; le remplissage
+  (monde isolé 1015) pose les valeurs par indice, si l'origine n'a pas changé. Aussi « Remplir une adresse /
+  une carte » du menu de la page. Le numéro d'une carte n'atteint l'interface que par `autofill:reveal-card`,
+  après une demande de main lui-même (Touch ID sur Mac, sinon une boîte de dialogue native : Electron n'expose
+  pas Windows Hello aux applications). Jamais en fenêtre privée : la veille n'y est pas branchée (`pageReady`)
+  et chaque canal le revérifie.
+- *Téléphone* : même modèle dans `expo-secure-store` (morceaux `autofill.*`) ; remplissage seulement au
+  toucher (menu de la page) : script de description avec un nonce par demande, réponse validée (nonce,
+  origine du message et de l'onglet), plan calculé par l'application, valeurs injectées par indice.
+- *Synchronisation* : collection `addresses` facultative (`autofill.syncAddresses`, désactivée par défaut,
+  chiffrée de bout en bout) ; les cartes ne sont jamais synchronisées.
+
+**Décision — clés d'accès (vérifié sur l'API d'Electron 44).** WebAuthn n'est pas une permission des
+gestionnaires de session d'Electron (`publickey-credentials-get/create` n'y apparaissent pas : la
+Permissions-Policy des cadres est appliquée par Chromium) ; un test unitaire vérifie que la politique ne les
+traite pas, et que HID/série/USB restent refusés. Ce qui marche : **Windows** délègue tout à webauthn.dll
+(Windows Hello, clés USB/NFC avec PIN, téléphone par QR code). **macOS** : clés USB par la pile HID de
+Chromium, sans dialogue de PIN (une clé qui en exige échoue) ; Touch ID seulement via
+`app.configureWebAuthn` avec un groupe d'accès au trousseau présent dans les droits de l'application signée
+(`touchIdKeychainGroup`, `null` tant que les versions ne sont pas signées avec ce droit) ; ni trousseau
+iCloud ni téléphone. **Linux** : clés USB (accès hidraw par udev), sans PIN, pas d'authentificateur intégré.
+`PasskeyService` (`SessionService`) répond à `select-webauthn-account` (plusieurs comptes) par un choix natif ;
+sans réponse, la demande échouerait. Non vérifié sur matériel dans la CI.
+
+**Décision — notifications.** Permission par la barre d'autorisation existante (décisions par site, en
+mémoire en fenêtre privée), modifiable dans Infos sur le site (Autoriser/Bloquer/Réinitialiser). Electron
+n'offre aucun crochet sur les notifications des pages : un petit shim en monde principal remplace le
+constructeur `Notification` (gardant `permission`/`requestPermission`) et passe la demande, par un événement
+DOM au nom aléatoire par document, au relais en monde isolé 1016 ; main revérifie la permission de
+l'origine, applique « Ne pas déranger » et une limite (5 / 10 s par site), puis affiche une notification
+native titrée « site — titre » avec le favicon de l'onglet ; un clic ramène fenêtre et onglet, puis la page
+reçoit `click`. Une page peut tromper son propre shim, sans plus de pouvoir qu'avec la vraie API. **Non pris
+en charge** : `registration.showNotification` et Web Push (service workers, réception site fermé) ; Electron
+n'implémente pas le service push. Crochet e2e `BROWSER_TEST_NOTIFICATIONS` (application non empaquetée).
+
+**Décision — orthographe.** `settings.spellcheck` (activé, langues ≤ 8). `SpellcheckService` (`SessionService`)
+applique `setSpellCheckerEnabled`/`setSpellCheckerLanguages` à chaque session d'onglets et suit les réglages ;
+sans choix, le dictionnaire de la langue de l'application. macOS utilise le correcteur du système (langues
+non réglables). Les mots ajoutés vont dans toutes les sessions du profil (espaces isolés compris) ; depuis
+une fenêtre privée, dans sa seule session. Chromium télécharge les dictionnaires choisis au premier usage.
+
+**Conséquences.** Les heuristiques de champs se trompent parfois sur des formulaires inhabituels : rien n'est
+rempli sans un choix explicite, et seules les étiquettes reconnues sont remplies. Les mondes isolés 1014 à
+1016 sont réservés.
 
 ## ADR-042 — Reprise après plantage, profils, gestionnaire de tâches, impression, sauvegarde
 

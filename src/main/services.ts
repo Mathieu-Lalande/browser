@@ -4,6 +4,8 @@ import type { Session } from "electron";
 import type { Settings, SettingsPatch } from "@shared/settings";
 import type { CollectionAdapter } from "@shared/sync/engine";
 import type { Boost } from "@shared/boosts";
+import { AutofillService } from "./autofill/service";
+import { confirmCardReveal } from "./autofill/auth";
 import { BoostService } from "./boosts/service";
 import { CaptureService } from "./capture/service";
 import { DownloadService } from "./downloads/service";
@@ -12,11 +14,14 @@ import { DefaultBrowserService, type DefaultClientPort } from "./default-browser
 import { ImportService } from "./import/service";
 import { browserLocations, detectSources, type BrowserLocation, type LocationEnv } from "./import/sources";
 import { newPasswordId, PasswordVaultStore } from "./passwords/vault";
-import { installPrivacy, isTabPage } from "./privacy";
+import { NotificationCenter, type ShownNotification } from "./notifications";
+import { installPrivacy, isTabPage, permissionGranted } from "./privacy";
 import { ReaderService } from "./reader";
 import type { WindowDirectory } from "./ports";
 import type { Profile } from "./profile";
 import { SessionHardener } from "./session-hardener";
+import { SpellcheckService } from "./spellcheck";
+import { PasskeyService } from "./webauthn";
 import { setAppServices } from "./app-services-ref";
 import { trackCertificates } from "./site-info/certificates";
 import { StartImageCache } from "./start-image";
@@ -100,7 +105,11 @@ export interface AppConfig {
     plainKeychain?: boolean;
     /** A Chromium "User Data" folder listed as an extra import source. */
     importChromiumDir?: string;
+    /** Notifications shown are also recorded in `globalThis.__browserTestNotifications` (ADR-041). */
+    notifications?: boolean;
   };
+  /** macOS keychain access group for Touch ID passkeys (signed builds with the entitlement), ADR-041. */
+  touchIdKeychainGroup?: string | null;
 }
 
 /**
@@ -125,6 +134,10 @@ export class AppServices {
   readonly tasks: TaskManagerService;
   readonly print: PrintService;
   readonly backup: BackupService;
+  readonly autofill: AutofillService;
+  readonly notifications: NotificationCenter;
+  readonly spellcheck: SpellcheckService;
+  readonly passkeys: PasskeyService;
   /** Installed into each tab session, in this order. */
   readonly sessionServices: readonly SessionService[];
   readonly hardener: SessionHardener;
@@ -141,6 +154,12 @@ export class AppServices {
     });
     this.extensions = new ExtensionService(paths.userData);
     this.passwords = new PasswordVaultStore({ profileDir: paths.userData, plainKeychain: config.testHooks?.plainKeychain });
+    this.autofill = new AutofillService({
+      profileDir: paths.userData,
+      settings: () => config.settings(),
+      confirmReveal: confirmCardReveal,
+      plainKeychain: config.testHooks?.plainKeychain,
+    });
     this.startImage = new StartImageCache();
     const { windows } = config;
     this.boosts = new BoostService({
@@ -151,8 +170,16 @@ export class AppServices {
     this.sync = new SyncService({
       userData: paths.userData,
       windows,
-      onLocalChange: (listener) => config.profile().onChange(() => listener()),
-      adapters: () => config.syncAdapters({ windows, boosts: this.boosts }),
+      onLocalChange: (listener) => {
+        const stopProfile = config.profile().onChange(() => listener());
+        // Saved addresses sync too when allowed (ADR-041); cards never do.
+        const stopAutofill = this.autofill.onChanged(() => listener());
+        return () => {
+          stopProfile();
+          stopAutofill();
+        };
+      },
+      adapters: () => config.syncAdapters({ windows, boosts: this.boosts, autofill: this.autofill }),
     });
     this.defaultBrowser = new DefaultBrowserService(config.defaultClient);
     const testSource = config.testHooks?.importChromiumDir;
@@ -189,9 +216,24 @@ export class AppServices {
       testExportPath: config.testHooks?.backupExportPath,
       testImportPath: config.testHooks?.backupImportPath,
     });
+    const shownForTests: ShownNotification[] | null = config.testHooks?.notifications ? [] : null;
+    if (shownForTests) (globalThis as { __browserTestNotifications?: ShownNotification[] }).__browserTestNotifications = shownForTests;
+    this.notifications = new NotificationCenter({
+      settings: () => config.settings(),
+      allowed: (contents, origin) => permissionGranted(contents, origin, "notifications"),
+      record: shownForTests ? (shown) => shownForTests.push(shown) : undefined,
+    });
+    this.spellcheck = new SpellcheckService({
+      settings: () => config.settings(),
+      onSettingsChanged: (listener) => config.onSettingsChanged(listener),
+      locale: () => config.locale,
+      platform: config.platform,
+    });
+    this.passkeys = new PasskeyService({ platform: config.platform, touchIdKeychainGroup: config.touchIdKeychainGroup });
+    this.passkeys.configurePlatform();
     // Downloads: tab pages only, no automatic opening, dangerous types confirmed first (ADR-013); a
     // private session's ones never reach the history (ADR-014). Extensions: ADR-024.
-    this.sessionServices = [privacyService, this.downloads, this.extensions, certificateService];
+    this.sessionServices = [privacyService, this.downloads, this.extensions, certificateService, this.spellcheck, this.passkeys];
     this.hardener = new SessionHardener({
       services: this.sessionServices,
       appName: () => config.appName,
@@ -204,6 +246,7 @@ export class AppServices {
   dispose(): void {
     this.sync.stop();
     this.print.dispose();
+    this.notifications.dispose();
     for (const service of this.sessionServices) service.dispose?.();
   }
 }

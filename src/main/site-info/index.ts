@@ -2,7 +2,7 @@ import { session as electronSession, type Cookie, type Session } from "electron"
 import { webHostname } from "@shared/hosts";
 import { PERMISSION_LABELS, hostInSite, type SiteDataEntry, type SiteInfo } from "@shared/site-info";
 import type { PermissionKind, TabId } from "@shared/types";
-import { forgetSitePermission, sitePermissions } from "../privacy";
+import { forgetSitePermission, setSitePermission, sitePermissions } from "../privacy";
 import { settings, updateSettings } from "../settings";
 import { spaces } from "../spaces";
 import type { BrowserController } from "../window";
@@ -85,6 +85,13 @@ export async function siteInfoFor(c: BrowserController, tabId: TabId): Promise<S
 export function resetSitePermission(c: BrowserController, tabId: TabId, origin: string, kind: PermissionKind): Promise<SiteInfo | null> {
   const found = tabSite(c, tabId);
   if (found) forgetSitePermission(found.ses, origin, kind, found.origin);
+  return siteInfoFor(c, tabId);
+}
+
+/** Allows or blocks a permission of the tab's site (or of a frame embedded in it), ADR-041. */
+export function setSitePermissionFor(c: BrowserController, tabId: TabId, origin: string, kind: PermissionKind, allow: boolean): Promise<SiteInfo | null> {
+  const found = tabSite(c, tabId);
+  if (found) setSitePermission(found.ses, origin, kind, allow, found.origin);
   return siteInfoFor(c, tabId);
 }
 

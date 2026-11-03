@@ -224,6 +224,9 @@ export type OverlayKind =
   | "site-info"
   | "password-save"
   | "password-fill"
+  /** Addresses and cards (ADR-041): the save prompt, and the suggestions for a focused form. */
+  | "autofill-save"
+  | "autofill-fill"
   | "link-peek"
   | "page-options"
   | "capture-result"
@@ -242,7 +245,7 @@ export interface OverlayRequest {
   anchor?: Bounds;
   /** Site info, password fill: the tab it is about (set by main). */
   tabId?: TabId;
-  /** Password save prompt: the pending capture main keeps (the password never reaches the UI). */
+  /** Password and autofill save prompts: the pending capture main keeps (the password never reaches the UI). */
   captureId?: string;
   /** Link peek (ADR-027): the card's header and geometry when it opens (updates: `peek.onState`). */
   peek?: PeekState;

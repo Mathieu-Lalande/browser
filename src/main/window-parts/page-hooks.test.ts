@@ -17,6 +17,8 @@ function setup(isPrivate: boolean) {
     boosts: { boostPage: vi.fn() },
     contextMenu: vi.fn(),
     watchPasswordForms: vi.fn(),
+    watchAutofill: vi.fn(),
+    watchNotifications: vi.fn(),
     watchPageWheel: vi.fn(),
   };
   return { hooks: new PageHooks(deps).hooks(), deps, features };
@@ -42,6 +44,7 @@ describe("PageHooks", () => {
   it("routes each page event to the feature that owns it", () => {
     const { hooks, deps, features } = setup(false);
     hooks.pageReady?.("t1", page);
+    hooks.notifyPage?.("t1", page);
     hooks.gesturePage?.(page);
     hooks.peekLink?.("t1", "https://example.com/");
     hooks.pageZoom?.("t1", -1);
@@ -49,6 +52,8 @@ describe("PageHooks", () => {
     hooks.translatePage?.("t1", page);
     hooks.annotatePage?.("t1", page);
     expect(deps.watchPasswordForms).toHaveBeenCalledWith("t1", page);
+    expect(deps.watchAutofill).toHaveBeenCalledWith("t1", page);
+    expect(deps.watchNotifications).toHaveBeenCalledWith("t1", page);
     expect(deps.watchPageWheel).toHaveBeenCalledWith(page);
     expect(features.peek.open).toHaveBeenCalledWith("t1", "https://example.com/");
     expect(features.gestures.zoom).toHaveBeenCalledWith("t1", -1);

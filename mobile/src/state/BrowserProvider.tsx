@@ -1,3 +1,4 @@
+import { autofill } from "./autofill";
 import type { AnnotationsData } from "@shared/annotations/model";
 import type { ArchivedTab } from "@shared/archive";
 import type { Boost } from "@shared/boosts";
@@ -239,6 +240,7 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
       setBoosts: (next) => stores.boosts.set(next),
       annotations: stores.annotations.get,
       setAnnotations: (next) => stores.annotations.set(next),
+      autofill,
       history: () => stores.history.history,
       historyChanged: () => stores.history.changed(),
       historyDeleted: (url) => stores.history.isDeleted(url),

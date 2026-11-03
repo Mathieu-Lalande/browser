@@ -1,3 +1,4 @@
+import { addressRecord, mergeSyncedAddresses, sanitizeSyncedAddress, type SyncedAddress } from "@shared/autofill/model";
 import { annotationRecords, mergeAnnotations, sanitizeSyncedAnnotation, type SyncedAnnotation } from "@shared/annotations/sync";
 import { boostRecord, mergeBoosts, sanitizeSyncedBoost, type SyncedBoost } from "@shared/boosts";
 import { favoriteLocalId, favoriteRecord, mergeFavorites, sanitizeSyncedFavorite, type SyncedFavorite } from "@shared/favorites";
@@ -29,6 +30,7 @@ import { setProfileAnnotations } from "../annotations";
 import { profile } from "../profile";
 import { settings, updateSettings } from "../settings";
 import { spaces } from "../spaces";
+import type { AutofillService } from "../autofill/service";
 import type { BoostService } from "../boosts/service";
 import type { WindowDirectory } from "../ports";
 
@@ -42,6 +44,8 @@ import type { WindowDirectory } from "../ports";
 export interface AdapterDeps {
   windows: Pick<WindowDirectory, "refreshAll">;
   boosts: Pick<BoostService, "setBoosts">;
+  /** Saved addresses (ADR-041, opt-in); cards are never handed to sync. */
+  autofill?: Pick<AutofillService, "addresses" | "store" | "replace">;
   now?: () => number;
 }
 
@@ -150,7 +154,20 @@ function annotationsAdapter(): CollectionAdapter<SyncedAnnotation> {
   };
 }
 
+/** Saved addresses (ADR-041), opt-in (`settings.autofill.syncAddresses`); cards stay on the device. */
+function addressesAdapter(autofill: NonNullable<AdapterDeps["autofill"]>): CollectionAdapter<SyncedAddress> {
+  return {
+    name: "addresses",
+    enabled: () => settings().autofill.syncAddresses && autofill.store.status().available,
+    snapshot: () => new Map(autofill.addresses().map((entry) => [entry.id, addressRecord(entry)])),
+    sanitize: (value) => sanitizeSyncedAddress(value),
+    apply: ({ upserts, deletes }) => autofill.replace(mergeSyncedAddresses(autofill.store.current(), upserts, deletes)),
+  };
+}
+
 export function desktopAdapters(deps: AdapterDeps): CollectionAdapter[] {
   const now = deps.now ?? Date.now;
-  return [settingsAdapter(), spacesAdapter(), bookmarksAdapter(deps), historyAdapter(now), favoritesAdapter(deps), boostsAdapter(deps), annotationsAdapter()] as CollectionAdapter[];
+  const adapters: CollectionAdapter<never>[] = [settingsAdapter(), spacesAdapter(), bookmarksAdapter(deps), historyAdapter(now), favoritesAdapter(deps), boostsAdapter(deps), annotationsAdapter()] as CollectionAdapter<never>[];
+  if (deps.autofill) adapters.push(addressesAdapter(deps.autofill) as CollectionAdapter<never>);
+  return adapters as CollectionAdapter[];
 }

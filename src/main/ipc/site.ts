@@ -10,6 +10,7 @@ import {
   listSiteData,
   removeSiteData,
   resetSitePermission,
+  setSitePermissionFor,
   siteInfoFor,
 } from "../site-info";
 import { MAX_URL_LENGTH } from "./limits";
@@ -24,6 +25,9 @@ export const siteInfoHandlers = defineHandlers({
   [Channels.siteInfoGet]: handle([str], (c, tabId) => siteInfoFor(c, tabId)),
   [Channels.siteInfoResetPermission]: handle([str, maxStr(MAX_URL_LENGTH), isPermissionKind], (c, tabId, origin, kind) =>
     resetSitePermission(c, tabId, origin, kind),
+  ),
+  [Channels.siteInfoSetPermission]: handle([str, maxStr(MAX_URL_LENGTH), isPermissionKind, bool], (c, tabId, origin, kind, allow) =>
+    setSitePermissionFor(c, tabId, origin, kind, allow),
   ),
   [Channels.siteInfoClearData]: handle([str], (c, tabId) => clearTabSiteData(c, tabId)),
   [Channels.siteInfoAllowThirdPartyCookies]: handle([str, bool], (c, tabId, allow) => allowThirdPartyCookies(c, tabId, allow)),

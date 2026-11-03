@@ -73,6 +73,9 @@ Windows, macOS et Linux, avec son application iPhone et Android.
 - Fenêtres privées (`Ctrl+Maj+N`, `⇧⌘N`) : session en mémoire propre à la fenêtre, effacée à la fermeture (ADR-014).
 - Gestionnaire de mots de passe (coffre `safeStorage`, remplissage à la demande, origine exacte, export CSV,
   `browser://passwords`), jamais d'invite en fenêtre privée (ADR-025).
+- Adresses et cartes de paiement (bureau et téléphone) : reconnaissance des champs fr/en, chiffrées par le
+  trousseau, jamais de CVC, adresses synchronisables (facultatif), cartes jamais ; clés d'accès (Windows Hello,
+  clés USB), notifications natives avec « Ne pas déranger », langues de l'orthographe (ADR-041).
 - Synchronisation chiffrée de bout en bout avec le téléphone (favoris, historique récent, onglets ouverts,
   espaces, thème, boosts) via un petit serveur que vous hébergez ([`server/`](server/README.md)), jumelage
   par QR code ; jamais la navigation privée (ADR-019). « Envoyer à un appareil » : un onglet vers un autre

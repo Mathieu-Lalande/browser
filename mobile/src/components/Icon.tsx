@@ -97,6 +97,7 @@ import Smartphone from "lucide-react-native/icons/smartphone";
 import QrCode from "lucide-react-native/icons/qr-code";
 import Unlink from "lucide-react-native/icons/unlink";
 import KeyRound from "lucide-react-native/icons/key-round";
+import CreditCard from "lucide-react-native/icons/credit-card";
 import Ban from "lucide-react-native/icons/ban";
 import Eye from "lucide-react-native/icons/eye";
 import EyeOff from "lucide-react-native/icons/eye-off";
@@ -163,6 +164,7 @@ const ui = {
   scan: ScanLine,
   unlink: Unlink,
   key: KeyRound,
+  "credit-card": CreditCard,
   // Organisation (ADR-022).
   archive: Archive,
   archiveRestore: ArchiveRestore,
