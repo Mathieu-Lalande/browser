@@ -11,6 +11,7 @@ import { useTheme } from "../state/theme";
 import { Icon, type IconName } from "./Icon";
 import { PairingScanner } from "./PairingScanner";
 import { BoostsSettings } from "./BoostsSettings";
+import { NotesSettings } from "./NotesSettings";
 import { PasswordsSettings } from "./PasswordsSettings";
 import { SyncSettings } from "./SyncSettings";
 import { TranslateSettings } from "./TranslateSettings";
@@ -207,6 +208,15 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
 
         <Group title="Traduction" icon="languages">
           <TranslateSettings />
+        </Group>
+
+        <Group title="Notes et surlignages" icon="highlighter">
+          <NotesSettings
+            onOpen={(url) => {
+              void actions.openUrl(url, {});
+              onClose();
+            }}
+          />
         </Group>
 
         <Group title="Boosts" icon="rocket">

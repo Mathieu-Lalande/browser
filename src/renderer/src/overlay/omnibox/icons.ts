@@ -17,6 +17,7 @@ const ICONS: Record<OmniboxIcon, IconName> = {
   archive: "archive",
   tab: "app-window",
   command: "command",
+  highlighter: "highlighter",
   at: "at-sign",
 };
 
@@ -35,5 +36,6 @@ export const SECTION_ICONS: Record<SectionId, IconName> = {
   settings: "settings",
   remote: "cloud",
   archived: "archive",
+  notes: "highlighter",
   web: "search",
 };

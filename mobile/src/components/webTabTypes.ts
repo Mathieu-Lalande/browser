@@ -1,3 +1,4 @@
+import type { AnnotationsData, TextQuote } from "@shared/annotations/model";
 import type { MediaProbe } from "@shared/media";
 import type { PasswordCapture } from "@shared/passwords";
 import type { ReaderArticle } from "@shared/reader";
@@ -38,4 +39,10 @@ export interface WebTabProps {
   onTranslateBatch?: (tabId: string, segments: Segment[]) => Promise<[number, string][]>;
   /** A new document started loading: its translation (if any) is gone. */
   onTranslateReset?: (tabId: string) => void;
+  /** Highlights (ADR-037), normal tabs only: drawn on their pages; keep the object stable. */
+  annotations?: AnnotationsData;
+  /** "Surligner" in the selection menu: the selection of the page at `url`. */
+  onHighlight?: (tabId: string, url: string, quote: TextQuote) => void;
+  /** A highlight of the page was tapped. */
+  onHighlightPress?: (tabId: string, id: string) => void;
 }

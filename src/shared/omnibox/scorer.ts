@@ -30,6 +30,7 @@ export const SECTION_WEIGHTS: Record<SectionId, number> = {
   settings: 0.9,
   remote: 0.8,
   archived: 0.7,
+  notes: 0.75,
   web: 0,
 };
 
@@ -46,6 +47,7 @@ export const SECTION_LIMITS: Record<SectionId, number> = {
   settings: 5,
   remote: 4,
   archived: 4,
+  notes: 4,
   web: 4,
 };
 
@@ -64,6 +66,7 @@ export const SECTION_TITLES: Record<SectionId, string | null> = {
   settings: "Paramètres",
   remote: "Onglets de mes autres appareils",
   archived: "Onglets archivés",
+  notes: "Notes et surlignages",
   web: "Web",
 };
 

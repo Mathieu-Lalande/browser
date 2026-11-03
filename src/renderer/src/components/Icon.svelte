@@ -168,6 +168,9 @@
   import LogOut from "@lucide/svelte/icons/log-out";
   import Send from "@lucide/svelte/icons/send";
   import Languages from "@lucide/svelte/icons/languages";
+  import Highlighter from "@lucide/svelte/icons/highlighter";
+  import NotebookPen from "@lucide/svelte/icons/notebook-pen";
+  import Notebook from "@lucide/svelte/icons/notebook";
 
   type LucideIcon = Component<Record<string, unknown>>;
 
@@ -310,6 +313,9 @@
     "log-out": LogOut,
     send: Send,
     languages: Languages,
+    highlighter: Highlighter,
+    "notebook-pen": NotebookPen,
+    notebook: Notebook,
   } satisfies Record<string, LucideIcon> & Record<CommandIcon, LucideIcon>;
 
   /** Space icons: their stored names are Lucide's own. */

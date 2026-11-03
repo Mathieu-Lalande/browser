@@ -148,6 +148,12 @@ export interface TranslateSettings {
   neverSites: string[];
 }
 
+/** Notes and highlights (ADR-037). */
+export interface AnnotationSettings {
+  /** Opt-in: the `annotations` sync collection (end-to-end encrypted like the others). */
+  sync: boolean;
+}
+
 export interface Settings {
   appearance: AppearanceSettings;
   layout: LayoutSettings;
@@ -159,6 +165,7 @@ export interface Settings {
   reader: ReaderSettings;
   updates: UpdateSettings;
   translate: TranslateSettings;
+  annotations: AnnotationSettings;
   /**
    * Keyboard shortcuts chosen by the user (desktop, ADR-028): only the commands that differ from
    * the registry. A patch replaces the whole map.
@@ -231,6 +238,7 @@ export const DEFAULT_SETTINGS: Settings = {
     neverLanguages: [],
     neverSites: [],
   },
+  annotations: { sync: false },
   shortcuts: {},
 };
 
@@ -355,6 +363,7 @@ const schema: Schema = {
     neverLanguages: sanitizeLanguageList,
     neverSites: sanitizeSiteKeys,
   },
+  annotations: { sync: bool },
 };
 
 /**

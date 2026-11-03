@@ -79,6 +79,6 @@ describe("scopes", () => {
     expect(parseScope("mail@example.org")).toMatchObject({ scope: null, pending: null });
     expect(parseScope("@hi")).toEqual({ scope: null, text: "@hi", pending: "hi" });
     expect(scopesMatching("hi").map((scope) => scope.id)).toEqual(["history"]);
-    expect(scopesMatching("")).toHaveLength(5);
+    expect(scopesMatching("")).toHaveLength(6);
   });
 });

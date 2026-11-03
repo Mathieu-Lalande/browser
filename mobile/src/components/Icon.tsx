@@ -7,6 +7,8 @@ import type { LucideIcon } from "lucide-react-native";
 import ArrowUpLeft from "lucide-react-native/icons/arrow-up-left";
 import BookOpen from "lucide-react-native/icons/book-open";
 import Languages from "lucide-react-native/icons/languages";
+import Highlighter from "lucide-react-native/icons/highlighter";
+import Notebook from "lucide-react-native/icons/notebook";
 import Briefcase from "lucide-react-native/icons/briefcase";
 import Calendar from "lucide-react-native/icons/calendar";
 import TrendingUp from "lucide-react-native/icons/trending-up";
@@ -111,6 +113,8 @@ import Pause from "lucide-react-native/icons/pause";
 import AudioLines from "lucide-react-native/icons/audio-lines";
 
 const ui = {
+  highlighter: Highlighter,
+  notebook: Notebook,
   search: Search,
   plus: Plus,
   close: X,

@@ -173,6 +173,7 @@ const OMNIBOX_ICONS: Partial<Record<SheetItem["icon"], IconName>> = {
   archive: "archive",
   tab: "tabs",
   command: "command",
+  highlighter: "highlighter",
   at: "atSign",
 };
 

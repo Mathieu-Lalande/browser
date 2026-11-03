@@ -3,7 +3,7 @@ import type { CommandDefinition } from "@shared/commands";
 import { Omnibox, sharedProviders } from "@shared/omnibox/omnibox";
 import { parseScope } from "@shared/omnibox/scopes";
 import { SETTINGS_INDEX } from "@shared/omnibox/settings-index";
-import type { OmniboxData, OmniboxTab, OpenDisposition, ScopeId, Suggestion } from "@shared/omnibox/types";
+import type { OmniboxAnnotation, OmniboxData, OmniboxTab, OpenDisposition, ScopeId, Suggestion } from "@shared/omnibox/types";
 import type { Bookmark, HistoryEntry } from "@shared/types";
 import { api, browser } from "../../lib/browser.svelte";
 import { platform } from "../../lib/platform.svelte";
@@ -35,6 +35,7 @@ export class OmniboxController {
   private history = $state.raw<{ text: string; entries: HistoryEntry[] }>({ text: "", entries: [] });
   private bookmarks = $state.raw<Bookmark[]>([]);
   private archived = $state.raw<ArchivedTab[]>([]);
+  private annotations = $state.raw<OmniboxAnnotation[]>([]);
   /** Every space's tabs; until main answers, the space on screen (from the state) is enough. */
   private allTabs = $state.raw<OmniboxTab[] | null>(null);
   private request = 0;
@@ -50,6 +51,7 @@ export class OmniboxController {
   constructor(private readonly onClose: (restoreFocus: boolean) => void) {
     api.bookmarks.list().then((list) => (this.bookmarks = list), () => {});
     api.archive.list().then((list) => (this.archived = list), () => {});
+    api.annotations.list().then((list) => (this.annotations = list.highlights), () => {});
     api.omnibox.tabs().then((tabs) => (this.allTabs = tabs), () => {});
   }
 
@@ -70,6 +72,7 @@ export class OmniboxController {
       // Private windows open them like any link, but the list itself is the account's.
       remoteTabs: sync.remoteTabs,
       archived: this.archived,
+      annotations: this.annotations,
       commandContext: { activeTab: browser.activeTab },
       shortcut: (id) => platform.keys(id),
       settings: SETTINGS_INDEX,

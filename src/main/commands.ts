@@ -107,6 +107,9 @@ const RUNNERS: Record<CommandId, Runner> = {
   "toggle-reader": onActiveTab((c, id) => void toggleReader(c, id)),
   "toggle-mobile-site": onActiveTab((c, id) => c.tabs.toggleMobileSite(id)),
   "translate-page": onActiveTab((c, id) => void c.translator.toggle(id)),
+  "highlight-selection": onActiveTab((c, id) => void c.annotator.highlightSelection(id)),
+  "toggle-notes-panel": (c) => c.sendUiCommand("toggle-notes"),
+  "open-notes": (c) => c.openNotes(),
   "open-boosts": (c) => c.openBoosts(),
   "zap-elements": onActiveTab(startZap),
   // Shows the settings, where the update status is.

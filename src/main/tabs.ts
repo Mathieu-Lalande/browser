@@ -39,6 +39,7 @@ import type { SleepCandidate } from "./sleep";
 import type { SessionTab, SessionTabList } from "./storage/session";
 import { closeSuccessor, tabSlot } from "@shared/tab-order";
 import { parsePageWheel, type PageWheelSample } from "./page-swipe-script";
+import { parseAnnotatorMessage, type MarkClick } from "./annotations/page";
 import { onSiteZoomChange, rememberSiteZoom, siteZoomFactor } from "./zoom";
 import { nextZoomFactor, sameFactor } from "./zoom/levels";
 
@@ -127,6 +128,10 @@ export interface TabManagerHooks {
   translatePage?(tabId: TabId, contents: WebContents): void;
   /** What the UIs show about the tab's translation (ADR-036). */
   translation?(tabId: TabId): TabTranslation | null;
+  /** A new document is ready (dom-ready): its highlights are drawn (ADR-037). */
+  annotatePage?(tabId: TabId, contents: WebContents): void;
+  /** A highlight of the page was clicked (reported by the annotator's isolated world, ADR-037). */
+  annotationClick?(tabId: TabId, click: MarkClick): void;
   /** The page started or stopped playing media: the window's media hub follows it (ADR-035). */
   media?(tabId: TabId, contents: WebContents, playing: boolean): void;
 }
@@ -1250,7 +1255,9 @@ export class TabManager {
     on("console-message", (details: Electron.Event<Electron.WebContentsConsoleMessageEventParams>) => {
       if (details.frame !== contents.mainFrame) return;
       const sample = parsePageWheel(details.message);
-      if (sample) this.hooks.pageWheel?.(tab.id, sample);
+      if (sample) return this.hooks.pageWheel?.(tab.id, sample);
+      const click = parseAnnotatorMessage(details.message);
+      if (click) this.hooks.annotationClick?.(tab.id, click);
     });
     on("did-start-navigation", (details) => {
       if (!details.isMainFrame || details.isSameDocument) return;
@@ -1299,6 +1306,7 @@ export class TabManager {
       this.hooks.gesturePage?.(contents);
       this.hooks.pageReady?.(tab.id, contents);
       this.hooks.translatePage?.(tab.id, contents);
+      this.hooks.annotatePage?.(tab.id, contents);
     });
     // Ctrl+wheel and pinch: same steps as the zoom commands, remembered per site, paced by the window.
     on("zoom-changed", (_event, direction) => {

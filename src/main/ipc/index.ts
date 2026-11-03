@@ -4,6 +4,7 @@ import { installRecorder } from "../capture/record";
 import { BrowserController } from "../window";
 import { downloadHandlers } from "./downloads";
 import { mediaHandlers } from "./media";
+import { annotationHandlers } from "./annotations";
 import { archiveHandlers, favoriteHandlers, folderHandlers, spaceHandlers } from "./organize";
 import { passwordHandlers } from "./passwords";
 import { boostHandlers, captureHandlers } from "./page";
@@ -34,7 +35,8 @@ type EventChannel = (typeof Channels)[
   | "boostsChanged"
   | "peekState"
   | "mediaChanged"
-  | "pageSwipeState"];
+  | "pageSwipeState"
+  | "annotationsChanged"];
 
 /** Every channel the UI sends or invokes: the compiler checks each one has exactly one handler. */
 type RequestChannel = Exclude<ChannelName, EventChannel>;
@@ -60,6 +62,7 @@ const handlers = {
   ...themeHandlers,
   ...mediaHandlers,
   ...translateHandlers,
+  ...annotationHandlers,
 } satisfies Record<RequestChannel, Entry> & { [C in EventChannel]?: never };
 
 export function registerIpc(): void {

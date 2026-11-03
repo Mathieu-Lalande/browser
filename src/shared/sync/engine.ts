@@ -69,6 +69,8 @@ export interface RecordChange<T> {
 /** Bridge between the engine and one kind of local data. */
 export interface CollectionAdapter<T = unknown> {
   readonly name: CollectionName;
+  /** Opt-in collections (ADR-037): synced only while this returns true (default: always). */
+  enabled?(): boolean;
   /** Current local records in sync scope, by local id. Must be deterministic for unchanged data. */
   snapshot(): Map<string, T>;
   /** Whether a record missing from the snapshot still exists locally, out of scope (expired, not deleted). */
@@ -201,7 +203,8 @@ export class SyncEngine {
   /** One full round: every collection is pulled, merged, then pushed. */
   async sync(): Promise<SyncReport> {
     const report: SyncReport = { pulled: 0, pushed: 0, rejected: 0 };
-    for (const adapter of this.adapters) await this.syncCollection(adapter, report);
+    // An opt-in collection that is off is left alone: neither pulled nor pushed (no deletion either).
+    for (const adapter of this.adapters) if (adapter.enabled?.() !== false) await this.syncCollection(adapter, report);
     this.state.lastSync = this.now();
     this.save();
     return report;

@@ -1,4 +1,5 @@
 /// <reference types="node" />
+import { addHighlight, emptyAnnotations, type AnnotationsData } from "@shared/annotations/model";
 import { newBoost, type Boost } from "@shared/boosts";
 import type { Favorite } from "@shared/favorites";
 import { History } from "@shared/history";
@@ -33,6 +34,7 @@ function phone(server: MemorySyncServer) {
     folders: [] as BookmarkFolder[],
     favorites: [] as Favorite[],
     boosts: [] as Boost[],
+    annotations: emptyAnnotations() as AnnotationsData,
     history: new History([], 5000),
     deleted: new Set<string>(),
   };
@@ -52,6 +54,8 @@ function phone(server: MemorySyncServer) {
     setFavorites: (next) => void (data.favorites = next),
     boosts: () => data.boosts,
     setBoosts: (next) => void (data.boosts = next),
+    annotations: () => data.annotations,
+    setAnnotations: (next) => void (data.annotations = next),
     history: () => data.history,
     historyChanged: () => {},
     historyDeleted: (url) => data.deleted.has(url),
@@ -188,6 +192,30 @@ describe("mobile sync adapters", () => {
     await b.sync.syncNow();
     await a.sync.syncNow();
     expect(a.data.boosts[0]).toMatchObject({ enabled: false, script: { code: "secretCode()" } });
+  });
+
+  it("syncs highlights (ADR-037) only once opted in, end-to-end encrypted", async () => {
+    const server = new MemorySyncServer();
+    const a = phone(server);
+    a.data.annotations = addHighlight(emptyAnnotations(), {
+      id: "hl-00000001",
+      url: "https://notes.example/page",
+      title: "Notes",
+      quote: { exact: "secret passage", prefix: "", suffix: "", start: 0 },
+      color: "blue",
+      now: 1,
+    })!;
+    await a.sync.createAccount("https://sync.example.org");
+    const b = phone(server);
+    await b.sync.pair(a.sync.pairingCode()!);
+    expect(b.data.annotations.highlights).toEqual([]);
+
+    a.data.settings = mergeSettings(a.data.settings, { annotations: { sync: true } });
+    b.data.settings = mergeSettings(b.data.settings, { annotations: { sync: true } });
+    await a.sync.syncNow();
+    await b.sync.syncNow();
+    expect(b.data.annotations.highlights).toMatchObject([{ id: "hl-00000001", exact: "secret passage", color: "blue" }]);
+    expect(server.dump()).not.toContain("secret passage");
   });
 
   it("history pruned on a full phone is not deleted elsewhere, a cleared history is", async () => {

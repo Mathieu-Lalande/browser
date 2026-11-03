@@ -16,6 +16,7 @@ import { Overlay } from "./overlay";
 import { LinkPeek } from "./peek";
 import { MediaHub } from "./media";
 import { PageTranslator } from "./translate";
+import { PageAnnotator } from "./annotations";
 import { boostPage } from "./boosts";
 import { watchPasswordForms } from "./passwords";
 import { hasPasswordsFor, setPasswordsNotifier } from "./passwords/vault";
@@ -137,6 +138,8 @@ export class BrowserController {
   readonly media: MediaHub = new MediaHub(this);
   /** Page translation of this window's tabs (ADR-036). */
   readonly translator: PageTranslator = new PageTranslator(this);
+  /** Highlights and notes of this window's pages (ADR-037). */
+  readonly annotator: PageAnnotator = new PageAnnotator(this);
   /**
    * Private window: never written to the profile (history, session, permissions…). Anything that
    * persists per window checks this; per-session hooks (downloads) use `isPrivateSession` (./private).
@@ -214,6 +217,8 @@ export class BrowserController {
           media: (tabId, contents, playing) => this.media.report(tabId, contents, playing),
           translatePage: (tabId, contents) => void this.translator.pageReady(tabId, contents),
           translation: (tabId) => this.translator.stateOf(tabId),
+          annotatePage: (tabId, contents) => this.annotator.pageReady(tabId, contents),
+          annotationClick: (tabId, click) => this.annotator.clicked(tabId, click),
         },
         this.isPrivate,
       ),
@@ -319,6 +324,11 @@ export class BrowserController {
   /** Shows `browser://boosts` (ADR-029). */
   openBoosts(): void {
     this.openInternal("boosts");
+  }
+
+  /** Shows `browser://notes` (ADR-037). */
+  openNotes(): void {
+    this.openInternal("notes");
   }
 
   /** Shows `browser://passwords` (ADR-025). */

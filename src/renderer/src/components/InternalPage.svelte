@@ -5,6 +5,7 @@
   import DownloadsPage from "./downloads/DownloadsPage.svelte";
   import ExtensionsPage from "./extensions/ExtensionsPage.svelte";
   import PasswordsPage from "./passwords/PasswordsPage.svelte";
+  import NotesPage from "./annotations/NotesPage.svelte";
   import SettingsPage from "./settings/SettingsPage.svelte";
 
   /** A `browser://` page drawn by the chrome (ADR-012), in the viewport or in a split pane. */
@@ -23,4 +24,6 @@
   <PasswordsPage />
 {:else if page === "boosts"}
   <BoostsPage />
+{:else if page === "notes"}
+  <NotesPage />
 {/if}

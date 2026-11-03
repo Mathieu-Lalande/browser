@@ -1,3 +1,4 @@
+import { annotationRecords, mergeAnnotations, sanitizeSyncedAnnotation, type SyncedAnnotation } from "@shared/annotations/sync";
 import { boostRecord, mergeBoosts, sanitizeSyncedBoost, type SyncedBoost } from "@shared/boosts";
 import { favoriteLocalId, favoriteRecord, mergeFavorites, sanitizeSyncedFavorite, type SyncedFavorite } from "@shared/favorites";
 import { MAX_SPACES } from "@shared/spaces";
@@ -25,6 +26,7 @@ import {
 } from "@shared/sync/records";
 import type { HistoryEntry } from "@shared/types";
 import { setBoosts } from "../boosts";
+import { setProfileAnnotations } from "../annotations";
 import { profile } from "../profile";
 import { settings, updateSettings } from "../settings";
 import { spaces } from "../spaces";
@@ -130,6 +132,17 @@ function boostsAdapter(): CollectionAdapter<SyncedBoost> {
   };
 }
 
+/** Highlights and page notes (ADR-037), opt-in (`settings.annotations.sync`). */
+function annotationsAdapter(): CollectionAdapter<SyncedAnnotation> {
+  return {
+    name: "annotations",
+    enabled: () => settings().annotations.sync,
+    snapshot: () => annotationRecords(profile().annotations),
+    sanitize: (value, id) => sanitizeSyncedAnnotation(value, id),
+    apply: ({ upserts, deletes }) => setProfileAnnotations(mergeAnnotations(profile().annotations, upserts, deletes)),
+  };
+}
+
 export function desktopAdapters(now: () => number = Date.now): CollectionAdapter[] {
-  return [settingsAdapter(), spacesAdapter(), bookmarksAdapter(), historyAdapter(now), favoritesAdapter(), boostsAdapter()] as CollectionAdapter[];
+  return [settingsAdapter(), spacesAdapter(), bookmarksAdapter(), historyAdapter(now), favoritesAdapter(), boostsAdapter(), annotationsAdapter()] as CollectionAdapter[];
 }

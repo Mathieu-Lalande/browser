@@ -19,6 +19,8 @@ export const KEYS = {
   archive: "browser.archive",
   /** Boosts (ADR-029, synced). */
   boosts: "browser.boosts",
+  /** Highlights and page notes (ADR-037, synced when opted in). */
+  annotations: "browser.annotations",
 } as const;
 
 export type StorageKey = (typeof KEYS)[keyof typeof KEYS];

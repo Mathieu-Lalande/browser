@@ -1733,3 +1733,54 @@ l'option désactivée par défaut et l'avertissement. Pas de traduction des attr
 des iframes ; une phrase coupée par du balisage (`<b>`) est traduite morceau par morceau. Sur le téléphone, la page voit
 le script et peut lire le nonce : il ne sert qu'à écarter les autres cadres, une page ne pouvant de toute façon faire
 traduire que son propre texte.
+
+## ADR-037 — Notes et surlignages (bureau et téléphone)
+
+**Contexte.** Surligner des passages d'une page, les annoter, les retrouver à chaque visite (même si la page a un peu
+changé) et les exporter, sans donner aux pages ni preload ni accès à ces données.
+
+**Modèle pur** (`src/shared/annotations/`, testé, importé tel quel par le téléphone) : un surlignage est une citation
+façon W3C `TextQuoteSelector` (`exact`, `prefix`/`suffix` de 32 caractères, position `start` comme indice), une couleur
+parmi quatre (jaune, vert, bleu, rose ; teintes claires/sombres selon `prefers-color-scheme` de la page), une note
+facultative et ses dates ; une note de page est un texte libre par URL. Les pages sont identifiées par leur URL http(s)
+sans fragment ni identifiants (`annotationUrl`) ; tout ce qui vient du stockage, de l'IPC, d'une page ou de la synchro
+passe par `sanitize*` (tailles bornées, caractères de contrôle retirés). Export Markdown (échappé, groupé par site) et
+JSON (même forme que `annotations.json`).
+
+**Ancrage** (`page-script.ts`, chaînes ES2018 : Hermes ne garde pas le source des fonctions ; les tests évaluent ce même
+code) : texte normalisé du `body` (nœuds texte dans l'ordre, scripts/styles/champs/`hidden` exclus, espaces fusionnés, une
+espace entre blocs). On cherche toutes les occurrences exactes, départagées par le contexte puis la distance à l'indice ;
+à défaut, une correspondance approchée (distance d'édition, algorithme de Sellers ; début et fin séparément pour les longues
+citations, longueur à ±25 %), au plus 5 essais approchés par surlignage et par document. Le passage est enveloppé de
+`<mark data-browser-hl>` en déplaçant les nœuds texte (jamais d'HTML analysé) ; un `MutationObserver` (anti-rebond 600 ms,
+1,5 s au moins entre deux passes) réancre les passages manquants.
+
+**Bureau.** L'annotateur tourne dans le **monde isolé 1013** (ADR-003), injecté seulement quand la page a des surlignages ou
+qu'on en crée un ; le CSS par `insertCSS`. Un clic sur un passage (événement de confiance, hors liens et contrôles, sans
+sélection) remonte par `console.debug` préfixé d'un secret par exécution (même canal que le geste de balayage, ADR-033) ;
+main vérifie que l'id appartient bien à la page. `PageAnnotator` (un par fenêtre) dessine les pages à chaque `dom-ready` et
+après chaque changement, capture la sélection (commande `highlight-selection`, Ctrl+Maj+H, dernière couleur ; menu
+contextuel « Surligner » et ses couleurs), ouvre le popover overlay `annotation` (couleur, note, copier, supprimer).
+Panneau « Notes de la page » (commande `toggle-notes-panel`, Ctrl+Alt+N) : il réduit la zone `viewport` (ADR-010), du
+côté opposé à la barre latérale. Page interne `browser://notes` (ADR-012) : groupée par site, recherche, filtres de
+couleur, export par boîte d'enregistrement de main, suppression. Barre universelle : fournisseur `AnnotationsProvider`,
+filtre `@n`. Stockage `annotations.json` (`JsonFile` du profil).
+
+**Synchro** : collection `annotations` (enregistrements `h:<id>` et `n:<url>`, chiffrés de bout en bout, LWW par
+enregistrement), **facultative** (`settings.annotations.sync`, désactivée par défaut). Le moteur saute une collection dont
+`CollectionAdapter.enabled()` renvoie faux : ni lecture ni envoi, donc aucune suppression propagée tant qu'elle est
+désactivée.
+
+**Fenêtres privées** (ADR-014) : rien n'est écrit dans le profil ; la fenêtre a son propre carnet **en mémoire**, signalé
+dans le panneau et sur `browser://notes`, perdu à sa fermeture, jamais synchronisé.
+
+**Téléphone.** « Surligner » dans le menu de sélection (`menuItems`/`onCustomMenuSelection` de react-native-webview), onglets
+normaux seulement. L'annotateur partagé est injecté à chaque document avec un **nonce aléatoire** gardé dans sa fermeture ;
+`AnnotateBridge` n'accepte que les messages portant ce nonce, venus de l'origine du cadre principal, jusqu'au chargement
+suivant (règle d'ADR-025). Toucher un passage ouvre une feuille (couleur, copier, supprimer) ; liste, recherche et
+interrupteur de synchro dans Paramètres, « Notes et surlignages ».
+
+**Conséquences.** Envelopper du texte découpe des nœuds texte : un framework qui en garde des références peut réécrire
+le passage (il est alors réancré). Pas d'ancrage dans les iframes ni le Shadow DOM. Sur le téléphone, la page voit
+l'annotateur (pas de monde isolé) ; elle ne peut au pire que surligner son propre texte ou signaler un clic sur un id
+que l'application vérifie.

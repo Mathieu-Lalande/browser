@@ -5,6 +5,8 @@
   import Icon from "../Icon.svelte";
   import QrCode from "./QrCode.svelte";
   import Row from "../ui/Row.svelte";
+  import Toggle from "../ui/Toggle.svelte";
+  import { settings } from "../../lib/settings.svelte";
 
   /**
    * Sync settings (ADR-019): set up an account on a self-hosted relay or pair with a code, then
@@ -239,6 +241,18 @@
         </div>
       </div>
     {/if}
+  </Row>
+  <Row
+    label="Notes et surlignages"
+    anchor="annotations"
+    keywords="annotations notes surligner"
+    hint="Facultatif : synchronise aussi vos passages surlignés et notes de pages (chiffrés comme le reste). Jamais ceux des fenêtres privées."
+  >
+    <Toggle
+      label="Synchroniser les notes et surlignages"
+      checked={settings.current.annotations.sync}
+      onchange={(sync) => settings.update({ annotations: { sync } })}
+    />
   </Row>
   <Row label="Déconnecter cet appareil" hint="Arrête la synchronisation ici et retire cet appareil de la liste. Les données restent sur l'appareil.">
     <button class="danger" class:confirming={confirming === "disconnect"} disabled={busy} onclick={() => confirmed("disconnect")}>

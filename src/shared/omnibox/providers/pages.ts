@@ -125,6 +125,38 @@ export class RemoteTabsProvider implements Provider {
 const RECENT_ARCHIVED = 4;
 
 /** Archived tabs (ADR-022): choosing one restores it. */
+/** Longest quote shown as a row title. */
+const QUOTE_TITLE = 120;
+
+/** Highlights (ADR-037), searched by quote, note and page: choosing one opens its page. */
+export class AnnotationsProvider implements Provider {
+  readonly id = "notes";
+  readonly scope = "notes" as const;
+
+  query(text: string, context: QueryContext): Suggestion[] {
+    if (!text && !context.scope) return [];
+    const rows = present(
+      (context.annotations ?? []).map((item) =>
+        matchedRow(
+          text,
+          "notes",
+          {
+            key: `note:${item.id}`,
+            title: item.exact.length > QUOTE_TITLE ? `${item.exact.slice(0, QUOTE_TITLE - 1)}…` : item.exact,
+            detail: `${item.title || shortUrl(item.url)}${item.note ? ` · ${item.note.replace(/\s+/g, " ").slice(0, 80)}` : ""}`,
+            icon: "highlighter",
+            verb: "Ouvrir la page",
+            completion: item.url,
+            action: { type: "open", url: item.url },
+          },
+          { keywords: [item.note, shortUrl(item.url)], keepUnmatched: !text },
+        ),
+      ),
+    );
+    return rows;
+  }
+}
+
 export class ArchivedTabsProvider implements Provider {
   readonly id = "archived";
 

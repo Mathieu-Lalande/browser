@@ -76,6 +76,7 @@ export const SETTINGS_INDEX: readonly SettingEntry[] = [
   entry("data", "history", "Historique de navigation", ["effacer", "historique", "history"]),
   entry("data", "bookmarks", "Favoris", ["bookmarks", "signets"]),
   entry("sync", null, "Synchronisation", ["appareils", "sync", "jumelage", "compte"]),
+  entry("sync", "annotations", "Synchroniser les notes et surlignages", ["notes", "surlignages", "annotations", "highlights"]),
   entry("updates", null, "Mises à jour", ["version", "update", "mettre à jour"]),
 ];
 

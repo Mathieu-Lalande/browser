@@ -22,6 +22,7 @@
   import SidebarResizer from "./components/SidebarResizer.svelte";
   import SplitView from "./components/split/SplitView.svelte";
   import StartPage from "./components/StartPage.svelte";
+  import NotesPanel from "./components/annotations/NotesPanel.svelte";
 
   /** Delay before a revealed zen sidebar hides once the pointer left it. */
   const ZEN_HIDE_DELAY = 450;
@@ -56,6 +57,9 @@
       : null,
   );
   let findBar = $state<FindBar>();
+  /** The notes panel (ADR-037), beside web pages: it narrows the viewport. */
+  let notesOpen = $state(false);
+  const showNotes = $derived(notesOpen && !!browser.activeTab && /^https?:/.test(browser.activeTab.url) && !internalPage);
   let findFocusPending = $state(false);
   /**
    * The space color goes through the theme's contrast engine (clamped lightness, WCAG-adjusted
@@ -207,6 +211,7 @@
       }
       // The bar may not be rendered yet (its state is on its way): focused as soon as it is.
       if (command === "focus-find") findFocusPending = true;
+      if (command === "toggle-notes") notesOpen = !notesOpen;
     });
   });
 
@@ -299,6 +304,7 @@
         <FindBar bind:this={findBar} tabId={browser.activeTab.id} find={findState} />
       {/key}
     {/if}
+    <div class="page-row" class:notes-left={right}>
     <main class="viewport" class:split={browser.splitTabs.length > 1} bind:this={viewport}>
       {#if browser.splitTabs.length > 1 && browser.state.split}
         <SplitView tabs={browser.splitTabs} split={browser.state.split} />
@@ -314,6 +320,10 @@
         <ReaderView tab={browser.activeTab} />
       {/if}
     </main>
+    {#if showNotes && browser.activeTab}
+      <NotesPanel tab={browser.activeTab} onClose={() => (notesOpen = false)} />
+    {/if}
+    </div>
   </div>
 </div>
 
@@ -415,6 +425,16 @@
   }
   .shell.right .edge {
     background: linear-gradient(to left, color-mix(in oklab, var(--accent) 30%, transparent), transparent);
+  }
+  .page-row {
+    display: flex;
+    flex: 1;
+    gap: var(--gutter);
+    min-height: 0;
+  }
+  /* The panel sits on the side away from the sidebar. */
+  .page-row.notes-left {
+    flex-direction: row-reverse;
   }
   .viewport {
     flex: 1;

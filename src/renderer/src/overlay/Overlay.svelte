@@ -13,6 +13,7 @@
   import AppMenuPanel from "./AppMenuPanel.svelte";
   import PageSwipePanel from "./PageSwipePanel.svelte";
   import TranslatePanel from "./TranslatePanel.svelte";
+  import AnnotationPanel from "./AnnotationPanel.svelte";
 
   // Root of the overlay layer (src/main/overlay.ts): a transparent page above the tab views,
   // attached only while a floating UI is open.
@@ -108,6 +109,8 @@
         <PageSwipePanel anchor={current.request.anchor} initial={current.request.swipe} />
       {:else if current.request.kind === "translate" && current.request.tabId}
         <TranslatePanel anchor={current.request.anchor} tabId={current.request.tabId} onClose={close} />
+      {:else if current.request.kind === "annotation" && current.request.annotationId}
+        <AnnotationPanel anchor={current.request.anchor} annotationId={current.request.annotationId} onClose={close} />
       {:else if current.request.kind === "password-fill"}
         <PasswordPanel kind="fill" anchor={current.request.anchor} tabId={current.request.tabId} onClose={close} />
       {/if}

@@ -204,6 +204,8 @@ export type UiCommand =
   | "focus-find"
   /** Selects every tab of the space shown (ADR-033). */
   | "select-all-tabs"
+  /** Shows or hides the notes panel next to the page (ADR-037). */
+  | "toggle-notes"
   /** Opens a space's editor (`edit-space:<id>`), its name field focused with `rename-space:<id>`. */
   | `edit-space:${string}`
   | `rename-space:${string}`;
@@ -220,7 +222,8 @@ export type OverlayKind =
   | "capture-result"
   | "app-menu"
   | "page-swipe"
-  | "translate";
+  | "translate"
+  | "annotation";
 
 export interface OverlayRequest {
   kind: OverlayKind;
@@ -236,6 +239,8 @@ export interface OverlayRequest {
   capture?: CaptureResult;
   /** Page swipe (ADR-033): the indicator's first position (updates: `overlay.onPageSwipe`). */
   swipe?: PageSwipeIndicator;
+  /** Highlight popover (ADR-037): the highlight clicked in the tab's page. */
+  annotationId?: string;
 }
 
 /** The back/forward indicator of a two-finger swipe on the page (ADR-033), drawn by the overlay. */

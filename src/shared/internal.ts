@@ -11,6 +11,7 @@ export const INTERNAL_PAGES = {
   extensions: { title: "Extensions" },
   passwords: { title: "Mots de passe" },
   boosts: { title: "Boosts" },
+  notes: { title: "Notes et surlignages" },
 } as const;
 
 export type InternalPage = keyof typeof INTERNAL_PAGES;

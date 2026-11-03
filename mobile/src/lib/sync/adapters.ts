@@ -1,3 +1,5 @@
+import type { AnnotationsData } from "@shared/annotations/model";
+import { annotationRecords, mergeAnnotations, sanitizeSyncedAnnotation, type SyncedAnnotation } from "@shared/annotations/sync";
 import { boostRecord, mergeBoosts, sanitizeSyncedBoost, type Boost, type SyncedBoost } from "@shared/boosts";
 import { favoriteLocalId, favoriteRecord, mergeFavorites, sanitizeSyncedFavorite, type Favorite, type SyncedFavorite } from "@shared/favorites";
 import type { History } from "@shared/history";
@@ -57,6 +59,9 @@ export interface MobileSyncStore {
   /** Boosts (ADR-029). */
   boosts(): Boost[];
   setBoosts(boosts: Boost[]): void;
+  /** Highlights and page notes (ADR-037): synced only when `settings.annotations.sync` is on. */
+  annotations(): AnnotationsData;
+  setAnnotations(next: AnnotationsData): void;
   history(): History;
   historyChanged(): void;
   /**
@@ -180,6 +185,25 @@ function boostsAdapter(store: MobileSyncStore): CollectionAdapter<SyncedBoost> {
   };
 }
 
+/** Highlights and page notes (ADR-037), same records as the desktop; opt-in. */
+function annotationsAdapter(store: MobileSyncStore): CollectionAdapter<SyncedAnnotation> {
+  return {
+    name: "annotations",
+    enabled: () => store.settings().annotations.sync,
+    snapshot: () => annotationRecords(store.annotations()),
+    sanitize: (value, id) => sanitizeSyncedAnnotation(value, id),
+    apply: ({ upserts, deletes }) => store.setAnnotations(mergeAnnotations(store.annotations(), upserts, deletes)),
+  };
+}
+
 export function mobileAdapters(store: MobileSyncStore): CollectionAdapter[] {
-  return [settingsAdapter(store), spacesAdapter(store), bookmarksAdapter(store), historyAdapter(store), favoritesAdapter(store), boostsAdapter(store)] as CollectionAdapter[];
+  return [
+    settingsAdapter(store),
+    spacesAdapter(store),
+    bookmarksAdapter(store),
+    historyAdapter(store),
+    favoritesAdapter(store),
+    boostsAdapter(store),
+    annotationsAdapter(store),
+  ] as CollectionAdapter[];
 }

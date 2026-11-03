@@ -117,6 +117,11 @@ describe("page context menu", () => {
     const selection = buildPageMenu(params({ selectionText: "un renard brun" }), context());
     expect(item(selection, "selection-search")?.label).toBe("Rechercher « un renard brun » avec DuckDuckGo");
     expect(ids(selection)).not.toContain("selection-open");
+    // "Surligner" (ADR-037): web pages only, one entry per color.
+    expect(ids(selection)).not.toContain("selection-highlight");
+    const annotatable = buildPageMenu(params({ selectionText: "un renard brun" }), context({ canAnnotate: true }));
+    expect(item(annotatable, "selection-highlight")?.label).toBe("Surligner");
+    expect(ids(item(annotatable, "selection-highlight")?.submenu ?? [])).toEqual(["selection-highlight:yellow", "selection-highlight:green", "selection-highlight:blue", "selection-highlight:pink"]);
     expect(ids(buildPageMenu(params({ selectionText: "example.com/page" }), context()))).toContain("selection-open");
 
     const editable = buildPageMenu(params({ isEditable: true, misspelledWord: "bonjuor", dictionarySuggestions: ["bonjour", "bonjours"] }), context());

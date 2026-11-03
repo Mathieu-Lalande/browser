@@ -42,6 +42,7 @@ import { initialScroll, overviewGeometry, overviewTarget, TabOverview } from "./
 import { WebTab } from "./WebTab";
 import { miniBarOf } from "../lib/media";
 import type { MediaProbe } from "@shared/media";
+import { addHighlight, annotationUrl, COLOR_LABELS, HIGHLIGHT_COLORS, removeHighlight, updateHighlight, type HighlightColor, type TextQuote } from "@shared/annotations/model";
 
 /** WebViews kept alive besides the active one (unmounted tabs reload when shown again). */
 const MAX_LIVE_TABS = 4;
@@ -49,7 +50,7 @@ const MAX_LIVE_TABS = 4;
 type Overlay = "none" | "search" | "tabs" | "settings";
 
 export function BrowserScreen() {
-  const { model, bookmarks, mobile, favorites, boosts } = useBrowserState();
+  const { model, bookmarks, mobile, favorites, boosts, annotations } = useBrowserState();
   // Boosts (ADR-029): one payload for normal tabs, one for private ones (scripts only if allowed).
   const normalBoosts = useMemo(() => boostPayload(boosts, false), [boosts]);
   const privateBoosts = useMemo(() => boostPayload(boosts, true), [boosts]);
@@ -345,6 +346,36 @@ export function BrowserScreen() {
       { key: "share", label: "Partager le lien", icon: "share", onPress: () => share(request.url, request.text) },
     );
     setMenu({ title: request.text || displayUrl(request.url), subtitle: request.url, siteUrl: request.url, items });
+  });
+
+  // --- Highlights (ADR-037): "Surligner" in the selection menu, a tap on one opens its sheet ------
+  const lastColor = useRef<HighlightColor>("yellow");
+  const onHighlight = useEvent((tabId: string, url: string, quote: TextQuote) => {
+    const target = model.tabs.find((candidate) => candidate.id === tabId);
+    const key = annotationUrl(url);
+    if (!target || isPrivateTab(target) || !key) return;
+    haptic("light");
+    const now = Date.now();
+    actions.setAnnotations((data) => addHighlight(data, { id: `hl-${newId()}`, url: key, title: target.title, quote, color: lastColor.current, now }) ?? data);
+  });
+  const onHighlightPress = useEvent((tabId: string, id: string) => {
+    const highlight = annotations.highlights.find((item) => item.id === id);
+    if (!highlight || tabId !== tab?.id || menu || overlay !== "none") return;
+    const setColor = (color: HighlightColor) => {
+      lastColor.current = color;
+      actions.setAnnotations((data) => updateHighlight(data, id, { color }, Date.now()));
+    };
+    setMenu({
+      title: highlight.exact.length > 120 ? `${highlight.exact.slice(0, 119)}…` : highlight.exact,
+      subtitle: highlight.note || undefined,
+      items: [
+        ...HIGHLIGHT_COLORS.filter((color) => color !== highlight.color).map(
+          (color): MenuItem => ({ key: color, label: `Surligner en ${COLOR_LABELS[color].toLowerCase()}`, icon: "highlighter", onPress: () => setColor(color) }),
+        ),
+        { key: "copy", label: "Copier le passage", icon: "copy", onPress: () => copy(highlight.exact) },
+        { key: "delete", label: "Supprimer le surlignage", icon: "trash", destructive: true, onPress: () => actions.setAnnotations((data) => removeHighlight(data, id)) },
+      ],
+    });
   });
 
   // --- Mini-player (ADR-035): the media of the page on screen only -------------------------------
@@ -805,6 +836,9 @@ export function BrowserScreen() {
               translateRequest={translation.requests[candidate.id] ?? null}
               onTranslateBatch={translation.batch}
               onTranslateReset={translation.reset}
+              annotations={annotations}
+              onHighlight={onHighlight}
+              onHighlightPress={onHighlightPress}
             />
           ))}
           {showStart && (

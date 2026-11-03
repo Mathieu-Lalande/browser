@@ -1,4 +1,6 @@
 import type { ArchivedTab } from "./archive";
+import type { AnnotationExportFormat } from "./annotations/export";
+import type { AnnotationResult, AnnotationsList, Highlight, HighlightColor, HighlightPatch, TabAnnotations } from "./annotations/model";
 import type { Boost, BoostInput, BoostResult } from "./boosts";
 import type { CommandId } from "./commands";
 import type { ExtensionInfo, ExtensionInstallResult } from "./extensions";
@@ -206,6 +208,18 @@ export const Channels = {
   translateKeys: "translate:keys",
   translateSetKey: "translate:set-key",
   translateTest: "translate:test",
+  annotationsForTab: "annotations:for-tab",
+  annotationsList: "annotations:list",
+  annotationsGet: "annotations:get",
+  annotationsHighlight: "annotations:highlight",
+  annotationsUpdate: "annotations:update",
+  annotationsRemove: "annotations:remove",
+  annotationsSetNote: "annotations:set-note",
+  annotationsRemovePage: "annotations:remove-page",
+  annotationsJump: "annotations:jump",
+  annotationsCopy: "annotations:copy",
+  annotationsExport: "annotations:export",
+  annotationsChanged: "annotations:changed",
   boostsList: "boosts:list",
   boostsForTab: "boosts:for-tab",
   boostsCreateForTab: "boosts:create-for-tab",
@@ -373,6 +387,32 @@ export interface BrowserApi {
     setKey(provider: TranslateProviderId, key: string): Promise<TranslateResultMessage>;
     /** Translates a short sample with the configured provider. */
     test(): Promise<TranslateResultMessage>;
+  };
+  /**
+   * Notes and highlights (ADR-037): the UIs name tabs of their own window and highlights by id;
+   * main reads the pages and keeps the window's book (in memory for a private window).
+   */
+  annotations: {
+    /** The notes panel: the tab's page, its highlights and note (null: not a web page). */
+    forTab(tabId: TabId): Promise<TabAnnotations | null>;
+    /** `browser://notes`: everything. */
+    list(): Promise<AnnotationsList>;
+    get(id: string): Promise<Highlight | null>;
+    /** The tab's selection becomes a highlight (the last color when none is given). */
+    highlight(tabId: TabId, color?: HighlightColor): Promise<AnnotationResult>;
+    update(id: string, patch: HighlightPatch): Promise<Highlight | null>;
+    remove(id: string): void;
+    /** A page's note; empty text removes it. */
+    setNote(url: string, text: string): void;
+    /** Every highlight and the note of a page. */
+    removePage(url: string): void;
+    /** Scrolls the tab's page to the highlight and flashes it. */
+    jump(tabId: TabId, id: string): Promise<boolean>;
+    /** Copies the quote (main writes the clipboard). */
+    copy(id: string): void;
+    /** Save dialog, then the file. Null: cancelled. */
+    exportAs(format: AnnotationExportFormat): Promise<AnnotationResult | null>;
+    onChanged(listener: () => void): () => void;
   };
   /**
    * Link peek (ADR-027): main owns the peeked page; the overlay layer draws the card around it

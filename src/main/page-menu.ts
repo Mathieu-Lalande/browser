@@ -1,4 +1,5 @@
 import { Menu, clipboard, type ContextMenuParams, type MenuItemConstructorOptions, type WebContents } from "electron";
+import { annotationUrl, isHighlightColor } from "@shared/annotations/model";
 import type { CaptureMode } from "@shared/capture";
 import { effectiveAccelerator } from "@shared/commands";
 import { MAX_SPLIT_TABS } from "@shared/split";
@@ -67,6 +68,11 @@ function runEntry(id: string, c: BrowserController, tabId: TabId, contents: WebC
   const engine = searchEngineOf(settings());
   if (id.startsWith("link-open-space:")) {
     if (!c.isPrivate && isPageOpenableUrl(params.linkURL)) c.spaces.openInSpace(id.slice("link-open-space:".length), params.linkURL);
+    return;
+  }
+  if (id.startsWith("selection-highlight:")) {
+    const color = id.slice("selection-highlight:".length);
+    if (isHighlightColor(color)) void c.annotator.highlightSelection(tabId, color);
     return;
   }
   if (id.startsWith("page-send:")) {
@@ -217,6 +223,7 @@ export function buildPageContextMenu(c: BrowserController, tabId: TabId, params:
     hasPasswords: hasPasswordsFor(contents.getURL()),
     isBookmarked: tab.isBookmarked,
     translated: !!tab.translated,
+    canAnnotate: annotationUrl(contents.getURL()) !== null,
     devices: sendableDevices(c),
     shortcut: (command) => effectiveAccelerator(command, process.platform, settings().shortcuts),
   });

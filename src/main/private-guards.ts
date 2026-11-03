@@ -37,6 +37,9 @@ export function tabHooksFor(hooks: TabManagerHooks, isPrivate: boolean): TabMana
         // Translation (ADR-036): only after the window's own consent, rules kept in memory.
         translatePage: hooks.translatePage,
         translation: hooks.translation,
+        // Highlights (ADR-037): the private window's own book, in memory only.
+        annotatePage: hooks.annotatePage,
+        annotationClick: hooks.annotationClick,
       }
     : hooks;
 }

@@ -90,3 +90,7 @@
   découpage, walker `TRANSLATE_WALKER`, règles), main `src/main/translate/` (HTTP par main, clés `safeStorage`, monde isolé
   1012, `PageTranslator` par fenêtre), popover overlay `translate`, commande `translate-page` ; mobile `mobile/src/lib/translate.ts`
   (nonce par demande, clés `expo-secure-store`). Fenêtre privée : confirmation à chaque fenêtre, règles en mémoire.
+- Notes et surlignages (ADR-037) : modèle pur `src/shared/annotations/` (citation exacte + contexte, ancrage approché,
+  export, collection de synchro `annotations` facultative via `CollectionAdapter.enabled`), annotateur `ANNOTATOR_FACTORY`
+  (chaîne ES2018) en monde isolé 1013, `PageAnnotator` par fenêtre (`src/main/annotations/`, carnet en mémoire en fenêtre
+  privée), popover overlay `annotation`, panneau `NotesPanel`, `browser://notes`, `@n` ; mobile `mobile/src/lib/annotations.ts`.

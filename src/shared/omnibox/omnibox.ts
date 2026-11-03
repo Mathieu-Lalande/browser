@@ -1,6 +1,6 @@
 import { CalculatorProvider, ConversionProvider, NumberBaseProvider, TimeZoneProvider } from "./providers/answers";
 import { CommandsProvider, SettingsProvider } from "./providers/commands";
-import { ArchivedTabsProvider, BookmarksProvider, FavoritesProvider, HistoryProvider, RemoteTabsProvider } from "./providers/pages";
+import { AnnotationsProvider, ArchivedTabsProvider, BookmarksProvider, FavoritesProvider, HistoryProvider, RemoteTabsProvider } from "./providers/pages";
 import { TabsProvider } from "./providers/tabs";
 import { WebProvider } from "./providers/web";
 import { rank, SCOPED_LIMIT } from "./scorer";
@@ -75,6 +75,7 @@ export function sharedProviders(): Provider[] {
     new HistoryProvider(),
     new RemoteTabsProvider(),
     new ArchivedTabsProvider(),
+    new AnnotationsProvider(),
     new CommandsProvider(),
     new SettingsProvider(),
   ];

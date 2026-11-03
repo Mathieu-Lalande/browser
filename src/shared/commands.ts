@@ -60,6 +60,9 @@ export type CommandId =
   | "toggle-reader"
   | "toggle-mobile-site"
   | "translate-page"
+  | "highlight-selection"
+  | "toggle-notes-panel"
+  | "open-notes"
   | "open-boosts"
   | "zap-elements"
   | "check-updates"
@@ -148,6 +151,9 @@ export type CommandIcon =
   | "log-out"
   | "send"
   | "languages"
+  | "highlighter"
+  | "notebook-pen"
+  | "notebook"
   | "history"
   | "pencil";
 
@@ -431,6 +437,24 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
     needsPage: true,
     opensOverlay: true,
   },
+  "highlight-selection": {
+    label: "Surligner la sélection",
+    keywords: ["highlight", "surligner", "surligneur", "annoter", "citation", "marquer"],
+    accelerator: "CmdOrCtrl+Shift+H",
+    icon: "highlighter",
+    needsPage: true,
+  },
+  "toggle-notes-panel": {
+    label: "Notes de la page",
+    keywords: ["notes", "annotations", "surlignages", "panneau", "highlights"],
+    accelerator: "CmdOrCtrl+Alt+N",
+    icon: "notebook-pen",
+  },
+  "open-notes": {
+    label: "Toutes les notes",
+    keywords: ["notes", "annotations", "surlignages", "exporter", "markdown", "highlights"],
+    icon: "notebook",
+  },
   "open-boosts": {
     label: "Boosts",
     keywords: ["boosts", "personnaliser", "css", "style", "site", "thème du site", "arc"],
@@ -642,6 +666,7 @@ export const COMMAND_GROUPS: readonly { label: string; ids: readonly CommandId[]
       "toggle-reader",
       "toggle-mobile-site",
       "translate-page",
+      "toggle-notes-panel",
       "zoom-in",
       "zoom-out",
       "zoom-reset",
@@ -658,6 +683,8 @@ export const COMMAND_GROUPS: readonly { label: string; ids: readonly CommandId[]
       "open-archive",
       "open-downloads",
       "open-passwords",
+      "highlight-selection",
+      "open-notes",
       "open-boosts",
       "zap-elements",
       "page-options",

@@ -13,6 +13,7 @@ import { PASSWORD_PROMPT_COOLDOWN_MS, PasswordCaptureGuard, captureNonce } from 
 import { MediaWatchGuard, newMediaNonce } from "../lib/media";
 import { desktopUserAgent, parseReaderMessage, readerScript } from "../lib/reader";
 import { TranslateBridge, translateNonce } from "../lib/translate";
+import { AnnotateBridge, annotateNonce, marksFor } from "../lib/annotations";
 import { useBrowserActions, useEvent } from "../state/BrowserProvider";
 import { LoadError } from "./LoadError";
 import type { WebTabProps } from "./webTabTypes";
@@ -26,6 +27,9 @@ const NO_BOOSTS: readonly BoostPayload[] = [];
 const newCaptureNonce = () => captureNonce(getRandomBytes);
 const newWatchNonce = () => newMediaNonce(getRandomBytes);
 const newTranslateNonce = () => translateNonce(getRandomBytes);
+const newAnnotateNonce = () => annotateNonce(getRandomBytes);
+/** The selection menu's extra item (ADR-037). */
+const HIGHLIGHT_MENU = [{ label: "Surligner", key: "highlight" }];
 /** Only these schemes may ever reach the native view (navigation policy: `decideNavigation`). */
 export const WEBVIEW_ORIGIN_WHITELIST = ["http://*", "https://*", "about:*", "data:*", "mailto:*", "tel:*", "sms:*"];
 
@@ -58,6 +62,9 @@ export const WebTab = memo(function WebTab({
   translateRequest = null,
   onTranslateBatch,
   onTranslateReset,
+  annotations,
+  onHighlight,
+  onHighlightPress,
 }: WebTabProps) {
   const actions = useBrowserActions();
   const ref = useRef<WebViewHandle | null>(null);
@@ -119,7 +126,26 @@ export const WebTab = memo(function WebTab({
   // Translation (ADR-036): a nonce per request, messages accepted from this document only.
   const translateBridge = useRef<TranslateBridge | null>(null);
   translateBridge.current ??= new TranslateBridge(newTranslateNonce);
+  // Highlights (ADR-037): normal tabs only, a nonce per document.
+  const annotateBridge = useRef<AnnotateBridge | null>(null);
+  annotateBridge.current ??= new AnnotateBridge(newAnnotateNonce);
+  const annotationsRef = useRef(annotations);
+  annotationsRef.current = annotations;
+  const drawnAnnotations = useRef(annotations);
+  useEffect(() => {
+    if (drawnAnnotations.current === annotations || !annotations || isPrivate) return;
+    drawnAnnotations.current = annotations;
+    const script = annotateBridge.current?.redraw(marksFor(annotations, currentUrl.current));
+    if (script) ref.current?.injectJavaScript(script);
+  }, [annotations, isPrivate]);
+  const onCustomMenu = useEvent((event: { nativeEvent: { key: string } }) => {
+    if (event.nativeEvent.key !== "highlight") return;
+    const script = annotateBridge.current?.capture();
+    if (script) ref.current?.injectJavaScript(script);
+  });
+
   const onLoadStart = useEvent(() => {
+    annotateBridge.current?.loadStarted();
     if (translateBridge.current?.active) onTranslateReset?.(id);
     translateBridge.current?.loadStarted();
     captureGuard.current?.loadStarted();
@@ -136,6 +162,11 @@ export const WebTab = memo(function WebTab({
     if (capture) ref.current?.injectJavaScript(capture);
     const watch = mediaGuard.current?.loadEnded(url);
     if (watch) ref.current?.injectJavaScript(watch);
+    if (!isPrivate && annotationsRef.current) {
+      drawnAnnotations.current = annotationsRef.current;
+      const annotate = annotateBridge.current?.loadEnded(url, marksFor(annotationsRef.current, url));
+      if (annotate) ref.current?.injectJavaScript(annotate);
+    }
   });
 
   // Reader mode requested: run Readability in the page; the answer comes back through onMessage.
@@ -225,6 +256,12 @@ export const WebTab = memo(function WebTab({
       }
       return;
     }
+    const annotate = isPrivate ? undefined : annotateBridge.current?.parse(event.nativeEvent.data, event.nativeEvent.url, currentUrl.current);
+    if (annotate) {
+      if (annotate.kind === "capture" && annotate.quote) onHighlight?.(id, currentUrl.current, annotate.quote);
+      else if (annotate.kind === "click") onHighlightPress?.(id, annotate.id);
+      return;
+    }
     const media = mediaGuard.current?.parse(event.nativeEvent.data, event.nativeEvent.url, currentUrl.current);
     if (media !== undefined) {
       onMedia?.(id, media);
@@ -293,6 +330,8 @@ export const WebTab = memo(function WebTab({
         onRenderProcessGone={revive}
         onLoadStart={onLoadStart}
         onLoadEnd={onLoadEnd}
+        menuItems={isPrivate || !onHighlight ? undefined : HIGHLIGHT_MENU}
+        onCustomMenuSelection={onCustomMenu}
         injectedJavaScript={INJECTED}
         injectedJavaScriptForMainFrameOnly
         injectedJavaScriptBeforeContentLoaded={boostBootstrap}

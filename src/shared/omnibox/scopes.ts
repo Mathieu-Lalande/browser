@@ -17,6 +17,7 @@ export const SCOPES: readonly ScopeDefinition[] = [
   { id: "favorites", label: "Favoris", names: ["favoris", "f", "favori", "bookmarks"], icon: "star" },
   { id: "history", label: "Historique", names: ["historique", "h", "history"], icon: "history" },
   { id: "commands", label: "Commandes", names: ["commandes", "c", "commande", "actions"], icon: "command" },
+  { id: "notes", label: "Notes", names: ["notes", "n", "note", "annotations", "surlignages"], icon: "highlighter" },
   { id: "settings", label: "Réglages", names: ["réglages", "r", "reglages", "paramètres", "parametres", "settings"], icon: "settings" },
 ];
 

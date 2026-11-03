@@ -214,6 +214,13 @@ function startServer(): Promise<{ server: Server; origin: string; log: ServerLog
           `<div id="edit" contenteditable="true">keep this editable</div><p id="hidden" aria-hidden="true">keep this hidden</p>` +
           `<p id="no" translate="no">keep this brand</p><div id="late"></div></body></html>`,
       );
+    } else if (path.startsWith("/annotate")) {
+      // Highlights (ADR-037): a quote split by inline elements, repeated words, and a script.
+      res.end(
+        `<!doctype html><html><head><title>Annotate</title></head><body>` +
+          `<h1>Notes de lecture</h1><p id="text">Le renard <b>brun</b> saute par-dessus le chien. Le renard dort.</p>` +
+          `<script>document.body.dataset.ready = "1";</script><p id="other">Un autre paragraphe.</p></body></html>`,
+      );
     } else if (path.startsWith("/boost")) {
       // A page to customize (boosts, ADR-029): an element to zap and some text.
       res.end(

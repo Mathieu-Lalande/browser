@@ -32,6 +32,10 @@ Windows, macOS et Linux, avec son application iPhone et Android.
 - Traduction des pages (`Ctrl+Alt+T`), désactivée par défaut : DeepL, LibreTranslate ou Google Cloud au
   choix, clés chiffrées par le système, partie visible d'abord, « Afficher l'original », règles par langue et
   par site, aussi sur le téléphone (ADR-036).
+- Notes et surlignages (`Ctrl+Maj+H`) : passages surlignés en quatre couleurs, retrouvés à chaque visite même si la
+  page change un peu, notes par passage et par page, panneau « Notes de la page » (`Ctrl+Alt+N`), `browser://notes`
+  (recherche, filtres, export Markdown/JSON), `@n` dans la barre universelle, synchro facultative, aussi sur le
+  téléphone (ADR-037).
 - Options de la page (`Ctrl+Maj+O`) : zoom, captures d'écran (zone visible, page entière, élément), vidéo de
   l'onglet (`Ctrl+Alt+V`), QR code (ADR-031).
 - Menu contextuel complet des pages (enregistrer la page, code source `Ctrl+U`, imprimer `Ctrl+P`, capture,
@@ -111,7 +115,7 @@ navigation privée. Elle réutilise directement `src/shared` (URL, historique, r
 commandes, paramètres, thème, HTTPS uniquement) ; voir l'ADR-016.
 
 Elle reprend aussi dossiers, favoris, archivage, mode lecture, version ordinateur, aperçu des liens,
-mots de passe (`expo-secure-store`), traduction des pages, boosts et thèmes partageables ; le bloqueur de pubs viendra avec la
+mots de passe (`expo-secure-store`), traduction des pages, notes et surlignages, boosts et thèmes partageables ; le bloqueur de pubs viendra avec la
 version compilée (phase 2).
 
 Pour l'essayer sur votre téléphone (Windows, macOS ou Linux) : installez **Expo Go** depuis
@@ -175,6 +179,8 @@ commandes (`src/shared/commands.ts`) : « Maj » pour Shift sous Windows/Linux, 
 | `Ctrl+Maj+Q` | `⌘Q` | Quitter |
 | `Ctrl+Alt+R` | `⌥⌘R` | Mode lecture |
 | `Ctrl+Alt+T` | `⌥⌘T` | Traduire la page / afficher l'original |
+| `Ctrl+Maj+H` | `⇧⌘H` | Surligner la sélection |
+| `Ctrl+Alt+N` | `⌥⌘N` | Notes de la page |
 | `Ctrl+Maj+O` | `⇧⌘O` | Options de la page |
 | `Ctrl+Maj+S` / `Ctrl+Alt+S` | `⇧⌘S` / `⌥⌘S` | Capture de la zone visible / de la page entière |
 | `Ctrl+Alt+V` | `⌥⌘V` | Enregistrer une vidéo de l'onglet (bascule) |

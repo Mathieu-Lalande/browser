@@ -23,10 +23,11 @@ export type SectionId =
   | "settings"
   | "remote"
   | "archived"
+  | "notes"
   | "web";
 
 /** Prefix scopes (`@onglets`, `@o`…): restrict the bar to some providers. */
-export type ScopeId = "tabs" | "favorites" | "history" | "commands" | "settings";
+export type ScopeId = "tabs" | "favorites" | "history" | "commands" | "settings" | "notes";
 
 /** Semantic icons; each UI maps them to its own Lucide component (commands use their `icon`). */
 export type OmniboxIcon =
@@ -44,6 +45,7 @@ export type OmniboxIcon =
   | "archive"
   | "tab"
   | "command"
+  | "highlighter"
   | "at";
 
 /** What choosing a suggestion does. Each UI performs it with its own APIs. */
@@ -99,6 +101,15 @@ export interface OmniboxTab {
   spaceName?: string;
 }
 
+/** A highlight the bar can find (ADR-037). */
+export interface OmniboxAnnotation {
+  id: string;
+  url: string;
+  title: string;
+  exact: string;
+  note: string;
+}
+
 export interface RemoteTabInput {
   device: string;
   url: string;
@@ -117,6 +128,8 @@ export interface OmniboxData {
   history: readonly Pick<HistoryEntry, "url" | "title" | "favicon">[];
   remoteTabs: readonly RemoteTabInput[];
   archived: readonly ArchivedTab[];
+  /** Highlights and their notes (`@n`, ADR-037); none: the provider is quiet. */
+  annotations?: readonly OmniboxAnnotation[];
   commandContext: CommandContext;
   /** Effective shortcut keys of a command (ADR-028); none on the phone. */
   shortcut?: (id: CommandId) => string[];

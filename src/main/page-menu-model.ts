@@ -1,3 +1,4 @@
+import { COLOR_LABELS, HIGHLIGHT_COLORS } from "@shared/annotations/model";
 import type { CommandId } from "@shared/commands";
 import { isNavigableUrl, isPageOpenableUrl, normalizeInput, searchUrl, type SearchEngine } from "@shared/url";
 
@@ -39,6 +40,8 @@ export interface PageMenuContext {
   hasPasswords?: boolean;
   /** The page shows a translation (ADR-036): the entry offers the original back. */
   translated?: boolean;
+  /** The page can be annotated (a web page): a selection offers "Surligner" (ADR-037). */
+  canAnnotate?: boolean;
   /** The page is bookmarked (the bookmark entry offers to remove it). */
   isBookmarked?: boolean;
   /**
@@ -157,6 +160,13 @@ export function buildPageMenu(params: PageMenuParams, context: PageMenuContext):
   if (selection) {
     const items: PageMenuEntry[] = [];
     if (!editable) items.push({ id: "selection-copy", label: "Copier" });
+    if (!editable && context.canAnnotate) {
+      items.push({
+        id: "selection-highlight",
+        label: "Surligner",
+        submenu: HIGHLIGHT_COLORS.map((color) => ({ id: `selection-highlight:${color}`, label: COLOR_LABELS[color] })),
+      });
+    }
     items.push({ id: "selection-search", label: `Rechercher « ${quote(selection)} » avec ${context.engine.name}` });
     if (selectionAddress(selection, context.engine)) items.push({ id: "selection-open", label: "Ouvrir comme adresse" });
     sections.push(items);
