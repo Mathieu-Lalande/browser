@@ -1,0 +1,73 @@
+# "Signaler un problème" (Aide menu, settings > Diagnostic) opens this form with `version` and `os`
+# prefilled from the app (ADR-043): keep these two ids.
+name: Signaler un problème
+description: Quelque chose ne fonctionne pas comme prévu dans Browser.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci de prendre le temps de signaler ce problème. N'indiquez ni mot de passe, ni adresse de page privée, ni donnée personnelle : ce formulaire est public.
+  - type: textarea
+    id: description
+    attributes:
+      label: Que s'est-il passé ?
+      description: Ce que vous avez vu, et ce que vous attendiez à la place.
+      placeholder: "Quand j'ouvre un aperçu de lien (Maj + clic), la carte reste vide…"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Comment le reproduire
+      description: Les étapes, une par ligne. Une adresse de page publique aide beaucoup.
+      placeholder: |
+        1. Ouvrir …
+        2. Cliquer sur …
+        3. Voir …
+  - type: input
+    id: version
+    attributes:
+      label: Version de Browser
+      description: Préremplie par « Signaler un problème » ; sinon, Paramètres, Mises à jour.
+      placeholder: "0.4.0 (stable, Electron 44.0.0)"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Système
+      description: Prérempli par « Signaler un problème ».
+      placeholder: "Windows 10.0.22631 (x64)"
+    validations:
+      required: true
+  - type: dropdown
+    id: channel
+    attributes:
+      label: Canal de mise à jour
+      options:
+        - Stable
+        - Bêta
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: Fréquence
+      options:
+        - À chaque fois
+        - Souvent
+        - Une seule fois
+  - type: textarea
+    id: crash
+    attributes:
+      label: Plantage
+      description: Si Browser a planté, la date indiquée dans Paramètres, Diagnostic, Derniers plantages (et si l'envoi des rapports était activé).
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Vérifications
+      options:
+        - label: J'ai cherché parmi les problèmes déjà signalés.
+          required: true
+        - label: Ce rapport ne contient aucune donnée personnelle.
+          required: true

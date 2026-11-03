@@ -52,7 +52,7 @@
     onchange={(autoDownload) => settings.update({ updates: { autoDownload } })}
   />
 </Row>
-<Row label="Canal" hint="Bêta : versions préliminaires, plus tôt mais moins éprouvées.">
+<Row anchor="channel" label="Canal" hint="Bêta : versions préliminaires, plus tôt mais moins éprouvées.">
   <Segmented
     label="Canal de mise à jour"
     value={prefs.channel}
@@ -63,8 +63,35 @@
     onchange={(channel) => settings.update({ updates: { channel } })}
   />
 </Row>
+<div class="beta" data-setting="beta" data-testid="beta-program">
+  <strong>Programme bêta</strong>
+  <p>
+    Le canal Bêta reçoit les nouveautés quelques jours ou semaines avant tout le monde. Elles peuvent contenir des défauts : vos données
+    restent les vôtres (même profil, mêmes formats), et revenir au canal Stable se fait ici, la version stable suivante remplaçant la bêta.
+    Si quelque chose ne va pas, Aide, Signaler un problème ouvre un formulaire prérempli avec la version et le système, rien d'autre.
+    {#if prefs.channel === "beta"}Merci de tester !{/if}
+  </p>
+  <button class="secondary" onclick={() => api.commands.run("report-issue")}><Icon name="bug" size={12} /> Signaler un problème</button>
+</div>
 
 <style>
+  .beta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-1);
+    margin-top: var(--space-2);
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    background: var(--surface-hover);
+    font-size: var(--text-sm);
+  }
+  .beta p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    line-height: 1.5;
+  }
   .status {
     display: flex;
     flex-direction: column;

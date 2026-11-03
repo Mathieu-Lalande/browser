@@ -91,6 +91,7 @@ export type CommandId =
   | "keyboard-shortcuts"
   | "about"
   | "report-issue"
+  | "open-welcome"
   | "quit";
 
 /** Icon names used by commands; the UI's Icon component must know each of them. */
@@ -163,7 +164,8 @@ export type CommandIcon =
   | "import"
   | "pencil"
   | "activity"
-  | "users";
+  | "users"
+  | "sparkle";
 
 /** What a command's label and availability may depend on. */
 export interface CommandContext {
@@ -602,6 +604,13 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
     keywords: ["bug", "issue", "problème", "github", "signaler", "feedback"],
     icon: "bug",
   },
+  // ADR-043: the first-run onboarding, again.
+  "open-welcome": {
+    label: "Visite guidée",
+    menuLabel: "Visite guidée de Browser",
+    keywords: ["bienvenue", "welcome", "onboarding", "découvrir", "premiers pas", "tutoriel", "aide"],
+    icon: "sparkle",
+  },
   quit: { label: "Quitter", keywords: ["quit", "exit", "fermer l'application"], icon: "log-out" },
 };
 
@@ -748,6 +757,7 @@ export const COMMAND_GROUPS: readonly { label: string; ids: readonly CommandId[]
       "keyboard-shortcuts",
       "about",
       "report-issue",
+      "open-welcome",
     ],
   },
 ];

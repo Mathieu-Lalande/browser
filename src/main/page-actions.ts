@@ -1,5 +1,8 @@
 import { join } from "node:path";
-import { dialog, type WebContents } from "electron";
+import { release } from "node:os";
+import { app, dialog, type WebContents } from "electron";
+import type { IssueContext } from "@shared/diagnostics";
+import { settings } from "./settings";
 import type { Bounds, TabId } from "@shared/types";
 import { isViewSourceUrl } from "@shared/url";
 import { downloadsFolder } from "./downloads";
@@ -11,8 +14,17 @@ import type { BrowserController } from "./window";
  * source, and the app menu popover itself.
  */
 
-/** Where people report problems (Aide ▸ Signaler un problème). */
-export const ISSUES_URL = "https://github.com/Mathieu-Lalande/browser/issues/new";
+/** What "Signaler un problème" prefills the bug form with (ADR-043): version and system only. */
+export function issueContext(): IssueContext {
+  return {
+    version: app.getVersion(),
+    platform: process.platform,
+    osVersion: release(),
+    arch: process.arch,
+    electron: process.versions.electron,
+    channel: settings().updates.channel,
+  };
+}
 
 /** A tab's live web page (`tabId`, else the active tab), never the start page or an internal page. */
 export function webPageOf(c: BrowserController, tabId = c.tabs.activeTabId): { tabId: TabId; contents: WebContents; url: string; title: string } | null {

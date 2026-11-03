@@ -51,6 +51,7 @@ import type { SharedTheme, ThemeDecodeResult } from "./theme-share";
 import type { UpdateStatus } from "./updates";
 import type { WeatherPlace } from "./start-widgets";
 import type { Forecast } from "./weather";
+import type { CrashReportsInfo } from "./diagnostics";
 import type {
   Bookmark,
   BookmarkInput,
@@ -306,6 +307,8 @@ export const Channels = {
   backupExport: "backup:export",
   backupInspect: "backup:inspect",
   backupApply: "backup:apply",
+  crashesInfo: "crashes:info",
+  crashesClear: "crashes:clear",
 } as const;
 
 /** Outcome of a sync action (errors are messages for the user: they do not cross IPC as exceptions). */
@@ -816,6 +819,12 @@ export interface BrowserApi {
     setAskOnLaunch(ask: boolean): Promise<void>;
   };
   /** ADR-042: `browser://tasks`. */
+  /** ADR-043: crash dumps kept on this device, and whether reports are sent. */
+  crashes: {
+    info(): Promise<CrashReportsInfo>;
+    /** Deletes the dumps on disk. */
+    clear(): Promise<CrashReportsInfo>;
+  };
   tasks: {
     list(): Promise<TaskRow[]>;
     /** Ends a tab renderer process (the tab shows its crash page). */

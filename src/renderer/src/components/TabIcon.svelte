@@ -12,6 +12,7 @@
     notes: "notebook",
     tasks: "activity",
     profiles: "users",
+    welcome: "sparkle",
     history: "history",
     import: "import",
   };

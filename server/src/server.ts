@@ -1,4 +1,6 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { RateLimiter } from "./rate-limit.js";
 import { FileStore, type Account, type StoredRecord } from "./store.js";
@@ -12,6 +14,7 @@ import { FileStore, type Account, type StoredRecord } from "./store.js";
  *   POST   /v1/collections/:name { records }    → { version, previous, records } | 409 { conflicts }
  *   DELETE /v1/account                          → 204
  *   GET    /healthz                             → 200
+ *   POST   /crash (multipart minidump, opt-in)  → 200 <report id>      (ADR-043, `crashReports`)
  *
  * Native clients only: no CORS, and any request carrying an `Origin` header (a web page) is refused.
  * TLS is expected from a reverse proxy (Caddy, Fly.io, Render…).
@@ -31,6 +34,17 @@ export interface ServerOptions {
   maxAccountBytes?: number;
   /** Max request body, bytes (default 2 MB). */
   maxBodyBytes?: number;
+  /**
+   * ADR-043: accept crash reports (Crashpad's multipart minidump uploads) on `POST /crash`, stored
+   * under `<dataDir>/crashes`. No authentication: limited by size, rate and count instead.
+   */
+  crashReports?: boolean;
+  /** Max crash report, bytes (default 8 MB). */
+  maxCrashBytes?: number;
+  /** Crash reports per hour per client address (default 20). */
+  crashesPerHour?: number;
+  /** Crash reports kept; the oldest go first (default 500). */
+  maxStoredCrashes?: number;
   now?: () => number;
   log?: (line: string) => void;
 }
@@ -68,6 +82,10 @@ function send(res: ServerResponse, status: number, body?: unknown, headers: Reco
 }
 
 function readBody(req: IncomingMessage, limit: number): Promise<string> {
+  return readRaw(req, limit).then((body) => body.toString("utf8"));
+}
+
+function readRaw(req: IncomingMessage, limit: number): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const declared = Number(req.headers["content-length"]);
     if (Number.isFinite(declared) && declared > limit) return reject(new HttpError(413, "Payload too large"));
@@ -82,7 +100,7 @@ function readBody(req: IncomingMessage, limit: number): Promise<string> {
       }
       chunks.push(chunk);
     });
-    req.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+    req.on("end", () => resolve(Buffer.concat(chunks)));
     req.on("error", reject);
   });
 }
@@ -109,6 +127,8 @@ export function createSyncServer(options: ServerOptions): { server: Server; stor
   const signups = new RateLimiter(options.accountsPerHour ?? 10, 3_600_000, now);
   const maxAccountBytes = options.maxAccountBytes ?? 64 * 1024 * 1024;
   const maxBody = options.maxBodyBytes ?? 2 * 1024 * 1024;
+  const crashes = new RateLimiter(options.crashesPerHour ?? 20, 3_600_000, now);
+  const crashDir = join(options.dataDir, "crashes");
 
   const clientAddress = (req: IncomingMessage) => {
     const forwarded = options.trustProxy ? String(req.headers["x-forwarded-for"] ?? "").split(",")[0].trim() : "";
@@ -137,6 +157,23 @@ export function createSyncServer(options: ServerOptions): { server: Server; stor
     const token = randomBytes(32).toString("base64url");
     store.save({ id: accountId, tokenHash: sha256(token), createdAt: now(), version: 0, bytes: 0, collections: {} });
     return { accountId, token };
+  }
+
+  /** Stores one Crashpad upload as received (multipart, gzip when Crashpad compressed it). */
+  async function receiveCrash(req: IncomingMessage): Promise<string> {
+    if (!String(req.headers["content-type"] ?? "").startsWith("multipart/form-data")) throw new HttpError(415, "Multipart expected");
+    const wait = crashes.take(clientAddress(req));
+    if (wait) throw new HttpError(429, "Too many crash reports", { "retry-after": String(wait) });
+    const body = await readRaw(req, options.maxCrashBytes ?? 8 * 1024 * 1024);
+    if (body.length === 0) throw new HttpError(400, "Empty report");
+    const id = `${new Date(now()).toISOString().replace(/[:.]/g, "-")}-${randomBytes(6).toString("hex")}`;
+    const gzip = String(req.headers["content-encoding"] ?? "") === "gzip";
+    mkdirSync(crashDir, { recursive: true });
+    writeFileSync(join(crashDir, `${id}.multipart${gzip ? ".gz" : ""}`), body);
+    // Oldest out first (names start with their date).
+    const stored = readdirSync(crashDir).sort();
+    for (const name of stored.slice(0, Math.max(0, stored.length - (options.maxStoredCrashes ?? 500)))) rmSync(join(crashDir, name), { force: true });
+    return id;
   }
 
   function pull(account: Account, name: string, url: URL) {
@@ -196,6 +233,14 @@ export function createSyncServer(options: ServerOptions): { server: Server; stor
     const wait = requests.take(clientAddress(req));
     if (wait) throw new HttpError(429, "Too many requests", { "retry-after": String(wait) });
 
+    if (url.pathname === "/crash") {
+      if (!options.crashReports) throw new HttpError(404, "Not found");
+      if (method !== "POST") throw new HttpError(405, "Method not allowed");
+      // Crashpad reads the response body as the report id: plain text.
+      const id = await receiveCrash(req);
+      res.writeHead(200, { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" });
+      return void res.end(id);
+    }
     if (method === "POST" && url.pathname === "/v1/accounts") {
       await readBody(req, 1024);
       return send(res, 201, createAccount(req));

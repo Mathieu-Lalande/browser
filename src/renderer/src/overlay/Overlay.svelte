@@ -10,16 +10,35 @@
   import AutofillPanel from "./AutofillPanel.svelte";
   import SiteInfoPanel from "./SiteInfoPanel.svelte";
   import PageOptionsPanel from "./PageOptionsPanel.svelte";
-  import CaptureResultPanel from "./CaptureResultPanel.svelte";
   import AppMenuPanel from "./AppMenuPanel.svelte";
   import PageSwipePanel from "./PageSwipePanel.svelte";
-  import TranslatePanel from "./TranslatePanel.svelte";
-  import AnnotationPanel from "./AnnotationPanel.svelte";
   import TabPreviewCard from "./TabPreviewCard.svelte";
-  import PrintPreviewPanel from "./PrintPreviewPanel.svelte";
+  import type { Component } from "svelte";
 
   // Root of the overlay layer (src/main/overlay.ts): a transparent page above the tab views,
   // attached only while a floating UI is open.
+
+  /**
+   * Rarely opened panels are their own chunks, loaded on first use (ADR-043): the overlay page,
+   * pre-warmed right after the first window, then parses less while the first page loads.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const LAZY: Record<string, () => Promise<{ default: Component<any> }>> = {
+    "capture-result": () => import("./CaptureResultPanel.svelte"),
+    translate: () => import("./TranslatePanel.svelte"),
+    annotation: () => import("./AnnotationPanel.svelte"),
+    "print-preview": () => import("./PrintPreviewPanel.svelte"),
+  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const lazy = $state<Record<string, Component<any>>>({});
+  $effect(() => {
+    const kind = current?.request.kind;
+    if (kind && LAZY[kind] && !lazy[kind]) void LAZY[kind]().then((module) => (lazy[kind] = module.default));
+  });
+  const CaptureResultPanel = $derived(lazy["capture-result"]);
+  const TranslatePanel = $derived(lazy.translate);
+  const AnnotationPanel = $derived(lazy.annotation);
+  const PrintPreviewPanel = $derived(lazy["print-preview"]);
 
   // Follow theme changes made while the overlay stays loaded.
   $effect(() => applyTheme(settings.current, settings.mode, browser.isPrivate));
@@ -109,17 +128,17 @@
         <LinkPeekPanel initial={current.request.peek} onClose={close} />
       {:else if current.request.kind === "page-options" && current.request.tabId}
         <PageOptionsPanel anchor={current.request.anchor} tabId={current.request.tabId} onClose={close} />
-      {:else if current.request.kind === "capture-result" && current.request.capture}
+      {:else if current.request.kind === "capture-result" && current.request.capture && CaptureResultPanel}
         <CaptureResultPanel capture={current.request.capture} onClose={close} />
       {:else if current.request.kind === "app-menu"}
         <AppMenuPanel anchor={current.request.anchor} onClose={close} />
       {:else if current.request.kind === "page-swipe" && current.request.swipe}
         <PageSwipePanel anchor={current.request.anchor} initial={current.request.swipe} />
-      {:else if current.request.kind === "translate" && current.request.tabId}
+      {:else if current.request.kind === "translate" && current.request.tabId && TranslatePanel}
         <TranslatePanel anchor={current.request.anchor} tabId={current.request.tabId} onClose={close} />
-      {:else if current.request.kind === "annotation" && current.request.annotationId}
+      {:else if current.request.kind === "annotation" && current.request.annotationId && AnnotationPanel}
         <AnnotationPanel anchor={current.request.anchor} annotationId={current.request.annotationId} onClose={close} />
-      {:else if current.request.kind === "print-preview" && current.request.print}
+      {:else if current.request.kind === "print-preview" && current.request.print && PrintPreviewPanel}
         <PrintPreviewPanel info={current.request.print} onClose={close} />
       {:else if current.request.kind === "autofill-save"}
         <AutofillPanel kind="save" anchor={current.request.anchor} captureId={current.request.captureId} onClose={close} />

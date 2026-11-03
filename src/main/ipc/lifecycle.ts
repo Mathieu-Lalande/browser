@@ -40,6 +40,9 @@ export const lifecycleHandlers = defineHandlers({
   [Channels.profilesSetAsk]: handle([bool], (_c, ask) => appServices().profiles.setAskOnLaunch(ask), { privateRefused: true }),
 
   [Channels.tasksList]: handle([], () => appServices().tasks.list()),
+  // ADR-043: crash dumps are app-wide (not profile data a private window could leak into).
+  [Channels.crashesInfo]: handle([], () => appServices().crashes.info()),
+  [Channels.crashesClear]: handle([], () => appServices().crashes.clear(), { privateRefused: true }),
   [Channels.tasksKill]: handle([pid], (_c, target) => appServices().tasks.kill(target)),
 
   [Channels.printUpdate]: handle([isPrintOptions], (c, options) => appServices().print.update(c, options)),

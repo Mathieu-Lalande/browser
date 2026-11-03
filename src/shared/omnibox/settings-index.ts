@@ -29,6 +29,7 @@ const SECTIONS = {
   data: "Données",
   sync: "Synchronisation",
   updates: "Mises à jour",
+  diagnostics: "Diagnostic",
 } as const;
 
 type SectionKey = keyof typeof SECTIONS;
@@ -94,6 +95,10 @@ export const SETTINGS_INDEX: readonly SettingEntry[] = [
   entry("sync", null, "Synchronisation", ["appareils", "sync", "jumelage", "compte"]),
   entry("sync", "annotations", "Synchroniser les notes et surlignages", ["notes", "surlignages", "annotations", "highlights"]),
   entry("updates", null, "Mises à jour", ["version", "update", "mettre à jour"]),
+  entry("updates", "beta", "Programme bêta", ["beta", "bêta", "préversion", "canal", "tester"]),
+  entry("diagnostics", "crash-reports", "Envoyer les rapports de plantage", ["crash", "plantage", "rapport", "sentry"]),
+  entry("diagnostics", "crashes", "Derniers plantages", ["crash", "plantage"]),
+  entry("diagnostics", "report-issue", "Signaler un problème", ["bug", "github", "issue"]),
 ];
 
 /** `browser://settings#…` for an entry. */

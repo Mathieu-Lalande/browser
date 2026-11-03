@@ -355,7 +355,7 @@ function seedProfile(profile: string, downloads: string, extra: Record<string, u
 async function launchApp(profile: string, env: Record<string, string> = {}): Promise<{ app: ElectronApplication; chrome: Page }> {
   const app = await electron.launch({
     args: ["--no-sandbox", "--host-resolver-rules=MAP * 127.0.0.1, EXCLUDE localhost", "--ignore-certificate-errors", "--no-proxy-server", "."],
-    env: { ...process.env, BROWSER_PROFILE_DIR: profile, BROWSER_TEST_FILTERS: TEST_FILTERS, ...env },
+    env: { ...process.env, BROWSER_PROFILE_DIR: profile, BROWSER_TEST_FILTERS: TEST_FILTERS, BROWSER_TEST_SKIP_WELCOME: "1", ...env },
   });
   const chrome = await chromeOf(app);
   await resize(app);

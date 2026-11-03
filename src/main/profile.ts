@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { app } from "electron";
 import { ANNOTATIONS_VERSION, emptyAnnotations, sanitizeAnnotations, type AnnotationsData } from "@shared/annotations/model";
 import { BOOSTS_VERSION, sanitizeBoosts, type Boost } from "@shared/boosts";
-import { sanitizeSettings, type Settings } from "@shared/settings";
+import { freshProfileSettings, sanitizeSettings, type Settings } from "@shared/settings";
 import type { DownloadEntry } from "@shared/downloads";
 import { DOWNLOADS_VERSION, DownloadList } from "./downloads/list";
 import { BOOKMARKS_VERSION, Bookmarks, type BookmarksData } from "./storage/bookmarks";
@@ -134,7 +134,8 @@ export function openProfile(dir = app.getPath("userData")): Profile {
   const bookmarks = new Bookmarks(bookmarksFile.load() ?? undefined);
   const downloads = new DownloadList(downloadsFile.load() ?? []);
   const zoom = new SiteZoom(zoomFile.load() ?? {});
-  let settings = settingsFile.load() ?? sanitizeSettings(undefined);
+  // No settings file: a brand-new profile, which opens on the welcome page (ADR-043).
+  let settings = settingsFile.load() ?? freshProfileSettings();
   let boosts: readonly Boost[] = boostsFile.load() ?? [];
   let annotations: AnnotationsData = annotationsFile.load() ?? emptyAnnotations();
   const changes = new Emitter<ProfileChange>();

@@ -1,7 +1,10 @@
 import { spawn } from "node:child_process";
 import { statSync } from "node:fs";
 import { homedir } from "node:os";
-import { app, shell, webContents } from "electron";
+import { join } from "node:path";
+import { app, crashReporter, shell, webContents } from "electron";
+import { parseCrashEndpoint } from "@shared/diagnostics";
+import { shouldOpenWelcome } from "@shared/onboarding";
 import { launchProfile, profileFromArgs, shouldPickProfile } from "@shared/profiles";
 import { startupPlan } from "@shared/recovery";
 import { CrashMarker } from "./recovery/crash-marker";
@@ -60,6 +63,8 @@ if (profileDir(profileRoot, currentProfile) !== profileRoot) {
 }
 /** Test hooks (unpackaged only): files written or read instead of the print and backup dialogs. */
 const testHook = (name: string) => (!app.isPackaged && process.env[name]) || undefined;
+// Crash dumps stay in the profile (ADR-043): one Crashpad database per profile.
+app.setPath("crashDumps", join(app.getPath("userData"), "Crashpad"));
 hardenApp();
 // The chrome UI and the overlay are served from app:// (registered before ready).
 registerAppScheme();
@@ -158,9 +163,19 @@ if (!app.requestSingleInstanceLock()) {
             backupImportPath: testHook("BROWSER_TEST_BACKUP_IMPORT"),
             notifications: process.env.BROWSER_TEST_NOTIFICATIONS === "1",
           },
+      crashReports: {
+        reporter: crashReporter,
+        dumpsDir: app.getPath("crashDumps"),
+        // Baked in at build time; the test hook points it at a local receiver.
+        endpoint: parseCrashEndpoint(testHook("BROWSER_TEST_CRASH_ENDPOINT") ?? import.meta.env.MAIN_VITE_CRASH_ENDPOINT),
+        version: app.getVersion(),
+      },
       // Touch ID passkeys need a signed build whose entitlements list this group (ADR-041): none yet.
       touchIdKeychainGroup: null,
     });
+    // Crashpad first: crashes of the processes started from now on are caught (ADR-043).
+    services.crashes.start();
+    if (!app.isPackaged) (globalThis as { __browserCrashReports?: unknown }).__browserCrashReports = services.crashes;
     BrowserController.watchServices(services);
     hardenSession();
     registerIpc();
@@ -189,7 +204,15 @@ if (!app.requestSingleInstanceLock()) {
     if (plan === "restore") for (const window of saved) new BrowserController(window);
     else new BrowserController();
     // Several profiles and "Choisir le profil au démarrage": the first window shows the picker.
-    if (shouldPickProfile(profilesAtLaunch, askedProfile)) BrowserController.all().find((window) => !window.isPrivate)?.openInternal("profiles");
+    const picker = shouldPickProfile(profilesAtLaunch, askedProfile);
+    if (picker) BrowserController.all().find((window) => !window.isPrivate)?.openInternal("profiles");
+    // A fresh profile opens on the welcome page (ADR-043), until it is finished or skipped.
+    const welcome = shouldOpenWelcome({
+      completed: currentSettings().onboarding.completed,
+      suppressed: testHook("BROWSER_TEST_SKIP_WELCOME") === "1",
+      otherPageFirst: picker || plan === "offer",
+    });
+    if (welcome) BrowserController.all().find((window) => !window.isPrivate)?.openInternal("welcome");
     launches.ready();
     // End-to-end encrypted sync (ADR-019): off unless an account was set up on this device.
     services.sync.start();

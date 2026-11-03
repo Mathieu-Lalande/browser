@@ -26,6 +26,7 @@
   import SyncSection from "./SyncSection.svelte";
   import TranslateSection from "./TranslateSection.svelte";
   import UpdatesSection from "./UpdatesSection.svelte";
+  import DiagnosticsSection from "./DiagnosticsSection.svelte";
 
   /**
    * browser://settings: side navigation, search, and the sections (one component each, wrapped in
@@ -48,6 +49,7 @@
     { id: "data", label: "Données", icon: "database" },
     { id: "sync", label: "Synchronisation", icon: "cloud" },
     { id: "updates", label: "Mises à jour", icon: "update" },
+    { id: "diagnostics", label: "Diagnostic", icon: "bug" },
   ];
 
   /** Settings search: rows hide themselves when they do not match (ui/filter.ts). */
@@ -326,6 +328,17 @@
         onReset={() => settings.reset("updates")}
       >
         <UpdatesSection />
+      </Section>
+
+      <Section
+        id="diagnostics"
+        icon="bug"
+        title="Diagnostic"
+        description="Rapports de plantage (désactivés par défaut) et signalement des problèmes."
+        keywords="crash plantage rapport bug diagnostic"
+        onReset={() => settings.reset("diagnostics")}
+      >
+        <DiagnosticsSection />
       </Section>
     </div>
     <div class="tail" style:height="{tail}px" aria-hidden="true"></div>

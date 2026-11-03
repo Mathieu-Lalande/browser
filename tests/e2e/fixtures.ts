@@ -338,7 +338,9 @@ export function launch(profile: string, env: Record<string, string> = {}, extraA
     // `extraArgs`: what the OS would hand over (a link, a file to open: ADR-039).
     // `--disable-component-update`: no Widevine download per test profile, no startup wait (ADR-040).
     args: ["--no-sandbox", "--disable-component-update", "--host-resolver-rules=MAP *.test 127.0.0.1", ".", ...extraArgs],
-    env: { ...process.env, BROWSER_PROFILE_DIR: profile, BROWSER_TEST_FILTERS: TEST_FILTERS, ...env },
+    // `BROWSER_TEST_SKIP_WELCOME`: a fresh profile would open on browser://welcome (ADR-043); the
+    // onboarding test turns it back on with an empty value.
+    env: { ...process.env, BROWSER_PROFILE_DIR: profile, BROWSER_TEST_FILTERS: TEST_FILTERS, BROWSER_TEST_SKIP_WELCOME: "1", ...env },
   });
 }
 

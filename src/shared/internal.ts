@@ -16,6 +16,7 @@ export const INTERNAL_PAGES = {
   import: { title: "Importer des données" },
   tasks: { title: "Gestionnaire de tâches" },
   profiles: { title: "Profils" },
+  welcome: { title: "Bienvenue" },
 } as const;
 
 export type InternalPage = keyof typeof INTERNAL_PAGES;

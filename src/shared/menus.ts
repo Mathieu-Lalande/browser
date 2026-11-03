@@ -154,7 +154,7 @@ export function buildAppMenu(context: AppMenuContext): MenuNode[] {
     command("view-source"),
     command("devtools"),
   ];
-  const help: MenuNode[] = [command("keyboard-shortcuts"), command("about"), command("report-issue")];
+  const help: MenuNode[] = [command("open-welcome"), command("keyboard-shortcuts"), command("about"), command("report-issue")];
 
   return withAvailability(
     tidy([

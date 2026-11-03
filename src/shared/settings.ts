@@ -188,6 +188,21 @@ export interface SpellcheckSettings {
   languages: string[];
 }
 
+/**
+ * First-run onboarding (`browser://welcome`, ADR-043). The default (`true`) is what a profile from
+ * an older version gets: only a fresh profile starts with `false` (`freshProfileSettings`).
+ */
+export interface OnboardingSettings {
+  /** Finished or skipped: the welcome page no longer opens by itself. */
+  completed: boolean;
+}
+
+/** Crash reports (ADR-043): local only unless the user opts in (and the build has an endpoint). */
+export interface DiagnosticsSettings {
+  /** Opt-in: send crash reports (minidumps) to the build's crash endpoint. */
+  crashReports: boolean;
+}
+
 export interface Settings {
   appearance: AppearanceSettings;
   layout: LayoutSettings;
@@ -203,6 +218,8 @@ export interface Settings {
   autofill: AutofillSettings;
   notifications: NotificationSettings;
   spellcheck: SpellcheckSettings;
+  onboarding: OnboardingSettings;
+  diagnostics: DiagnosticsSettings;
   /**
    * Keyboard shortcuts chosen by the user (desktop, ADR-028): only the commands that differ from
    * the registry. A patch replaces the whole map.
@@ -288,8 +305,15 @@ export const DEFAULT_SETTINGS: Settings = {
   autofill: { addresses: true, cards: true, syncAddresses: false },
   notifications: { doNotDisturb: false },
   spellcheck: { enabled: true, languages: [] },
+  onboarding: { completed: true },
+  diagnostics: { crashReports: false },
   shortcuts: {},
 };
+
+/** The settings of a brand-new profile: the defaults, with the welcome page still to show (ADR-043). */
+export function freshProfileSettings(): Settings {
+  return sanitizeSettings({ onboarding: { completed: false } });
+}
 
 export const SETTINGS_SECTIONS = Object.keys(DEFAULT_SETTINGS) as SettingsSection[];
 
@@ -427,6 +451,8 @@ const schema: Schema = {
   autofill: { addresses: bool, cards: bool, syncAddresses: bool },
   notifications: { doNotDisturb: bool },
   spellcheck: { enabled: bool, languages: sanitizeSpellLanguages },
+  onboarding: { completed: bool },
+  diagnostics: { crashReports: bool },
 };
 
 /**
