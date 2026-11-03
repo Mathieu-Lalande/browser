@@ -238,3 +238,21 @@ test("the favorites hint can be dismissed for good", async ({ chrome }) => {
   const settings = await chrome.evaluate(() => (globalThis as unknown as Window).browser.settings.get());
   expect(settings.layout.favoritesHintDismissed).toBe(true);
 });
+
+test("the Outils menu stays inside the narrowest sidebar, sidebar left and right", async ({ chrome }) => {
+  for (const position of ["left", "right"] as const) {
+    await update(chrome, { layout: { sidebarPosition: position, sidebarWidth: LIMITS.sidebarWidth.min } });
+    await settle(chrome, LIMITS.sidebarWidth.min);
+    await chrome.getByRole("button", { name: "Outils" }).click();
+    const menu = chrome.getByRole("menu", { name: "Outils" });
+    await expect(menu).toBeVisible();
+    const sidebar = (await chrome.locator(".sidebar").boundingBox())!;
+    const box = (await menu.boundingBox())!;
+    expect(box.x).toBeGreaterThanOrEqual(sidebar.x);
+    expect(box.x + box.width).toBeLessThanOrEqual(sidebar.x + sidebar.width + 0.5);
+    expect(box.y).toBeGreaterThanOrEqual(0);
+    await chrome.keyboard.press("Escape");
+    await expect(menu).toHaveCount(0);
+  }
+  await update(chrome, { layout: { sidebarPosition: "left", sidebarWidth: 264 } });
+});

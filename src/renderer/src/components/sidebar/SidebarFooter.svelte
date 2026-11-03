@@ -39,7 +39,9 @@
 </footer>
 
 <style>
+  /* Containing block of the Outils menu, which spans the whole footer width (never past the sidebar). */
   .footer {
+    position: relative;
     display: flex;
     flex: none;
     align-items: center;

@@ -60,8 +60,8 @@
 </div>
 
 <style>
+  /* The menu is placed against the sidebar footer (its containing block), not this button. */
   .tools {
-    position: relative;
     display: flex;
   }
   .separator {
@@ -73,10 +73,11 @@
     position: absolute;
     right: 0;
     bottom: calc(100% + 6px);
+    left: 0;
     z-index: 20;
     gap: 1px;
-    min-width: 190px;
-    max-width: calc(var(--sidebar-width) - 16px);
+    max-height: 70vh;
+    overflow-y: auto;
     padding: 4px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
