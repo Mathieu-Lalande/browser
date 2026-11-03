@@ -143,3 +143,8 @@
   (nonce par demande). `PasskeyService` (`src/main/webauthn.ts`, `@shared/webauthn`), `NotificationCenter`
   (`src/main/notifications/`, shim + relais monde isolé 1016, crochet `BROWSER_TEST_NOTIFICATIONS`), `SpellcheckService`
   (`src/main/spellcheck.ts`) : `SessionService` installés par `hardenSession`.
+- Assistant IA (ADR-044, désactivé par défaut, clé Anthropic de l'utilisateur : `safeStorage` / `expo-secure-store`, jamais
+  synchronisée) : cœur pur `src/shared/assistant/` (contexte tronqué par estimation de jetons, prompts, conversation en ajout
+  seul, réducteur d'événements, Markdown → arbre du lecteur assaini), main `src/main/assistant/` (SDK `@anthropic-ai/sdk`
+  en flux, `PageAssistant` par fenêtre, monde isolé 1017, crochet `BROWSER_TEST_ANTHROPIC_URL`), panneau `AssistantPanel`
+  (`Ctrl+Alt+A`), `@ia`, section `AssistantSection` ; mobile `AssistantSheet` + `mobile/src/lib/assistant*.ts`.

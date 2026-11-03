@@ -2101,3 +2101,53 @@ plusieurs usages (travail, personnel), montrer ce qui consomme, imprimer proprem
 des processus, options d'impression, codec et mauvaise phrase secrète), e2e `tests/e2e/lifecycle.spec.ts`
 (processus tué puis carte, profil isolé, tâche terminée puis page plantée, PDF écrit, aller-retour de sauvegarde).
 Crochets non empaquetés : `BROWSER_TEST_PRINT_PDF`, `BROWSER_TEST_BACKUP_EXPORT`, `BROWSER_TEST_BACKUP_IMPORT`.
+
+
+## ADR-044 — Assistant IA (Claude, clé de l'utilisateur)
+
+**Contexte.** Résumer une page, expliquer un passage ou comparer des onglets sont des usages courants d'un
+assistant. Envoyer le texte des pages à un service tiers est sensible : la fonction doit être facultative,
+explicite sur ce qui part, et ne rien garder.
+
+**Décision.**
+- **Désactivé par défaut, clé de l'utilisateur.** `settings.assistant` (`enabled`, `model`, `acknowledged`,
+  `keepConversations`, `includePage`), jamais synchronisé (hors de `pickSyncedSettings`). La clé d'API Anthropic est
+  chiffrée par `safeStorage` (`assistant-key.json`, `AssistantKeyStore`) sur le bureau, `expo-secure-store` sur le
+  téléphone ; elle n'entre que par `assistant:set-key` (refusé en fenêtre privée), ne ressort jamais (seulement
+  « une clé est enregistrée »), n'est ni journalisée ni synchronisée.
+- **Appels par main seulement, SDK officiel.** `@anthropic-ai/sdk` (`src/main/assistant/client.ts`) : flux
+  `beta.messages.stream` (SSE analysés par le SDK), `max_tokens` 64 000, `output_config.effort` par modèle,
+  `cache_control` automatique (les pages sont le préfixe d'une conversation), repli serveur sur refus
+  (`fallbacks: "default"`, bêta `server-side-fallback-2026-07-01`), `stop_reason` vérifié (`refusal`, `max_tokens`).
+  Adresse fixe `https://api.anthropic.com` et identifiants explicites (aucune variable d'environnement ne peut
+  détourner la clé) ; crochet `BROWSER_TEST_ANTHROPIC_URL` (127.0.0.1 seulement), ignoré une fois empaqueté. « Tester »
+  appelle `models.retrieve` (aucun jeton consommé). Modèles : Claude Opus 5.5 par défaut (effort `low`, rapide),
+  Claude Fable 5.1 « plus puissant » (effort `medium`) ; pas de réglage de la réflexion (adaptative, imposée par ces
+  modèles).
+- **Cœur pur `src/shared/assistant/`.** Contexte (`packSources` : budget de 48 000 jetons estimés partagé entre les
+  pages, coupe à une frontière de phrase marquée `[…]`, jamais silencieuse : chaque source dit `truncated`) ; prompts
+  (pages en `<page>` et sélection en `<selection>`, échappées, déclarées données non fiables dans le prompt système,
+  tâche en dernier, rien de variable pour garder le cache) ; conversation en ajout seul (`historyMessages` : les
+  échanges répondus, dans un budget, les plus anciens tombent d'abord ; une page déjà envoyée n'est pas renvoyée) ;
+  réducteur d'événements (`reduceStreamEvent`, `messageProgress`) ; Markdown → arbre du mode lecture puis
+  `sanitizeReaderContent` (ADR-026) : balises fixes, liens http(s), aucune image ni HTML.
+- **Lecture des pages.** Extraction du mode lecture (monde isolé 1006, `sanitizeReaderArticle`), sinon `innerText`
+  en monde isolé 1017 ; sélection dans le même monde (rien si le focus est un champ mot de passe). Cadre principal
+  seulement ; jamais de préchargement ni d'accès Node pour les pages.
+- **Bureau.** `PageAssistant` par fenêtre (`src/main/assistant/`), une conversation par onglet en mémoire (effacée
+  au changement de page sauf `keepConversations`), mises à jour poussées (`assistant:changed`, 40 ms) ; panneau
+  `AssistantPanel.svelte` qui réduit la zone des pages (ADR-010) : actions rapides, question avec « Joindre la
+  page : <titre> », ce qui a été envoyé sous chaque demande, « Arrêter », « Copier », « Ajouter aux notes »
+  (ADR-037). Commande `toggle-assistant` (`Ctrl+Alt+A`, menu « … », menu de l'application), menu contextuel
+  (« Résumer », « Expliquer / Traduire avec l'assistant »), barre de sélection des onglets (« Comparer »), filtre
+  `@ia` de la barre universelle (`AssistantProvider`, avec ou sans la page).
+- **Consentement.** Avant le premier envoi, l'avertissement (`PRIVACY_NOTICE`) retient la demande ; « Accepter et
+  envoyer » (`assistant:accept`) l'envoie. Fenêtre privée : confirmation à chaque fenêtre, rien d'écrit.
+- **Téléphone.** Feuille `AssistantSheet` (menu de la page) : résumé, points clés, question ; texte de la page par
+  l'injection du mode lecture (jeton par demande) ; appel `beta.messages.create` non diffusé (le `fetch` de React
+  Native ne lit pas les flux), `max_tokens` 16 000.
+
+**Conséquences.** Tests : unitaires (`src/shared/assistant/assistant.test.ts` : flux SSE d'exemple lu par le SDK
+puis réduit, découpage et partage du budget, prompts, validation des demandes, historique, Markdown assaini,
+`@ia`), Jest mobile (`mobile/src/lib/assistant.test.ts`), e2e `tests/e2e/assistant.spec.ts` contre un faux serveur
+SSE compatible (résumé diffusé, arrêt, fenêtre privée). Coût : facturé par Anthropic sur le compte de l'utilisateur.

@@ -54,7 +54,7 @@ function startFake(): Promise<{ server: Server; fake: FakeAnthropic }> {
       req.on("data", (chunk) => (raw += chunk));
       req.on("end", () => {
         const body = JSON.parse(raw) as Logged["body"];
-        fake.requests.push({ url: path, key: req.headers["x-api-key"] as string, beta: req.headers["anthropic-beta"] as string, cookie: req.headers.cookie, body });
+        fake.requests.push({ url: path, key: (req.headers["x-api-key"] as string) ?? req.headers.authorization?.replace(/^Bearer /, ""), beta: req.headers["anthropic-beta"] as string, cookie: req.headers.cookie, body });
         const last = body.messages[body.messages.length - 1].content;
         if (last.includes("LENT")) void streamAnswer(res, Array.from({ length: 200 }, (_, index) => `mot${index} `), 100);
         else void streamAnswer(res, ["## Résumé\n\n", "La page parle de ", "**licornes** ", "et de leur corne."], 60);

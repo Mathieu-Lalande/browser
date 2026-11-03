@@ -38,6 +38,8 @@ export interface BrowserMenusDeps {
   autofillSections: readonly ("address" | "card")[];
   /** Page tools of the page menu. */
   openReader: (tabId: string) => void;
+  /** The assistant sheet (ADR-044); null while the assistant is off. */
+  openAssistant: (() => void) | null;
   translated: boolean;
   toggleTranslation: () => void;
   desktopSite: boolean;
@@ -75,6 +77,7 @@ export function useBrowserMenus(deps: BrowserMenusDeps) {
           onPress: () => deps.autofillMenu(section) ?? undefined,
         })),
         { key: "reader", label: "Mode lecture", icon: "reader", onPress: () => deps.openReader(tab.id) },
+        ...(deps.openAssistant ? [{ key: "assistant", label: "Assistant IA", icon: "sparkles" as const, onPress: deps.openAssistant }] : []),
         {
           key: "translate",
           label: deps.translated ? "Afficher l'original" : "Traduire la page",

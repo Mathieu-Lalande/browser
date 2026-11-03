@@ -3,7 +3,7 @@ import { cycleSpace, FALLBACK_SPACE_ICON } from "@shared/spaces";
 import type { SpaceInfo } from "@shared/types";
 import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Platform, StyleSheet, View, useWindowDimensions } from "react-native";
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,6 +18,8 @@ import { usePageSwipe } from "../hooks/usePageSwipe";
 import { usePasswordMenus } from "../hooks/usePasswordMenus";
 import { useAutofillMenus } from "../hooks/useAutofillMenus";
 import { useReader } from "../hooks/useReader";
+import { useAssistant, type AssistantController } from "../hooks/useAssistant";
+import { AssistantSheet } from "./AssistantSheet";
 import { useShareActions } from "../hooks/useShareActions";
 import { useSiteMenus } from "../hooks/useSiteMenus";
 import { useToolbarCollapse } from "../hooks/useToolbarCollapse";
@@ -51,7 +53,7 @@ type Overlay = "none" | "search" | "tabs" | "settings";
  * sheet, tab overview, settings, reader, sheets). Each concern lives in a hook of `hooks/`.
  */
 export function BrowserScreen() {
-  const { model, bookmarks, mobile, favorites, boosts, annotations } = useBrowserState();
+  const { model, bookmarks, mobile, favorites, boosts, annotations, settings } = useBrowserState();
   // Boosts (ADR-029): one payload for normal tabs, one for private ones (scripts only if allowed).
   const normalBoosts = useMemo(() => boostPayload(boosts, false), [boosts]);
   const privateBoosts = useMemo(() => boostPayload(boosts, true), [boosts]);
@@ -249,7 +251,16 @@ export function BrowserScreen() {
   const mini = useMiniPlayer({ tab, shown: overlay === "none", actions });
   const passwordMenus = usePasswordMenus({ tab, model, busy: !!menu || overlay !== "none", actions, haptic, setMenu });
   const autofillMenus = useAutofillMenus(tab);
-  const reader = useReader({ tab, visible: overlay === "none" });
+  // The assistant (ADR-044) reads the page through the reader's injection (token per request).
+  const assistantRef = useRef<AssistantController | null>(null);
+  const reader = useReader({ tab, visible: overlay === "none", onAssistantArticle: (id, article) => assistantRef.current?.onArticle(id, article) });
+  const assistant = useAssistant({
+    tab,
+    settings: settings.assistant,
+    updateSettings: actions.updateSettings,
+    requestArticle: (id) => reader.open(id, "assistant"),
+  });
+  assistantRef.current = assistant;
 
   const toggleDesktopSite = useEvent((tabId: string) =>
     setDesktopTabs((current) => {
@@ -287,6 +298,7 @@ export function BrowserScreen() {
     autofillMenu: autofillMenus.menu,
     autofillSections: autofillMenus.sections,
     openReader: reader.open,
+    openAssistant: settings.assistant.enabled ? assistant.open : null,
     translated: !!tab && translation.translated.has(tab.id),
     toggleTranslation: () => void (tab && translation.toggle(tab.id, isPrivateTab(tab))),
     desktopSite: !!tab && desktopTabs.has(tab.id),
@@ -324,6 +336,7 @@ export function BrowserScreen() {
     if (renamingFolder) return setRenamingFolder(null), true;
     if (overlay === "tabs") return overview.close(), true;
     if (overlay !== "none") return setOverlay("none"), true;
+    if (assistant.shown) return assistant.close(), true;
     if (reader.shown) return reader.close(), true;
     if (tab?.interstitial) return actions.reload(), true;
     if (tab?.canGoBack) return actions.goBack(), true;
@@ -463,6 +476,11 @@ export function BrowserScreen() {
               submit(url);
             }}
           />
+        </View>
+      )}
+      {assistant.shown && (
+        <View style={[StyleSheet.absoluteFill, { zIndex: 4 }]}>
+          <AssistantSheet assistant={assistant} includePage={!!tab?.url && settings.assistant.includePage} />
         </View>
       )}
       {overlay === "search" && (

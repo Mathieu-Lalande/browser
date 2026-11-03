@@ -17,6 +17,7 @@
     "export:web": "expo export --platform web --output-dir dist/web"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.4.0",
     "@expo/metro-runtime": "58.0.15",
     "@noble/ciphers": "2.4.0",
     "@noble/hashes": "2.4.0",

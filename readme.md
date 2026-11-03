@@ -43,6 +43,10 @@ Windows, macOS et Linux, avec son application iPhone et Android.
 - Traduction des pages (`Ctrl+Alt+T`), désactivée par défaut : DeepL, LibreTranslate ou Google Cloud au
   choix, clés chiffrées par le système, partie visible d'abord, « Afficher l'original », règles par langue et
   par site, aussi sur le téléphone (ADR-036).
+- Assistant IA facultatif (`Ctrl+Alt+A`), désactivé par défaut, avec votre propre clé d'API Anthropic (Claude) :
+  résumer, points clés, expliquer ou traduire la sélection, comparer des onglets, questions sur la page, `@ia`
+  dans la barre universelle ; ce qui est envoyé est toujours indiqué, rien n'est conservé ni synchronisé ; aussi
+  sur le téléphone (ADR-044).
 - Notes et surlignages (`Ctrl+Maj+H`) : passages surlignés en quatre couleurs, retrouvés à chaque visite même si la
   page change un peu, notes par passage et par page, panneau « Notes de la page » (`Ctrl+Alt+N`), `browser://notes`
   (recherche, filtres, export Markdown/JSON), `@n` dans la barre universelle, synchro facultative, aussi sur le

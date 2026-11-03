@@ -97,6 +97,7 @@
             <li><a href="#apercu">Aperçu des liens</a></li>
             <li><a href="#lecture">Mode lecture</a></li>
             <li><a href="#traduction">Traduction</a></li>
+            <li><a href="#assistant">Assistant IA</a></li>
             <li><a href="#notes">Notes et surlignages</a></li>
             <li><a href="#boosts">Boosts</a></li>
             <li><a href="#mots-de-passe">Mots de passe</a></li>
@@ -501,6 +502,32 @@
           </ul>
         </section>
 
+        <!-- AI assistant -->
+        <section class="doc-section" id="assistant" aria-labelledby="t-assistant">
+          <h2 id="t-assistant"><i data-icon="sparkles"></i>Assistant IA</h2>
+          <p>
+            Facultatif et désactivé par défaut. L'assistant utilise <strong>Claude</strong> d'Anthropic avec
+            <strong>votre propre clé d'API</strong> (à créer sur console.anthropic.com, facturée sur votre compte) :
+            Paramètres, « Assistant IA », activez-le, collez la clé, puis « Tester ». Modèle par défaut : Claude
+            Opus 5.5, rapide ; Claude Fable 5.1 est l'option « plus puissant ».
+          </p>
+          <p>
+            Ouvrez le panneau à côté de la page avec <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>A</kbd>
+            (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>A</kbd>), le menu « … » ou le clic droit. Actions rapides : « Résumer la
+            page », « Points clés », « Expliquer la sélection », « Traduire la sélection », ou une question sur la page.
+            Sélectionnez plusieurs onglets (<kbd>Ctrl</kbd>+clic) puis l'icône de l'assistant pour les comparer. Dans la
+            barre universelle, <code>@ia</code> suivi d'une question l'envoie, avec ou sans la page.
+          </p>
+          <ul>
+            <li>Chaque demande indique ce qui a été envoyé (titres des pages, « tronqué » pour une page trop longue).</li>
+            <li>Les réponses arrivent au fil de l'eau : « Arrêter » les interrompt ; « Copier » et « Ajouter aux notes »
+              les gardent.</li>
+            <li>Les conversations restent en mémoire, par onglet ; elles s'effacent au changement de page sauf si
+              « Garder les conversations » est activé.</li>
+            <li>Sur le téléphone : menu de la page, « Assistant IA » (résumé, points clés, question), mêmes réglages.</li>
+          </ul>
+        </section>
+
         <!-- Notes et surlignages -->
         <section class="doc-section" id="notes" aria-labelledby="t-notes">
           <h2 id="t-notes"><i data-icon="highlighter"></i>Notes et surlignages</h2>
@@ -889,6 +916,8 @@
             <dd>Electron 44 ne télécharge plus son binaire à l'installation : <code>scripts/ensure-electron.mjs</code> le fait au <code>postinstall</code> et avant <code>npm run dev</code>. Relancez <code>npm install</code> (ou <code>node scripts/ensure-electron.mjs</code>), en vérifiant l'accès réseau ou le proxy.</dd>
             <dt><code>npm install</code> échoue sur un conflit de dépendances.</dt>
             <dd>Le fichier <code>.npmrc</code> du dépôt active <code>legacy-peer-deps</code> ; lancez la commande à la racine du dépôt. Sous Windows, évitez un dossier synchronisé par OneDrive.</dd>
+            <dt>Que voit Anthropic quand j'utilise l'assistant ?</dt>
+            <dd>Seulement ce que vous lui demandez de lire, au moment où vous le demandez : le titre, l'adresse et le texte de la page (ou de la sélection, ou des onglets comparés) et votre question, envoyés directement par le navigateur avec votre clé, jamais les champs de formulaire ni les mots de passe. Un avertissement le rappelle avant le premier envoi, et à chaque fenêtre privée. Rien ne passe par nos serveurs : la clé est chiffrée par le système sur l'appareil, jamais synchronisée ; les conversations ne sont ni écrites sur le disque ni synchronisées. L'utilisation des données par Anthropic suit ses conditions de l'API.</dd>
             <dt>Un site ne fonctionne pas correctement.</dt>
             <dd>Désactivez les protections pour ce site (bouclier de la barre d'adresse), puis rechargez. Si le site refuse le https, la page HTTPS uniquement propose de continuer.</dd>
             <dt>Un onglet se recharge quand j'y reviens.</dt>

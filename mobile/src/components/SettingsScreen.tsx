@@ -15,6 +15,7 @@ import { NotesSettings } from "./NotesSettings";
 import { PasswordsSettings } from "./PasswordsSettings";
 import { SyncSettings } from "./SyncSettings";
 import { TranslateSettings } from "./TranslateSettings";
+import { AssistantSettings } from "./AssistantSettings";
 import { ThemeSettings } from "./ThemeSettings";
 import { THEME_QR_PREFIX } from "../lib/themeShare";
 import { IconButton, SiteIcon, Tap } from "./ui";
@@ -206,6 +207,10 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
 
         <Group title="Traduction" icon="languages">
           <TranslateSettings />
+        </Group>
+
+        <Group title="Assistant IA" icon="sparkles">
+          <AssistantSettings />
         </Group>
 
         <Group title="Notes et surlignages" icon="highlighter">
