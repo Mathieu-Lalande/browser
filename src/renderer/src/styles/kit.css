@@ -1,0 +1,86 @@
+/*
+ * Shared layout of the settings-like panels split into sub-components (site info popover,
+ * `browser://boosts`): lines of label + control, hints, compact lists, code snippets. Imported by
+ * the components that use it; every rule is scoped under their wrapper class `.kit`, so nothing
+ * leaks into other components. Sizes come from the global.css scales.
+ */
+
+/* A label and its value or control, on one line. */
+.kit .kit-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--hit-min);
+  color: var(--text-muted);
+}
+.kit .kit-label {
+  flex: 1;
+  color: var(--text);
+}
+.kit .kit-value {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Secondary text under a line or in place of an empty list. */
+.kit .kit-hint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.45;
+}
+
+/* Buttons aligned to the end of a section. */
+.kit .kit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* A compact list of items, each a text and its action (permissions, hidden elements). */
+.kit .kit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.kit .kit-list > li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.kit .kit-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* CSS selectors, fingerprints: monospace, one line. */
+.kit .kit-code {
+  overflow: hidden;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kit .kit-code.wrap {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Stacked sections of a panel, separated by a rule. */
+.kit .kit-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 10px 14px;
+}
+.kit .kit-section + .kit-section {
+  border-top: 1px solid var(--border);
+}

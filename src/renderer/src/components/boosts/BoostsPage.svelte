@@ -1,26 +1,13 @@
 <script lang="ts">
-  import ListRow from "../ui/ListRow.svelte";
-  import Card from "../ui/Card.svelte";
+  import { DEFAULT_FILTERS, type Boost, type BoostInput } from "@shared/boosts";
+  import { api, browser } from "../../lib/browser.svelte";
+  import "../../styles/kit.css";
   import Button from "../ui/Button.svelte";
+  import Card from "../ui/Card.svelte";
   import EmptyState from "../ui/EmptyState.svelte";
   import Page from "../ui/Page.svelte";
-  import {
-    BOOST_FONTS,
-    DEFAULT_FILTERS,
-    FILTER_RANGES,
-    MAX_BOOST_CSS,
-    MAX_BOOST_SCRIPT,
-    filtersActive,
-    type Boost,
-    type BoostFont,
-    type BoostInput,
-    type FilterAmount,
-  } from "@shared/boosts";
-  import { api, browser } from "../../lib/browser.svelte";
-  import Icon from "../Icon.svelte";
-  import ConfirmButton from "../ui/ConfirmButton.svelte";
-  import Slider from "../settings/Slider.svelte";
-  import Toggle from "../ui/Toggle.svelte";
+  import BoostEditor from "./BoostEditor.svelte";
+  import BoostRow from "./BoostRow.svelte";
 
   /**
    * `browser://boosts` (ADR-029): every boost, to switch on/off, edit or remove. The editor sends
@@ -28,12 +15,10 @@
    * A private window only lists them.
    */
 
-  const FILTER_LABELS: Record<FilterAmount, string> = { grayscale: "Niveaux de gris", sepia: "Sépia", brightness: "Luminosité", contrast: "Contraste" };
-
   let boosts = $state<Boost[]>([]);
   let loaded = $state(false);
-  let draft = $state<BoostInput | null>(null);
-  let error = $state<string | null>(null);
+  /** The boost being edited (a copy), or a new one; null while the editor is closed. */
+  let editing = $state<BoostInput | null>(null);
   let request = 0;
 
   async function refresh(): Promise<void> {
@@ -60,36 +45,13 @@
     script: { enabled: false, code: "", allowPrivate: false },
   });
 
-  function edit(boost: Boost | null): void {
-    error = null;
-    draft = boost ? structuredClone($state.snapshot(boost)) : blank();
-  }
+  const edit = (boost: Boost | null) => (editing = boost ? structuredClone($state.snapshot(boost)) : blank());
 
-  async function save(): Promise<void> {
-    if (!draft) return;
-    const result = await api.boosts.save($state.snapshot(draft)).catch(() => ({ ok: false as const, message: "Le boost n'a pas été enregistré." }));
-    if (result.ok) {
-      draft = null;
-      error = null;
-    } else error = result.message;
-  }
-
-  const toggle = (boost: Boost, enabled: boolean) => api.boosts.save({ ...$state.snapshot(boost), enabled });
-
-  /** A script received from another device runs here only once the user turns it on (ADR-029). */
-  function confirmScript(boost: Boost): void {
-    const { pending: _pending, ...script } = $state.snapshot(boost).script;
-    void api.boosts.save({ ...$state.snapshot(boost), script: { ...script, enabled: true } });
-  }
-
-  function summary(boost: Boost): string {
-    const parts: string[] = [];
-    if (filtersActive(boost.filters)) parts.push("filtres");
-    if (boost.font) parts.push(BOOST_FONTS[boost.font].label.toLowerCase());
-    if (boost.zaps.length) parts.push(`${boost.zaps.length} élément${boost.zaps.length > 1 ? "s" : ""} masqué${boost.zaps.length > 1 ? "s" : ""}`);
-    if (boost.css.trim()) parts.push("CSS");
-    if (boost.script.enabled) parts.push("JavaScript");
-    return parts.join(" · ") || "Aucune modification";
+  async function save(input: BoostInput): Promise<string | null> {
+    const result = await api.boosts.save(input).catch(() => ({ ok: false as const, message: "Le boost n'a pas été enregistré." }));
+    if (!result.ok) return result.message;
+    editing = null;
+    return null;
   }
 </script>
 
@@ -102,314 +64,34 @@
   {/if}
 {/snippet}
 
-<Page icon="rocket" title="Boosts" {subtitle} testid="boosts-page">
-  {#snippet actions()}
-    {#if !browser.isPrivate && !draft}
-      <Button variant="primary" icon="plus" onclick={() => edit(null)}>Nouveau boost</Button>
-    {/if}
-  {/snippet}
+<div class="kit">
+  <Page icon="rocket" title="Boosts" {subtitle} testid="boosts-page">
+    {#snippet actions()}
+      {#if !browser.isPrivate && !editing}
+        <Button variant="primary" icon="plus" onclick={() => edit(null)}>Nouveau boost</Button>
+      {/if}
+    {/snippet}
 
-    {#if draft}
-      <Card as="form" class="editor" aria-label="Modifier le boost" onsubmit={(event) => (event.preventDefault(), void save())}>
-        <div class="fields">
-          <label class="field">
-            <span>Site</span>
-            <input bind:value={draft.match} placeholder="exemple.fr ou *.exemple.fr" spellcheck="false" autocomplete="off" data-testid="boost-match" />
-          </label>
-          <label class="field">
-            <span>Nom</span>
-            <input bind:value={draft.name} placeholder="Facultatif" maxlength="80" />
-          </label>
-        </div>
-
-        <fieldset>
-          <legend>Couleurs</legend>
-          <div class="line">
-            <span class="label">Inverser les couleurs</span>
-            <Toggle label="Inverser les couleurs" checked={draft.filters.invert} onchange={(value) => draft && (draft.filters.invert = value)} />
-          </div>
-          {#each Object.keys(FILTER_LABELS) as FilterAmount[] as key (key)}
-            <div class="line">
-              <span class="label">{FILTER_LABELS[key]}</span>
-              <Slider
-                label={FILTER_LABELS[key]}
-                value={draft.filters[key]}
-                min={FILTER_RANGES[key].min}
-                max={FILTER_RANGES[key].max}
-                unit="%"
-                onchange={(value) => draft && (draft.filters[key] = value)}
-              />
-            </div>
-          {/each}
-        </fieldset>
-
-        <fieldset>
-          <legend>Police</legend>
-          <select
-            aria-label="Police"
-            value={draft.font ?? ""}
-            onchange={(event) => draft && (draft.font = (event.currentTarget.value || null) as BoostFont | null)}
-          >
-            <option value="">Police du site</option>
-            {#each Object.entries(BOOST_FONTS) as [id, font] (id)}<option value={id}>{font.label}</option>{/each}
-          </select>
-        </fieldset>
-
-        <fieldset>
-          <legend>Éléments masqués</legend>
-          {#if draft.zaps.length}
-            <ul class="zaps">
-              {#each draft.zaps as selector (selector)}
-                <li>
-                  <code>{selector}</code>
-                  <button type="button" class="small" onclick={() => draft && (draft.zaps = draft.zaps.filter((item) => item !== selector))}>
-                    <Icon name="undo" size={12} /> Réafficher
-                  </button>
-                </li>
-              {/each}
-            </ul>
-          {:else}
-            <p class="hint">Aucun. Ouvrez le site puis « Masquer des éléments ».</p>
-          {/if}
-        </fieldset>
-
-        <fieldset>
-          <legend>CSS personnalisé</legend>
-          <textarea class="code" bind:value={draft.css} rows="8" spellcheck="false" maxlength={MAX_BOOST_CSS} placeholder={"body {\n  max-width: 900px;\n}"} aria-label="CSS personnalisé"></textarea>
-        </fieldset>
-
-        <fieldset>
-          <legend>JavaScript</legend>
-          <div class="line">
-            <span class="label">Exécuter un script sur ce site</span>
-            <Toggle label="Exécuter un script sur ce site" checked={draft.script.enabled} onchange={(value) => draft && (draft.script.enabled = value)} />
-          </div>
-          {#if draft.script.enabled}
-            <p class="warning" role="note">
-              <Icon name="warning" size={14} />
-              <span>
-                Un script peut lire et modifier tout ce que la page affiche, y compris ce que vous y saisissez. N'ajoutez que du code que vous
-                comprenez. Il s'exécute isolé des scripts de la page, au chargement, et il est synchronisé avec vos appareils.
-              </span>
-            </p>
-            <textarea class="code" bind:value={draft.script.code} rows="8" spellcheck="false" maxlength={MAX_BOOST_SCRIPT} aria-label="Script"></textarea>
-            <div class="line">
-              <span class="label">Aussi en navigation privée</span>
-              <Toggle label="Exécuter aussi en navigation privée" checked={draft.script.allowPrivate} onchange={(value) => draft && (draft.script.allowPrivate = value)} />
-            </div>
-          {/if}
-        </fieldset>
-
-        {#if error}<p class="error" role="alert"><Icon name="warning" size={14} /> {error}</p>{/if}
-        <div class="buttons">
-          <Button onclick={() => ((draft = null), (error = null))}>Annuler</Button>
-          <Button variant="primary" type="submit">Enregistrer</Button>
-        </div>
-      </Card>
+    {#if editing}
+      {#key editing}
+        <BoostEditor initial={editing} onsave={save} oncancel={() => (editing = null)} />
+      {/key}
     {/if}
 
     {#if boosts.length}
       <Card as="ul">
         {#each boosts as boost (boost.id)}
-          <ListRow disabled={!boost.enabled} data-boost-id={boost.id}>
-            <span class="icon"><Icon name="rocket" size={16} /></span>
-            <span class="text">
-              <span class="title">{boost.name}</span>
-              <span class="detail">{boost.match} · {summary(boost)}</span>
-              {#if boost.script.pending}
-                <span class="pending" data-testid="boost-script-pending">
-                  <Icon name="warning" size={12} /> Script reçu d'un autre appareil — Activer ?
-                  {#if !browser.isPrivate}
-                    <button class="small" onclick={() => confirmScript(boost)} aria-label={`Activer le script de ${boost.name}`}>Activer</button>
-                  {/if}
-                </span>
-              {/if}
-            </span>
-            {#if !browser.isPrivate}
-              <Toggle label={`${boost.enabled ? "Désactiver" : "Activer"} ${boost.name}`} checked={boost.enabled} onchange={(enabled) => toggle(boost, enabled)} />
-              <button class="small" onclick={() => edit(boost)} aria-label={`Modifier ${boost.name}`}><Icon name="pencil" size={12} /> Modifier</button>
-              <ConfirmButton question="Supprimer ce boost ?" confirmLabel="Supprimer" title={`Supprimer ${boost.name}`} onconfirm={() => api.boosts.remove(boost.id)}>
-                <Icon name="trash" size={12} />
-              </ConfirmButton>
-            {/if}
-          </ListRow>
+          <BoostRow {boost} onedit={edit} />
         {/each}
       </Card>
-    {:else if loaded && !draft}
-      <EmptyState
-        icon="rocket"
-        title="Aucun boost"
-        hint="Un boost change l'apparence d'un site : couleurs, police, éléments masqués ou CSS."
-      />
+    {:else if loaded && !editing}
+      <EmptyState icon="rocket" title="Aucun boost" hint="Un boost change l'apparence d'un site : couleurs, police, éléments masqués ou CSS." />
     {/if}
-</Page>
+  </Page>
+</div>
 
 <style>
-  .hint {
-    margin: 0;
-    color: var(--text-muted);
-    line-height: 1.5;
+  .kit {
+    display: contents;
   }
-  .hint {
-    font-size: var(--text-xs);
-  }
-  .small {
-    display: flex;
-    flex: none;
-    align-items: center;
-    gap: 6px;
-    white-space: nowrap;
-  }
-
-  .small:hover {
-    background: var(--surface-hover);
-  }
-
-  .small {
-    height: 26px;
-    padding: 0 8px;
-    border-radius: 7px;
-    color: var(--text-muted);
-    font-size: var(--text-xs);
-  }
-  :global(form.card.list.editor) {
-    gap: 14px;
-    padding: 16px;
-  }
-  .fields {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 12px;
-  }
-  .field {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    font-size: var(--text-xs);
-    color: var(--text-muted);
-  }
-  input,
-  select,
-  textarea {
-    padding: 6px 8px;
-    border: 1px solid var(--border);
-    border-radius: 7px;
-    background: var(--surface);
-    color: var(--text);
-    font: inherit;
-  }
-  select {
-    width: fit-content;
-  }
-  .code {
-    width: 100%;
-    box-sizing: border-box;
-    resize: vertical;
-    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-    font-size: var(--text-xs);
-    line-height: 1.5;
-  }
-  fieldset {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin: 0;
-    padding: 12px 0 0;
-    border: 0;
-    border-top: 1px solid var(--border);
-  }
-  legend {
-    padding: 0;
-    font-weight: 600;
-  }
-  .line {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  .label {
-    flex: 1;
-  }
-  .zaps {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-  .zaps li {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .zaps code {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    font-size: 11.5px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .warning,
-  .error {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    margin: 0;
-    padding: 8px 10px;
-    border: 1px solid color-mix(in oklab, var(--danger, #d93f45) 45%, transparent);
-    border-radius: var(--radius);
-    color: var(--text);
-    font-size: var(--text-xs);
-    line-height: 1.45;
-  }
-  .error {
-    color: var(--danger, #d93f45);
-  }
-  .buttons {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-  }
-  :global(.row.disabled) .title,
-  :global(.row.disabled) .icon {
-    opacity: 0.55;
-  }
-  .icon {
-    display: grid;
-    flex: none;
-    place-items: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    background: var(--surface);
-    color: var(--text-muted);
-  }
-  .text {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-  }
-  .title {
-    font-weight: 600;
-  }
-  .detail {
-    overflow: hidden;
-    color: var(--text-muted);
-    font-size: var(--text-xs);
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .pending {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--text);
-    font-size: var(--text-xs);
-  }
-
-
 </style>

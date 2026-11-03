@@ -5,12 +5,13 @@
 
   /**
    * The text button of pages, panels and dialogs. `variant`: "primary" (the one main action, accent
-   * fill), "secondary" (bordered, the default), "ghost" (no box until hovered, links and quiet
-   * actions), "danger" (destructive, red text). `size`: "md" (32px, --field-height) or "sm" (28px).
+   * fill), "secondary" (bordered, the default), "ghost" (no box until hovered, links), "quiet"
+   * (muted text, no box until hovered: secondary actions in lists and panels), "danger"
+   * (destructive, red text). `size`: "md" (32px, --field-height) or "sm" (28px).
    * An optional leading `icon` is drawn at --icon-inline.
    */
   interface Props extends HTMLButtonAttributes {
-    variant?: "primary" | "secondary" | "ghost" | "danger";
+    variant?: "primary" | "secondary" | "ghost" | "quiet" | "danger";
     size?: "md" | "sm";
     icon?: IconName;
     element?: HTMLButtonElement;
@@ -86,6 +87,13 @@
   }
   .ghost:hover:not(:disabled) {
     background: var(--surface-hover);
+  }
+  .quiet {
+    color: var(--text-muted);
+  }
+  .quiet:hover:not(:disabled) {
+    background: var(--surface-hover);
+    color: var(--text);
   }
   .danger {
     border-color: color-mix(in oklab, var(--danger) 35%, transparent);
