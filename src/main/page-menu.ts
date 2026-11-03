@@ -12,9 +12,8 @@ import { hasPasswordsFor } from "./passwords/vault";
 import { buildPageMenu, isSavableUrl, selectionAddress, type PageMenuEntry } from "./page-menu-model";
 import { settings } from "./settings";
 import { spaces } from "./spaces";
-import { capture } from "./capture";
 import { savePage, viewSource } from "./page-actions";
-import { syncController } from "./sync";
+import { appServices } from "./services";
 import { BrowserController } from "./window";
 
 /** Isolated world of the media actions script (PiP uses 1002, cosmetic filtering 1001). */
@@ -78,7 +77,7 @@ function runEntry(id: string, c: BrowserController, tabId: TabId, contents: WebC
   if (id.startsWith("page-send:")) {
     // Only the URL and title leave, end-to-end encrypted (ADR-019); never from a private window.
     const url = contents.getURL();
-    if (!c.isPrivate && /^https?:/.test(url)) void syncController().sendTab(id.slice("page-send:".length), url, contents.getTitle());
+    if (!c.isPrivate && /^https?:/.test(url)) void appServices().sync.controller.sendTab(id.slice("page-send:".length), url, contents.getTitle());
     return;
   }
   if (id.startsWith("spell-") && /^spell-\d$/.test(id)) {
@@ -167,7 +166,7 @@ function runEntry(id: string, c: BrowserController, tabId: TabId, contents: WebC
     case "page-capture-element":
       // Captures act on the active tab (a split pane may be another one).
       if (c.tabs.activeTabId !== tabId) c.tabs.activate(tabId);
-      return void capture(c, id.slice("page-capture-".length) as CaptureMode);
+      return void appServices().capture.capture(c, id.slice("page-capture-".length) as CaptureMode);
     case "page-view-source":
       return viewSource(c, tabId);
     case "page-copy-url":
@@ -201,7 +200,7 @@ function toTemplate(entries: PageMenuEntry[], click: (id: string) => void): Menu
 
 /** Devices "Envoyer à un appareil" lists: none from a private window or without sync. */
 function sendableDevices(c: BrowserController): { id: string; name: string }[] | null {
-  const status = syncController().getStatus();
+  const status = appServices().sync.controller.getStatus();
   if (c.isPrivate || !status.configured) return null;
   return status.devices.map((device) => ({ id: device.id, name: device.name }));
 }

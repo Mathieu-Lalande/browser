@@ -1,15 +1,22 @@
 import { join } from "node:path";
 import type { Session } from "electron";
 import type { Settings, SettingsPatch } from "@shared/settings";
+import type { CollectionAdapter } from "@shared/sync/engine";
+import type { Boost } from "@shared/boosts";
+import { BoostService } from "./boosts/service";
+import { CaptureService } from "./capture/service";
 import { DownloadService } from "./downloads/service";
 import { ExtensionService } from "./extensions/service";
 import { PasswordVaultStore } from "./passwords/vault";
 import { installPrivacy, isTabPage } from "./privacy";
 import { ReaderService } from "./reader";
+import type { WindowDirectory } from "./ports";
 import type { Profile } from "./profile";
 import { SessionHardener } from "./session-hardener";
 import { trackCertificates } from "./site-info/certificates";
 import { StartImageCache } from "./start-image";
+import type { AdapterDeps } from "./sync/adapters";
+import { SyncService } from "./sync/service";
 
 export interface SessionOptions {
   /**
@@ -51,6 +58,10 @@ export interface AppConfig {
   settings(): Settings;
   updateSettings(patch: SettingsPatch): Settings;
   onSettingsChanged(listener: (current: Settings) => void): unknown;
+  /** The open browser windows (`BrowserController`), seen through their ports. */
+  windows: WindowDirectory;
+  /** The synced collections (`desktopAdapters`), passed in so this module stays out of the window graph. */
+  syncAdapters(deps: AdapterDeps): CollectionAdapter[];
   appName: string;
   locale: string;
   /** Test hooks honored by an unpackaged app only (ADR-018). */
@@ -67,6 +78,9 @@ export class AppServices {
   readonly passwords: PasswordVaultStore;
   readonly startImage: StartImageCache;
   readonly reader = new ReaderService();
+  readonly boosts: BoostService;
+  readonly capture: CaptureService;
+  readonly sync: SyncService;
   /** Installed into each tab session, in this order. */
   readonly sessionServices: readonly SessionService[];
   readonly hardener: SessionHardener;
@@ -84,6 +98,18 @@ export class AppServices {
     this.extensions = new ExtensionService(paths.userData);
     this.passwords = new PasswordVaultStore({ profileDir: paths.userData, plainKeychain: config.testHooks?.plainKeychain });
     this.startImage = new StartImageCache();
+    const { windows } = config;
+    this.boosts = new BoostService({
+      store: { list: () => config.profile().boosts, save: (next: readonly Boost[]) => config.profile().saveBoosts(next) },
+      windows,
+    });
+    this.capture = new CaptureService({ windows, downloadsFolder: () => this.downloads.folder() });
+    this.sync = new SyncService({
+      userData: paths.userData,
+      windows,
+      onLocalChange: (listener) => config.profile().onChange(() => listener()),
+      adapters: () => config.syncAdapters({ windows, boosts: this.boosts }),
+    });
     // Downloads: tab pages only, no automatic opening, dangerous types confirmed first (ADR-013); a
     // private session's ones never reach the history (ADR-014). Extensions: ADR-024.
     this.sessionServices = [privacyService, this.downloads, this.extensions, certificateService];
@@ -97,6 +123,7 @@ export class AppServices {
   }
 
   dispose(): void {
+    this.sync.stop();
     for (const service of this.sessionServices) service.dispose?.();
   }
 }

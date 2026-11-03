@@ -1,10 +1,13 @@
 import { Channels, type SyncActionResult } from "@shared/ipc";
 import { SyncError } from "@shared/sync/client";
-import { onSyncStatus, syncController } from "../sync";
+import { appServices } from "../services";
 import { exportTheme, importTheme } from "../theme-share";
 import { checkForUpdates, downloadUpdate, installUpdate, updateService } from "../updates";
 import { BrowserController } from "../window";
 import { custom, defineHandlers, handle, handleUi, maxStr, onUi, opt, text } from "./registry";
+
+/** The shared sync controller (ADR-019). */
+const sync = () => appServices().sync.controller;
 
 const MAX_SYNC_URL = 512;
 const MAX_SYNC_CODE = 2048;
@@ -23,8 +26,10 @@ async function attempt(action: () => Promise<void>): Promise<SyncActionResult> {
 
 /** Starts the sync controller and forwards its status to every window. */
 export function startSyncBroadcast(): void {
-  syncController();
-  onSyncStatus((status) => {
+  const service = appServices().sync;
+  // Built now (as before the service existed): its status is what the windows show.
+  void service.controller;
+  service.onStatus((status) => {
     for (const controller of BrowserController.all()) controller.send(Channels.syncChanged, status);
   });
 }
@@ -36,17 +41,17 @@ const noPrivate = { privateRefused: true } as const;
  * but not touch the account nor reveal the pairing code.
  */
 export const syncHandlers = defineHandlers({
-  [Channels.syncStatus]: handleUi([], () => syncController().getStatus()),
+  [Channels.syncStatus]: handleUi([], () => sync().getStatus()),
   [Channels.syncCreate]: handle(
     [text(MAX_SYNC_URL), opt(maxStr(MAX_SYNC_SECRET))],
-    (_c, serverUrl, secret) => attempt(() => syncController().createAccount(serverUrl, secret || undefined)),
+    (_c, serverUrl, secret) => attempt(() => sync().createAccount(serverUrl, secret || undefined)),
     noPrivate,
   ),
-  [Channels.syncPair]: handle([text(MAX_SYNC_CODE)], (_c, code) => attempt(() => syncController().pair(code)), noPrivate),
-  [Channels.syncPairingCode]: handle([], () => syncController().pairingCode(), noPrivate),
-  [Channels.syncNow]: onUi([], () => void syncController().syncNow()),
-  [Channels.syncDisconnect]: handle([], () => attempt(() => syncController().disconnect()), noPrivate),
-  [Channels.syncReset]: handle([], () => attempt(() => syncController().reset()), noPrivate),
+  [Channels.syncPair]: handle([text(MAX_SYNC_CODE)], (_c, code) => attempt(() => sync().pair(code)), noPrivate),
+  [Channels.syncPairingCode]: handle([], () => sync().pairingCode(), noPrivate),
+  [Channels.syncNow]: onUi([], () => void sync().syncNow()),
+  [Channels.syncDisconnect]: handle([], () => attempt(() => sync().disconnect()), noPrivate),
+  [Channels.syncReset]: handle([], () => attempt(() => sync().reset()), noPrivate),
 });
 
 /** Auto-updates (ADR-030): the UI may ask before the updater is ready (no status yet). */

@@ -3,16 +3,13 @@ import { effectiveAccelerator, effectiveAliases, getCommand, type CommandId } fr
 import { settings, updateSettings } from "./settings";
 import { toggleFavorite } from "./organize";
 import { profile } from "./profile";
-import { startZap } from "./boosts";
 import { toggleReader } from "./reader";
 import { clearTabSiteData } from "./site-info";
 import { sleepTabNow, sleepTabs } from "./sleep";
 import { spaces } from "./spaces";
 import { toggleSplit } from "./split";
-import { syncController } from "./sync";
+import { appServices } from "./services";
 import { checkForUpdates, installUpdate } from "./updates";
-import { capture, showPageOptions } from "./capture";
-import { toggleRecording } from "./capture/record";
 import { BrowserController } from "./window";
 import { ISSUES_URL, printPage, savePage, showAppMenu, viewSource } from "./page-actions";
 
@@ -95,7 +92,7 @@ const RUNNERS: Record<CommandId, Runner> = {
   "sleep-other-tabs": (c) => {
     for (const manager of c.spaces.tabManagers()) void sleepTabs(manager, null, null);
   },
-  "sync-now": () => void syncController().syncNow(),
+  "sync-now": () => void appServices().sync.controller.syncNow(),
   "site-info": (c) => c.showSiteInfo(),
   // The tab's own session: a private window clears its in-memory data only.
   "clear-site-data": onActiveTab((c, id) => void clearTabSiteData(c, id)),
@@ -111,18 +108,18 @@ const RUNNERS: Record<CommandId, Runner> = {
   "toggle-notes-panel": (c) => c.sendUiCommand("toggle-notes"),
   "open-notes": (c) => c.openNotes(),
   "open-boosts": (c) => c.openBoosts(),
-  "zap-elements": onActiveTab(startZap),
+  "zap-elements": onActiveTab((c, id) => appServices().boosts.startZap(c, id)),
   // Shows the settings, where the update status is.
   "check-updates": (c) => {
     c.openSettings();
     checkForUpdates();
   },
   "install-update": () => installUpdate(),
-  "page-options": (c) => showPageOptions(c),
-  "screenshot-visible": (c) => void capture(c, "visible"),
-  "screenshot-full": (c) => void capture(c, "full"),
-  "screenshot-element": (c) => void capture(c, "element"),
-  "record-video": (c) => toggleRecording(c),
+  "page-options": (c) => appServices().capture.showPageOptions(c),
+  "screenshot-visible": (c) => void appServices().capture.capture(c, "visible"),
+  "screenshot-full": (c) => void appServices().capture.capture(c, "full"),
+  "screenshot-element": (c) => void appServices().capture.capture(c, "element"),
+  "record-video": (c) => appServices().capture.recorder.toggle(c),
   print: (c) => printPage(c),
   "save-page": (c) => void savePage(c),
   "view-source": (c) => viewSource(c),

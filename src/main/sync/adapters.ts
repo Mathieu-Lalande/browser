@@ -25,18 +25,25 @@ import {
   type SyncedSpace,
 } from "@shared/sync/records";
 import type { HistoryEntry } from "@shared/types";
-import { setBoosts } from "../boosts";
 import { setProfileAnnotations } from "../annotations";
 import { profile } from "../profile";
 import { settings, updateSettings } from "../settings";
 import { spaces } from "../spaces";
-import { BrowserController } from "../window";
+import type { BoostService } from "../boosts/service";
+import type { WindowDirectory } from "../ports";
 
 /**
  * Desktop side of the synced collections (ADR-019): each adapter reads the profile and applies
  * changes from other devices through the same code paths as the UI. Private windows never feed
  * anything in: they write no history, are not in the session, and their tabs are not listed.
  */
+
+/** What the adapters need besides the profile: the windows to refresh, the boosts to apply. */
+export interface AdapterDeps {
+  windows: Pick<WindowDirectory, "refreshAll">;
+  boosts: Pick<BoostService, "setBoosts">;
+  now?: () => number;
+}
 
 function settingsAdapter(): CollectionAdapter<SyncedSettings> {
   return {
@@ -60,7 +67,7 @@ function spacesAdapter(): CollectionAdapter<SyncedSpace> {
   };
 }
 
-function bookmarksAdapter(): CollectionAdapter<SyncedBookmark> {
+function bookmarksAdapter(deps: AdapterDeps): CollectionAdapter<SyncedBookmark> {
   return {
     name: "bookmarks",
     snapshot: () => {
@@ -83,7 +90,7 @@ function bookmarksAdapter(): CollectionAdapter<SyncedBookmark> {
         else if (id.startsWith("f:")) bookmarks.removeFolder(id.slice(2));
       }
       saveBookmarks();
-      BrowserController.refreshAll();
+      deps.windows.refreshAll();
     },
   };
 }
@@ -105,7 +112,7 @@ function historyAdapter(now: () => number): CollectionAdapter<SyncedHistory> {
 }
 
 /** The favorites grid (ADR-022): keyed by URL, with its position; favicons stay on each device. */
-function favoritesAdapter(): CollectionAdapter<SyncedFavorite> {
+function favoritesAdapter(deps: AdapterDeps): CollectionAdapter<SyncedFavorite> {
   return {
     name: "favorites",
     snapshot: () => new Map(profile().favorites.list().map((favorite, index) => [favoriteLocalId(favorite.url), favoriteRecord(favorite, index)])),
@@ -114,20 +121,20 @@ function favoritesAdapter(): CollectionAdapter<SyncedFavorite> {
       const { favorites, saveFavorites } = profile();
       if (favorites.replace(mergeFavorites(favorites.list(), upserts.map((change) => change.data), deletes))) {
         saveFavorites();
-        BrowserController.refreshAll();
+        deps.windows.refreshAll();
       }
     },
   };
 }
 
 /** Boosts (ADR-029): keyed by boost id; a script travels only while it is enabled. */
-function boostsAdapter(): CollectionAdapter<SyncedBoost> {
+function boostsAdapter(deps: AdapterDeps): CollectionAdapter<SyncedBoost> {
   return {
     name: "boosts",
     snapshot: () => new Map(profile().boosts.map((boost) => [boost.id, boostRecord(boost)])),
     sanitize: (value, id) => sanitizeSyncedBoost(value, id),
     apply: ({ upserts, deletes }) => {
-      setBoosts(mergeBoosts(profile().boosts, upserts.map((change) => [change.id, change.data]), deletes));
+      deps.boosts.setBoosts(mergeBoosts(profile().boosts, upserts.map((change) => [change.id, change.data]), deletes));
     },
   };
 }
@@ -143,6 +150,7 @@ function annotationsAdapter(): CollectionAdapter<SyncedAnnotation> {
   };
 }
 
-export function desktopAdapters(now: () => number = Date.now): CollectionAdapter[] {
-  return [settingsAdapter(), spacesAdapter(), bookmarksAdapter(), historyAdapter(now), favoritesAdapter(), boostsAdapter(), annotationsAdapter()] as CollectionAdapter[];
+export function desktopAdapters(deps: AdapterDeps): CollectionAdapter[] {
+  const now = deps.now ?? Date.now;
+  return [settingsAdapter(), spacesAdapter(), bookmarksAdapter(deps), historyAdapter(now), favoritesAdapter(deps), boostsAdapter(deps), annotationsAdapter()] as CollectionAdapter[];
 }

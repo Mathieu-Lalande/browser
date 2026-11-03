@@ -9,7 +9,7 @@ import { hardenApp, hardenSession } from "./security";
 import { buildAppServices } from "./services";
 import { applyNativeTheme, onSettingsChanged, settings as currentSettings, updateSettings } from "./settings";
 import { startTabSleeper } from "./sleep";
-import { startSync } from "./sync";
+import { desktopAdapters } from "./sync/adapters";
 import { startUpdates } from "./updates";
 import { spaces } from "./spaces";
 import { startTabArchiver } from "./organize";
@@ -68,6 +68,8 @@ if (!app.requestSingleInstanceLock()) {
       settings: currentSettings,
       updateSettings,
       onSettingsChanged,
+      windows: BrowserController.directory,
+      syncAdapters: desktopAdapters,
       appName: app.getName(),
       locale: app.getLocale(),
       testHooks: { plainKeychain: !app.isPackaged && process.env.BROWSER_TEST_PLAIN_KEYCHAIN === "1" },
@@ -94,7 +96,8 @@ if (!app.requestSingleInstanceLock()) {
     if (restore.length) for (const saved of restore) new BrowserController(saved);
     else new BrowserController();
     // End-to-end encrypted sync (ADR-019): off unless an account was set up on this device.
-    startSync();
+    services.sync.start();
+    app.on("will-quit", () => services.sync.stop());
     // Auto-updates (ADR-030): packaged builds only, first check a little after startup.
     void startUpdates();
 

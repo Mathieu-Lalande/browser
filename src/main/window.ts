@@ -1,4 +1,3 @@
-import { join } from "node:path";
 import { app, BrowserWindow, nativeTheme, session, type Session, type WebContents } from "electron";
 import { internalPageOf, internalUrl, type InternalPage } from "@shared/internal";
 import { Channels } from "@shared/ipc";
@@ -9,7 +8,6 @@ import { matchesFavorite } from "@shared/favorites";
 import { uiUrl } from "./app-protocol";
 import { downloadViewerOf } from "./downloads";
 import type { DownloadViewer } from "./downloads/list";
-import { recordingOf } from "./capture/record";
 import { favoriteFavicon, favoriteTiles, setArchiveNotifier, setFavoritesRefresh } from "./organize";
 import { Overlay } from "./overlay";
 import { LinkPeek } from "./peek";
@@ -17,7 +15,6 @@ import { TabPreviews } from "./tab-preview";
 import { MediaHub } from "./media";
 import { PageTranslator } from "./translate";
 import { PageAnnotator } from "./annotations";
-import { boostPage } from "./boosts";
 import { watchPasswordForms } from "./passwords";
 import { hasPasswordsFor } from "./passwords/vault";
 import { createPrivateSession, wipePrivateSession } from "./private";
@@ -30,8 +27,12 @@ import type { TabManager, TabManagerHooks } from "./tabs";
 import { uiSession } from "./ui-session";
 import { PageGestures } from "./page-swipe";
 import { watchPageWheel } from "./page-swipe-script";
-import type { AppServices } from "./services";
+import type { WindowDirectory } from "./ports";
+import { appServices, type AppServices } from "./services";
 import { WindowRegistry } from "./window-registry";
+import { ChromeBridge } from "./window-parts/chrome-bridge";
+import { PageHooks } from "./window-parts/page-hooks";
+import { WindowChrome } from "./window-parts/window-chrome";
 
 /** The open windows and the browser UIs (chrome, overlay) of each: the IPC sender allow-list. */
 const windows = new WindowRegistry<BrowserController>();
@@ -94,33 +95,6 @@ export interface WindowOptions {
   private?: boolean;
 }
 
-/** The native window of a browser window, its chrome UI in its own session (ADR-024). */
-function createBrowserWindow(isPrivate: boolean, background: string): BrowserWindow {
-  const isMac = process.platform === "darwin";
-  return new BrowserWindow({
-    width: 1280,
-    height: 820,
-    minWidth: 640,
-    minHeight: 420,
-    show: false,
-    title: isPrivate ? "Browser — Navigation privée" : "Browser",
-    // The theme's own background: no white flash while the UI loads or on resize.
-    backgroundColor: background,
-    titleBarStyle: "hidden",
-    // macOS keeps its traffic lights; elsewhere the sidebar draws its own window controls.
-    ...(isMac ? { trafficLightPosition: { x: 16, y: 16 } } : { frame: false }),
-    webPreferences: {
-      preload: join(import.meta.dirname, "../preload/index.cjs"),
-      // Never a tab session: nothing installed there (extensions…) reaches the UI (ADR-024).
-      session: uiSession(),
-      sandbox: true,
-      contextIsolation: true,
-      nodeIntegration: false,
-      spellcheck: false,
-    },
-  });
-}
-
 /** One browser window: the chrome UI (sidebar, address bar…) plus the spaces and tabs of its pages. */
 export class BrowserController {
   readonly window: BrowserWindow;
@@ -147,8 +121,18 @@ export class BrowserController {
   readonly isPrivate: boolean;
   /** The in-memory session of a private window's pages, wiped when it closes. */
   private readonly privateSession: Session | null;
+  /** The native window: creation, native settings and events. */
+  private readonly frame: WindowChrome;
+  /** The chrome UI webContents and what main pushes to the window's UIs. */
+  private readonly bridge: ChromeBridge;
+
   /** The settings are capturing a keyboard shortcut in the chrome UI (ADR-028). */
-  capturingShortcut = false;
+  get capturingShortcut(): boolean {
+    return this.bridge.capturingShortcut;
+  }
+  set capturingShortcut(active: boolean) {
+    this.bridge.capturingShortcut = active;
+  }
 
   /** Whose downloads this window lists and may act on (its own only, for a private window). */
   get downloadViewer(): DownloadViewer {
@@ -169,19 +153,28 @@ export class BrowserController {
   constructor(restore?: SessionWindow, options: WindowOptions = {}) {
     this.isPrivate = options.private === true;
     this.privateSession = this.isPrivate ? createPrivateSession() : null;
-    this.window = createBrowserWindow(this.isPrivate, this.background());
+    this.frame = new WindowChrome({ isPrivate: this.isPrivate, background: this.background(), uiSession: uiSession() });
+    this.window = this.frame.window;
+    const chrome = this.window.webContents;
+    this.bridge = new ChromeBridge(chrome, () => this.overlay);
+    const pageHooks = new PageHooks({
+      base: tabHooks,
+      features: this,
+      boosts: appServices().boosts,
+      contextMenu: (tabId, params) => pageMenu?.(this, tabId, params),
+      watchPasswordForms: (tabId, contents) => watchPasswordForms(this, tabId, contents),
+      watchPageWheel,
+    });
     this.spaces = new SpaceManager(
       this.window,
       (spaceState) => this.stateChanged(spaceState),
-      tabHooksFor(this.pageHooks(), this.isPrivate),
+      tabHooksFor(pageHooks.hooks(), this.isPrivate),
       this.isPrivate ? undefined : restore,
       this.privateSession ? { space: PRIVATE_SPACE, session: this.privateSession } : undefined,
     );
 
-    const chrome = this.window.webContents;
     windows.add(chrome, this);
     this.applySettings(settings(), false);
-    this.wireChrome(chrome);
     this.overlay = new Overlay(this.window, {
       onCreated: (contents) => windows.registerUi(contents, this),
       focusTarget: () => this.tabs.activeWebContents() ?? chrome,
@@ -197,7 +190,7 @@ export class BrowserController {
     });
     this.peek = new LinkPeek(this);
     this.previews = new TabPreviews(this);
-    this.wireWindow(chrome);
+    this.wireWindow(chrome.id);
 
     // app://browser/index.html (or the dev server, unpackaged only).
     void this.window.loadURL(uiUrl("index"));
@@ -205,56 +198,18 @@ export class BrowserController {
 
   /** A new state of the spaces and their tabs: every UI of the window gets it. */
   private stateChanged(spaceState: BrowserState): void {
-    const state = this.withFavorites(spaceState);
-    if (!this.window.isDestroyed()) this.window.webContents.send(Channels.state, state);
-    this.overlay.send(Channels.state, state);
-    // A tab view attached while the overlay is open must not cover it.
-    if (this.overlay.isOpen) this.overlay.raise();
+    this.bridge.pushState(this.withFavorites(spaceState));
     if (!this.isPrivate) BrowserController.saveSession();
     this.media.sync();
     // Undefined only while the spaces are being created (first state, before the window is up).
     this.previews?.sync();
   }
 
-  /** What this window's features do with its tabs' pages (`tabHooksFor` drops the profile writers of a private window). */
-  private pageHooks(): TabManagerHooks {
-    return {
-      ...tabHooks,
-      contextMenu: (tabId, params) => pageMenu?.(this, tabId, params),
-      pageReady: (tabId, contents) => watchPasswordForms(this, tabId, contents),
-      boostPage: (contents) => boostPage(contents, this.isPrivate),
-      peekLink: (tabId, url) => this.peek.open(tabId, url),
-      gesturePage: (contents) => watchPageWheel(contents),
-      pageWheel: (tabId, sample) => this.gestures.feedPage(tabId, sample),
-      pageZoom: (tabId, direction) => this.gestures.zoom(tabId, direction),
-      media: (tabId, contents, playing) => this.media.report(tabId, contents, playing),
-      translatePage: (tabId, contents) => void this.translator.pageReady(tabId, contents),
-      translation: (tabId) => this.translator.stateOf(tabId),
-      annotatePage: (tabId, contents) => this.annotator.pageReady(tabId, contents),
-      annotationClick: (tabId, click) => this.annotator.clicked(tabId, click),
-    };
-  }
-
-  /** The chrome UI is a fixed app page: it never navigates nor opens windows; it can capture shortcuts. */
-  private wireChrome(chrome: WebContents): void {
-    chrome.on("will-navigate", (event) => event.preventDefault());
-    chrome.setWindowOpenHandler(() => ({ action: "deny" }));
-    // Shortcut capture in the settings (ADR-028): while it is on, key presses reach neither the
-    // menu accelerators nor the page; main hands them to the chrome UI instead.
-    chrome.on("before-input-event", (event, input) => {
-      if (!this.capturingShortcut || input.type !== "keyDown") return;
-      event.preventDefault();
-      const { key, code, control, alt, shift, meta } = input;
-      chrome.send(Channels.shortcutKey, { key, code, control, alt, shift, meta });
-    });
-    chrome.on("did-start-loading", () => (this.capturingShortcut = false));
-  }
-
   /** Native window events: swipe, maximize state, first show and close. */
-  private wireWindow(chrome: WebContents): void {
+  private wireWindow(chromeId: number): void {
     // A native macOS swipe navigates the active page when possible. If there is no page history,
     // retain the existing space-switching gesture.
-    this.window.on("swipe", (_event, direction) => {
+    this.frame.onSwipe((direction) => {
       const active = this.tabs.getState().tabs.find((tab) => tab.id === this.tabs.activeTabId);
       if (direction === "right" && active?.canGoBack) this.tabs.back(active.id);
       else if (direction === "left" && active?.canGoForward) this.tabs.forward(active.id);
@@ -262,19 +217,10 @@ export class BrowserController {
       else if (direction === "right") this.spaces.switchBy(-1);
     });
 
-    // The window controls show "restore" instead of "maximize" while maximized.
-    for (const event of ["maximize", "unmaximize", "enter-full-screen", "leave-full-screen"] as const) {
-      this.window.on(event as "maximize", () => {
-        if (!this.window.isDestroyed()) chrome.send(Channels.windowMaximized, this.window.isMaximized() || this.window.isFullScreen());
-      });
-    }
-
-    this.window.once("ready-to-show", () => {
-      this.window.show();
-      // Pre-warm the overlay once the window is up, so the first Ctrl+K opens instantly.
-      setTimeout(() => !this.window.isDestroyed() && this.overlay.warm(), 0);
-    });
-    this.window.on("closed", () => this.closed(chrome.id));
+    this.frame.onMaximizedChange((maximized) => this.bridge.toChrome(Channels.windowMaximized, maximized));
+    // Pre-warm the overlay once the window is up, so the first Ctrl+K opens instantly.
+    this.frame.showWhenReady(() => this.overlay.warm());
+    this.window.on("closed", () => this.closed(chromeId));
   }
 
   private closed(chromeId: number): void {
@@ -302,7 +248,7 @@ export class BrowserController {
   }
 
   private withFavorites(state: BrowserState): BrowserState {
-    return { ...state, favorites: favoriteTiles(this), recording: recordingOf(this) };
+    return { ...state, favorites: favoriteTiles(this), recording: appServices().capture.recorder.stateOf(this) };
   }
 
   /** Shows `browser://archive` (ADR-022). */
@@ -344,12 +290,9 @@ export class BrowserController {
   /** Applies settings to the native side of the window, and tells its chrome UI (unless `notify` is false). */
   applySettings(current: Settings, notify = true): void {
     if (this.window.isDestroyed()) return;
-    this.window.setBackgroundColor(this.background(current));
+    this.frame.applySettings(current, this.background(current));
     this.spaces.configure(tabOptions(current));
-    // Zen mode hides the macOS traffic lights along with the sidebar.
-    if (process.platform === "darwin") this.window.setWindowButtonVisibility(!current.layout.zenMode);
-    this.window.setHasShadow(current.appearance.shadows);
-    if (notify) this.window.webContents.send(Channels.settingsChanged, current);
+    if (notify) this.bridge.toChrome(Channels.settingsChanged, current);
   }
 
   /**
@@ -410,8 +353,7 @@ export class BrowserController {
 
   /** Pushes a message to this window's browser UIs (chrome and overlay). */
   send(channel: string, ...args: unknown[]): void {
-    if (!this.window.isDestroyed()) this.window.webContents.send(channel, ...args);
-    this.overlay.send(channel, ...args);
+    this.bridge.send(channel, ...args);
   }
 
   static toggleZenMode(): void {
@@ -420,10 +362,7 @@ export class BrowserController {
 
   sendUiCommand(command: UiCommand): void {
     // The chrome UI cannot take input while the overlay covers it.
-    this.overlay.close();
-    // Shortcuts may fire while a web page has focus; UI commands need the chrome focused.
-    this.window.webContents.focus();
-    this.window.webContents.send(Channels.uiCommand, command);
+    this.bridge.command(command);
   }
 
   /** Window of a chrome UI webContents (not the overlay). */
@@ -435,6 +374,14 @@ export class BrowserController {
   static fromUi(contents: WebContents): BrowserController | undefined {
     return windows.fromUi(contents.id);
   }
+
+  /** The open windows as the app services see them (`WindowPort`, ./ports). */
+  static readonly directory: WindowDirectory = {
+    all: () => BrowserController.all(),
+    focused: () => BrowserController.focused(),
+    fromChrome: (contents) => BrowserController.fromChrome(contents),
+    refreshAll: () => BrowserController.refreshAll(),
+  };
 
   static focused(): BrowserController | undefined {
     const window = BrowserWindow.getFocusedWindow();

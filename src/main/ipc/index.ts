@@ -1,6 +1,6 @@
 import { ipcMain } from "electron";
 import type { Channels } from "@shared/ipc";
-import { installRecorder } from "../capture/record";
+import { appServices } from "../services";
 import { BrowserController } from "../window";
 import { downloadHandlers } from "./downloads";
 import { mediaHandlers } from "./media";
@@ -71,6 +71,6 @@ export function registerIpc(): void {
     fromChrome: (sender) => BrowserController.fromChrome(sender),
     isPrivate: (controller) => controller.isPrivate,
   }, handlers);
-  installRecorder();
+  appServices().capture.recorder.install();
   startSyncBroadcast();
 }
