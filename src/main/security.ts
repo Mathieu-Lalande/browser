@@ -69,6 +69,9 @@ interface TabHooks {
 /** Schemes handed to the OS (mail and phone apps), after a user gesture only. */
 const isExternalUrl = (url: string) => /^(mailto|tel):/i.test(url);
 
+/** Room for every feature's pending isolated-world scripts on one page (see `hardenWebContents`). */
+const MAX_TAB_LISTENERS = 50;
+
 const hardenedContents = new WeakMap<WebContents, { hooks: TabHooks; activation: UserActivation }>();
 
 /**
@@ -81,6 +84,11 @@ export function hardenWebContents(contents: WebContents, hooks: TabHooks): void 
   if (known) return void (known.hooks = hooks);
   const tab = { hooks, activation: new UserActivation() };
   hardenedContents.set(contents, tab);
+  // Not a leak: each feature's isolated-world script (cosmetics, passwords, autofill, notes, media,
+  // translation…) runs at dom-ready, and Electron parks every `executeJavaScriptInIsolatedWorld`
+  // made while the page loads on a one-shot `did-stop-loading` listener. More than 10 at once is
+  // expected, so the default warning threshold would fire on every page load.
+  contents.setMaxListeners(MAX_TAB_LISTENERS);
 
   // Popup blocker (ADR-018): what counts is trusted input main sees reaching the page, not the
   // page's own claims (`disposition` follows modifiers a script can put on a synthetic click).
