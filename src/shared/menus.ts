@@ -325,6 +325,7 @@ export function buildAppMenu(context: AppMenuContext): MenuNode[] {
   );
   const help: MenuNode[] = [
     command("keyboard-shortcuts"),
+    command("open-welcome"),
     command("about"),
     command("report-issue"),
   ];

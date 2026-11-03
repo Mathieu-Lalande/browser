@@ -144,6 +144,23 @@
         </ul>
       </section>
 
+      <!-- ============ Performance (ADR-043: docs/perf/latest.md, npm run bench) ============ -->
+      <section class="perf" aria-labelledby="perf-title">
+        <div class="container">
+          <h2 id="perf-title" class="visually-hidden">Performances mesurées</h2>
+          <ul class="perf-grid">
+            <li><strong>0,48 s</strong><span>du lancement au premier rendu</span></li>
+            <li><strong>27 ms</strong><span>pour un nouvel onglet prêt</span></li>
+            <li><strong>&minus;78 %</strong><span>de mémoire quand 29 onglets sur 30 dorment</span></li>
+          </ul>
+          <p class="perf-note">
+            Médianes de <code>npm run bench</code> sur une machine Linux d'intégration continue (4 cœurs, build de
+            développement), pas sur votre ordinateur. Une comparaison avec Chrome ou Arc n'a de sens que mesurée sur la
+            même machine : <a href="docs.html#diagnostic">méthode et tableau complet</a>.
+          </p>
+        </div>
+      </section>
+
       <!-- ============ Storytelling (pinned mockup) ============ -->
       <section class="story" id="fonctionnalites" aria-labelledby="story-title">
         <div class="container">

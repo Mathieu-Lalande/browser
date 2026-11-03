@@ -53,6 +53,8 @@ test("the packaged app starts, browses, blocks, and ignores the dev and test hoo
   const filters = readFileSync(fileURLToPath(new URL("./filters.txt", import.meta.url)), "utf8");
   mkdirSync(join(profile, "adblock"), { recursive: true });
   writeFileSync(join(profile, "adblock", "engine.bin"), FiltersEngine.parse(filters, ENGINE_CONFIG).serialize());
+  // An existing settings file: not a fresh profile, so no welcome page (ADR-043).
+  writeFileSync(join(profile, "settings.json"), JSON.stringify({ version: 1, data: {} }));
   const child = spawn(resolve(executable!), ["--no-sandbox", "--disable-updates", `--user-data-dir=${profile}`, "--remote-debugging-port=0"], {
     env: { ...process.env, BROWSER_PROFILE_DIR: ignored, BROWSER_TEST_FILTERS: "/nonexistent", ELECTRON_RENDERER_URL: "http://127.0.0.1:9/" },
     stdio: "ignore",

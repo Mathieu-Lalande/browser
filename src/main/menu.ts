@@ -166,7 +166,7 @@ export function installMenu(): void {
     },
     {
       label: "Aide",
-      submenu: [...commandMenuItems("keyboard-shortcuts"), ...commandMenuItems("report-issue"), { type: "separator" }, ...commandMenuItems("about")],
+      submenu: [...commandMenuItems("keyboard-shortcuts"), ...commandMenuItems("open-welcome"), ...commandMenuItems("report-issue"), { type: "separator" }, ...commandMenuItems("about")],
     },
     ...(app.isPackaged
       ? []

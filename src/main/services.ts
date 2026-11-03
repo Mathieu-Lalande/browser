@@ -33,6 +33,7 @@ import type { ProfileService } from "./profiles/service";
 import { RecoveryService } from "./recovery/service";
 import type { Session as SavedSession, SessionWindow } from "./storage/session";
 import { TaskManagerService, type TaskManagerDeps } from "./tasks";
+import { CrashReportService, type CrashReportDeps } from "./diagnostics/crash-reports";
 import { spaces } from "./spaces";
 
 export interface SessionOptions {
@@ -96,6 +97,8 @@ export interface AppConfig {
   session(): SavedSession;
   /** `app.getAppMetrics()` and `webContents.getAllWebContents()` (task manager, ADR-042). */
   processes: Pick<TaskManagerDeps, "metrics" | "allContents">;
+  /** Crashpad and the build's crash endpoint (ADR-043). */
+  crashReports: Pick<CrashReportDeps, "reporter" | "dumpsDir" | "endpoint" | "version">;
   /** Test hooks honored by an unpackaged app only (ADR-018). */
   testHooks?: {
     /** ADR-042: files used instead of the print and backup dialogs. */
@@ -138,6 +141,8 @@ export class AppServices {
   readonly notifications: NotificationCenter;
   readonly spellcheck: SpellcheckService;
   readonly passkeys: PasskeyService;
+  /** Crash reports (ADR-043). */
+  readonly crashes: CrashReportService;
   /** Installed into each tab session, in this order. */
   readonly sessionServices: readonly SessionService[];
   readonly hardener: SessionHardener;
@@ -231,6 +236,12 @@ export class AppServices {
     });
     this.passkeys = new PasskeyService({ platform: config.platform, touchIdKeychainGroup: config.touchIdKeychainGroup });
     this.passkeys.configurePlatform();
+    this.crashes = new CrashReportService({
+      ...config.crashReports,
+      productName: config.appName,
+      settings: () => config.settings(),
+      onSettingsChanged: (listener) => config.onSettingsChanged(listener),
+    });
     // Downloads: tab pages only, no automatic opening, dangerous types confirmed first (ADR-013); a
     // private session's ones never reach the history (ADR-014). Extensions: ADR-024.
     this.sessionServices = [privacyService, this.downloads, this.extensions, certificateService, this.spellcheck, this.passkeys];

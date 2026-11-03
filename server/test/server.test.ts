@@ -173,3 +173,33 @@ describe("rate limiter", () => {
     expect(limiter.take("a")).toBe(0);
   });
 });
+
+describe("crash receiver (ADR-043)", () => {
+  const crash = (body: string | Buffer = "--b\r\nminidump\r\n--b--", headers: Record<string, string> = {}) =>
+    fetch(`${base}/crash`, { method: "POST", headers: { "content-type": "multipart/form-data; boundary=b", ...headers }, body });
+
+  it("is off unless enabled", async () => {
+    await start();
+    expect((await crash()).status).toBe(404);
+  });
+
+  it("stores multipart minidumps and answers their id", async () => {
+    await start({ crashReports: true });
+    const response = await crash();
+    expect(response.status).toBe(200);
+    const id = await response.text();
+    expect(readdirSync(join(dataDir, "crashes"))).toEqual([`${id}.multipart`]);
+    expect(readFileSync(join(dataDir, "crashes", `${id}.multipart`), "utf8")).toContain("minidump");
+    expect((await crash("x", { "content-type": "application/json" })).status).toBe(415);
+    expect((await fetch(`${base}/crash`)).status).toBe(405);
+  });
+
+  it("limits size, rate and the number kept", async () => {
+    await start({ crashReports: true, maxCrashBytes: 64, crashesPerHour: 3, maxStoredCrashes: 2 });
+    expect((await crash(Buffer.alloc(200, 1))).status).toBe(413);
+    expect((await crash()).status).toBe(200);
+    expect((await crash()).status).toBe(200);
+    expect(readdirSync(join(dataDir, "crashes"))).toHaveLength(2);
+    expect((await crash()).status).toBe(429);
+  });
+});

@@ -143,6 +143,13 @@
   (nonce par demande). `PasskeyService` (`src/main/webauthn.ts`, `@shared/webauthn`), `NotificationCenter`
   (`src/main/notifications/`, shim + relais monde isolé 1016, crochet `BROWSER_TEST_NOTIFICATIONS`), `SpellcheckService`
   (`src/main/spellcheck.ts`) : `SessionService` installés par `hardenSession`.
+- Premiers pas, diagnostic, performances (ADR-043) : `browser://welcome` (modèle pur `src/shared/onboarding.ts`,
+  `components/welcome/`, `settings.onboarding.completed` : `false` seulement pour un profil neuf via `freshProfileSettings`,
+  ouvert par `index.ts`, crochet `BROWSER_TEST_SKIP_WELCOME` mis par défaut dans les fixtures e2e) ; plantages
+  `src/shared/diagnostics.ts` + `CrashReportService` (`src/main/diagnostics/`, Crashpad toujours local, envoi si
+  `settings.diagnostics.crashReports` et `MAIN_VITE_CRASH_ENDPOINT`/`BROWSER_TEST_CRASH_ENDPOINT`), section `DiagnosticsSection`,
+  relais `POST /crash` (`CRASH_REPORTS=1`) ; `issueUrl` → `.github/ISSUE_TEMPLATE/bug.yml` ; pages internes et panneaux overlay rares
+  chargés à la demande (`InternalPage.svelte`, `LAZY` d'`Overlay.svelte`) ; `npm run bench` (`scripts/bench.mjs`, `docs/perf/`).
 - Assistant IA (ADR-044, désactivé par défaut, clé Anthropic de l'utilisateur : `safeStorage` / `expo-secure-store`, jamais
   synchronisée) : cœur pur `src/shared/assistant/` (contexte tronqué par estimation de jetons, prompts, conversation en ajout
   seul, réducteur d'événements, Markdown → arbre du lecteur assaini), main `src/main/assistant/` (SDK `@anthropic-ai/sdk`

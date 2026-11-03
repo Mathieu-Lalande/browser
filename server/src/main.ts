@@ -11,6 +11,9 @@ const { server, store } = createSyncServer({
   trustProxy: env.TRUST_PROXY === "1" || env.TRUST_PROXY === "true",
   requestsPerMinute: env.RATE_LIMIT_PER_MINUTE ? Number(env.RATE_LIMIT_PER_MINUTE) : undefined,
   maxAccountBytes: env.MAX_ACCOUNT_MB ? Number(env.MAX_ACCOUNT_MB) * 1024 * 1024 : undefined,
+  crashReports: env.CRASH_REPORTS === "1" || env.CRASH_REPORTS === "true",
+  maxCrashBytes: env.MAX_CRASH_MB ? Number(env.MAX_CRASH_MB) * 1024 * 1024 : undefined,
+  crashesPerHour: env.CRASHES_PER_HOUR ? Number(env.CRASHES_PER_HOUR) : undefined,
   log: env.QUIET === "1" ? undefined : (line) => console.log(line),
 });
 

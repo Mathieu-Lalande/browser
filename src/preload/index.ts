@@ -342,6 +342,10 @@ const api: BrowserApi = {
     open: (id) => ipcRenderer.invoke(Channels.profilesOpen, id),
     setAskOnLaunch: (ask) => ipcRenderer.invoke(Channels.profilesSetAsk, ask),
   },
+  crashes: {
+    info: () => ipcRenderer.invoke(Channels.crashesInfo),
+    clear: () => ipcRenderer.invoke(Channels.crashesClear),
+  },
   tasks: {
     list: () => ipcRenderer.invoke(Channels.tasksList),
     kill: (pid) => ipcRenderer.invoke(Channels.tasksKill, pid),

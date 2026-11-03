@@ -1,4 +1,5 @@
 import { app, clipboard, type MenuItemConstructorOptions } from "electron";
+import { issueUrl } from "@shared/diagnostics";
 import { effectiveAccelerator, effectiveAliases, getCommand, type CommandId } from "@shared/commands";
 import { settings, updateSettings } from "./settings";
 import { toggleFavorite } from "./organize";
@@ -11,7 +12,7 @@ import { toggleSplit } from "./split";
 import { appServices } from "./app-services-ref";
 import { checkForUpdates, installUpdate } from "./updates";
 import { BrowserController } from "./window";
-import { ISSUES_URL, printPage, savePage, showAppMenu, viewSource } from "./page-actions";
+import { issueContext, printPage, savePage, showAppMenu, viewSource } from "./page-actions";
 
 type Runner = (controller: BrowserController) => void;
 
@@ -145,7 +146,9 @@ const RUNNERS: Record<CommandId, Runner> = {
   "keyboard-shortcuts": (c) => c.openInternal("settings", "shortcuts"),
   // The "Mises à jour" section shows the version.
   about: (c) => c.openInternal("settings", "updates"),
-  "report-issue": (c) => void c.tabs.create(ISSUES_URL),
+  // The bug form prefilled with the version and the system, nothing else (ADR-043).
+  "report-issue": (c) => void c.tabs.create(issueUrl(issueContext())),
+  "open-welcome": (c) => c.openInternal("welcome"),
   quit: () => app.quit(),
 };
 
