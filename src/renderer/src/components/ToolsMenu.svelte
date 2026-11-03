@@ -5,6 +5,7 @@
   import IconButton from "./ui/IconButton.svelte";
   import Menu from "./ui/Menu.svelte";
   import MenuItem from "./ui/MenuItem.svelte";
+  import { dismiss } from "./ui/dismiss";
 
   /**
    * Sidebar footer menu to the internal pages that have no button of their own (ADR-012). It opens
@@ -21,15 +22,10 @@
     api.commands.run(id);
   }
 
-  function onWindowPointer(event: PointerEvent): void {
-    if (open && root && !root.contains(event.target as Node)) open = false;
-  }
-
-  function onKey(event: KeyboardEvent): void {
-    if (event.key !== "Escape" || !open) return;
-    event.stopPropagation();
+  /** Escape (from inside the menu) closes it back to its button; a press outside just closes it. */
+  function onDismiss(reason: "escape" | "outside"): void {
     open = false;
-    toggle?.focus();
+    if (reason === "escape") toggle?.focus();
   }
 
   $effect(() => {
@@ -37,9 +33,7 @@
   });
 </script>
 
-<svelte:window onpointerdown={onWindowPointer} />
-
-<div class="tools" bind:this={root} onkeydown={onKey} role="presentation">
+<div class="tools" bind:this={root} use:dismiss={{ enabled: open, escape: "node", outside: true, onDismiss }}>
   {#if open}
     <Menu class="tools-menu" label="Outils">
       {#each ITEMS as id (id)}

@@ -7,8 +7,8 @@
   import { api, browser } from "../lib/browser.svelte";
   import { platform } from "../lib/platform.svelte";
   import { settings } from "../lib/settings.svelte";
-  import Favicon from "./Favicon.svelte";
   import Icon from "./Icon.svelte";
+  import SuggestionList from "./address/SuggestionList.svelte";
 
   const MAX_SUGGESTIONS = 6;
 
@@ -378,47 +378,7 @@
   <div class="copied" class:visible={copied} role="status" aria-live="polite">{copied ? "Lien copié" : ""}</div>
 
   {#if open}
-    <!-- Rendered in the sidebar flow (not as an overlay): nothing can be drawn above the page view. -->
-    <!-- Options are driven from the keyboard by the combobox input (aria-activedescendant). -->
-    <ul class="suggestions" id="address-suggestions" role="listbox" aria-label="Suggestions">
-      <!-- svelte-ignore a11y_click_events_have_key_events -->
-      <li
-        id="suggestion-0"
-        role="option"
-        aria-selected={selected === 0}
-        class:selected={selected === 0}
-        onmousedown={(event) => event.preventDefault()}
-        onclick={() => go(draft)}
-      >
-        <span class="icon"><Icon name={isSearch ? "search" : "globe"} size={16} /></span>
-        <span class="text">
-          <span class="title"
-            >{#if isSearch}Rechercher « {query} »{:else}Aller à {displayUrl(normalizeInput(query, settings.engine))}{/if}</span
-          >
-        </span>
-      </li>
-      {#each suggestions as suggestion, index (suggestion.url)}
-        <!-- svelte-ignore a11y_click_events_have_key_events -->
-        <li
-          id="suggestion-{index + 1}"
-          role="option"
-          aria-selected={selected === index + 1}
-          class:selected={selected === index + 1}
-          title={suggestion.url}
-          onmousedown={(event) => event.preventDefault()}
-          onclick={() => go(suggestion.url)}
-        >
-          <span class="icon"><Favicon src={suggestion.favicon} /></span>
-          <span class="text">
-            <span class="title">{suggestion.title || displayUrl(suggestion.url)}</span>
-            <span class="url">{displayUrl(suggestion.url)}</span>
-          </span>
-          {#if suggestion.kind === "bookmark"}
-            <span class="kind" title="Favori"><Icon name="star" size={12} filled /></span>
-          {/if}
-        </li>
-      {/each}
-    </ul>
+    <SuggestionList {query} {isSearch} {suggestions} {selected} onGo={(target) => go(target ?? draft)} />
   {/if}
 </div>
 
@@ -684,68 +644,6 @@
   }
   .star.on {
     color: var(--accent-text);
-  }
-  .suggestions {
-    margin: 0;
-    padding: 4px;
-    list-style: none;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--bg-elevated);
-    animation: drop var(--motion-fast) var(--ease);
-  }
-  li {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-height: 34px;
-    padding: 4px 8px;
-    border-radius: 7px;
-    color: var(--text-muted);
-  }
-  li.selected {
-    background: color-mix(in oklab, var(--accent) 18%, transparent);
-    color: var(--text);
-  }
-  li:hover:not(.selected) {
-    background: var(--surface-hover);
-  }
-  .icon {
-    display: grid;
-    flex: none;
-    place-items: center;
-    width: 16px;
-  }
-  .text {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
-  .title,
-  .url {
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .title {
-    color: var(--text);
-  }
-  .url {
-    color: var(--text-faint);
-    font-size: 11px;
-  }
-  .kind {
-    display: grid;
-    color: var(--accent-text);
-  }
-  @keyframes drop {
-    from {
-      opacity: 0;
-      transform: translateY(-3px);
-    }
   }
   /* Narrow sidebar: tighter spacing, and the copy button (Ctrl+Maj+C, palette) leaves the URL room. */
   @container sidebar (max-width: 230px) {
