@@ -207,7 +207,8 @@ transparente (`setBackgroundColor("#00000000")`) qui charge une seconde entrée 
 - Créée paresseusement mais préchauffée juste après l'affichage de la fenêtre, puis gardée chargée :
   ouvrir = envoyer la requête + `addChildView` + focus (premier rendu mesuré à 7–27 ms après Ctrl+K sous xvfb).
 - Fermeture (Échap, clic sur le fond, action) : focus rendu à ce qui l'avait (annulation) ou à la page active.
-- Sécurité : `src/main/window.ts` tient un registre `webContents.id → BrowserController` des interfaces
+- Sécurité : `src/main/window.ts` tient un registre (`WindowRegistry`, `src/main/window-registry.ts`)
+  `webContents.id → BrowserController` des interfaces
   du navigateur (chrome **et** overlay) ; c'est la liste blanche des émetteurs IPC. Les pages d'onglets n'y
   sont jamais inscrites (et n'ont pas de preload).
 - Flou : CSS (`backdrop-filter`) ne peut pas flouter une vue native située derrière. L'overlay affiche
@@ -256,7 +257,8 @@ l'URL vide pour la compatibilité des sessions). Elles sont restaurées avec la 
 
 **Téléchargements** (`src/main/downloads/`).
 
-- `installDownloads(session)` branche `will-download` sur une session ; idempotente, elle est appelée
+- `installDownloads(session)` (renommé : `DownloadService.install`, `src/main/downloads/service.ts`, un
+  `SessionService` de `AppServices`) branche `will-download` sur une session ; idempotente, elle est appelée
   par le durcissement de session (`hardenSession`), donc pour chaque session le jour où il y en aura une
   par espace. Seules les pages d'onglets téléchargent (`isTabPage`, le registre de la couche privacy) :
   un téléchargement venu de l'interface, de l'overlay ou d'ailleurs est annulé.
@@ -359,7 +361,7 @@ idempotent) : bloqueur, HTTPS-Only, GPC, client hints, invite de permissions.
   choix valent pour la fenêtre et ne fuient pas vers les fenêtres normales. Les exceptions HTTPS-Only
   restent en mémoire et partagées, comme avant.
 - **Téléchargements et zoom (ADR-013).** `hardenSession` passe le drapeau à
-  `installDownloads(ses, { ephemeral })` : le fichier est enregistré où l'utilisateur l'a demandé, l'entrée
+  `installDownloads(ses, { ephemeral })` (renommé : `DownloadService.install(ses, { ephemeral })`) : le fichier est enregistré où l'utilisateur l'a demandé, l'entrée
   apparaît dans la liste **de cette fenêtre seulement** (les fenêtres normales ne la voient ni ne la
   reçoivent, ADR-018) mais `DownloadList.toJSON` l'exclut de `downloads.json` ;
   à la fermeture de la fenêtre, ses téléchargements en cours sont annulés et ses entrées retirées. Le zoom
@@ -728,7 +730,8 @@ Dockerfile et guide de déploiement (VPS + Caddy, Fly.io, Render) dans `server/R
 
 ### Intégration
 
-- Bureau : `src/main/sync/` (adaptateurs du profil, `net.fetch` d'Electron pour le proxy et les
+- Bureau : `src/main/sync/` (`SyncService` de `AppServices`, `service.ts` ; renommé depuis `startSync`/`syncController`
+  de `index.ts`), adaptateurs du profil, `net.fetch` d'Electron pour le proxy et les
   certificats du système, secrets), IPC `sync:*` validés (règles de l'ADR-003), section
   « Synchronisation » des paramètres (état, appareils et leurs onglets, code de jumelage derrière un
   avertissement, déconnexion, réinitialisation), section « Onglets de mes autres appareils » de la
@@ -1080,8 +1083,9 @@ pas de sessions en mémoire, une partie des API `chrome.*` (scripts de contenu, 
   nom, version, description, icône en `data:` ≤ 64 Ko). L'interface ne voit jamais les chemins ; les
   dossiers et fichiers sont choisis dans les boîtes de dialogue de main. Une fenêtre privée liste les
   extensions mais ne peut pas les modifier (ADR-014).
-- Chargement : `installExtensions(session)` (`src/main/extensions/`), idempotente comme
-  `installDownloads`, appelée par `hardenSession` pour chaque session d'onglets (session par défaut,
+- Chargement : `installExtensions(session)` (renommé : `ExtensionService.install`,
+  `src/main/extensions/service.ts`), idempotente comme `DownloadService.install`, appelée par `hardenSession`
+  (via `SessionHardener`) pour chaque session d'onglets (session par défaut,
   partitions des espaces isolés, fenêtres privées). Activer/désactiver/retirer s'applique à toutes
   les sessions connues ; la page doit être rechargée.
 - **L'interface quitte la session par défaut** : chrome et overlay vivent dans `browser-ui`
@@ -1345,7 +1349,8 @@ bureau et le téléphone ; stocké dans `boosts.json` (bureau) et `browser.boost
   masquerait la page entière (`html`, `body`, `*`, `:root`). Le CSS personnalisé vient en dernier.
 - Plusieurs boosts peuvent viser une page : tous s'appliquent, du moins précis au plus précis (le plus précis
   gagne). Le panneau du site montre le plus précis (`siteBoost`).
-- Bureau : à chaque `dom-ready` (crochet `boostPage` de `TabManager`, conservé en fenêtre privée), le CSS passe
+- Bureau : `BoostService` (`src/main/boosts/service.ts`, renommé depuis les fonctions de `boosts/index.ts`). À
+  chaque `dom-ready` (crochet `boostPage` de `TabManager`, conservé en fenêtre privée), le CSS passe
   par `webContents.insertCSS` ; les clés sont gardées par page pour que toute modification soit appliquée en
   direct (`removeInsertedCSS` puis nouvel `insertCSS`, sans recharger). Le script s'exécute dans un monde isolé
   (1007), jamais dans celui de la page, au chargement suivant ; en fenêtre privée seulement si `allowPrivate`.
@@ -1456,7 +1461,8 @@ Copier le lien, zoom en direct (− / % / +, le pourcentage remet le zoom par d�
 (sous-menu), enregistrer une vidéo, mode lecture, version mobile, boost du site, infos sur le site, code QR de la
 page (`uqr`, dessiné localement). Chaque action est une commande du registre exécutée par main sur l'onglet actif.
 
-**Captures d'écran** (`src/main/capture/`, commandes `screenshot-visible` Ctrl+Maj+S, `screenshot-full` Ctrl+Alt+S,
+**Captures d'écran** (`src/main/capture/` : `CaptureService` et `TabRecorder`, renommés depuis `capture/index.ts`
+et `capture/record.ts`, commandes `screenshot-visible` Ctrl+Maj+S, `screenshot-full` Ctrl+Alt+S,
 `screenshot-element`) :
 - zone visible : `webContents.capturePage()` ;
 - page entière : protocole DevTools via `webContents.debugger` (`Page.getLayoutMetrics` puis

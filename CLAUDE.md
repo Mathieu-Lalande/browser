@@ -4,10 +4,13 @@
 - Lire `docs/DECISIONS.md` (modèle de sécurité) avant de toucher `src/main/security.ts`, `src/main/session-hardener.ts`,
   le preload ou l'IPC.
 - Services du process principal : conteneur `AppServices` (`src/main/services.ts`) construit une fois dans `src/main/index.ts`
-  (chemins, profil, réglages passés aux constructeurs) ; l'état vit dans les instances (`DownloadService`, `ExtensionService`,
-  `PasswordVaultStore`, `ReaderService`, `StartImageCache`), les fonctions exportées des modules n'en sont que des façades.
+  (chemins, profil, réglages, `BrowserController.directory` passés aux constructeurs) ; l'état vit dans les instances
+  (`DownloadService`, `ExtensionService`, `PasswordVaultStore`, `ReaderService`, `StartImageCache`, `BoostService`,
+  `CaptureService`, `SyncService`), les fonctions exportées des modules n'en sont que des façades. Un service ne
+  dépend pas de `window.ts` : il reçoit les ports étroits de `src/main/ports.ts` (`WindowPort`, `TabPort`, `WindowDirectory`).
   Une fonctionnalité par session implémente `SessionService` (`install`/`release`) : `SessionHardener` les installe dans l'ordre
-  à chaque `hardenSession` (jamais d'appel à la main). Fenêtres : registre `WindowRegistry` (`src/main/window-registry.ts`).
+  à chaque `hardenSession` (jamais d'appel à la main). Fenêtres : registre `WindowRegistry` (`src/main/window-registry.ts`) ; `BrowserController` compose
+  `src/main/window-parts/` (`WindowChrome` fenêtre native, `ChromeBridge` webContents de l'interface, `PageHooks` crochets par page).
 - Contrat IPC unique : `src/shared/ipc.ts` (`Channels` + `BrowserApi`). Tout nouveau canal : l'ajouter là,
   l'exposer dans `src/preload/index.ts`, l'ajouter à la table de sa fonctionnalité dans `src/main/ipc/` (arguments vérifiés, émetteur = fenêtre connue).
 - Registre IPC : `src/main/ipc/registry.ts` (validateurs typés `str`, `opt(…)`…, `on`/`handle`/`onUi`/`handleUi`,
@@ -19,10 +22,11 @@
 - Actions du navigateur : registre unique `src/shared/commands.ts` (libellé, mots-clés, raccourci) exécuté
   par `src/main/commands.ts` ; le menu et la palette s'en servent tous les deux.
 - Primitives d'interface : `src/renderer/src/components/ui/` (`IconButton`, `Card`, `ListRow`, `Menu`/`MenuItem`, `Toggle`,
-  `Row`, `Segmented`, `Checkbox`, `ConfirmButton`, `Button`, `EmptyState`, `Page` (cadre des pages internes), `SearchField`,
+  `Row`, `Segmented`, `Checkbox`, `ConfirmButton`, `Button` (variante `quiet` des actions secondaires), `EmptyState`, `Page` (cadre des pages internes), `SearchField`,
   action `use:dismiss` (Échap / clic extérieur des menus et popovers, `ui/dismiss.ts`)) ;
   durées d'animation via `--motion-fast`/`--motion-base` (0 si mouvements réduits) ; échelles partagées dans `global.css`
-  (`--space-1…6`, `--radius-sm/md/lg`, `--text-xs…xl`, `--hit-min`, champ `.ui-field`), jamais de valeurs propres à un composant.
+  (`--space-1…6`, `--radius-sm/md/lg`, `--text-xs…xl`, `--hit-min`, champ `.ui-field`), jamais de valeurs propres à un composant ;
+  mise en page partagée des panneaux découpés en sous-composants : `styles/kit.css` (`.kit-line`, `.kit-list`…, sous `.kit`).
 - Composants du chrome : `Sidebar.svelte` ne fait que composer `components/sidebar/` (`SidebarHeader`, `NavButtons`,
   `SpaceHeader`, `SelectionBar`, `TabTree` (lignes + clavier), `SpacePeek`, `SidebarFooter`) ; glisser-déposer
   `lib/tree-drag.svelte.ts` (`TreeDrag`), balayage entre espaces `lib/space-swipe-controller.svelte.ts`, sélection
@@ -55,7 +59,7 @@
   `src/main/sync/` et `mobile/src/lib/sync/`, relais `server/` (`cd server && npm test`). Le serveur ne doit
   jamais voir de clair ; rien de privé n'est synchronisé.
 - Menu contextuel des pages, infos sur le site, données des sites, cookies tiers : ADR-021
-  (`src/main/page-menu*.ts`, `src/main/site-info/`). Toute URL venue d'une page repasse par `isPageOpenableUrl`.
+  (`src/main/page-menu*.ts`, `src/main/site-info/` ; popover `overlay/SiteInfoPanel.svelte` + sections `overlay/site-info/`). Toute URL venue d'une page repasse par `isPageOpenableUrl`.
 - Releases et site vitrine (ADR-023) : workflow de release sur tag `v*` (`npm run release:version`), noms de
   fichiers fixés par `artifactName` (le site en dépend), page de fin NSIS dans `build/installer.nsh` ; site
   statique `site/` (Vite + TS : `cd site && npm ci && npm run build`), déployé sur GitHub Pages.
@@ -82,12 +86,12 @@
   affiché ou installé passe par `effectiveAccelerator`/`effectiveAliases` (jamais `command.accelerator` directement).
 - Boosts par site (ADR-029) : modèle pur `src/shared/boosts.ts` (motifs d'hôte, sélecteurs validés, CSS généré),
   bureau `src/main/boosts/` (`insertCSS` à clés suivies, script et outil « Masquer des éléments » en monde isolé),
-  `browser://boosts`, collection de synchro `boosts` ; mobile `mobile/src/lib/boosts.ts` (pas d'outil de masquage).
+  `browser://boosts` (`components/boosts/` : `BoostsPage`, `BoostEditor`, `BoostRow`), collection de synchro `boosts` ; mobile `mobile/src/lib/boosts.ts` (pas d'outil de masquage).
 - Mises à jour et thèmes partageables (ADR-030) : `src/shared/updates.ts` (état pur), `src/main/updates/`
   (`UpdateService` testable, adaptateur `electron-updater`, faux `BROWSER_TEST_UPDATER` en dev), `latest*.yml` publiés
   par le workflow de release ; codec `src/shared/theme-share.ts` (`browser-theme:v1:…`, `.browsertheme`, galerie),
   mobile `mobile/src/lib/themeShare.ts`.
-- Options de la page, captures, vidéo, balayage tactile (ADR-031) : popover overlay `page-options`, `src/main/capture/`
+- Options de la page, captures, vidéo, balayage tactile (ADR-031) : popover overlay `page-options`, `src/main/capture/` (`CaptureService`, `TabRecorder`)
   (capturePage, CDP `Page.captureScreenshot` via `webContents.debugger`, sélecteur en monde isolé 1009), enregistreur
   `MediaRecorder` dans l'interface (`lib/recorder.ts`) dont la seule source est l'onglet accordé par main ; helpers purs
   `src/shared/capture.ts`. Boutons de la barre d'adresse : masqués hors survol/focus (classe `act`, `keep` = état actif).
