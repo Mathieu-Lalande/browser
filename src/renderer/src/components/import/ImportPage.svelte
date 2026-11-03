@@ -76,8 +76,8 @@
   {#if browser.isPrivate}
     <EmptyState icon="mask" title="Import indisponible en navigation privée" hint="Ouvrez une fenêtre normale pour importer vos données." />
   {:else}
-    <section class="step">
-      <h2>Navigateur</h2>
+    <section class="ui-section">
+      <h2 class="ui-section-title">Navigateur</h2>
       {#if sources === null}
         <p class="hint">Recherche des navigateurs installés…</p>
       {:else if sources.length}
@@ -93,13 +93,13 @@
           {/each}
         </Card>
       {:else}
-        <EmptyState icon="search" title="Aucun navigateur trouvé" hint="Chrome, Edge, Brave, Vivaldi, Opera, Firefox et Arc sont reconnus. Les mots de passe s'importent depuis un fichier CSV, ci-dessous." />
+        <EmptyState compact icon="search" title="Aucun navigateur trouvé" hint="Chrome, Edge, Brave, Vivaldi, Opera, Firefox et Arc sont reconnus. Les mots de passe s'importent depuis un fichier CSV, ci-dessous." />
       {/if}
     </section>
 
     {#if source}
-      <section class="step">
-        <h2>Profil et contenu</h2>
+      <section class="ui-section">
+        <h2 class="ui-section-title">Profil et contenu</h2>
         {#if source.profiles.length > 1}
           <label class="field">
             <span>Profil</span>
@@ -134,8 +134,8 @@
       </section>
     {/if}
 
-    <section class="step">
-      <h2>Mots de passe</h2>
+    <section class="ui-section">
+      <h2 class="ui-section-title">Mots de passe</h2>
       <p class="hint">
         Les navigateurs chiffrent leurs mots de passe avec une clé du système (ou leur propre coffre) qu'aucune autre application ne devrait lire.
         Exportez-les plutôt en CSV depuis l'autre navigateur (Chrome, Edge : Gestionnaire de mots de passe, Paramètres, Exporter ; Firefox :
@@ -162,16 +162,6 @@
 </Page>
 
 <style>
-  .step {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-  }
-  h2 {
-    margin: var(--space-3) 0 0;
-    font-size: var(--text-md);
-    font-weight: 600;
-  }
   .hint {
     margin: 0;
     color: var(--text-muted);

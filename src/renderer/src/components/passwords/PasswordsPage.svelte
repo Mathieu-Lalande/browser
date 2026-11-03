@@ -189,28 +189,21 @@
     {/if}
 
     {#if never.length}
-      <h2><Icon name="ban" size={14} /> Jamais enregistrés</h2>
-      <Card as="ul" aria-label="Sites jamais enregistrés">
-        {#each never as origin (origin)}
-          <ListRow>
-            <span class="text"><span class="site">{originLabel(origin)}</span></span>
-            <button class="text-button" aria-label={`Retirer ${originLabel(origin)} de la liste`} onclick={() => api.passwords.removeNever(origin)}>Retirer</button>
-          </ListRow>
-        {/each}
-      </Card>
+      <section class="ui-section">
+        <h2 class="ui-section-title"><Icon name="ban" size={14} /> Jamais enregistrés</h2>
+        <Card as="ul" aria-label="Sites jamais enregistrés">
+          {#each never as origin (origin)}
+            <ListRow>
+              <span class="text"><span class="site">{originLabel(origin)}</span></span>
+              <button class="text-button" aria-label={`Retirer ${originLabel(origin)} de la liste`} onclick={() => api.passwords.removeNever(origin)}>Retirer</button>
+            </ListRow>
+          {/each}
+        </Card>
+      </section>
     {/if}
 </Page>
 
 <style>
-  h2 {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 8px 0 0;
-    font-size: 14px;
-    font-weight: 600;
-  }
-
   .notice {
     display: flex;
     align-items: center;

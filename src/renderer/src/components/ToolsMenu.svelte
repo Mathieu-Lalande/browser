@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getCommand, type CommandId } from "@shared/commands";
-  import { api } from "../lib/browser.svelte";
+  import { toolsMenuGroups } from "@shared/menus";
+  import { api, browser } from "../lib/browser.svelte";
   import { platform } from "../lib/platform.svelte";
   import IconButton from "./ui/IconButton.svelte";
   import Menu from "./ui/Menu.svelte";
@@ -8,10 +9,11 @@
   import { dismiss } from "./ui/dismiss";
 
   /**
-   * Sidebar footer menu to the internal pages that have no button of their own (ADR-012). It opens
-   * upwards inside the sidebar: the chrome cannot draw over the page view.
+   * Sidebar footer menu to the internal pages that have no button of their own (ADR-012), in the
+   * order of the app menu (`toolsMenuGroups`). It opens upwards inside the sidebar: the chrome
+   * cannot draw over the page view.
    */
-  const ITEMS: CommandId[] = ["open-passwords", "open-boosts", "open-extensions", "open-archive"];
+  const groups = $derived(toolsMenuGroups(browser.isPrivate));
 
   let open = $state(false);
   let root: HTMLElement | undefined = $state();
@@ -36,9 +38,12 @@
 <div class="tools" bind:this={root} use:dismiss={{ enabled: open, escape: "node", outside: true, onDismiss }}>
   {#if open}
     <Menu class="tools-menu" label="Outils">
-      {#each ITEMS as id (id)}
-        {@const command = getCommand(id)}
-        <MenuItem role="menuitem" icon={command.icon} iconSize={15} label={command.label} title={platform.tip(command.label, id)} onclick={() => run(id)} />
+      {#each groups as group, index (index)}
+        {#if index}<div class="separator" role="separator"></div>{/if}
+        {#each group as id (id)}
+          {@const command = getCommand(id)}
+          <MenuItem role="menuitem" icon={command.icon} iconSize={15} label={command.label} title={platform.tip(command.label, id)} onclick={() => run(id)} />
+        {/each}
       {/each}
     </Menu>
   {/if}
@@ -49,7 +54,7 @@
     label="Outils"
     aria-haspopup="menu"
     aria-expanded={open}
-    title="Mots de passe, Boosts, Extensions, Onglets archivés"
+    title="Mots de passe, extensions, notes, onglets archivés et autres pages"
     onclick={() => (open = !open)}
   />
 </div>
@@ -58,6 +63,11 @@
   .tools {
     position: relative;
     display: flex;
+  }
+  .separator {
+    height: 1px;
+    margin: var(--space-1) var(--space-2);
+    background: var(--border);
   }
   .tools :global(.tools-menu) {
     position: absolute;
