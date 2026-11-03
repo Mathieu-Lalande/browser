@@ -13,9 +13,15 @@
 - Actions du navigateur : registre unique `src/shared/commands.ts` (libellé, mots-clés, raccourci) exécuté
   par `src/main/commands.ts` ; le menu et la palette s'en servent tous les deux.
 - Primitives d'interface : `src/renderer/src/components/ui/` (`IconButton`, `Card`, `ListRow`, `Menu`/`MenuItem`, `Toggle`,
-  `Row`, `Segmented`, `Checkbox`, `ConfirmButton`, `Button`, `EmptyState`, `Page` (cadre des pages internes), `SearchField`) ;
+  `Row`, `Segmented`, `Checkbox`, `ConfirmButton`, `Button`, `EmptyState`, `Page` (cadre des pages internes), `SearchField`,
+  action `use:dismiss` (Échap / clic extérieur des menus et popovers, `ui/dismiss.ts`)) ;
   durées d'animation via `--motion-fast`/`--motion-base` (0 si mouvements réduits) ; échelles partagées dans `global.css`
   (`--space-1…6`, `--radius-sm/md/lg`, `--text-xs…xl`, `--hit-min`, champ `.ui-field`), jamais de valeurs propres à un composant.
+- Composants du chrome : `Sidebar.svelte` ne fait que composer `components/sidebar/` (`SidebarHeader`, `NavButtons`,
+  `SpaceHeader`, `SelectionBar`, `TabTree` (lignes + clavier), `SpacePeek`, `SidebarFooter`) ; glisser-déposer
+  `lib/tree-drag.svelte.ts` (`TreeDrag`), balayage entre espaces `lib/space-swipe-controller.svelte.ts`, sélection
+  `lib/tab-selection.svelte.ts` (Vitest compile les runes : contrôleurs testables). Réglages : une section par composant
+  `settings/*Section.svelte`, `SettingsPage` = navigation, recherche et liste des sections (ancres `data-section`/`data-setting`).
 - Texte d'interface en français ; code, identifiants et commentaires en anglais.
 - Vérifications avant commit : `npm run typecheck && npm test && npm run build && xvfb-run -a npx playwright test`
   (en root/conteneur, l'app est lancée avec `--no-sandbox`, déjà géré par les fixtures e2e).
@@ -50,6 +56,10 @@
   (`src/shared/favorites.ts`, `favorites.json`, collection de synchro `favorites`), geste à deux doigts entre
   espaces (`src/shared/space-swipe.ts`), archivage (`src/shared/archive.ts`, `browser://archive`) ; côté main :
   `src/main/organize.ts`. Le téléphone a sa version (`mobile/src/lib/organize.ts`, dossiers dans `tabs.ts`).
+- Mobile, organisation du code : données dans `mobile/src/state/stores/` (`TabsStore`, `HistoryStore`, `BookmarksStore`,
+  `SettingsStore`… ; `useTabsStore`/`useHistoryStore`/`useBookmarksStore`/`useSettingsStore`), chargées et enregistrées
+  via `lib/storage.ts` (`loadDocuments`, `persistDocument`) ; `BrowserProvider` garde l'API (`useBrowserState`/`Actions`).
+  `BrowserScreen` compose des hooks de `mobile/src/hooks/` ; vue des onglets en parties (`components/overview/`).
 - Extensions (ADR-024) : `src/main/extensions/` (`installExtensions(session)` via `hardenSession`, idempotente),
   `browser://extensions`, `extensions.json` ; l'interface vit dans sa propre session `src/main/ui-session.ts`.
 - Mots de passe (ADR-025) : modèle `src/shared/passwords.ts`, main `src/main/passwords/` (coffre `safeStorage`,
