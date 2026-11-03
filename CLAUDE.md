@@ -90,3 +90,6 @@
   découpage, walker `TRANSLATE_WALKER`, règles), main `src/main/translate/` (HTTP par main, clés `safeStorage`, monde isolé
   1012, `PageTranslator` par fenêtre), popover overlay `translate`, commande `translate-page` ; mobile `mobile/src/lib/translate.ts`
   (nonce par demande, clés `expo-secure-store`). Fenêtre privée : confirmation à chaque fenêtre, règles en mémoire.
+- Aperçu des onglets au survol et thème dynamique (ADR-037) : purs `src/shared/tab-preview.ts` (`ThumbnailCache`, `HoverIntent`,
+  géométrie) et `src/shared/site-color.ts` ; main `src/main/tab-preview.ts` (captures en mémoire, overlay passif `tab-preview`
+  limité à la carte par `OverlayRequest.region`), action `use:tabPreview`, accent animé `lib/dynamic-accent.ts` via `accentVariables`.

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { api, browser } from "../lib/browser.svelte";
   import { platform } from "../lib/platform.svelte";
+  import { previewsEnabled, tabPreview } from "../lib/tab-preview";
   import Icon from "./Icon.svelte";
   import IconButton from "./ui/IconButton.svelte";
   import TabIcon from "./TabIcon.svelte";
@@ -38,8 +39,9 @@
         role="tab"
         aria-selected={tab.id === browser.state.activeTabId}
         aria-label={tab.title}
-        title={tab.title}
+        title={previewsEnabled() ? undefined : tab.title}
         data-tab-id={tab.id}
+        use:tabPreview={{ kind: "tab", id: tab.id }}
         onclick={() => api.tabs.activate(tab.id)}
         oncontextmenu={(event) => (event.preventDefault(), api.tabs.contextMenu(tab.id))}
       >

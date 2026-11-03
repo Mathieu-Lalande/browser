@@ -17,6 +17,7 @@
   import { platform } from "../lib/platform.svelte";
   import TabIcon from "./TabIcon.svelte";
   import TabItem from "./TabItem.svelte";
+  import { previewsEnabled, tabPreview } from "../lib/tab-preview";
   import WindowControls from "./WindowControls.svelte";
   import SpaceEditor from "./spaces/SpaceEditor.svelte";
   import SpaceSwitcher from "./spaces/SpaceSwitcher.svelte";
@@ -645,7 +646,9 @@
                 class:asleep={pinned.isAsleep}
                 role="tab"
                 aria-selected={pinned.id === browser.state.activeTabId}
-                title={pinned.url && pinned.url !== pinned.title ? `${pinned.title}\n${displayUrl(pinned.url)}` : pinned.title}
+                aria-label={pinned.title}
+                title={previewsEnabled() ? undefined : pinned.url && pinned.url !== pinned.title ? `${pinned.title}\n${displayUrl(pinned.url)}` : pinned.title}
+                use:tabPreview={{ kind: "tab", id: pinned.id }}
                 onclick={() => api.tabs.activate(pinned.id)}
                 ondblclick={() => api.tabs.togglePin(pinned.id)}
                 oncontextmenu={(event) => (event.preventDefault(), api.tabs.contextMenu(pinned.id))}

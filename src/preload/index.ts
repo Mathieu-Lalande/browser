@@ -208,6 +208,10 @@ const api: BrowserApi = {
     showPanel: (anchor) => send(Channels.downloadsShowPanel, anchor),
     openPage: () => send(Channels.downloadsOpenPage),
   },
+  tabPreview: {
+    show: (kind, id, anchor) => send(Channels.tabPreviewShow, kind, id, anchor),
+    hide: () => send(Channels.tabPreviewHide),
+  },
   media: {
     list: () => ipcRenderer.invoke(Channels.mediaList),
     onChanged: (listener) => subscribe<MediaSource[]>(Channels.mediaChanged, listener),

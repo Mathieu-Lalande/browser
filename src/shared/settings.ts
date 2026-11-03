@@ -41,6 +41,8 @@ export interface AppearanceSettings {
   pointerCursor: boolean;
   /** Zoom of web pages never zoomed by hand, in % (one of `PAGE_ZOOM_LEVELS`). */
   pageZoom: number;
+  /** The accent follows the site on screen (`theme-color`, else its favicon), ADR-037. */
+  dynamicTheme: boolean;
 }
 
 export interface LayoutSettings {
@@ -55,6 +57,8 @@ export interface LayoutSettings {
   compactMode: boolean;
   /** The empty favorites grid's drop-zone hint was dismissed (ADR-022). */
   favoritesHintDismissed: boolean;
+  /** Hovering a tab, favorite or rail icon shows a preview card (ADR-037). */
+  tabHoverPreview: boolean;
 }
 
 export interface SearchSettings {
@@ -211,8 +215,17 @@ export const DEFAULT_SETTINGS: Settings = {
     reduceMotion: false,
     pointerCursor: true,
     pageZoom: 100,
+    dynamicTheme: false,
   },
-  layout: { sidebarPosition: "left", sidebarWidth: 264, gutter: 8, zenMode: false, compactMode: false, favoritesHintDismissed: false },
+  layout: {
+    sidebarPosition: "left",
+    sidebarWidth: 264,
+    gutter: 8,
+    zenMode: false,
+    compactMode: false,
+    favoritesHintDismissed: false,
+    tabHoverPreview: true,
+  },
   search: { engine: DEFAULT_SEARCH_ENGINE.id },
   startPage: { widgets: defaultWidgets(), greetingName: "", background: "theme", backgroundImage: "" },
   behavior: { restoreSession: true, newTabPosition: "end", closeTabActivates: "next", sleepTabsAfter: "30m", archiveTabsAfter: "7d" },
@@ -312,6 +325,7 @@ const schema: Schema = {
     reduceMotion: bool,
     pointerCursor: bool,
     pageZoom: oneOfNumbers(PAGE_ZOOM_LEVELS),
+    dynamicTheme: bool,
   },
   layout: {
     sidebarPosition: oneOf("left", "right"),
@@ -320,6 +334,7 @@ const schema: Schema = {
     zenMode: bool,
     compactMode: bool,
     favoritesHintDismissed: bool,
+    tabHoverPreview: bool,
   },
   search: { engine: oneOf(...SEARCH_ENGINES.map((engine) => engine.id)) },
   startPage: {

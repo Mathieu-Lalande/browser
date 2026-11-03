@@ -87,7 +87,7 @@ test("the tab list is one Tab stop, driven with the arrows, Enter and Delete", a
 test("new tab, settings and downloads reuse the empty start-page tab", async ({ chrome }) => {
   const tabs = chrome.locator(".tabs [role=tab]");
   await expect(tabs).toHaveCount(1);
-  await expect(tabs.first()).toHaveAttribute("title", "Page d'accueil");
+  await expect(tabs.first().locator(".title")).toHaveText("Page d'accueil");
   await chrome.getByRole("button", { name: "Nouvel onglet" }).click();
   await chrome.getByRole("button", { name: "Nouvel onglet" }).click();
   await expect(tabs).toHaveCount(1);

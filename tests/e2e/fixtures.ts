@@ -96,6 +96,9 @@ function startServer(): Promise<{ server: Server; origin: string; log: ServerLog
       // A page that sets a cookie and declares a favicon (the tab's session must fetch it).
       res.setHeader("set-cookie", `tabcookie=${query(path, "cookie") ?? "normal"}; path=/`);
       res.end(`<title>Favicon</title><link rel="icon" href="${query(path, "icon") ?? "/icon.png"}"><p>icon</p>`);
+    } else if (path.startsWith("/theme-color")) {
+      // Dynamic theme (ADR-037): a page declaring its color.
+      res.end(`<title>Themed</title><meta name="theme-color" content="${query(path, "color") ?? "#e11d48"}"><p>themed</p>`);
     } else if (path.startsWith("/auto-popup")) {
       // Opens a popup as soon as it loads: no user gesture at all.
       res.end(`<title>Auto popup</title><script>window.open(${JSON.stringify(query(path, "to") ?? "/popped")});</script>`);

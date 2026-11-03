@@ -3,6 +3,7 @@
   import { displayUrl } from "@shared/url";
   import { api } from "../lib/browser.svelte";
   import { platform } from "../lib/platform.svelte";
+  import { previewsEnabled, tabPreview } from "../lib/tab-preview";
   import Icon from "./Icon.svelte";
   import TabIcon from "./TabIcon.svelte";
 
@@ -31,7 +32,8 @@
   tabindex={focusable ? 0 : -1}
   aria-selected={active}
   data-tab-id={tab.id}
-  title={tooltip}
+  title={previewsEnabled() ? undefined : tooltip}
+  use:tabPreview={{ kind: "tab", id: tab.id }}
   onclick={() => api.tabs.activate(tab.id)}
   onauxclick={onAuxClick}
   ondblclick={() => api.tabs.togglePin(tab.id)}

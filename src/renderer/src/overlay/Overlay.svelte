@@ -13,6 +13,7 @@
   import AppMenuPanel from "./AppMenuPanel.svelte";
   import PageSwipePanel from "./PageSwipePanel.svelte";
   import TranslatePanel from "./TranslatePanel.svelte";
+  import TabPreviewCard from "./TabPreviewCard.svelte";
 
   // Root of the overlay layer (src/main/overlay.ts): a transparent page above the tab views,
   // attached only while a floating UI is open.
@@ -31,7 +32,9 @@
     api.overlay.onShow((request) => {
       // A popover replacing the palette (site info from the palette) has no blurred backdrop.
       if (!current || isPopover(request.kind)) backdrop = null;
-      current = { request, id: ++opened };
+      // The tab preview moving to another row, or its thumbnail arriving: same card, updated in place.
+      if (current?.request.kind === "tab-preview" && request.kind === "tab-preview") current = { request, id: current.id };
+      else current = { request, id: ++opened };
     }),
   );
 
@@ -86,9 +89,12 @@
     <div
       class="scrim"
       class:clear={isPopover(current.request.kind) && current.request.kind !== "link-peek"}
+      class:passive={current.request.kind === "tab-preview"}
       onmousedown={(event) => event.target === event.currentTarget && close(true)}
     >
-      {#if current.request.kind === "palette"}
+      {#if current.request.kind === "tab-preview" && current.request.preview}
+        <TabPreviewCard preview={current.request.preview} />
+      {:else if current.request.kind === "palette"}
         <UniversalBar onClose={close} />
       {:else if current.request.kind === "downloads"}
         <DownloadsPanel anchor={current.request.anchor} onClose={close} />
@@ -148,6 +154,11 @@
   /* Popovers: the page stays as it is around them (the layer still catches outside clicks). */
   .scrim.clear {
     background: transparent;
+  }
+  /* The tab preview only shows: no click lands on it (its view is no larger than the card). */
+  .scrim.passive {
+    pointer-events: none;
+    animation: none;
   }
   @keyframes fade {
     from {

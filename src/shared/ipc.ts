@@ -223,6 +223,8 @@ export const Channels = {
   mediaFocus: "media:focus",
   mediaMute: "media:mute",
   mediaDismiss: "media:dismiss",
+  tabPreviewShow: "tab-preview:show",
+  tabPreviewHide: "tab-preview:hide",
 } as const;
 
 /** Outcome of a sync action (errors are messages for the user: they do not cross IPC as exceptions). */
@@ -519,6 +521,14 @@ export interface BrowserApi {
     step(tabId: TabId, forward: boolean): void;
     /** Hides the find bar and clears the highlights (the query is kept for the tab). */
     close(tabId: TabId): void;
+  };
+  /**
+   * Tab hover preview (ADR-037), chrome UI only: the UI decides when (hover intent), main builds
+   * the card (thumbnail, badges) in the overlay layer beside `anchor` (the hovered row).
+   */
+  tabPreview: {
+    show(kind: "tab" | "favorite", id: string, anchor: Bounds): void;
+    hide(): void;
   };
   downloads: {
     /** Every download, newest first. */

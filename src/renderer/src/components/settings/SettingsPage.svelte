@@ -278,6 +278,13 @@
             onchange={(hex) => update({ appearance: { accent2: hex } })}
           />
         </Row>
+        <Row
+          anchor="dynamic-theme"
+          label="Thème dynamique"
+          hint="L'accent prend la couleur du site affiché (couleur de thème ou de son icône), ajustée pour rester lisible. Sinon, la couleur de l'espace."
+        >
+          <Toggle label="Thème dynamique" checked={s.appearance.dynamicTheme} onchange={(dynamicTheme) => update({ appearance: { dynamicTheme } })} />
+        </Row>
         <Row anchor="background" label="Arrière-plan" hint="Fond de la fenêtre, autour de la page.">
           <div class="tiles" role="radiogroup" aria-label="Arrière-plan">
             {#each BACKGROUNDS as option (option.value)}
@@ -408,6 +415,17 @@
           hint="Masque la barre latérale et affiche la page bord à bord. Survolez le bord de la fenêtre pour la faire apparaître. Raccourci : {platform.shortcut('toggle-zen')}."
         >
           <Toggle label="Mode zen" checked={s.layout.zenMode} onchange={(zenMode) => update({ layout: { zenMode } })} />
+        </Row>
+        <Row
+          anchor="tab-preview"
+          label="Aperçu des onglets au survol"
+          hint="Survoler un onglet, un favori ou une icône du rail affiche une carte : miniature, titre, site, son et veille."
+        >
+          <Toggle
+            label="Aperçu des onglets au survol"
+            checked={s.layout.tabHoverPreview}
+            onchange={(tabHoverPreview) => update({ layout: { tabHoverPreview } })}
+          />
         </Row>
       </Section>
 

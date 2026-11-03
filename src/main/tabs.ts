@@ -38,6 +38,7 @@ import { hardenWebContents } from "./security";
 import type { SleepCandidate } from "./sleep";
 import type { SessionTab, SessionTabList } from "./storage/session";
 import { closeSuccessor, tabSlot } from "@shared/tab-order";
+import { normalizeThemeColor } from "@shared/site-color";
 import { parsePageWheel, type PageWheelSample } from "./page-swipe-script";
 import { onSiteZoomChange, rememberSiteZoom, siteZoomFactor } from "./zoom";
 import { nextZoomFactor, sameFactor } from "./zoom/levels";
@@ -734,6 +735,12 @@ export class TabManager {
     return this.activeId;
   }
 
+  /** The page of `id` when it is on screen (attached): only those can be captured (tab preview, ADR-037). */
+  visiblePage(id: TabId): WebContents | null {
+    const tab = this.find(id);
+    return tab?.view && this.attached.has(tab.view) && !tab.view.webContents.isDestroyed() ? tab.view.webContents : null;
+  }
+
   activeWebContents(): WebContents | null {
     const tab = this.activeId ? this.find(this.activeId) : undefined;
     return tab && showsWebPage(tab.state.url) ? liveContents(tab) : null;
@@ -1309,6 +1316,13 @@ export class TabManager {
     on("context-menu", (_event, params) => {
       // A parked page (below the start page or an internal page) is not on screen.
       if (showsWebPage(tab.state.url) && !tab.state.interstitial && !tab.state.loadError) this.hooks.contextMenu?.(tab.id, params);
+    });
+    // Dynamic theme (ADR-037): Chromium reports each change of the document's theme-color (null when none).
+    on("did-change-theme-color", (_event, color) => {
+      const themeColor = normalizeThemeColor(color);
+      if (!showsWebPage(tab.state.url) || themeColor === (tab.state.themeColor ?? null)) return;
+      tab.state.themeColor = themeColor;
+      this.emit();
     });
     on("audio-state-changed", (event) => {
       tab.state.isAudible = event.audible;
