@@ -9,7 +9,7 @@
 
   /**
    * One tab of the vertical tab list. Keyboard: a single Tab stop for the whole list (roving
-   * `tabindex`, handled by the list in Sidebar.svelte); its buttons are for the pointer, the
+   * `tabindex`, handled by the list in sidebar/TabTree.svelte); its buttons are for the pointer, the
    * keyboard closes a tab with Delete and mutes it with the registry shortcut.
    */
   let { tab, active, focusable = active }: { tab: TabState; active: boolean; focusable?: boolean } = $props();
@@ -22,7 +22,7 @@
   }
 </script>
 
-<!-- Keyboard: handled by the tab list (arrows, Enter/Space, Delete), see Sidebar.svelte. -->
+<!-- Keyboard: handled by the tab list (arrows, Enter/Space, Delete), see sidebar/TabTree.svelte. -->
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <div
   class="tab"

@@ -3,6 +3,7 @@
   import { PERMISSION_LABELS, cookieCount, type SiteInfo, type SitePermission } from "@shared/site-info";
   import type { Bounds, TabBoost, TabId } from "@shared/types";
   import { api, browser } from "../lib/browser.svelte";
+  import { dismiss } from "../components/ui/dismiss";
   import Icon from "../components/Icon.svelte";
   import ConfirmButton from "../components/ui/ConfirmButton.svelte";
   import Toggle from "../components/ui/Toggle.svelte";
@@ -76,13 +77,6 @@
   const dateFormat = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" });
   const date = (ms: number) => dateFormat.format(new Date(ms));
 
-  function onKeydown(event: KeyboardEvent): void {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      onClose(true);
-    }
-  }
-
   async function clearData(): Promise<void> {
     const next = await api.siteInfo.clearData(tabId).catch(() => null);
     if (next) info = next;
@@ -107,11 +101,12 @@
   }
 </script>
 
-<!-- On the window: a button that just went away (confirmed action) leaves the focus on the page body. -->
-<svelte:window bind:innerWidth bind:innerHeight onkeydown={onKeydown} />
+<!-- Escape is heard on the window (use:dismiss): a button that just went away (confirmed action) leaves the focus on the page body. -->
+<svelte:window bind:innerWidth bind:innerHeight />
 
 <div
   bind:this={panel}
+  use:dismiss={{ onDismiss: () => onClose(true) }}
   class="panel"
   role="dialog"
   aria-label="Infos sur le site"

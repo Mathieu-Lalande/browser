@@ -2,6 +2,7 @@
   import { LANGUAGES, languageName, providerLabel, type TranslatePanelState } from "@shared/translate";
   import type { Bounds, TabId } from "@shared/types";
   import { api, browser } from "../lib/browser.svelte";
+  import { dismiss } from "../components/ui/dismiss";
   import Icon from "../components/Icon.svelte";
   import Button from "../components/ui/Button.svelte";
   import Checkbox from "../components/ui/Checkbox.svelte";
@@ -82,18 +83,13 @@
     onClose(false);
   }
 
-  function onKeydown(event: KeyboardEvent): void {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      onClose(true);
-    }
-  }
 </script>
 
-<svelte:window bind:innerWidth bind:innerHeight onkeydown={onKeydown} />
+<svelte:window bind:innerWidth bind:innerHeight />
 
 <div
   bind:this={panel}
+  use:dismiss={{ onDismiss: () => onClose(true) }}
   class="panel"
   role="dialog"
   aria-label="Traduction de la page"

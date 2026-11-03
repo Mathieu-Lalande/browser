@@ -2,6 +2,7 @@
   import type { PasswordAccounts, PasswordPrompt, PromptAnswer } from "@shared/passwords";
   import type { Bounds, TabId } from "@shared/types";
   import { api } from "../lib/browser.svelte";
+  import { dismiss } from "../components/ui/dismiss";
   import Icon from "../components/Icon.svelte";
 
   /**
@@ -62,18 +63,13 @@
     else error = "Aucun champ de mot de passe à remplir sur cette page.";
   }
 
-  function onKeydown(event: KeyboardEvent): void {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      onClose(true);
-    }
-  }
 </script>
 
-<svelte:window bind:innerWidth bind:innerHeight onkeydown={onKeydown} />
+<svelte:window bind:innerWidth bind:innerHeight />
 
 <div
   bind:this={panel}
+  use:dismiss={{ onDismiss: () => onClose(true) }}
   class="panel"
   role="dialog"
   aria-label={kind === "save" ? "Enregistrer le mot de passe" : "Mots de passe enregistrés"}

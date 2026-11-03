@@ -1,37 +1,26 @@
 import { isFavoriteTab, type Favorite } from "@shared/favorites";
 import type { SpaceInfo } from "@shared/types";
-import { memo, useEffect, useMemo, useRef } from "react";
-import { ScrollView, StyleSheet, Text, View, useWindowDimensions, type ScrollViewInstance } from "react-native";
+import { memo, useMemo } from "react";
+import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
-import Animated, {
-  FadeIn,
-  FadeOut,
-  interpolate,
-  LinearTransition,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
-  type SharedValue,
-} from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { FadeIn, interpolate, useAnimatedStyle, useSharedValue, withSpring, withTiming, type SharedValue } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 import { pagerTarget, rubberBand } from "../lib/gestures";
 import { pagerPages } from "../lib/organize";
-import { FOLDER_HEADER, gridLayout, scrollOffsetForRect, sectionedGrid, type GridLayout, type GridSection, type Rect } from "../lib/overviewLayout";
-import { siteLabel } from "../lib/site";
+import { gridLayout, scrollOffsetForRect, sectionedGrid, type GridLayout, type GridSection, type Rect } from "../lib/overviewLayout";
 import { isPrivateTab, orderedTabs, overviewGroups, PRIVATE_SPACE_ID, type MobileFolder, type MobileTab, type TabsModel } from "../lib/tabs";
 import { useBrowserState } from "../state/BrowserProvider";
 import { useTheme } from "../state/theme";
-import { Icon, type IconName } from "./Icon";
+import { Icon } from "./Icon";
 import { ArchivedTabs, FAVORITES_ROW, FavoritesRow } from "./Organize";
+import { FolderGroup } from "./overview/FolderGroup";
+import { OVERVIEW_BAR, OverviewToolbar } from "./overview/OverviewToolbar";
+import { CHIPS_HEIGHT, SpaceChips } from "./overview/SpaceChips";
+import { PINNED_TILE, PinnedTile, TabCard } from "./overview/TabCard";
 import { RemoteTabs } from "./RemoteTabs";
-import { IconButton, SiteIcon, Tap } from "./ui";
 
-export const CHIPS_HEIGHT = 56;
+export { CHIPS_HEIGHT, OVERVIEW_BAR };
 export const PINNED_HEIGHT = 84;
-export const OVERVIEW_BAR = 64;
-const PINNED_TILE = 56;
 
 export interface OverviewGeometry {
   layout: GridLayout;
@@ -136,7 +125,6 @@ export const TabOverview = memo(function TabOverview(props: Props) {
   const { model, activeId, geometry, progress, scrollY, initialScrollY } = props;
   const { colors, isPrivate, reduceMotion, haptic } = useTheme();
   const { favorites } = useBrowserState();
-  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const tabs = useMemo(() => orderedTabs(model), [model]);
   const pinned = tabs.filter((tab) => tab.isPinned);
@@ -180,14 +168,6 @@ export const TabOverview = memo(function TabOverview(props: Props) {
     opacity: 1 - Math.min(0.6, Math.abs(pageX.value) / (width * 1.2)),
   }));
 
-  // The chips follow the pager: the selected one scrolls into view.
-  const chipsScroll = useRef<ScrollViewInstance>(null);
-  const chipX = useRef(new Map<string, number>());
-  useEffect(() => {
-    const x = chipX.current.get(model.activeSpaceId);
-    if (x !== undefined) chipsScroll.current?.scrollTo({ x: Math.max(0, x - 48), animated: !reduceMotion });
-  }, [model.activeSpaceId, reduceMotion]);
-
   const chrome = useAnimatedStyle(() => ({
     opacity: interpolate(progress.value, [0.3, 1], [0, 1], "clamp"),
     transform: [{ translateY: interpolate(progress.value, [0, 1], [reduceMotion ? 0 : -10, 0]) }],
@@ -198,6 +178,20 @@ export const TabOverview = memo(function TabOverview(props: Props) {
   }));
   const backdrop = useAnimatedStyle(() => ({ opacity: interpolate(progress.value, [0, 0.6], [0, 1], "clamp") }));
 
+  const renderTab = (tab: MobileTab) => (
+    <TabCard
+      key={tab.id}
+      tab={tab}
+      layout={geometry.layout}
+      active={tab.id === activeId}
+      progress={progress}
+      reduceMotion={reduceMotion}
+      onPress={props.onSelect}
+      onClose={props.onCloseTab}
+      onLongPress={props.onTabMenu}
+    />
+  );
+
   // Short: it sits beside the + button.
   const spaceName = isPrivate ? "Privé" : (model.spaces.find((space) => space.id === model.activeSpaceId)?.name ?? "");
 
@@ -205,32 +199,16 @@ export const TabOverview = memo(function TabOverview(props: Props) {
     <View style={StyleSheet.absoluteFill} testID="tab-overview">
       <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: colors.bg }, backdrop]} />
 
-      {/* Spaces right above the bottom bar: within thumb reach. */}
-      <Animated.View style={[styles.chipsRow, { top: geometry.chipsTop, borderTopColor: colors.hairline, backgroundColor: colors.bg }, bottomChrome]}>
-        <ScrollView ref={chipsScroll} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-          <Chip
-            onLayout={(x) => chipX.current.set(PRIVATE_SPACE_ID, x)}
-            label={privateCount ? `Privé · ${privateCount}` : "Privé"}
-            icon="mask"
-            selected={isPrivate}
-            onPress={() => props.onShowSpace(PRIVATE_SPACE_ID)}
-          />
-          <View style={[styles.chipDivider, { backgroundColor: colors.border }]} />
-          {model.spaces.map((space) => (
-            <Chip
-              key={space.id}
-              onLayout={(x) => chipX.current.set(space.id, x)}
-              label={space.name}
-              icon={space.icon}
-              color={space.color}
-              selected={model.activeSpaceId === space.id}
-              onPress={() => props.onShowSpace(space.id)}
-              onLongPress={() => props.onSpaceMenu(space)}
-            />
-          ))}
-          <Chip label="Espace" icon="plus" selected={false} onPress={props.onAddSpace} />
-        </ScrollView>
-      </Animated.View>
+      <SpaceChips
+        spaces={model.spaces}
+        activeSpaceId={model.activeSpaceId}
+        privateCount={privateCount}
+        top={geometry.chipsTop}
+        style={bottomChrome}
+        onShowSpace={props.onShowSpace}
+        onSpaceMenu={props.onSpaceMenu}
+        onAddSpace={props.onAddSpace}
+      />
 
       {pinned.length > 0 && (
         <Animated.View style={[styles.pinnedRow, { top: geometry.pinnedTop }, chrome]}>
@@ -260,37 +238,10 @@ export const TabOverview = memo(function TabOverview(props: Props) {
             onLongPress={props.onFavoriteMenu}
           />
         )}
-        {groups.loose.map((tab) => (
-          <TabCard
-            key={tab.id}
-            tab={tab}
-            layout={geometry.layout}
-            active={tab.id === activeId}
-            progress={progress}
-            reduceMotion={reduceMotion}
-            onPress={props.onSelect}
-            onClose={props.onCloseTab}
-            onLongPress={props.onTabMenu}
-          />
+        {groups.loose.map(renderTab)}
+        {groups.folders.map(({ folder, tabs: filed }) => (
+          <FolderGroup key={folder.id} folder={folder} tabs={filed} renderTab={renderTab} onToggle={props.onToggleFolder} onLongPress={props.onFolderMenu} />
         ))}
-        {groups.folders.map(({ folder, tabs: filed }) => [
-          <FolderHeader key={`folder-${folder.id}`} folder={folder} count={filed.length} onToggle={props.onToggleFolder} onLongPress={props.onFolderMenu} />,
-          ...(folder.collapsed
-            ? []
-            : filed.map((tab) => (
-                <TabCard
-                  key={tab.id}
-                  tab={tab}
-                  layout={geometry.layout}
-                  active={tab.id === activeId}
-                  progress={progress}
-                  reduceMotion={reduceMotion}
-                  onPress={props.onSelect}
-                  onClose={props.onCloseTab}
-                  onLongPress={props.onTabMenu}
-                />
-              ))),
-        ])}
         {tabs.length === 0 && (
           <Animated.View entering={FadeIn} style={styles.empty}>
             <Icon name={isPrivate ? "mask" : "tabs"} size={36} color={colors.textFaint} />
@@ -304,306 +255,18 @@ export const TabOverview = memo(function TabOverview(props: Props) {
       </Animated.View>
       </GestureDetector>
 
-      <Animated.View style={[styles.bottom, { height: OVERVIEW_BAR + insets.bottom, paddingBottom: insets.bottom, borderTopColor: colors.hairline, backgroundColor: colors.bgElevated }, bottomChrome]}>
-        <IconButton icon="search" label="Rechercher dans les onglets" onPress={props.onSearch} />
-        <Text style={[styles.spaceName, { color: colors.textMuted }]} numberOfLines={1}>
-          {spaceName}
-        </Text>
-        <Tap
-          accessibilityRole="button"
-          accessibilityLabel={isPrivate ? "Nouvel onglet privé" : "Nouvel onglet"}
-          onPress={props.onNewTab}
-          pressScale={0.88}
-          style={[styles.plus, { backgroundColor: colors.accent }]}
-          testID="overview-new-tab"
-        >
-          <Icon name="plus" size={24} color={colors.onAccent} strokeWidth={2} />
-        </Tap>
-        <Text style={[styles.spaceName, { color: "transparent" }]} numberOfLines={1}>
-          {spaceName}
-        </Text>
-        <Tap accessibilityRole="button" onPress={props.onDone} pressScale={0.9} style={styles.done}>
-          <Text style={[styles.doneText, { color: colors.accentText }]}>OK</Text>
-        </Tap>
-      </Animated.View>
+      <OverviewToolbar spaceName={spaceName} style={bottomChrome} onSearch={props.onSearch} onNewTab={props.onNewTab} onDone={props.onDone} />
     </View>
   );
 });
 
-/** A folder of the grid (ADR-022): a full-width header; tap folds it, long press opens its menu. */
-const FolderHeader = memo(function FolderHeader({
-  folder,
-  count,
-  onToggle,
-  onLongPress,
-}: {
-  folder: MobileFolder;
-  count: number;
-  onToggle: (id: string) => void;
-  onLongPress: (folder: MobileFolder) => void;
-}) {
-  const { colors, haptic } = useTheme();
-  return (
-    <Tap
-      accessibilityRole="button"
-      accessibilityState={{ expanded: !folder.collapsed }}
-      accessibilityLabel={`Dossier ${folder.name}, ${count} onglet${count > 1 ? "s" : ""}`}
-      accessibilityHint="Toucher pour replier ou déplier, maintenir pour plus d'options"
-      onPress={() => {
-        haptic("selection");
-        onToggle(folder.id);
-      }}
-      onLongPress={() => {
-        haptic("medium");
-        onLongPress(folder);
-      }}
-      pressScale={0.98}
-      style={[styles.folder, { backgroundColor: colors.surface, borderColor: colors.hairline }]}
-      testID={`folder-${folder.id}`}
-    >
-      <View style={{ transform: [{ rotate: folder.collapsed ? "0deg" : "90deg" }] }}>
-        <Icon name="forward" size={16} color={colors.textMuted} strokeWidth={2.2} />
-      </View>
-      <Icon name="folder" size={18} color={colors.accentText} />
-      <Text style={[styles.folderName, { color: colors.text }]} numberOfLines={1}>
-        {folder.name}
-      </Text>
-      <Text style={[styles.folderCount, { color: colors.textMuted }]}>{count}</Text>
-    </Tap>
-  );
-});
-
-function Chip({
-  label,
-  icon,
-  color,
-  selected,
-  onPress,
-  onLongPress,
-  onLayout,
-}: {
-  label: string;
-  icon?: IconName;
-  color?: string | null;
-  selected: boolean;
-  onPress: () => void;
-  onLongPress?: () => void;
-  onLayout?: (x: number) => void;
-}) {
-  const { colors, haptic } = useTheme();
-  const tint = color ?? colors.accent;
-  return (
-    <Tap
-      accessibilityRole="tab"
-      accessibilityState={{ selected }}
-      accessibilityLabel={label}
-      accessibilityHint={onLongPress ? "Maintenir pour modifier l'espace" : undefined}
-      onPress={() => {
-        haptic("selection");
-        onPress();
-      }}
-      onLongPress={
-        onLongPress &&
-        (() => {
-          haptic("medium");
-          onLongPress();
-        })
-      }
-      pressScale={0.92}
-      onLayout={onLayout && ((event) => onLayout(event.nativeEvent.layout.x))}
-      hitSlop={{ top: 6, bottom: 6, left: 2, right: 2 }}
-      style={[
-        styles.chip,
-        { backgroundColor: selected ? tint : colors.surface, borderColor: selected ? tint : colors.hairline },
-      ]}
-    >
-      {icon ? <Icon name={icon} size={16} color={selected ? colors.onAccent : colors.textMuted} strokeWidth={2} /> : null}
-      <Text style={[styles.chipText, { color: selected ? colors.onAccent : colors.text }]} numberOfLines={1}>
-        {label}
-      </Text>
-    </Tap>
-  );
-}
-
-const PinnedTile = memo(function PinnedTile({
-  tab,
-  active,
-  progress,
-  onPress,
-  onLongPress,
-}: {
-  tab: MobileTab;
-  active: boolean;
-  progress: SharedValue<number>;
-  onPress: (id: string) => void;
-  onLongPress: (tab: MobileTab) => void;
-}) {
-  const { colors } = useTheme();
-  const style = useAnimatedStyle(() => ({ opacity: active ? interpolate(progress.value, [0.85, 1], [0, 1], "clamp") : 1 }));
-  return (
-    <Animated.View style={style}>
-      <Tap
-        accessibilityRole="button"
-        accessibilityLabel={`Onglet épinglé : ${tab.title || siteLabel(tab.url)}`}
-        onPress={() => onPress(tab.id)}
-        onLongPress={() => onLongPress(tab)}
-        pressScale={0.9}
-        style={[
-          styles.pinned,
-          { backgroundColor: colors.bgElevated, borderColor: active ? colors.accent : colors.hairline, borderWidth: active ? 2.5 : StyleSheet.hairlineWidth },
-        ]}
-      >
-        <SiteIcon url={tab.url} title={tab.title} size={28} offline={isPrivateTab(tab)} />
-      </Tap>
-    </Animated.View>
-  );
-});
-
-const TabCard = memo(function TabCard({
-  tab,
-  layout,
-  active,
-  progress,
-  reduceMotion,
-  onPress,
-  onClose,
-  onLongPress,
-}: {
-  tab: MobileTab;
-  layout: GridLayout;
-  active: boolean;
-  progress: SharedValue<number>;
-  reduceMotion: boolean;
-  onPress: (id: string) => void;
-  onClose: (id: string) => void;
-  onLongPress: (tab: MobileTab) => void;
-}) {
-  const { colors, haptic } = useTheme();
-  const width = layout.cardWidth;
-  const label = tab.url ? siteLabel(tab.url) : "Page d'accueil";
-  const title = tab.title || label;
-  const privateTab = isPrivateTab(tab);
-
-  const close = () => {
-    haptic("light");
-    onClose(tab.id);
-  };
-
-  // Horizontal swipes belong to the pager between spaces (ADR-022): a card closes with its button,
-  // its long-press menu or the accessibility action.
-  const style = useAnimatedStyle(() => {
-    const p = progress.value;
-    return {
-      opacity: active ? interpolate(p, [0.85, 1], [0, 1], "clamp") : interpolate(p, [0.2, 1], [0, 1], "clamp"),
-      transform: [{ scale: active || reduceMotion ? 1 : interpolate(p, [0, 1], [0.92, 1]) }],
-    };
-  });
-
-  return (
-    <>
-      {/* Layout animations on the wrapper, animated opacity/transform on the child: Reanimated
-          warns (and the layout animation wins) when both target the same view. */}
-      <Animated.View
-        layout={reduceMotion ? undefined : LinearTransition.springify().damping(20).stiffness(200)}
-        exiting={FadeOut.duration(120)}
-        style={{ width, height: layout.cardHeight }}
-      >
-        <Animated.View style={[{ flex: 1 }, style]}>
-          <Tap
-            accessibilityRole="button"
-            accessibilityLabel={`${title}${active ? ", onglet actif" : ""}`}
-            accessibilityHint="Maintenir pour plus d'options"
-            accessibilityActions={[{ name: "close", label: "Fermer l'onglet" }]}
-            onAccessibilityAction={(event) => event.nativeEvent.actionName === "close" && close()}
-            onPress={() => onPress(tab.id)}
-            onLongPress={() => {
-              haptic("medium");
-              onLongPress(tab);
-            }}
-            pressScale={0.96}
-            style={[
-              styles.card,
-              {
-                backgroundColor: colors.bgElevated,
-                borderColor: active ? colors.accent : colors.hairline,
-                borderWidth: active ? 2.5 : StyleSheet.hairlineWidth,
-                shadowColor: "#000",
-              },
-            ]}
-          >
-            <View style={styles.cardHeader}>
-              <SiteIcon url={tab.url} title={tab.title} size={18} offline={privateTab} radius={5} />
-              <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
-                {title}
-              </Text>
-              <Tap accessibilityRole="button" accessibilityLabel="Fermer l'onglet" onPress={close} hitSlop={8} pressScale={0.8} style={styles.cardClose}>
-                <View style={[styles.cardCloseDot, { backgroundColor: colors.surfaceActive }]}>
-                  <Icon name="close" size={12} color={colors.textMuted} strokeWidth={2} />
-                </View>
-              </Tap>
-            </View>
-            <View style={[styles.preview, { backgroundColor: colors.surface, borderTopColor: colors.hairline }]}>
-              <View style={[styles.previewIcon, { backgroundColor: colors.bgElevated, borderColor: colors.hairline }]}>
-                <SiteIcon url={tab.url} title={tab.title} size={32} offline={privateTab} plain />
-              </View>
-              <Text style={[styles.previewLabel, { color: colors.text }]} numberOfLines={1}>
-                {label}
-              </Text>
-              {tab.isLoading && <View style={[styles.loadingDot, { backgroundColor: colors.accent }]} />}
-            </View>
-          </Tap>
-        </Animated.View>
-      </Animated.View>
-    </>
-  );
-});
-
 const styles = StyleSheet.create({
-  chipsRow: { position: "absolute", left: 0, right: 0, height: CHIPS_HEIGHT, justifyContent: "center", borderTopWidth: StyleSheet.hairlineWidth },
-  chips: { paddingHorizontal: 14, gap: 8, alignItems: "center" },
-  chipDivider: { width: StyleSheet.hairlineWidth * 2, height: 22, marginHorizontal: 2 },
-  chip: { flexDirection: "row", alignItems: "center", gap: 6, height: 38, paddingHorizontal: 14, borderRadius: 19, borderWidth: StyleSheet.hairlineWidth },
-  chipText: { fontSize: 15, fontWeight: "600", maxWidth: 160 },
   pinnedRow: { position: "absolute", left: 16, right: 16, height: PINNED_HEIGHT, flexDirection: "row", gap: 14, paddingTop: 6 },
-  pinned: { width: PINNED_TILE, height: PINNED_TILE, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   grid: { position: "absolute", left: 0, right: 0 },
   gridContent: { flexDirection: "row", flexWrap: "wrap" },
-  card: {
-    flex: 1,
-    borderRadius: 20,
-    overflow: "hidden",
-    shadowOpacity: 0.12,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-  },
-  cardHeader: { flexDirection: "row", alignItems: "center", gap: 7, paddingLeft: 10, paddingRight: 4, height: 38 },
-  cardTitle: { flex: 1, fontSize: 13, fontWeight: "600" },
-  cardClose: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-  cardCloseDot: { width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center" },
-  preview: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, overflow: "hidden", borderTopWidth: StyleSheet.hairlineWidth },
-  previewIcon: { width: 60, height: 60, borderRadius: 16, alignItems: "center", justifyContent: "center", borderWidth: StyleSheet.hairlineWidth },
-  previewLabel: { fontSize: 12, fontWeight: "600", opacity: 0.75, paddingHorizontal: 10 },
-  loadingDot: { position: "absolute", top: 10, right: 10, width: 7, height: 7, borderRadius: 4 },
   empty: { width: "100%", alignItems: "center", paddingTop: 80, gap: 8 },
-  folder: {
-    width: "100%",
-    height: FOLDER_HEADER,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 12,
-    borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  folderName: { flex: 1, fontSize: 15, fontWeight: "700" },
-  folderCount: { fontSize: 13, fontWeight: "600" },
   emptyTitle: { fontSize: 18, fontWeight: "700" },
   emptyText: { fontSize: 14 },
-  bottom: { position: "absolute", left: 0, right: 0, bottom: 0, flexDirection: "row", alignItems: "center", paddingHorizontal: 10, borderTopWidth: StyleSheet.hairlineWidth },
-  spaceName: { flex: 1, fontSize: 13, fontWeight: "600", textAlign: "center" },
-  plus: { width: 52, height: 52, borderRadius: 26, alignItems: "center", justifyContent: "center", marginTop: -2 },
-  done: { minWidth: 44, height: 44, alignItems: "center", justifyContent: "center", paddingHorizontal: 6 },
-  doneText: { fontSize: 17, fontWeight: "700" },
 });
 
 export const useOverviewWidth = () => useWindowDimensions().width;

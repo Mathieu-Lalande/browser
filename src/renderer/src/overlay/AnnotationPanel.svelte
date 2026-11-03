@@ -2,6 +2,7 @@
   import type { Highlight, HighlightColor } from "@shared/annotations/model";
   import type { Bounds } from "@shared/types";
   import { api } from "../lib/browser.svelte";
+  import { dismiss } from "../components/ui/dismiss";
   import HighlightColors from "../components/annotations/HighlightColors.svelte";
   import Button from "../components/ui/Button.svelte";
   import Icon from "../components/Icon.svelte";
@@ -68,10 +69,7 @@
   }
 
   function onKeydown(event: KeyboardEvent): void {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      void saveNote().then(() => onClose(true));
-    } else if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+    if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
       event.preventDefault();
       void done();
     }
@@ -82,6 +80,7 @@
 
 <div
   bind:this={panel}
+  use:dismiss={{ onDismiss: () => void saveNote().then(() => onClose(true)) }}
   class="panel"
   role="dialog"
   aria-label="Surlignage"
