@@ -14,12 +14,27 @@ import { _electron as electron, expect, test, type ElectronApplication, type Pag
  * The app's web build (`expo export --platform web`, built here unless MOBILE_WEB_DIR points to
  * one) runs in a 390×844 window; pages are the web stand-in `WebTab.web.tsx` (no WebView on the
  * web), so reader mode and link peek, which need a real page, are not shot.
+ *
+ * Store sizes (mobile/store/README.md): STORE_DEVICE=<key of STORE_DEVICES> writes
+ * mobile/store/screenshots/<device>/<screen>-<theme>.png at that device's exact pixel size;
+ * `cd mobile && npm run store:screenshots` runs every device.
  */
 test.skip(!process.env.SCREENSHOTS, "set SCREENSHOTS=1 to refresh docs/screenshots");
 test.setTimeout(300_000);
 
+/** Logical size × pixel ratio = the size App Store Connect / Play Console expect. */
+const STORE_DEVICES = {
+  "iphone-6.9": { width: 440, height: 956, scale: 3 }, // 1320×2868
+  "iphone-6.5": { width: 428, height: 926, scale: 3 }, // 1284×2778
+  "ipad-13": { width: 1032, height: 1376, scale: 2 }, // 2064×2752
+  "android-phone": { width: 432, height: 768, scale: 2.5 }, // 1080×1920
+} as const;
+
 const theme = process.env.SCREENSHOT_THEME === "light" ? "light" : "dark";
-const OUT = "docs/screenshots";
+const storeDevice = process.env.STORE_DEVICE as keyof typeof STORE_DEVICES | undefined;
+if (storeDevice && !(storeDevice in STORE_DEVICES)) throw new Error(`unknown STORE_DEVICE ${storeDevice}`);
+const device = storeDevice ? STORE_DEVICES[storeDevice] : { width: 390, height: 844, scale: 1 };
+const OUT = storeDevice ? `mobile/store/screenshots/${storeDevice}` : "docs/screenshots";
 const SHELL = fileURLToPath(new URL("./mobile-shell.cjs", import.meta.url));
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -113,7 +128,10 @@ function seed(): Record<string, unknown> {
 }
 
 async function launchPhone(): Promise<{ app: ElectronApplication; page: Page }> {
-  const app = await electron.launch({ args: ["--no-sandbox", SHELL], env: { ...process.env, MOBILE_URL: origin, MOBILE_THEME: theme } });
+  const app = await electron.launch({
+    args: ["--no-sandbox", `--force-device-scale-factor=${device.scale}`, SHELL],
+    env: { ...process.env, MOBILE_URL: origin, MOBILE_THEME: theme, MOBILE_WIDTH: String(device.width), MOBILE_HEIGHT: String(device.height) },
+  });
   const page = await app.firstWindow();
   await page.waitForLoadState("domcontentloaded");
   await page.evaluate((documents) => {
@@ -128,7 +146,7 @@ async function launchPhone(): Promise<{ app: ElectronApplication; page: Page }> 
 async function shoot(page: Page, name: string, settle = 600): Promise<void> {
   await pause(settle);
   mkdirSync(OUT, { recursive: true });
-  const path = `${OUT}/mobile-${name}-${theme}.png`;
+  const path = storeDevice ? `${OUT}/${name}-${theme}.png` : `${OUT}/mobile-${name}-${theme}.png`;
   await page.screenshot({ path });
   try {
     execFileSync("pngquant", ["--quality", "80-95", "--speed", "1", "--strip", "--force", "--skip-if-larger", "--ext", ".png", path]);
@@ -176,7 +194,7 @@ test("mobile screens", async () => {
     await page.getByRole("button", { name: "Plus d'actions" }).click();
     await shoot(page, "menu", 900);
     await page.keyboard.press("Escape");
-    await page.mouse.click(195, 80);
+    await page.mouse.click(device.width / 2, 80);
     await pause(500);
 
     // Tabs overview.

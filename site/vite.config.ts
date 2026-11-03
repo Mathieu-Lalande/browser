@@ -40,6 +40,9 @@ export default defineConfig({
       input: {
         main: fileURLToPath(new URL("./index.html", import.meta.url)),
         docs: fileURLToPath(new URL("./docs.html", import.meta.url)),
+        // Linked from the App Store and Google Play listings (mobile/store/).
+        privacy: fileURLToPath(new URL("./privacy.html", import.meta.url)),
+        support: fileURLToPath(new URL("./support.html", import.meta.url)),
       },
     },
   },
