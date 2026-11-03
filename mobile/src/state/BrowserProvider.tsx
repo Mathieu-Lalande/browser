@@ -1,50 +1,51 @@
-import { BOOSTS_VERSION, sanitizeBoosts, type Boost } from "@shared/boosts";
-import { ANNOTATIONS_VERSION, emptyAnnotations, sanitizeAnnotations, type AnnotationsData } from "@shared/annotations/model";
-import { mediaControlScript } from "../lib/media";
-import { addArchived, removeArchived, sanitizeArchive, type ArchivedTab } from "@shared/archive";
-import { addFavorite, favoriteTab, isFavoriteTab, removeFavorite, sanitizeFavorites, type Favorite } from "@shared/favorites";
-import { History } from "@shared/history";
+import type { AnnotationsData } from "@shared/annotations/model";
+import type { ArchivedTab } from "@shared/archive";
+import type { Boost } from "@shared/boosts";
+import { favoriteTab, type Favorite } from "@shared/favorites";
+import type { History } from "@shared/history";
 import { webHostname } from "@shared/hosts";
 import { internalPageOf } from "@shared/internal";
-import { DEFAULT_SETTINGS, mergeSettings, sanitizeSettings, searchEngineOf, tabArchiveDelayMs, type Settings, type SettingsPatch } from "@shared/settings";
 import { passwordOrigin, type PasswordEntry } from "@shared/passwords";
+import { searchEngineOf, tabArchiveDelayMs, type Settings, type SettingsPatch } from "@shared/settings";
 import { nextSpaceDefaults } from "@shared/spaces";
 import { SyncError } from "@shared/sync/client";
 import type { SyncController, SyncStatus } from "@shared/sync/controller";
 import type { Bookmark, HistoryEntry, SpaceInput } from "@shared/types";
 import { displayUrl, normalizeInput } from "@shared/url";
-import { createContext, use, useCallback, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
+import { createContext, use, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Alert, AppState } from "react-native";
 import type { WebViewHandle } from "../components/webViewHandle";
-import { parseBookmarks, parseFolders, toggleBookmark } from "../lib/bookmarks";
-import { DEFAULT_MOBILE_SETTINGS, sanitizeMobileSettings, type MobileSettings } from "../lib/mobileSettings";
+import { mediaControlScript } from "../lib/media";
+import type { MobileSettings } from "../lib/mobileSettings";
 import { initialLoad } from "../lib/navigation";
+import { archiveEntries, mobileTabsToArchive } from "../lib/organize";
 import { passwordFillScript } from "../lib/passwords";
-import { ARCHIVE_VERSION, archiveEntries, FAVORITES_VERSION, mobileTabsToArchive } from "../lib/organize";
 import { CLEAR_SITE_DATA_SCRIPT, mobileSiteInfo } from "../lib/siteInfo";
-import type { BookmarkFolder, MobileSyncStore } from "../lib/sync/adapters";
+import type { MobileSyncStore } from "../lib/sync/adapters";
 import { createMobileSync } from "../lib/sync/platform";
-import { flushDocuments, KEYS, loadDocument, removeDocuments, saveDocument } from "../lib/storage";
+import { flushDocuments, KEYS, removeDocuments } from "../lib/storage";
 import {
   activeTab,
   initialTabsModel,
-  nextMobileFolderName,
   isPrivateTab,
-  parseSession,
+  nextMobileFolderName,
   PRIVATE_SPACE_ID,
-  serializeSession,
-  SESSION_VERSION,
-  tabsReducer,
   type MobileTab,
   type TabId,
+  type TabsAction,
   type TabsModel,
 } from "../lib/tabs";
+import { useStore } from "./store";
+import { createStores, loadStores, persistStores, StoresContext } from "./stores";
 
-export const HISTORY_VERSION = 1;
-export const BOOKMARKS_VERSION = 1;
-export const SETTINGS_VERSION = 1;
-/** AsyncStorage values must stay small (Android limits a row to ~2 MB); 5 000 is also the synced maximum. */
-const MAX_HISTORY = 5000;
+export { BOOKMARKS_VERSION, HISTORY_VERSION, SETTINGS_VERSION } from "./stores";
+export { useEvent } from "../hooks/useEvent";
+
+/**
+ * The browser's state and actions for the screens. The data lives in stores (`state/stores`:
+ * tabs, history, bookmarks, settings…, each saved by `lib/storage`); this provider loads and saves
+ * them, runs the sync engine and the auto-archiving, and offers the actions.
+ */
 
 export const newId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
@@ -187,96 +188,30 @@ export function useHistoryEntries(): HistoryEntry[] {
 }
 
 export function BrowserProvider({ children }: { children: ReactNode }) {
-  const [model, dispatch] = useReducer(tabsReducer, undefined, initialTabsModel);
+  const [stores] = useState(createStores);
   const [ready, setReady] = useState(false);
-  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
-  const [mobile, setMobile] = useState<MobileSettings>(DEFAULT_MOBILE_SETTINGS);
-  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
-  const [favorites, setFavorites] = useState<Favorite[]>([]);
-  const [archive, setArchive] = useState<ArchivedTab[]>([]);
-  const [boosts, setBoosts] = useState<Boost[]>([]);
-  const [annotations, setAnnotations] = useState<AnnotationsData>(emptyAnnotations);
-  const [historyVersion, setHistoryVersion] = useState(0);
-  const historyRef = useRef(new History([], MAX_HISTORY));
-  const [folders, setFolders] = useState<BookmarkFolder[]>([]);
+  const model = useStore(stores.tabs);
+  const { settings, mobile } = useStore(stores.settings);
+  const { bookmarks, favorites } = useStore(stores.bookmarks);
+  const archive = useStore(stores.archive);
+  const boosts = useStore(stores.boosts);
+  const annotations = useStore(stores.annotations);
+  const { history, version: historyVersion } = useStore(stores.history);
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const syncRef = useRef<SyncController | null>(null);
-  /** Pages the user deleted from the history (cleared), as opposed to pruned because it is full. */
-  const deletedHistory = useRef(new Set<string>());
-
-  // Latest values for the stable action callbacks.
-  const latest = useRef({ model, settings, mobile, bookmarks, folders, favorites, archive, boosts, annotations });
-  latest.current = { model, settings, mobile, bookmarks, folders, favorites, archive, boosts, annotations };
   const webViews = useRef(new Map<TabId, WebViewHandle>());
   const httpExceptions = useRef(new Set<string>());
 
   // --- Loading & saving ---------------------------------------------------------------------
   useEffect(() => {
     let cancelled = false;
-    void (async () => {
-      const [session, history, storedBookmarks, storedSettings, storedMobile, storedFolders, storedFavorites, storedArchive, storedBoosts, storedAnnotations] = await Promise.all([
-        loadDocument(KEYS.session, SESSION_VERSION),
-        loadDocument(KEYS.history, HISTORY_VERSION),
-        loadDocument(KEYS.bookmarks, BOOKMARKS_VERSION),
-        loadDocument(KEYS.settings, SETTINGS_VERSION),
-        loadDocument(KEYS.mobile, SETTINGS_VERSION),
-        loadDocument(KEYS.folders, BOOKMARKS_VERSION),
-        loadDocument(KEYS.favorites, FAVORITES_VERSION),
-        loadDocument(KEYS.archive, ARCHIVE_VERSION),
-        loadDocument(KEYS.boosts, BOOSTS_VERSION),
-        loadDocument(KEYS.annotations, ANNOTATIONS_VERSION),
-      ]);
-      if (cancelled) return;
-      const nextSettings = sanitizeSettings(storedSettings);
-      setSettings(nextSettings);
-      setMobile(sanitizeMobileSettings(storedMobile));
-      setBookmarks(parseBookmarks(storedBookmarks));
-      setFolders(parseFolders(storedFolders));
-      setFavorites(sanitizeFavorites(storedFavorites));
-      setArchive(sanitizeArchive(storedArchive));
-      setBoosts(sanitizeBoosts(storedBoosts));
-      setAnnotations(sanitizeAnnotations(storedAnnotations));
-      historyRef.current = new History(History.parse(history) ?? [], MAX_HISTORY);
-      setHistoryVersion((v) => v + 1);
-      const restored = nextSettings.behavior.restoreSession ? parseSession(session) : null;
-      if (restored) dispatch({ type: "restore", model: restored });
-      setReady(true);
-    })();
+    void loadStores(stores, () => cancelled).then((loaded) => loaded && setReady(true));
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [stores]);
 
-  useEffect(() => {
-    if (ready) saveDocument(KEYS.session, SESSION_VERSION, () => serializeSession(latest.current.model));
-  }, [model, ready]);
-  useEffect(() => {
-    if (ready) saveDocument(KEYS.bookmarks, BOOKMARKS_VERSION, () => latest.current.bookmarks);
-  }, [bookmarks, ready]);
-  useEffect(() => {
-    if (ready) saveDocument(KEYS.settings, SETTINGS_VERSION, () => latest.current.settings, 200);
-  }, [settings, ready]);
-  useEffect(() => {
-    if (ready) saveDocument(KEYS.folders, BOOKMARKS_VERSION, () => latest.current.folders);
-  }, [folders, ready]);
-  useEffect(() => {
-    if (ready) saveDocument(KEYS.favorites, FAVORITES_VERSION, () => latest.current.favorites);
-  }, [favorites, ready]);
-  useEffect(() => {
-    if (ready) saveDocument(KEYS.archive, ARCHIVE_VERSION, () => latest.current.archive);
-  }, [archive, ready]);
-  useEffect(() => {
-    if (ready) saveDocument(KEYS.boosts, BOOSTS_VERSION, () => latest.current.boosts);
-  }, [boosts, ready]);
-  useEffect(() => {
-    if (ready) saveDocument(KEYS.annotations, ANNOTATIONS_VERSION, () => latest.current.annotations);
-  }, [annotations, ready]);
-  useEffect(() => {
-    if (ready) saveDocument(KEYS.mobile, SETTINGS_VERSION, () => latest.current.mobile, 200);
-  }, [mobile, ready]);
-  useEffect(() => {
-    if (ready) saveDocument(KEYS.history, HISTORY_VERSION, () => historyRef.current.toJSON(), 2000);
-  }, [historyVersion, ready]);
+  useEffect(() => (ready ? persistStores(stores) : undefined), [ready, stores]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
@@ -289,44 +224,24 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
   // --- Sync (ADR-019) -----------------------------------------------------------------------
   useEffect(() => {
     if (!ready) return;
-    // Writes go to `latest` at once: the engine reads the data back right after applying it.
+    // The stores apply writes at once: the engine reads the data back right after applying it.
     const store: MobileSyncStore = {
-      settings: () => latest.current.settings,
-      setSettings: (next) => {
-        latest.current.settings = next;
-        setSettings(next);
-      },
-      model: () => latest.current.model,
-      dispatch: (action) => {
-        latest.current.model = tabsReducer(latest.current.model, action);
-        dispatch(action);
-      },
-      bookmarks: () => latest.current.bookmarks,
-      folders: () => latest.current.folders,
-      setBookmarks: (nextBookmarks, nextFolders) => {
-        latest.current.bookmarks = nextBookmarks;
-        latest.current.folders = nextFolders;
-        setBookmarks(nextBookmarks);
-        setFolders(nextFolders);
-      },
-      favorites: () => latest.current.favorites,
-      setFavorites: (next) => {
-        latest.current.favorites = next;
-        setFavorites(next);
-      },
-      boosts: () => latest.current.boosts,
-      setBoosts: (next) => {
-        latest.current.boosts = next;
-        setBoosts(next);
-      },
-      annotations: () => latest.current.annotations,
-      setAnnotations: (next) => {
-        latest.current.annotations = next;
-        setAnnotations(next);
-      },
-      history: () => historyRef.current,
-      historyChanged: () => setHistoryVersion((v) => v + 1),
-      historyDeleted: (url) => deletedHistory.current.has(url),
+      settings: () => stores.settings.settings,
+      setSettings: (next) => stores.settings.setSettings(next),
+      model: stores.tabs.get,
+      dispatch: (action) => stores.tabs.dispatch(action),
+      bookmarks: () => stores.bookmarks.bookmarks,
+      folders: () => stores.bookmarks.folders,
+      setBookmarks: (nextBookmarks, nextFolders) => stores.bookmarks.setBookmarks(nextBookmarks, nextFolders),
+      favorites: () => stores.bookmarks.favorites,
+      setFavorites: (next) => stores.bookmarks.setFavorites(next),
+      boosts: stores.boosts.get,
+      setBoosts: (next) => stores.boosts.set(next),
+      annotations: stores.annotations.get,
+      setAnnotations: (next) => stores.annotations.set(next),
+      history: () => stores.history.history,
+      historyChanged: () => stores.history.changed(),
+      historyDeleted: (url) => stores.history.isDeleted(url),
       newId,
       now: () => Date.now(),
     };
@@ -338,7 +253,7 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
       controller.dispose();
       syncRef.current = null;
     };
-  }, [ready]);
+  }, [ready, stores]);
 
   // Any synced data changed: sync a little later (the controller debounces and ignores no-ops).
   useEffect(() => {
@@ -349,13 +264,13 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!ready) return;
     const check = () => {
-      const idleMs = tabArchiveDelayMs(latest.current.settings);
+      const idleMs = tabArchiveDelayMs(stores.settings.settings);
       if (idleMs === null) return;
       const now = Date.now();
-      const tabs = mobileTabsToArchive(latest.current.model, latest.current.favorites, idleMs, now);
+      const tabs = mobileTabsToArchive(stores.tabs.get(), stores.bookmarks.favorites, idleMs, now);
       if (!tabs.length) return;
-      setArchive((list) => addArchived(list, archiveEntries(tabs, now, newId)));
-      dispatch({ type: "close-many", ids: tabs.map((tab) => tab.id), now });
+      stores.archive.add(archiveEntries(tabs, now, newId));
+      stores.tabs.dispatch({ type: "close-many", ids: tabs.map((tab) => tab.id), now });
     };
     check();
     const timer = setInterval(check, 60_000);
@@ -364,28 +279,29 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
       clearInterval(timer);
       subscription.remove();
     };
-  }, [ready]);
+  }, [ready, stores]);
 
   // --- Actions ------------------------------------------------------------------------------
   const actions = useMemo<BrowserActions>(() => {
+    const { tabs, archive: archived, history: visits, bookmarks: marks, settings: prefs } = stores;
+    const dispatch = (action: TabsAction) => tabs.dispatch(action);
     const now = () => Date.now();
-    const active = () => activeTab(latest.current.model);
+    const active = () => activeTab(tabs.get());
     const webView = (id: TabId | undefined) => (id ? webViews.current.get(id) : undefined);
 
     const openUrl: BrowserActions["openUrl"] = (url, options = {}) => {
       const id = newId();
       const { url: target, upgradedFrom } = initialLoad(url, httpExceptions.current);
-      const current = latest.current.model;
+      const current = tabs.get();
       const spaceId = options.private ? PRIVATE_SPACE_ID : current.activeSpaceId;
-      const afterId =
-        options.afterId ?? (latest.current.settings.behavior.newTabPosition === "next" ? (active()?.id ?? undefined) : undefined);
+      const afterId = options.afterId ?? (prefs.settings.behavior.newTabPosition === "next" ? (active()?.id ?? undefined) : undefined);
       dispatch({ type: "open", id, url: target, upgradedFrom, spaceId, background: options.background, afterId, now: now() });
       return id;
     };
 
     const loadInTab = (id: TabId, url: string) => {
       const { url: target, upgradedFrom } = initialLoad(url, httpExceptions.current);
-      const tab = latest.current.model.tabs.find((candidate) => candidate.id === id);
+      const tab = tabs.get().tabs.find((candidate) => candidate.id === id);
       // Same URL as the WebView's source: React would not reload it, ask the WebView directly.
       if (tab && tab.load.url === target && tab.url !== target && target) {
         webView(id)?.injectJavaScript(`window.location.assign(${JSON.stringify(target)});true;`);
@@ -395,21 +311,19 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
     };
 
     const recordVisit = (tab: MobileTab | undefined, report: NavigationReport) => {
-      if (!tab || isPrivateTab(tab)) return;
-      const history = historyRef.current;
-      // Called several times per load (start, title, end): History ignores revisits within 30 s.
-      if (!report.loading && history.recordVisit(report.url, now(), { title: report.title })) setHistoryVersion((v) => v + 1);
+      if (!tab || isPrivateTab(tab) || report.loading) return;
+      visits.recordVisit(report.url, report.title, now());
     };
 
     return {
       submit(input, options = {}) {
-        const engine = searchEngineOf(latest.current.settings);
+        const engine = searchEngineOf(prefs.settings);
         const url = normalizeInput(input, engine);
         if (!url) return { kind: "none" };
         if (internalPageOf(url) === "settings") return { kind: "settings" };
         const current = active();
         if (!current || options.newTab) {
-          const isPrivate = latest.current.model.activeSpaceId === PRIVATE_SPACE_ID;
+          const isPrivate = tabs.get().activeSpaceId === PRIVATE_SPACE_ID;
           return { kind: "page", tabId: openUrl(url, { private: isPrivate }) };
         }
         loadInTab(current.id, url);
@@ -418,12 +332,12 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
       openUrl,
       newTab(options = {}) {
         const id = newId();
-        const spaceId = options.private ? PRIVATE_SPACE_ID : latest.current.model.activeSpaceId;
+        const spaceId = options.private ? PRIVATE_SPACE_ID : tabs.get().activeSpaceId;
         dispatch({ type: "open", id, url: "", spaceId, now: now() });
         return id;
       },
       closeTab(id) {
-        dispatch({ type: "close", id, activates: latest.current.settings.behavior.closeTabActivates, now: now() });
+        dispatch({ type: "close", id, activates: prefs.settings.behavior.closeTabActivates, now: now() });
       },
       closeTabs(ids) {
         dispatch({ type: "close-many", ids, now: now() });
@@ -447,7 +361,7 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
       },
       addSpace(input) {
         const id = `space-${newId()}`;
-        dispatch({ type: "add-space", id, input: { ...nextSpaceDefaults(latest.current.model.spaces), ...input } });
+        dispatch({ type: "add-space", id, input: { ...nextSpaceDefaults(tabs.get().spaces), ...input } });
         return id;
       },
       updateSpace(id, input) {
@@ -484,7 +398,7 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
         webView(id)?.injectJavaScript(mediaControlScript(action));
       },
       reportNavigation(id, report) {
-        const tab = latest.current.model.tabs.find((candidate) => candidate.id === id);
+        const tab = tabs.get().tabs.find((candidate) => candidate.id === id);
         dispatch({
           type: "navigation",
           id,
@@ -511,31 +425,27 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
         dispatch({ type: "load", id, url: httpUrl, upgradedFrom: null });
       },
       toggleBookmark(tab) {
-        setBookmarks((list) => toggleBookmark(list, tab, newId(), now()));
+        marks.toggle(tab, newId(), now());
       },
       removeBookmark(id) {
-        setBookmarks((list) => list.filter((bookmark) => bookmark.id !== id));
+        marks.remove(id);
       },
       clearHistory() {
-        for (const entry of historyRef.current.toJSON()) deletedHistory.current.add(entry.url);
-        historyRef.current.clear();
-        setHistoryVersion((v) => v + 1);
+        visits.clear();
       },
       async clearAllData() {
-        for (const entry of historyRef.current.toJSON()) deletedHistory.current.add(entry.url);
-        historyRef.current.clear();
-        setHistoryVersion((v) => v + 1);
-        setBookmarks([]);
-        setArchive([]);
+        visits.clear();
+        marks.clearBookmarks();
+        archived.clear();
         httpExceptions.current.clear();
         dispatch({ type: "restore", model: initialTabsModel() });
         await removeDocuments([KEYS.history, KEYS.bookmarks, KEYS.session, KEYS.archive]);
       },
       updateSettings(patch) {
-        setSettings((current) => mergeSettings(current, patch));
+        prefs.update(patch);
       },
       updateMobileSettings(patch) {
-        setMobile((current) => sanitizeMobileSettings(patch, current));
+        prefs.updateMobile(patch);
       },
       registerWebView(id, ref) {
         if (ref) webViews.current.set(id, ref);
@@ -543,23 +453,19 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
       },
       httpExceptions: () => httpExceptions.current,
       toggleFavorite(tab) {
-        setFavorites((list) => {
-          const matching = list.filter((favorite) => isFavoriteTab(favorite.url, tab.url));
-          if (matching.length) return list.filter((favorite) => !matching.includes(favorite));
-          return addFavorite(list, { url: tab.url, title: tab.title }, now());
-        });
+        marks.toggleFavorite(tab, now());
       },
       removeFavorite(url) {
-        setFavorites((list) => removeFavorite(list, url));
+        marks.removeFavorite(url);
       },
       setBoosts(update) {
-        setBoosts((list) => update(list));
+        stores.boosts.set(update);
       },
       setAnnotations(update) {
-        setAnnotations((data) => update(data));
+        stores.annotations.set(update);
       },
       openFavorite(url) {
-        const current = latest.current.model;
+        const current = tabs.get();
         const here = current.tabs.filter((tab) => tab.spaceId === current.activeSpaceId);
         const match = favoriteTab(url, here);
         if (match) {
@@ -570,7 +476,7 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
       },
       addFolder(spaceId, tabId, name) {
         const id = `folder-${newId()}`;
-        dispatch({ type: "add-folder", id, spaceId, tabId, name: name ?? nextMobileFolderName(latest.current.model, spaceId) });
+        dispatch({ type: "add-folder", id, spaceId, tabId, name: name ?? nextMobileFolderName(tabs.get(), spaceId) });
         return id;
       },
       renameFolder(id, name) {
@@ -586,20 +492,21 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
         dispatch({ type: "set-tab-folder", id: tabId, folderId });
       },
       restoreArchived(id) {
-        const entry = latest.current.archive.find((candidate) => candidate.id === id);
+        const entry = archived.get().find((candidate) => candidate.id === id);
         if (!entry) return null;
         const tabId = newId();
-        const spaceId = entry.spaceId && latest.current.model.spaces.some((space) => space.id === entry.spaceId) ? entry.spaceId : latest.current.model.activeSpaceId;
+        const current = tabs.get();
+        const spaceId = entry.spaceId && current.spaces.some((space) => space.id === entry.spaceId) ? entry.spaceId : current.activeSpaceId;
         const { url: target, upgradedFrom } = initialLoad(entry.url, httpExceptions.current);
         dispatch({ type: "open", id: tabId, url: target, upgradedFrom, spaceId, title: entry.title, now: now() });
-        setArchive((list) => removeArchived(list, id));
+        archived.remove(id);
         return tabId;
       },
       removeArchived(id) {
-        setArchive((list) => removeArchived(list, id));
+        archived.remove(id);
       },
       clearArchive() {
-        setArchive([]);
+        archived.clear();
       },
       sync: {
         createAccount: (serverUrl, secret) => syncAttempt(async () => syncRef.current?.createAccount(serverUrl, secret)),
@@ -611,7 +518,7 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
         dismissReceived: (id) => syncRef.current?.dismissReceivedTab(id),
       },
     };
-  }, []);
+  }, [stores]);
 
   // Tabs sent from another device (ADR-033): asked once each; "Plus tard" leaves them under
   // "Autres appareils" in the tab overview.
@@ -634,20 +541,15 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
   }, [syncStatus, actions]);
 
   const state = useMemo<BrowserState>(
-    () => ({ ready, model, settings, mobile, bookmarks, favorites, archive, boosts, annotations, historyVersion, history: historyRef.current, sync: syncStatus }),
-    [ready, model, settings, mobile, bookmarks, favorites, archive, boosts, annotations, historyVersion, syncStatus],
+    () => ({ ready, model, settings, mobile, bookmarks, favorites, archive, boosts, annotations, historyVersion, history, sync: syncStatus }),
+    [ready, model, settings, mobile, bookmarks, favorites, archive, boosts, annotations, historyVersion, history, syncStatus],
   );
 
   return (
-    <ActionsContext value={actions}>
-      <StateContext value={state}>{children}</StateContext>
-    </ActionsContext>
+    <StoresContext value={stores}>
+      <ActionsContext value={actions}>
+        <StateContext value={state}>{children}</StateContext>
+      </ActionsContext>
+    </StoresContext>
   );
-}
-
-/** Stable callback that always sees the latest props (for WebView handlers). */
-export function useEvent<A extends unknown[], R>(handler: (...args: A) => R): (...args: A) => R {
-  const ref = useRef(handler);
-  ref.current = handler;
-  return useCallback((...args: A) => ref.current(...args), []);
 }

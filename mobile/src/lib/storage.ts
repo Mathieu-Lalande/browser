@@ -74,6 +74,41 @@ export async function flushDocuments(): Promise<void> {
   await Promise.all(writes);
 }
 
+/** A value that says when it changes (the app's stores, `state/store.ts`). */
+export interface Observable<T> {
+  get(): T;
+  subscribe(listener: () => void): () => void;
+}
+
+/**
+ * Keeps a document saved from a store: once now (what was loaded, sanitized), then each time
+ * `select` of the store's value changes. `data` is read when the write happens. Returns the stop.
+ */
+export function persistDocument<T>(
+  source: Observable<T>,
+  select: (value: T) => unknown,
+  key: StorageKey,
+  version: number,
+  data: () => unknown,
+  delayMs?: number,
+): () => void {
+  let last = select(source.get());
+  saveDocument(key, version, data, delayMs);
+  return source.subscribe(() => {
+    const next = select(source.get());
+    if (Object.is(next, last)) return;
+    last = next;
+    saveDocument(key, version, data, delayMs);
+  });
+}
+
+/** Loads several documents at once: `{ name: [key, version] }` → `{ name: data or null }`. */
+export async function loadDocuments<T extends Record<string, readonly [StorageKey, number]>>(specs: T): Promise<{ [K in keyof T]: unknown }> {
+  const names = Object.keys(specs) as (keyof T)[];
+  const values = await Promise.all(names.map((name) => loadDocument(specs[name][0], specs[name][1])));
+  return Object.fromEntries(names.map((name, index) => [name, values[index]])) as { [K in keyof T]: unknown };
+}
+
 export async function removeDocuments(keys: StorageKey[]): Promise<void> {
   for (const key of keys) {
     const existing = pending.get(key);
