@@ -57,6 +57,7 @@
   import GraduationCap from "@lucide/svelte/icons/graduation-cap";
   import Heart from "@lucide/svelte/icons/heart";
   import House from "@lucide/svelte/icons/house";
+  import Library from "@lucide/svelte/icons/library";
   import Landmark from "@lucide/svelte/icons/landmark";
   import Layers from "@lucide/svelte/icons/layers";
   import Lightbulb from "@lucide/svelte/icons/lightbulb";
@@ -99,6 +100,7 @@
   import Trash from "@lucide/svelte/icons/trash";
   import TriangleAlert from "@lucide/svelte/icons/triangle-alert";
   import Users from "@lucide/svelte/icons/users";
+  import UserPlus from "@lucide/svelte/icons/user-plus";
   import VenetianMask from "@lucide/svelte/icons/venetian-mask";
   import Volume2 from "@lucide/svelte/icons/volume-2";
   import VolumeX from "@lucide/svelte/icons/volume-x";
@@ -333,6 +335,8 @@
     // Task manager and profiles (ADR-042).
     activity: Activity,
     users: Users,
+    "user-plus": UserPlus,
+    library: Library,
   } satisfies Record<string, LucideIcon> & Record<CommandIcon, LucideIcon>;
 
   /** Space icons: their stored names are Lucide's own. */

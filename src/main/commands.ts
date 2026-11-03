@@ -131,6 +131,8 @@ const RUNNERS: Record<CommandId, Runner> = {
   "reopen-closed-window": () => void appServices().recovery.reopenWindow(),
   "open-task-manager": (c) => c.openInternal("tasks"),
   "open-profiles": (c) => c.openInternal("profiles"),
+  "new-profile": (c) => c.openInternal("profiles", "new"),
+  "open-autofill": (c) => c.openInternal("settings", "autofill"),
   "select-all-tabs": (c) => c.sendUiCommand("select-all-tabs"),
   "toggle-compact-mode": () => void updateSettings({ layout: { compactMode: !settings().layout.compactMode } }),
   "toggle-sidebar-position": () => void updateSettings({ layout: { sidebarPosition: settings().layout.sidebarPosition === "left" ? "right" : "left" } }),

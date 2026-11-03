@@ -325,12 +325,13 @@ export class BrowserController {
     BrowserController.refreshAll();
   }
 
-  /** Applies settings to the native side of the window, and tells its chrome UI (unless `notify` is false). */
+  /** Applies settings to the native side of the window, and tells its browser UI (unless `notify` is false). */
   applySettings(current: Settings, notify = true): void {
     if (this.window.isDestroyed()) return;
     this.frame.applySettings(current, this.background(current));
     this.spaces.configure(tabOptions(current));
-    if (notify) this.bridge.toChrome(Channels.settingsChanged, current);
+    // The overlay layer too: its floating UI follows the theme (and the other settings) live.
+    if (notify) this.bridge.send(Channels.settingsChanged, current);
   }
 
   /**

@@ -191,6 +191,33 @@ button {
   border-color: var(--danger);
 }
 
+/*
+ * A titled block of an internal page (« Sauvegarde du profil », « Jamais enregistrés »…): its title,
+ * then its cards and hints, one rhythm on every page (the `Page` column already spaces blocks).
+ */
+.ui-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.ui-section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
+  color: var(--text);
+  font-size: var(--text-md);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.ui-section-hint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.45;
+}
+
 ::selection {
   background: color-mix(in oklab, var(--accent) 32%, transparent);
   color: var(--text);

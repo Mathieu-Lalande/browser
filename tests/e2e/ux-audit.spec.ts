@@ -201,7 +201,17 @@ test("a space color goes through the contrast engine", async ({ chrome }) => {
 test("the Outils menu of the sidebar opens the internal pages", async ({ chrome }) => {
   await chrome.getByRole("button", { name: "Outils" }).click();
   const menu = chrome.getByRole("menu", { name: "Outils" });
-  await expect(menu.getByRole("menuitem")).toHaveText(["Mots de passe", "Boosts", "Extensions", "Onglets archivés"]);
+  await expect(menu.getByRole("menuitem")).toHaveText([
+    "Mots de passe",
+    "Adresses et paiements",
+    "Extensions",
+    "Toutes les notes",
+    "Onglets archivés",
+    "Boosts",
+    "Importer depuis un autre navigateur",
+    "Gestionnaire de tâches",
+    "Profils",
+  ]);
   await menu.getByRole("menuitem", { name: "Boosts" }).click();
   await expect(menu).toHaveCount(0);
   await expect(chrome.getByRole("combobox", { name: "Barre d'adresse" })).toHaveValue("browser://boosts");

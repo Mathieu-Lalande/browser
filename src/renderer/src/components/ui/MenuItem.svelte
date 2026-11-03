@@ -5,7 +5,7 @@
 
   /**
    * One row of a `Menu`: icon, label, then its shortcut (`keys`) or, with `expanded`, a chevron
-   * for the part it unfolds below.
+   * for the part it unfolds below. `color`: the icon sits in a disc of that color (a profile).
    */
   interface Props extends HTMLButtonAttributes {
     icon: IconName;
@@ -13,14 +13,19 @@
     label: string;
     keys?: string;
     expanded?: boolean;
+    color?: string;
     children?: Snippet;
   }
 
-  let { icon, iconSize = 16, label, keys, expanded, children, ...rest }: Props = $props();
+  let { icon, iconSize = 16, label, keys, expanded, color, children, ...rest }: Props = $props();
 </script>
 
 <button class="item" aria-expanded={expanded} {...rest}>
-  <Icon name={icon} size={iconSize} />
+  {#if color}
+    <span class="disc" style:background={color}><Icon name={icon} size={iconSize - 2} /></span>
+  {:else}
+    <Icon name={icon} size={iconSize} />
+  {/if}
   <span class="label">{label}</span>
   {#if expanded !== undefined}
     <span class="chevron" class:open={expanded}><Icon name="chevron-right" size={14} /></span>
@@ -59,6 +64,16 @@
   .keys {
     color: var(--text-faint);
     font-size: 11px;
+  }
+  .disc {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: var(--space-5);
+    height: var(--space-5);
+    margin: calc(-1 * var(--space-1));
+    border-radius: var(--radius-pill);
+    color: #fff;
   }
   .chevron {
     display: grid;

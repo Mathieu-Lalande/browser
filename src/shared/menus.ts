@@ -1,4 +1,5 @@
 import { getCommand, type CommandIcon, type CommandId } from "./commands";
+import type { ProfileIcon, ProfilesView } from "./profiles";
 import type { ClosedLists } from "./recovery";
 import type { TabState } from "./types";
 
@@ -11,35 +12,75 @@ import type { TabState } from "./types";
 
 export type MenuNode =
   /** A registry command: its label (unless overridden), icon and effective shortcut. */
-  | { kind: "command"; id: CommandId; label?: string; enabled?: boolean; checked?: boolean }
+  | {
+      kind: "command";
+      id: CommandId;
+      label?: string;
+      enabled?: boolean;
+      checked?: boolean;
+    }
   /** Something only this menu does (rename a space, open a history entry…). */
-  | { kind: "action"; id: string; label: string; icon?: CommandIcon; enabled?: boolean; hint?: string }
+  | {
+      kind: "action";
+      id: string;
+      label: string;
+      icon?: CommandIcon | ProfileIcon;
+      enabled?: boolean;
+      hint?: string;
+      color?: string;
+    }
   /** A page to open in a new tab (history, favorites, bookmarks). */
-  | { kind: "link"; id: string; label: string; url: string; favicon?: string | null }
-  | { kind: "submenu"; id: string; label: string; icon: CommandIcon; children: MenuNode[]; enabled?: boolean }
+  | {
+      kind: "link";
+      id: string;
+      label: string;
+      url: string;
+      favicon?: string | null;
+    }
+  | {
+      kind: "submenu";
+      id: string;
+      label: string;
+      icon: CommandIcon | ProfileIcon;
+      children: MenuNode[];
+      enabled?: boolean;
+      color?: string;
+    }
   | { kind: "separator" }
   /** App menu header: sync state and its action. */
   | { kind: "sync" }
   /** App menu zoom row: − % + and full screen. */
   | { kind: "zoom" };
 
-const command = (id: CommandId, extra: Partial<Extract<MenuNode, { kind: "command" }>> = {}): MenuNode => ({ kind: "command", id, ...extra });
+const command = (
+  id: CommandId,
+  extra: Partial<Extract<MenuNode, { kind: "command" }>> = {},
+): MenuNode => ({ kind: "command", id, ...extra });
 const separator: MenuNode = { kind: "separator" };
 
 /** Whether a registry command can run with this active tab (page commands need a web page). */
-export function commandEnabled(id: CommandId, activeTab: TabState | null | undefined): boolean {
+export function commandEnabled(
+  id: CommandId,
+  activeTab: TabState | null | undefined,
+): boolean {
   if (id === "back") return !!activeTab?.canGoBack;
   if (id === "forward") return !!activeTab?.canGoForward;
   return !getCommand(id).needsPage || isWebPage(activeTab);
 }
 
-const isWebPage = (tab: TabState | null | undefined) => !!tab && /^(https?|file):/.test(tab.url) && !tab.interstitial;
+const isWebPage = (tab: TabState | null | undefined) =>
+  !!tab && /^(https?|file):/.test(tab.url) && !tab.interstitial;
 
 /** Applies `commandEnabled` to the command nodes that do not say otherwise, recursively. */
-function withAvailability(nodes: MenuNode[], activeTab: TabState | null | undefined): MenuNode[] {
+function withAvailability(
+  nodes: MenuNode[],
+  activeTab: TabState | null | undefined,
+): MenuNode[] {
   return nodes.map((node) => {
-    if (node.kind === "command" && node.enabled === undefined) return { ...node, enabled: commandEnabled(node.id, activeTab) };
-    if (node.kind === "submenu") return { ...node, children: withAvailability(node.children, activeTab) };
+    if (node.kind === "command" && node.enabled === undefined)
+      return { ...node, enabled: commandEnabled(node.id, activeTab) };
+    if (node.kind === "submenu")
+      return { ...node, children: withAvailability(node.children, activeTab) };
     return node;
   });
 }
@@ -47,20 +88,31 @@ function withAvailability(nodes: MenuNode[], activeTab: TabState | null | undefi
 /** The label a node shows. */
 export function nodeLabel(node: MenuNode): string {
   if (node.kind === "command") return node.label ?? getCommand(node.id).label;
-  if (node.kind === "separator" || node.kind === "sync" || node.kind === "zoom") return "";
+  if (node.kind === "separator" || node.kind === "sync" || node.kind === "zoom")
+    return "";
   return node.label;
 }
 
 /** Every command id of a menu, depth first (tests, and the shortcut hints). */
 export function menuCommands(nodes: readonly MenuNode[]): CommandId[] {
-  return nodes.flatMap((node) => (node.kind === "command" ? [node.id] : node.kind === "submenu" ? menuCommands(node.children) : []));
+  return nodes.flatMap((node) =>
+    node.kind === "command"
+      ? [node.id]
+      : node.kind === "submenu"
+        ? menuCommands(node.children)
+        : [],
+  );
 }
 
 /** Drops separators at the ends and doubled ones (after hidden entries). */
 function tidy(nodes: MenuNode[]): MenuNode[] {
   const out: MenuNode[] = [];
   for (const node of nodes) {
-    if (node.kind === "separator" && (!out.length || out.at(-1)!.kind === "separator")) continue;
+    if (
+      node.kind === "separator" &&
+      (!out.length || out.at(-1)!.kind === "separator")
+    )
+      continue;
     out.push(node);
   }
   while (out.at(-1)?.kind === "separator") out.pop();
@@ -85,31 +137,120 @@ export interface AppMenuContext {
   recording?: boolean;
   /** Recently closed tabs (of the space shown) and windows (ADR-042). */
   closed?: ClosedLists;
+  /** The profiles and the one this window runs (ADR-042); no Profils submenu until known. */
+  profiles?: ProfilesView | null;
+}
+
+/**
+ * The library pages of the app menu and, in the same order, of the sidebar's Outils menu: every
+ * internal page (ADR-012) without a button of its own. Groups are separated in both menus.
+ */
+export const LIBRARY_MAIN: readonly CommandId[] = [
+  "open-passwords",
+  "open-autofill",
+  "open-extensions",
+];
+export const LIBRARY_MORE: readonly CommandId[] = [
+  "open-notes",
+  "open-archive",
+  "open-boosts",
+  "import-data",
+];
+
+const libraryMore = (isPrivate: boolean) =>
+  LIBRARY_MORE.filter((id) => !isPrivate || id !== "open-boosts");
+
+/** The sidebar Outils menu, as groups of commands (Boosts are edited from normal windows only, ADR-029). */
+export function toolsMenuGroups(isPrivate: boolean): CommandId[][] {
+  return [
+    [...LIBRARY_MAIN],
+    libraryMore(isPrivate),
+    ["open-task-manager", "open-profiles"],
+  ];
+}
+
+/** The profile a Profils submenu entry opens (`profile-open-<id>`), null for other ids. */
+export function profileEntryOf(id: string): string | null {
+  return /^profile-open-([a-z0-9-]{1,40})$/.exec(id)?.[1] ?? null;
+}
+
+/** The Profils submenu: the current profile, the others to open, then managing them. */
+function profilesNode(view: ProfilesView, isPrivate: boolean): MenuNode {
+  const current =
+    view.profiles.find((profile) => profile.id === view.current) ??
+    view.profiles[0];
+  const others: MenuNode[] = view.profiles
+    .filter((profile) => profile !== current)
+    .map((profile) => ({
+      kind: "action",
+      id: `profile-open-${profile.id}`,
+      label: `Ouvrir ${profile.name}`,
+      icon: profile.icon,
+      color: profile.color,
+    }));
+  const head: MenuNode[] = current
+    ? [
+        {
+          kind: "action",
+          id: "profile-current",
+          label: current.name,
+          icon: current.icon,
+          color: current.color,
+          hint: "Profil actuel",
+        },
+      ]
+    : [];
+  return {
+    kind: "submenu",
+    id: "profiles",
+    label: current ? `Profil : ${current.name}` : "Profils",
+    icon: current?.icon ?? "users",
+    color: current?.color,
+    children: tidy([
+      ...head,
+      separator,
+      ...others,
+      separator,
+      command("open-profiles", { label: "Gérer les profils…" }),
+      // Profiles are not changed from a private window (ADR-042).
+      ...(isPrivate
+        ? []
+        : [command("new-profile", { label: "Nouveau profil…" })]),
+    ]),
+  };
 }
 
 /** How many recently closed tabs and windows the Historique submenu lists. */
 export const APP_MENU_CLOSED = 8;
 
 /** The ids of "Récemment fermés" entries: `closed-tab-<n>`, `closed-window-<n>` (n: 0 = most recent). */
-export function closedEntryOf(id: string): { kind: "tab" | "window"; index: number } | null {
+export function closedEntryOf(
+  id: string,
+): { kind: "tab" | "window"; index: number } | null {
   const match = /^closed-(tab|window)-(\d+)$/.exec(id);
-  return match ? { kind: match[1] as "tab" | "window", index: Number(match[2]) } : null;
+  return match
+    ? { kind: match[1] as "tab" | "window", index: Number(match[2]) }
+    : null;
 }
 
 function closedNodes(closed: ClosedLists | undefined): MenuNode[] {
   if (!closed) return [];
-  const windows: MenuNode[] = closed.windows.slice(0, APP_MENU_CLOSED).map((entry) => ({
-    kind: "action",
-    id: `closed-window-${entry.index}`,
-    label: `${entry.title} (${entry.tabCount} onglet${(entry.tabCount ?? 0) > 1 ? "s" : ""})`,
-    icon: "window",
-  }));
-  const tabs: MenuNode[] = closed.tabs.slice(0, APP_MENU_CLOSED).map((entry) => ({
-    kind: "action",
-    id: `closed-tab-${entry.index}`,
-    label: entry.title || entry.url || "Onglet",
-    icon: "undo",
-  }));
+  const windows: MenuNode[] = closed.windows
+    .slice(0, APP_MENU_CLOSED)
+    .map((entry) => ({
+      kind: "action",
+      id: `closed-window-${entry.index}`,
+      label: `${entry.title} (${entry.tabCount} onglet${(entry.tabCount ?? 0) > 1 ? "s" : ""})`,
+      icon: "window",
+    }));
+  const tabs: MenuNode[] = closed.tabs
+    .slice(0, APP_MENU_CLOSED)
+    .map((entry) => ({
+      kind: "action",
+      id: `closed-tab-${entry.index}`,
+      label: entry.title || entry.url || "Onglet",
+      icon: "undo",
+    }));
   if (!windows.length && !tabs.length) return [];
   return [separator, ...windows, separator, ...tabs];
 }
@@ -118,8 +259,20 @@ function closedNodes(closed: ClosedLists | undefined): MenuNode[] {
 export const APP_MENU_HISTORY = 10;
 export const APP_MENU_BOOKMARKS = 15;
 
-const links = (prefix: string, pages: readonly PageLink[], max: number): MenuNode[] =>
-  pages.slice(0, max).map((page, index) => ({ kind: "link", id: `${prefix}-${index}`, label: page.title || page.url, url: page.url, favicon: page.favicon ?? null }));
+const links = (
+  prefix: string,
+  pages: readonly PageLink[],
+  max: number,
+): MenuNode[] =>
+  pages
+    .slice(0, max)
+    .map((page, index) => ({
+      kind: "link",
+      id: `${prefix}-${index}`,
+      label: page.title || page.url,
+      url: page.url,
+      favicon: page.favicon ?? null,
+    }));
 
 /** The "…" app menu (Zen/Firefox-like), every entry a registry command where one exists. */
 export function buildAppMenu(context: AppMenuContext): MenuNode[] {
@@ -129,11 +282,17 @@ export function buildAppMenu(context: AppMenuContext): MenuNode[] {
     separator,
     command("open-history"),
     command("reopen-closed-tab"),
-    command("reopen-closed-window", { enabled: context.closed ? context.closed.windows.length > 0 : undefined }),
+    command("reopen-closed-window", {
+      enabled: context.closed ? context.closed.windows.length > 0 : undefined,
+    }),
     ...closedNodes(context.closed),
   ];
   const bookmarks: MenuNode[] = [
-    command("toggle-bookmark", { label: tab?.isBookmarked ? "Retirer cette page des favoris" : "Ajouter cette page aux favoris" }),
+    command("toggle-bookmark", {
+      label: tab?.isBookmarked
+        ? "Retirer cette page des favoris"
+        : "Ajouter cette page aux favoris",
+    }),
     separator,
     ...links("favorite", context.favorites, APP_MENU_BOOKMARKS),
     separator,
@@ -143,18 +302,33 @@ export function buildAppMenu(context: AppMenuContext): MenuNode[] {
     command("screenshot-visible"),
     command("screenshot-full"),
     command("screenshot-element"),
-    command("record-video", { label: context.recording ? "Arrêter l'enregistrement" : "Enregistrer une vidéo de l'onglet" }),
+    command("record-video", {
+      label: context.recording
+        ? "Arrêter l'enregistrement"
+        : "Enregistrer une vidéo de l'onglet",
+    }),
     separator,
-    command("toggle-reader", { label: tab?.reader ? "Quitter le mode lecture" : "Mode lecture" }),
-    command("toggle-mobile-site", { label: tab?.mobileSite ? "Version pour ordinateur" : "Version mobile" }),
-    // Boosts are edited from normal windows only (ADR-029).
-    ...(context.isPrivate ? [] : [command("open-boosts", { label: "Boost du site" })]),
+    command("toggle-reader", {
+      label: tab?.reader ? "Quitter le mode lecture" : "Mode lecture",
+    }),
+    command("toggle-mobile-site", {
+      label: tab?.mobileSite ? "Version pour ordinateur" : "Version mobile",
+    }),
     command("zap-elements"),
     separator,
+    command("open-task-manager"),
     command("view-source"),
     command("devtools"),
   ];
-  const help: MenuNode[] = [command("open-welcome"), command("keyboard-shortcuts"), command("about"), command("report-issue")];
+  const library: MenuNode[] = libraryMore(context.isPrivate).map((id) =>
+    command(id, id === "import-data" ? { label: "Importer des données…" } : {}),
+  );
+  const help: MenuNode[] = [
+    command("open-welcome"),
+    command("keyboard-shortcuts"),
+    command("about"),
+    command("report-issue"),
+  ];
 
   return withAvailability(
     tidy([
@@ -163,23 +337,63 @@ export function buildAppMenu(context: AppMenuContext): MenuNode[] {
       command("new-tab"),
       command("new-window"),
       command("new-private-window"),
+      ...(context.profiles
+        ? [profilesNode(context.profiles, context.isPrivate)]
+        : []),
       separator,
-      { kind: "submenu", id: "history", label: "Historique", icon: "history", children: tidy(history) },
-      { kind: "submenu", id: "bookmarks", label: "Favoris", icon: "star", children: tidy(bookmarks) },
+      {
+        kind: "submenu",
+        id: "history",
+        label: "Historique",
+        icon: "history",
+        children: tidy(history),
+      },
+      {
+        kind: "submenu",
+        id: "bookmarks",
+        label: "Favoris",
+        icon: "star",
+        children: tidy(bookmarks),
+      },
       separator,
       command("open-downloads"),
-      command("open-passwords"),
-      command("open-extensions", { label: "Extensions et thèmes" }),
+      ...LIBRARY_MAIN.map((id) =>
+        command(
+          id,
+          id === "open-extensions" ? { label: "Extensions et thèmes" } : {},
+        ),
+      ),
+      {
+        kind: "submenu",
+        id: "library",
+        label: "Bibliothèque",
+        icon: "library",
+        children: library,
+      },
       separator,
       command("print"),
       command("save-page"),
-      command("translate-page", { label: tab?.translated ? "Afficher l'original" : "Traduire la page" }),
+      command("translate-page", {
+        label: tab?.translated ? "Afficher l'original" : "Traduire la page",
+      }),
       command("find"),
       { kind: "zoom" },
       separator,
       command("open-settings"),
-      { kind: "submenu", id: "tools", label: "Plus d'outils", icon: "code", children: tidy(tools) },
-      { kind: "submenu", id: "help", label: "Aide", icon: "help", children: help },
+      {
+        kind: "submenu",
+        id: "tools",
+        label: "Plus d'outils",
+        icon: "code",
+        children: tidy(tools),
+      },
+      {
+        kind: "submenu",
+        id: "help",
+        label: "Aide",
+        icon: "help",
+        children: help,
+      },
       separator,
       command("quit"),
     ]),
@@ -210,11 +424,20 @@ export function buildSidebarMenu(context: SidebarMenuContext): MenuNode[] {
       command("new-folder"),
       separator,
       command("reload", { label: "Actualiser l'onglet sélectionné" }),
-      command("toggle-bookmark", { label: tab?.isBookmarked ? "Retirer l'onglet des favoris" : "Ajouter l'onglet aux favoris" }),
+      command("toggle-bookmark", {
+        label: tab?.isBookmarked
+          ? "Retirer l'onglet des favoris"
+          : "Ajouter l'onglet aux favoris",
+      }),
       command("select-all-tabs", { enabled: context.tabCount > 0 }),
       command("reopen-closed-tab", { enabled: context.canReopen }),
       separator,
-      command("toggle-sidebar-position", { label: context.sidebarPosition === "left" ? "Barre latérale à droite" : "Barre latérale à gauche" }),
+      command("toggle-sidebar-position", {
+        label:
+          context.sidebarPosition === "left"
+            ? "Barre latérale à droite"
+            : "Barre latérale à gauche",
+      }),
       // A private window has a single ephemeral space (ADR-014): nothing to theme.
       ...(context.isPrivate ? [] : [command("edit-space")]),
     ]),
@@ -238,12 +461,35 @@ export type SpaceUiAction = (typeof SPACE_UI_ACTIONS)[number];
 export function buildSpaceMenu(context: SpaceMenuContext): MenuNode[] {
   return [
     { kind: "action", id: "space-rename", label: "Renommer…", icon: "pencil" },
-    { kind: "action", id: "space-edit", label: "Icône et couleur…", icon: "palette" },
+    {
+      kind: "action",
+      id: "space-edit",
+      label: "Icône et couleur…",
+      icon: "palette",
+    },
     separator,
-    { kind: "action", id: "space-move-left", label: "Déplacer à gauche", icon: "back", enabled: context.index > 0 },
-    { kind: "action", id: "space-move-right", label: "Déplacer à droite", icon: "forward", enabled: context.index < context.count - 1 },
+    {
+      kind: "action",
+      id: "space-move-left",
+      label: "Déplacer à gauche",
+      icon: "back",
+      enabled: context.index > 0,
+    },
+    {
+      kind: "action",
+      id: "space-move-right",
+      label: "Déplacer à droite",
+      icon: "forward",
+      enabled: context.index < context.count - 1,
+    },
     separator,
-    { kind: "action", id: "space-delete", label: "Supprimer l'espace…", icon: "trash", enabled: context.count > 1 },
+    {
+      kind: "action",
+      id: "space-delete",
+      label: "Supprimer l'espace…",
+      icon: "trash",
+      enabled: context.count > 1,
+    },
     separator,
     command("new-space", { enabled: context.canCreate }),
   ];

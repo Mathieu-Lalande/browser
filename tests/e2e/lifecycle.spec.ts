@@ -84,6 +84,46 @@ test("a second profile has its own history", async ({ profile, server }) => {
   expect(readText(join(profile, "history.json"))).not.toContain("/work-page");
 });
 
+test("the profiles page keeps its rows inside the page column, and the app menu lists the profiles", async ({ profile }) => {
+  writeFileSync(join(profile, "profiles.json"), JSON.stringify({ profiles: [{ id: "default", name: "Personnel" }, { id: "work", name: "Travail" }], lastUsed: "default" }));
+  const app = await launch(profile);
+  try {
+    const chrome = await chromeOf(app);
+    for (const [width, height] of [
+      [1280, 800],
+      [800, 600],
+    ]) {
+      await app.evaluate(({ BrowserWindow }, [w, h]) => BrowserWindow.getAllWindows()[0].setContentSize(w, h), [width, height]);
+      await run(chrome, "open-profiles");
+      const page = chrome.getByTestId("profiles-page");
+      await expect(page.locator('[data-profile="work"]')).toBeVisible();
+      // Every row and card of the page stays inside the content box of its column (padding excluded).
+      const overflow = await page.evaluate((root) => {
+        const inner = root.firstElementChild!;
+        const box = inner.getBoundingClientRect();
+        const style = (globalThis as unknown as { getComputedStyle(element: unknown): { paddingLeft: string; paddingRight: string } }).getComputedStyle(inner);
+        const left = box.left + parseFloat(style.paddingLeft) - 0.5;
+        const right = box.right - parseFloat(style.paddingRight) + 0.5;
+        return [...inner.querySelectorAll(".card, .list-row, [data-row], [data-testid=backup] .body")]
+          .map((element) => ({ element, rect: element.getBoundingClientRect() }))
+          .filter(({ rect }) => rect.width && (rect.left < left || rect.right > right))
+          .map(({ element }) => element.className);
+      });
+      expect(overflow).toEqual([]);
+    }
+
+    await run(chrome, "app-menu");
+    const overlay = await overlayOf(app);
+    await overlay.locator('[data-node="profiles"]').click();
+    await expect(overlay.locator('[data-node="profiles"]')).toContainText("Profil : Personnel");
+    await expect(overlay.locator('[data-node="profile-open-work"]')).toHaveText(/Ouvrir Travail/);
+    await overlay.locator('[data-node="new-profile"]').click();
+    await expect(chrome.getByRole("form", { name: "Nouveau profil" })).toBeVisible();
+  } finally {
+    await app.close();
+  }
+});
+
 test("the task manager lists a tab, and ending it shows the crash page", async ({ app, chrome, server }) => {
   await visit(chrome, server.url("/victim"), "Page victim");
   await run(chrome, "open-task-manager");
