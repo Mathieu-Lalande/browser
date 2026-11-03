@@ -25,6 +25,14 @@ Windows, macOS et Linux, avec son application iPhone et Android.
   pastilles d'espace (renommer, réordonner, supprimer) ; sélection de plusieurs onglets (`Ctrl`+clic) avec barre
   d'actions ; rouvrir l'onglet fermé (`Ctrl+Maj+T`).
 
+**Premiers pas, diagnostic, performances** (ADR-043)
+- Visite guidée au premier lancement (`browser://welcome`, rouvrable depuis Aide) : thème, import du navigateur
+  détecté, navigateur par défaut, l'essentiel ; facultative et au clavier.
+- Rapports de plantage **désactivés par défaut** (Paramètres, Diagnostic) : gardés sur l'appareil, envoyés
+  seulement sur accord et si la version a un serveur (`POST /crash` du relais ou DSN Sentry à la compilation).
+- Programme bêta (canal Bêta) et « Signaler un problème » : formulaire GitHub prérempli (version, système).
+- `npm run bench` : démarrage, nouvel onglet et mémoire mesurés, publiés dans [`docs/perf/`](docs/perf/latest.md).
+
 **Navigateur principal** (ADR-039)
 - Navigateur par défaut (liens `http`/`https`, fichiers HTML et PDF) : réglage et proposition unique au premier
   lancement ; liens et fichiers venus du système ouverts dans la dernière fenêtre normale.
@@ -165,6 +173,7 @@ npx expo start     # scannez le QR code ; même Wi-Fi, ou `npx expo start --tunn
 | `npm run dist` | Paquets installables (electron-builder) dans `release/` |
 | `npm run dist:dir` | Application empaquetée non compressée (plus rapide, pour tester) |
 | `npm run dist:win` | Installateur NSIS et `.zip` Windows (x64 et arm64), à lancer sous Windows |
+| `npm run bench` | Mesures de performance (démarrage, nouvel onglet, mémoire) dans `docs/perf/` (ADR-043) |
 | `npm run release:version -- <version>` | Monte la version, commit et tag `v<version>` (puis `git push --follow-tags`) |
 
 Sous Linux sans affichage (CI) : `xvfb-run -a npm run test:e2e`. Test de fumée du paquet :

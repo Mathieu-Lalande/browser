@@ -28,6 +28,9 @@ synchronisation dans l'application, Browser ne contacte rien.
 | `TRUST_PROXY` | `0` | `1` derrière un proxy de confiance : la limite de requêtes utilise `X-Forwarded-For` |
 | `RATE_LIMIT_PER_MINUTE` | `300` | Requêtes par minute et par adresse |
 | `MAX_ACCOUNT_MB` | `64` | Quota par compte |
+| `CRASH_REPORTS` | `0` | `1` active `POST /crash` : reçoit les rapports de plantage de Browser (ADR-043, voir plus bas) |
+| `MAX_CRASH_MB` | `8` | Taille maximale d'un rapport de plantage |
+| `CRASHES_PER_HOUR` | `20` | Rapports de plantage par heure et par adresse |
 | `QUIET` | `0` | `1` coupe le journal (qui ne contient de toute façon ni identifiant, ni jeton, ni adresse IP) |
 
 Choisissez un code d'inscription long et aléatoire, par exemple :
@@ -169,3 +172,15 @@ Voir `src/server.ts` (et `src/shared/sync/protocol.ts` côté application) :
 `POST /v1/accounts`, `GET /v1/collections/:nom?since=<version>`, `POST /v1/collections/:nom`
 (écriture par lot, concurrence optimiste, 409 en cas de conflit), `DELETE /v1/account`.
 Authentification : `Authorization: Bearer <compte>.<jeton>`.
+
+## Rapports de plantage (facultatif, ADR-043)
+
+Avec `CRASH_REPORTS=1`, le relais accepte aussi `POST /crash` : le téléversement multipart de Crashpad
+(minidump + version et canal de Browser), sans authentification mais limité en taille (`MAX_CRASH_MB`), en débit
+(`CRASHES_PER_HOUR` par adresse) et en nombre (les 500 plus récents sont gardés). Chaque rapport est écrit tel quel
+dans `DATA_DIR/crashes/<date>-<id>.multipart` (`.gz` si Crashpad l'a compressé) ; la réponse est l'identifiant du
+rapport, en texte. Pour les analyser : `minidump_stackwalk` (Breakpad) avec les symboles de la version publiée.
+
+Côté application, l'adresse est fixée **à la compilation** : `MAIN_VITE_CRASH_ENDPOINT=https://relais.example.com/crash npm run dist`
+(ou un DSN Sentry, `https://<clé>@oXXX.ingest.sentry.io/<projet>`, converti en point d'envoi minidump). Sans cette
+variable, rien n'est jamais envoyé ; avec, seulement si l'utilisateur active « Envoyer les rapports de plantage ».

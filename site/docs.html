@@ -109,6 +109,7 @@
             <li><a href="#apparence">Apparence et thèmes</a></li>
             <li><a href="#raccourcis">Raccourcis clavier</a></li>
             <li><a href="#mises-a-jour">Mises à jour</a></li>
+            <li><a href="#diagnostic">Plantages et performances</a></li>
             <li><a href="#profils">Profils, sauvegarde, plantages</a></li>
             <li><a href="#synchronisation">Synchronisation</a></li>
             <li><a href="#depannage">Dépannage</a></li>
@@ -209,6 +210,13 @@
             <img src="/img/screens/start-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
               alt="Page d'accueil personnalisable : horloge, recherche, météo, calendrier, tâches, notes et sites fréquents" />
           </figure>
+          <p>
+            Au premier lancement, la <strong>visite guidée</strong> (<code>browser://welcome</code>) propose en cinq
+            étapes, toutes facultatives : un thème, l'import depuis le navigateur détecté sur l'ordinateur, Browser
+            comme navigateur par défaut, puis l'essentiel (barre universelle, espaces, aperçu des liens, mode compact).
+            Les flèches du clavier passent d'une étape à l'autre, <kbd>Échap</kbd> ou « Passer » la ferment. Elle ne
+            revient plus ensuite ; Aide, Visite guidée la rouvre.
+          </p>
           <p>La fenêtre de Browser se compose de trois zones :</p>
           <ul>
             <li><strong>La barre latérale</strong> (à gauche, ou à droite dans Paramètres, Disposition) : barre d'adresse, grille des favoris, onglets épinglés, dossiers et onglets de l'espace courant, et en bas les espaces. Masquez-la avec <kbd>Ctrl</kbd> <kbd>S</kbd> (<kbd>⌘</kbd> <kbd>S</kbd>).</li>
@@ -804,6 +812,50 @@
             <li>macOS : tant que l'app n'est pas signée par un certificat Developer ID, Browser affiche « Mise à jour manuelle requise » avec un lien vers la nouvelle version.</li>
           </ul>
           <p>Vos onglets, favoris et réglages sont conservés d'une version à l'autre.</p>
+          <p>
+            <strong>Programme bêta</strong> : le canal Bêta reçoit les nouveautés avant tout le monde, avec le même profil
+            et les mêmes formats de données ; revenir à Stable se fait au même endroit. Si quelque chose ne va pas,
+            Aide, <strong>Signaler un problème</strong> ouvre le formulaire GitHub prérempli avec la version et le
+            système (et rien d'autre).
+          </p>
+        </section>
+
+        <!-- Diagnostics and performance (ADR-043) -->
+        <section class="doc-section" id="diagnostic" aria-labelledby="t-diagnostic">
+          <h2 id="t-diagnostic"><i data-icon="gauge"></i>Plantages et performances</h2>
+          <p>
+            Paramètres, Diagnostic. Les rapports de plantage (minidumps) restent sur votre appareil et sont listés sous
+            « Derniers plantages » ; ils ne sont <strong>envoyés que si vous activez</strong> « Envoyer les rapports de
+            plantage » et que la version installée a un serveur de rapports. Un rapport contient l'état de la mémoire du
+            processus qui a planté, la version et le système : jamais votre historique, vos favoris ni vos mots de passe.
+            Les serveurs auto-hébergés peuvent les recevoir (<code>CRASH_REPORTS=1</code> sur le relais de synchronisation).
+          </p>
+          <!-- PERF:START (docs/perf/latest.md) -->
+          <p>
+            Mesures du 3 novembre 2026, Browser 0.4.0 (Electron 44), build de développement, conteneur Linux
+            d'intégration continue (Xeon 2,1 GHz, 4 cœurs, 16 Go, Xvfb), médianes de 5 démarrages à froid :
+          </p>
+          <table>
+            <thead><tr><th>Mesure</th><th>Médiane</th></tr></thead>
+            <tbody>
+              <tr><td>Lancement → premier rendu de l'interface</td><td>481 ms</td></tr>
+              <tr><td>Lancement → barre latérale prête</td><td>533 ms</td></tr>
+              <tr><td>Nouvel onglet → page d'accueil interactive</td><td>26,5 ms</td></tr>
+              <tr><td>Mémoire, 1 onglet</td><td>875 Mo</td></tr>
+              <tr><td>Mémoire, 10 onglets</td><td>1 904 Mo</td></tr>
+              <tr><td>Mémoire, 30 onglets</td><td>4 223 Mo</td></tr>
+              <tr><td>Mémoire, 30 onglets dont 29 en veille</td><td>939 Mo</td></tr>
+            </tbody>
+          </table>
+          <p class="muted">
+            Mémoire : somme du « working set » de tous les processus, qui sous Linux compte plusieurs fois la mémoire
+            partagée ; elle surestime l'empreinte réelle mais se compare d'une version à l'autre.
+          </p>
+          <!-- PERF:END -->
+          <p class="muted">
+            Mesures prises par <code>npm run bench</code> sur une machine Linux d'intégration continue : elles ne se
+            comparent qu'à d'autres navigateurs mesurés sur la même machine (<code>scripts/bench-compare.md</code>).
+          </p>
         </section>
 
         <!-- Profiles, backups, recovery (ADR-042) -->

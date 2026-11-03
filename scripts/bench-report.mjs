@@ -62,7 +62,9 @@ export function toMarkdown(result) {
   lines.push(
     "",
     `${result.runs} démarrages à froid, ${result.newTabRuns} nouveaux onglets ; pages locales servies par le script (aucun réseau).`,
-    "Mémoire : somme du « working set » de tous les processus (`app.getAppMetrics()`).",
+    "Mémoire : somme du « working set » de tous les processus (`app.getAppMetrics()`) ; sous Linux, chaque processus y compte",
+    "aussi les pages partagées (bibliothèques, mémoire GPU partagée) : la somme surestime l'empreinte réelle, mais reste",
+    "comparable d'une version à l'autre.",
     "Ces chiffres ne se comparent qu'avec d'autres navigateurs mesurés sur la même machine : voir `scripts/bench-compare.md`.",
     "",
   );

@@ -324,8 +324,8 @@ export function buildAppMenu(context: AppMenuContext): MenuNode[] {
     command(id, id === "import-data" ? { label: "Importer des données…" } : {}),
   );
   const help: MenuNode[] = [
-    command("open-welcome"),
     command("keyboard-shortcuts"),
+    command("open-welcome"),
     command("about"),
     command("report-issue"),
   ];

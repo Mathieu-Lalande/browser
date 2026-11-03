@@ -2101,3 +2101,56 @@ plusieurs usages (travail, personnel), montrer ce qui consomme, imprimer proprem
 des processus, options d'impression, codec et mauvaise phrase secrète), e2e `tests/e2e/lifecycle.spec.ts`
 (processus tué puis carte, profil isolé, tâche terminée puis page plantée, PDF écrit, aller-retour de sauvegarde).
 Crochets non empaquetés : `BROWSER_TEST_PRINT_PDF`, `BROWSER_TEST_BACKUP_EXPORT`, `BROWSER_TEST_BACKUP_IMPORT`.
+
+## ADR-043 — Premiers pas, rapports de plantage, programme bêta, mesures de performance
+
+**Contexte.** Un nouvel utilisateur doit trouver en une minute ce qui distingue Browser (thèmes, import, espaces,
+barre universelle) ; les plantages doivent pouvoir remonter sans trahir la promesse de confidentialité ; et les
+affirmations de rapidité doivent reposer sur des mesures reproductibles et publiées honnêtement.
+
+**Décision.**
+- **Visite guidée** `browser://welcome` (page interne, ADR-012) : cinq étapes (Bienvenue, thème, import,
+  navigateur par défaut, l'essentiel), chacune facultative ; points d'étape cliquables, flèches du clavier,
+  `Échap`/« Passer » termine ; transitions ≤ 160 ms (`--motion-base`), illustrations en boucle en HTML/CSS seulement
+  (aucune vidéo), figées sur leur image de repos quand les mouvements sont réduits (règle globale). Modèle pur
+  `src/shared/onboarding.ts` ; elle réutilise la galerie de thèmes (ADR-030), `ImportService` (« Importer depuis X »
+  importe tout ce que propose son premier profil, `browser://import` garde le détail) et `DefaultBrowserService`
+  (ADR-039) ; les raccourcis affichés passent par `effectiveAccelerator` (ADR-028).
+- **Une seule fois** : `settings.onboarding.completed` vaut `true` par défaut, si bien qu'un profil d'une version
+  antérieure (sans le champ) ne la voit jamais ; seul un profil **neuf** (aucun `settings.json`) part de
+  `freshProfileSettings()` (`false`). `index.ts` l'ouvre dans l'onglet vide de la première fenêtre normale, sauf si le
+  sélecteur de profils ou la reprise après plantage passent d'abord ; elle revient tant qu'elle n'est ni terminée ni
+  passée. Aide, « Visite guidée » (commande `open-welcome`) la rouvre. Les e2e la coupent par défaut
+  (`BROWSER_TEST_SKIP_WELCOME`, crochet non empaqueté).
+- **Rapports de plantage, opt-in.** `CrashReportService` démarre Crashpad une fois (base par profil,
+  `crashDumps = <profil>/Crashpad`) : les minidumps **restent sur l'appareil** et sont listés (Paramètres, Diagnostic,
+  « Derniers plantages », effaçables). L'envoi (`uploadToServer`, appliqué à chaud par `setUploadToServer`) n'a lieu que si
+  l'utilisateur coche « Envoyer les rapports de plantage » (désactivé par défaut) **et** si la version a un point
+  d'envoi fixé à la compilation (`MAIN_VITE_CRASH_ENDPOINT` : URL https, ou DSN Sentry converti par
+  `parseCrashEndpoint` en point minidump). Annotations : version et canal seulement. Texte de confidentialité dans la
+  section. Serveur auto-hébergé : route `POST /crash` du relais (`CRASH_REPORTS=1`), sans authentification mais
+  multipart obligatoire, 8 Mo, 20 rapports/h par adresse, 500 gardés ; stockés tels quels. Crochet e2e
+  `BROWSER_TEST_CRASH_ENDPOINT` ; options de démarrage exposées en non empaqueté (`globalThis.__browserCrashReports`).
+- **Programme bêta.** Le canal existant (ADR-030) est expliqué dans Mises à jour ; « Signaler un problème » ouvre
+  `.github/ISSUE_TEMPLATE/bug.yml` prérempli par `issueUrl` avec la version (canal, Electron) et le système
+  (`os.release()`, architecture) : aucune URL, aucun onglet, aucun compte.
+- **Mesures.** `npm run bench` (`scripts/bench.mjs`, Playwright + Electron, build dev ou `--executable` empaqueté) :
+  démarrage à froid jusqu'au premier rendu de l'interface (FCP de l'interface rapporté au début du processus
+  principal) et jusqu'à la barre latérale, nouvel onglet jusqu'à la page d'accueil dessinée (mesuré dans
+  l'interface), mémoire (`app.getAppMetrics()`, somme des working sets) avec 1/10/30 onglets sur des pages locales
+  servies par le script, puis après « Mettre les autres onglets en veille ». Profils neufs (non « fresh » pour la
+  visite), Widevine désactivé. Sortie `docs/perf/latest.json` + `latest.md` (environnement étiqueté), formatage pur
+  `scripts/bench-report.mjs` (testé). Publication sur le site avec la mention « mesuré sur Linux CI » ; les
+  comparaisons avec d'autres navigateurs se font sur la même machine (`scripts/bench-compare.md`, `--serve`).
+- **Gains peu coûteux trouvés en mesurant**, comportement identique : chaque page interne est un chunk chargé à la
+  première ouverture (`InternalPage.svelte`, composants gardés ensuite) — le bundle de l'interface lu avant le premier
+  rendu passe de 727 Ko à 404 Ko ; les panneaux overlay rares (capture, traduction, note, impression) sont chargés à
+  la demande, l'overlay préchauffé après la première fenêtre analysant moins pendant le chargement de la première
+  page. Côté main, ce qui n'est pas critique attendait déjà la première fenêtre (synchro, mises à jour à +30 s,
+  archivage, mise en veille par minuteries) ; Crashpad démarre juste après la construction des services.
+
+**Conséquences.** Tests : unitaires (étapes et ouverture de la visite, profils anciens vs neufs, point d'envoi et
+DSN, options du rapporteur, service et liste des dumps, lien de signalement, formatage du banc), serveur (`/crash`
+coupé par défaut, multipart, taille, débit, rotation), e2e `tests/e2e/onboarding.spec.ts` (parcours complet avec
+import, souvenir au redémarrage, Échap, opt-in reflété dans Crashpad à chaud et au démarrage suivant, sans point
+d'envoi rien ne part, lien prérempli). Un premier chargement de page interne attend son chunk (local, quelques ms).

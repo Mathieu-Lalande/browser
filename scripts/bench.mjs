@@ -6,6 +6,7 @@
 //   node scripts/bench.mjs --runs 5        more cold starts
 //   node scripts/bench.mjs --executable release/linux-unpacked/browser --label "Mon portable"
 //   node scripts/bench.mjs --no-write      print only
+//   node scripts/bench.mjs --serve 8080    only serve the test pages (comparisons, bench-compare.md)
 //
 // On Linux without a display, run it under `xvfb-run -a`. As root (containers), Chromium needs
 // `--no-sandbox`: added automatically.
@@ -31,7 +32,7 @@ const flag = (name) => process.argv.includes(`--${name}`);
 const RUNS = Number(option("runs", "3"));
 const NEW_TAB_RUNS = Number(option("new-tab-runs", "8"));
 const EXECUTABLE = option("executable", process.env.BROWSER_PACKAGED || "");
-const LABEL = option("label", process.env.CI ? "CI Linux (GitHub Actions)" : "machine locale");
+const LABEL = option("label", process.env.BENCH_LABEL || (process.env.CI ? "CI Linux (GitHub Actions)" : "machine locale"));
 const OUT = resolve(ROOT, option("out", "docs/perf"));
 
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
@@ -51,13 +52,13 @@ function fixturePage(n) {
   );
 }
 
-function startServer() {
+function startServer(port = 0) {
   const server = createServer((req, res) => {
     const n = Number(/\/page\/(\d+)/.exec(req.url ?? "")?.[1] ?? 0);
     res.setHeader("content-type", "text/html; charset=utf-8");
     res.end(fixturePage(n));
   });
-  return new Promise((done) => server.listen(0, "127.0.0.1", () => done({ server, origin: `http://127.0.0.1:${server.address().port}` })));
+  return new Promise((done) => server.listen(port, "127.0.0.1", () => done({ server, origin: `http://127.0.0.1:${server.address().port}` })));
 }
 
 /** A profile that is not fresh (no welcome page, ADR-043). */
@@ -119,6 +120,7 @@ async function newTab(chrome) {
         const start = performance.now();
         globalThis.browser.commands.run("new-tab");
         const check = () => {
+          if (performance.now() - start > 5000) return done(Number.NaN);
           if (count() > before && document.querySelector(".start")) requestAnimationFrame(() => done(performance.now() - start));
           else requestAnimationFrame(check);
         };
@@ -147,19 +149,29 @@ async function memoryRun(origin) {
   const app = await launch(profile);
   try {
     const chrome = await chromeOf(app);
-    const newTabs = [];
-    for (let i = 0; i < NEW_TAB_RUNS; i++) newTabs.push(await newTab(chrome));
-    // Back to one tab: close the new ones.
+    // "Nouvel onglet" reuses an empty start page: measure it from a web page, closing each new tab.
+    await chrome.evaluate((url) => globalThis.browser.tabs.create(url), `${origin}/page/999`);
+    await waitLoaded(chrome, 1);
     await chrome.evaluate(async () => {
       const state = await globalThis.browser.getState();
-      for (const tab of state.tabs.slice(1)) globalThis.browser.tabs.close(tab.id);
+      for (const tab of state.tabs) if (!tab.url.startsWith("http")) globalThis.browser.tabs.close(tab.id);
     });
-    await sleep(300);
+    await sleep(500);
+    const newTabs = [];
+    for (let i = 0; i < NEW_TAB_RUNS; i++) {
+      newTabs.push(await newTab(chrome));
+      await chrome.evaluate(async () => {
+        const state = await globalThis.browser.getState();
+        if (state.activeTabId) globalThis.browser.tabs.close(state.activeTabId);
+      });
+      await sleep(300);
+    }
+    // Back to one web tab (/page/999 counts as the first of the memory runs' pages).
     const open = async (from, to) => {
       for (let i = from; i < to; i++) await chrome.evaluate((url) => globalThis.browser.tabs.create(url), `${origin}/page/${i}`);
       await waitLoaded(chrome, to);
     };
-    await open(0, 1);
+    await open(1, 1);
     const one = await memory(app);
     await open(1, 10);
     const ten = await memory(app);
@@ -185,6 +197,12 @@ function git(command) {
 }
 
 async function main() {
+  // `--serve 8080`: only serve the test pages, for measuring other browsers (scripts/bench-compare.md).
+  if (option("serve")) {
+    const { origin } = await startServer(Number(option("serve")));
+    process.stdout.write(`Pages de test : ${origin}/page/0 … ${origin}/page/29 (Ctrl+C pour arrêter)\n`);
+    return;
+  }
   if (!EXECUTABLE && !flag("no-build")) execSync("npm run build", { cwd: ROOT, stdio: "inherit" });
   const { server, origin } = await startServer();
   try {

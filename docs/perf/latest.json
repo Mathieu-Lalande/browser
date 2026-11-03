@@ -1,0 +1,103 @@
+{
+  "date": "2026-11-03T22:39:27.354Z",
+  "runs": 5,
+  "newTabRuns": 8,
+  "environment": {
+    "label": "Linux CI (conteneur)",
+    "os": "linux 6.18.44-fc-v230",
+    "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "cores": 4,
+    "memoryGb": 16,
+    "display": "Xvfb",
+    "build": "dev (out/, non empaquetée)",
+    "appVersion": "0.4.0",
+    "electron": "44.9.3",
+    "node": "v22.22.0",
+    "commit": "885d29d",
+    "notes": "Widevine désactivé (--disable-component-update), listes de blocage de test (dev), profil neuf à chaque démarrage."
+  },
+  "metrics": {
+    "coldStartFirstPaintMs": {
+      "median": 481,
+      "min": 467,
+      "max": 528,
+      "runs": 5
+    },
+    "coldStartReadyMs": {
+      "median": 533,
+      "min": 500,
+      "max": 572,
+      "runs": 5
+    },
+    "newTabMs": {
+      "median": 26.5,
+      "min": 24.7,
+      "max": 29.4,
+      "runs": 8
+    },
+    "memory1TabMb": {
+      "median": 874.8,
+      "min": 874.8,
+      "max": 874.8,
+      "runs": 1
+    },
+    "memory10TabsMb": {
+      "median": 1904.3,
+      "min": 1904.3,
+      "max": 1904.3,
+      "runs": 1
+    },
+    "memory30TabsMb": {
+      "median": 4223.2,
+      "min": 4223.2,
+      "max": 4223.2,
+      "runs": 1
+    },
+    "memoryAfterSleepMb": {
+      "median": 939.4,
+      "min": 939.4,
+      "max": 939.4,
+      "runs": 1
+    }
+  },
+  "processes": {
+    "tabs1": 6,
+    "tabs10": 15,
+    "tabs30": 35,
+    "afterSleep": 6
+  },
+  "raw": {
+    "starts": [
+      {
+        "firstPaint": 528.02001953125,
+        "ready": 572.1201171875
+      },
+      {
+        "firstPaint": 477.558837890625,
+        "ready": 519.2587890625
+      },
+      {
+        "firstPaint": 480.732666015625,
+        "ready": 533.4326171875
+      },
+      {
+        "firstPaint": 503.939453125,
+        "ready": 537.53955078125
+      },
+      {
+        "firstPaint": 466.841064453125,
+        "ready": 500.341064453125
+      }
+    ],
+    "newTabs": [
+      29.399999999906868,
+      25.699999999720603,
+      24.700000000186265,
+      26.5,
+      24.899999999906868,
+      26.5,
+      26.800000000279397,
+      27.700000000186265
+    ]
+  }
+}

@@ -1484,3 +1484,51 @@ html:not(.js) .story-shot:first-child {
     transform: none !important;
   }
 }
+
+/* ---------- Performance strip (ADR-043: docs/perf, measured on CI Linux) ---------- */
+
+.perf {
+  padding: 8px 0 28px;
+}
+.perf-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.perf-grid li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.perf-grid strong {
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.perf-grid span {
+  color: var(--text-muted);
+  font-size: 0.86rem;
+}
+.perf-note {
+  margin-top: 10px;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+.perf-note a {
+  color: var(--accent-text);
+}
+.perf .visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
