@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MAX_STORED_FAVICON_LENGTH } from "./favicon";
-import { History, MAX_HISTORY_URL_LENGTH, REVISIT_MS } from "./history";
+import { clearRangeStart, groupByDay, History, MAX_HISTORY_URL_LENGTH, REVISIT_MS } from "./history";
 
 const DAY = 24 * 60 * 60 * 1000;
 const NOW = Date.UTC(2026, 5, 1);
@@ -140,5 +140,64 @@ describe("History", () => {
     expect(history.recordVisit(long, NOW)).toBe(false);
     expect(history.recordVisit(long.slice(0, MAX_HISTORY_URL_LENGTH), NOW)).toBe(true);
     expect(History.parse([{ url: long, lastVisit: NOW }])).toEqual([]);
+  });
+});
+
+describe("history page (ADR-039)", () => {
+  const filled = () => {
+    const history = new History();
+    for (let i = 0; i < 5; i++) history.recordVisit(`https://site${i}.example/`, NOW - i * DAY / 2, { title: `Site ${i}` });
+    history.recordVisit("https://same.example/b", NOW);
+    history.recordVisit("https://same.example/a", NOW);
+    return history;
+  };
+
+  it("pages most recent first, ties by URL, without skipping or repeating", () => {
+    const history = filled();
+    const first = history.page({ limit: 3 });
+    expect(first.entries.map((entry) => entry.url)).toEqual(["https://same.example/a", "https://same.example/b", "https://site0.example/"]);
+    const second = history.page({ limit: 3, cursor: first.next });
+    const third = history.page({ limit: 3, cursor: second.next });
+    expect([...second.entries, ...third.entries].map((entry) => entry.url)).toEqual(["https://site1.example/", "https://site2.example/", "https://site3.example/", "https://site4.example/"]);
+    expect(third.next).toBeNull();
+  });
+
+  it("searches every word in title and URL, accents ignored", () => {
+    const history = filled();
+    history.updatePage("https://site2.example/", { title: "Crème brûlée" });
+    expect(history.page({ query: "creme site2", limit: 10 }).entries.map((entry) => entry.url)).toEqual(["https://site2.example/"]);
+    expect(history.page({ query: "nothing", limit: 10 }).entries).toEqual([]);
+  });
+
+  it("removes a selection or a time range", () => {
+    const history = filled();
+    expect(history.removeMany(["https://same.example/a", "https://unknown.example/"])).toBe(1);
+    expect(history.removeSince(NOW - DAY / 2)).toBe(3);
+    expect(history.size).toBe(3);
+  });
+
+  it("merges imported visits, keeping the newest visit and known titles", () => {
+    const history = new History();
+    history.recordVisit("https://a.example/", NOW, { title: "Mine" });
+    const added = history.importEntries([
+      { url: "https://a.example/", title: "Theirs", visitCount: 9, lastVisit: NOW - DAY },
+      { url: "https://b.example/", title: "B", visitCount: 2, lastVisit: NOW - DAY },
+      { url: "javascript:alert(1)", title: "x", visitCount: 1, lastVisit: NOW },
+    ]);
+    expect(added).toBe(1);
+    expect(history.get("https://a.example/")).toMatchObject({ title: "Mine", visitCount: 9, lastVisit: NOW });
+    expect(history.get("https://b.example/")).toMatchObject({ title: "B", visitCount: 2 });
+  });
+
+  it("computes clear ranges and day groups", () => {
+    expect(clearRangeStart("hour", NOW)).toBe(NOW - 3_600_000);
+    expect(clearRangeStart("week", NOW)).toBe(NOW - 7 * DAY);
+    expect(clearRangeStart("all", NOW)).toBe(0);
+    const today = clearRangeStart("today", NOW);
+    expect(new Date(today).getHours()).toBe(0);
+    expect(NOW - today).toBeLessThan(DAY);
+    const groups = groupByDay(filled().page({ limit: 10 }).entries);
+    expect(groups.map((group) => group.entries.length).reduce((a, b) => a + b)).toBe(7);
+    expect(new Set(groups.map((group) => group.day)).size).toBe(groups.length);
   });
 });

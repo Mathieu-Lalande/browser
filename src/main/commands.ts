@@ -64,7 +64,7 @@ const RUNNERS: Record<CommandId, Runner> = {
     profile().history.clear();
     profile().saveHistory();
   },
-  // Replaces another floating UI (the app menu's "Tout l'historique…"), closes itself.
+  // Replaces another floating UI (e.g. the app menu), closes itself.
   "command-palette": (c) => (c.overlay.shown === "palette" ? c.overlay.close(true) : c.overlay.open({ kind: "palette" })),
   "open-settings": (c) => c.openSettings(),
   "toggle-zen": () => BrowserController.toggleZenMode(),
@@ -99,6 +99,8 @@ const RUNNERS: Record<CommandId, Runner> = {
   "toggle-favorite": onActiveTab(toggleFavorite),
   "new-folder": (c) => void c.tabs.createFolder(),
   "open-archive": (c) => c.openArchive(),
+  "open-history": (c) => c.openInternal("history"),
+  "import-data": (c) => c.openInternal("import"),
   "open-extensions": (c) => c.openExtensions(),
   "open-passwords": (c) => c.openPasswords(),
   "toggle-reader": onActiveTab((c, id) => void toggleReader(c, id)),

@@ -1,5 +1,5 @@
 import { app, session, shell, type Session, type WebContents } from "electron";
-import { isNavigableUrl, isPageOpenableUrl } from "@shared/url";
+import { isLocalFileUrl, isNavigableUrl, isPageOpenableUrl } from "@shared/url";
 import { UserActivation, isActivatingInput, isPeekGesture } from "./activation";
 import { appServices } from "./app-services-ref";
 import type { SessionOptions } from "./services";
@@ -82,6 +82,8 @@ export function hardenWebContents(contents: WebContents, hooks: TabHooks): void 
 
   contents.on("will-navigate", (event, url) => {
     if (isNavigableUrl(url)) return;
+    // A local file the OS handed over (ADR-039) may link to its neighbours, never a web page to a file.
+    if (isLocalFileUrl(url) && isLocalFileUrl(contents.getURL())) return;
     event.preventDefault();
     if (isExternalUrl(url) && tab.activation.consumeExternal(Date.now())) void shell.openExternal(url);
   });

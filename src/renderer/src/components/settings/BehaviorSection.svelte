@@ -3,6 +3,7 @@
   import { api } from "../../lib/browser.svelte";
   import { settings } from "../../lib/settings.svelte";
   import Button from "../ui/Button.svelte";
+  import DefaultBrowserRow from "./DefaultBrowserRow.svelte";
   import Row from "../ui/Row.svelte";
   import Segmented from "../ui/Segmented.svelte";
   import Toggle from "../ui/Toggle.svelte";
@@ -13,6 +14,7 @@
   const update = (patch: SettingsPatch) => settings.update(patch);
 </script>
 
+<DefaultBrowserRow />
 <Row anchor="restore-session" label="Restaurer la session au démarrage" hint="Rouvre les onglets de la dernière fois (chargés à la demande).">
   <Toggle
     label="Restaurer la session au démarrage"

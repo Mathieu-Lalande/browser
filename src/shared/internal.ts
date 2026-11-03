@@ -12,6 +12,8 @@ export const INTERNAL_PAGES = {
   passwords: { title: "Mots de passe" },
   boosts: { title: "Boosts" },
   notes: { title: "Notes et surlignages" },
+  history: { title: "Historique" },
+  import: { title: "Importer des données" },
 } as const;
 
 export type InternalPage = keyof typeof INTERNAL_PAGES;

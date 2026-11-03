@@ -9,6 +9,7 @@ import { archiveHandlers, favoriteHandlers, folderHandlers, spaceHandlers } from
 import { passwordHandlers } from "./passwords";
 import { boostHandlers, captureHandlers } from "./page";
 import { historyHandlers, settingsHandlers, weatherHandlers } from "./profile";
+import { defaultBrowserHandlers, importHandlers } from "./import";
 import { registerHandlers, type ChannelName, type Entry } from "./registry";
 import { startSyncBroadcast, syncHandlers, themeHandlers, updateHandlers } from "./services";
 import { extensionHandlers, siteInfoHandlers } from "./site";
@@ -36,7 +37,8 @@ type EventChannel = (typeof Channels)[
   | "peekState"
   | "mediaChanged"
   | "pageSwipeState"
-  | "annotationsChanged"];
+  | "annotationsChanged"
+  | "importProgress"];
 
 /** Every channel the UI sends or invokes: the compiler checks each one has exactly one handler. */
 type RequestChannel = Exclude<ChannelName, EventChannel>;
@@ -63,6 +65,8 @@ const handlers = {
   ...mediaHandlers,
   ...translateHandlers,
   ...annotationHandlers,
+  ...defaultBrowserHandlers,
+  ...importHandlers,
 } satisfies Record<RequestChannel, Entry> & { [C in EventChannel]?: never };
 
 export function registerIpc(): void {

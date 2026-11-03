@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
 import type { DownloadsChange } from "@shared/downloads";
 import { Channels, type BrowserApi } from "@shared/ipc";
+import type { ImportProgress } from "@shared/import/types";
 import type { MediaSource } from "@shared/media";
 import type { PeekState } from "@shared/peek";
 import type { Settings } from "@shared/settings";
@@ -158,6 +159,19 @@ const api: BrowserApi = {
     search: (query, limit) => ipcRenderer.invoke(Channels.historySearch, query, limit),
     topSites: (limit) => ipcRenderer.invoke(Channels.historyTopSites, limit),
     clear: () => ipcRenderer.invoke(Channels.historyClear),
+    page: (query, cursor) => ipcRenderer.invoke(Channels.historyPage, query, cursor),
+    remove: (urls) => ipcRenderer.invoke(Channels.historyRemove, urls),
+    clearRange: (range) => ipcRenderer.invoke(Channels.historyClearRange, range),
+  },
+  defaultBrowser: {
+    status: () => ipcRenderer.invoke(Channels.defaultBrowserStatus),
+    makeDefault: () => ipcRenderer.invoke(Channels.defaultBrowserSet),
+  },
+  import: {
+    sources: () => ipcRenderer.invoke(Channels.importSources),
+    run: (profileId, items) => ipcRenderer.invoke(Channels.importRun, profileId, items),
+    passwordsCsv: () => ipcRenderer.invoke(Channels.importPasswords),
+    onProgress: (listener) => subscribe<ImportProgress>(Channels.importProgress, listener),
   },
   bookmarks: {
     list: () => ipcRenderer.invoke(Channels.bookmarksList),

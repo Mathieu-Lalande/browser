@@ -70,6 +70,20 @@ export class HistoryProvider implements Provider {
   query(text: string, context: QueryContext): Suggestion[] {
     const skip = new Set([...openUrls(context), ...context.favorites.map((page) => page.url), ...context.bookmarks.map((page) => page.url)]);
     const entries = context.history.filter((entry) => !skip.has(entry.url) && searchQueryOf(entry.url, context.engine) === null);
+    // The @h scope always ends with the whole history page (ADR-039).
+    const all =
+      context.scope === "history"
+        ? matchedRow(
+            text,
+            "history",
+            { key: "history:all", title: "Tout l'historique", detail: "browser://history", icon: "history", verb: "Ouvrir", action: { type: "open", url: "browser://history" } },
+            { boost: -1, keepUnmatched: true },
+          )
+        : null;
+    return present([all]).concat(this.rows(text, entries));
+  }
+
+  private rows(text: string, entries: readonly QueryContext["history"][number][]): Suggestion[] {
     return present(
       entries.map((entry, index) =>
         matchedRow(

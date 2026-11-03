@@ -115,6 +115,12 @@
   export, collection de synchro `annotations` facultative via `CollectionAdapter.enabled`), annotateur `ANNOTATOR_FACTORY`
   (chaîne ES2018) en monde isolé 1013, `PageAnnotator` par fenêtre (`src/main/annotations/`, carnet en mémoire en fenêtre
   privée), popover overlay `annotation`, panneau `NotesPanel`, `browser://notes`, `@n` ; mobile `mobile/src/lib/annotations.ts`.
+- Navigateur principal (ADR-039) : navigateur par défaut `src/main/default-browser/` (`DefaultBrowserService`, `LaunchRouter` :
+  liens/fichiers du système → `launchUrl` (`isPageOpenableUrl` ou fichier associé existant) → dernière fenêtre normale ;
+  `file://` seulement via `TabManager.navigate(…, { localFile })`), registre Windows dans `build/installer.nsh` ;
+  lecteur PDF (`plugins: true`) ; `browser://history` (`History.page/removeMany/removeSince`, jamais en privé) ;
+  import `src/shared/import/` (parseurs purs) + `src/main/import/` (`ImportService`, SQLite via `node:sqlite` sur une copie,
+  crochet `BROWSER_TEST_IMPORT_DIR`), `browser://import`, mots de passe par CSV seulement.
 - Aperçu des onglets au survol et thème dynamique (ADR-038) : purs `src/shared/tab-preview.ts` (`ThumbnailCache`, `HoverIntent`,
   géométrie) et `src/shared/site-color.ts` ; main `src/main/tab-preview.ts` (captures en mémoire, overlay passif `tab-preview`
   limité à la carte par `OverlayRequest.region`), action `use:tabPreview`, accent animé `lib/dynamic-accent.ts` via `accentVariables`.

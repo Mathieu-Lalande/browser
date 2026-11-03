@@ -5,6 +5,7 @@ import { PRIVATE_SPACE, privateSettings } from "@shared/private";
 import { pageRadius, searchEngineOf, type Settings } from "@shared/settings";
 import type { Bounds, BrowserState, UiCommand } from "@shared/types";
 import { matchesFavorite } from "@shared/favorites";
+import { isLocalFileUrl } from "@shared/url";
 import { uiUrl } from "./app-protocol";
 import { downloadViewerOf } from "./downloads";
 import type { DownloadViewer } from "./downloads/list";
@@ -221,6 +222,7 @@ export class BrowserController {
     this.frame.onMaximizedChange((maximized) => this.bridge.toChrome(Channels.windowMaximized, maximized));
     // Pre-warm the overlay once the window is up, so the first Ctrl+K opens instantly.
     this.frame.showWhenReady(() => this.overlay.warm());
+    this.window.on("focus", () => windows.focused(chromeId));
     this.window.on("closed", () => this.closed(chromeId));
   }
 
@@ -275,6 +277,28 @@ export class BrowserController {
   /** Shows `browser://passwords` (ADR-025). */
   openPasswords(): void {
     this.openInternal("passwords");
+  }
+
+  /**
+   * Shows a page handed over by the OS (ADR-039): a web page, or a local file (already checked by
+   * `launchUrl`), in the space's empty start-page tab if there is one, else a new tab.
+   */
+  openUrl(url: string): void {
+    const localFile = isLocalFileUrl(url);
+    const empty = this.emptyTab();
+    if (empty) {
+      this.tabs.navigate(empty, url, { localFile });
+      this.tabs.activate(empty);
+    } else {
+      this.tabs.create(url, { localFile });
+    }
+  }
+
+  /** Brings the window to the front (restored if minimized). */
+  focus(): void {
+    if (this.window.isMinimized()) this.window.restore();
+    this.window.show();
+    this.window.focus();
   }
 
   /** Toggles the bookmark of the active tab's page, then refreshes `isBookmarked` everywhere. */
@@ -383,6 +407,11 @@ export class BrowserController {
     fromChrome: (contents) => BrowserController.fromChrome(contents),
     refreshAll: () => BrowserController.refreshAll(),
   };
+
+  /** The normal (not private) window used last: where links from other apps open (ADR-039). */
+  static lastNormal(): BrowserController | undefined {
+    return windows.lastFocused((controller) => !controller.isPrivate && !controller.window.isDestroyed());
+  }
 
   static focused(): BrowserController | undefined {
     const window = BrowserWindow.getFocusedWindow();

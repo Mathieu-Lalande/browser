@@ -171,6 +171,8 @@
   import Highlighter from "@lucide/svelte/icons/highlighter";
   import NotebookPen from "@lucide/svelte/icons/notebook-pen";
   import Notebook from "@lucide/svelte/icons/notebook";
+  import Import from "@lucide/svelte/icons/import";
+  import FileSpreadsheet from "@lucide/svelte/icons/file-spreadsheet";
 
   type LucideIcon = Component<Record<string, unknown>>;
 
@@ -179,6 +181,9 @@
     ruler: Ruler,
     binary: Binary,
     history: History,
+    import: Import,
+    "badge-check": BadgeCheck,
+    "file-spreadsheet": FileSpreadsheet,
     "at-sign": AtSign,
     "app-window": AppWindow,
     back: ArrowLeft,

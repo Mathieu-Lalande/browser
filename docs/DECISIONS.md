@@ -1843,3 +1843,86 @@ l'interface sans jamais sacrifier la lisibilité. La barre latérale ne peut pas
 
 **Conséquences.** Un onglet en arrière-plan jamais affiché depuis son chargement n'a pas de miniature. Une page
 peut choisir sa couleur : elle ne change que l'accent, toujours ramené à un contraste lisible.
+
+## ADR-039 — Navigateur principal : navigateur par défaut, lecteur PDF, historique, import
+
+**Contexte.** Pour remplacer le navigateur de tous les jours, il manquait quatre choses : recevoir les liens et
+fichiers du système, afficher les PDF, retrouver et effacer son historique, et reprendre ses données d'un autre
+navigateur. Chacune touche au modèle de sécurité (ADR-003, ADR-018) : rien de ce qui arrive de l'extérieur ne
+doit ouvrir plus qu'une page ne le peut.
+
+**Navigateur par défaut.**
+- Déclaration : `build.protocols` (`http`, `https`) et `build.fileAssociations` (`.html .htm .xhtml .pdf`,
+  rôle *Viewer*, rang *Alternate*) d'electron-builder, d'où `CFBundleURLTypes`/`CFBundleDocumentTypes` sous macOS ;
+  `linux.mimeTypes` (`x-scheme-handler/http(s)`, `text/html`, `application/pdf`) dans le `.desktop`. Windows 10/11
+  ne liste dans « Applications par défaut » qu'un client `StartMenuInternet` avec `Capabilities` et une entrée
+  `RegisteredApplications` : écrits par `customInstall` de `build/installer.nsh` (ProgIds `BrowserURL`,
+  `BrowserHTML`, `BrowserPDF`, `HKCU` ou `HKLM` selon le mode d'installation), retirés à la désinstallation (pas
+  lors d'une mise à jour).
+- `DefaultBrowserService` (`src/main/default-browser/service.ts`, port `DefaultClientPort` testable) : état
+  « par défaut / pas par défaut / indisponible ». Une exécution non empaquetée ne s'enregistre jamais (elle
+  détournerait les liens du développeur). Windows : aucune application ne peut se déclarer par défaut, le
+  bouton ouvre `ms-settings:defaultapps?registeredAppUser=Browser` et l'état lit le choix réel de l'utilisateur
+  (`app.getApplicationNameForProtocol`, la clé que vérifie `isDefaultProtocolClient` étant écrite par notre
+  installateur) ; macOS et Linux : `setAsDefaultProtocolClient` (le système confirme sous macOS).
+- Interface : ligne « Navigateur par défaut » (Paramètres, Comportement, `DefaultBrowserRow`) et carte unique sur
+  la page d'accueil (`DefaultBrowserPrompt`), effacée par l'une ou l'autre réponse
+  (`behavior.defaultBrowserPromptDismissed`), jamais en fenêtre privée ni quand l'état est « indisponible ».
+- Réception (`src/main/default-browser/launch.ts`) : ligne de commande du premier lancement et de
+  `second-instance` (verrou d'instance unique), `open-url`/`open-file` de macOS (écoutés avant `ready`).
+  `launchUrl` n'accepte qu'une page web selon **`isPageOpenableUrl`** (la règle des liens ouverts par une page) ou
+  un **fichier existant d'un type associé** (converti en `file://`) ; tout le reste (`javascript:`, `data:`,
+  `browser://`, autres schémas, dossiers, autres fichiers) est ignoré, 20 au plus par lancement. `LaunchRouter`
+  met en attente jusqu'à la création des fenêtres puis ouvre dans **la dernière fenêtre normale ayant eu le
+  focus** (`WindowRegistry.lastFocused`), une nouvelle fenêtre si seules des fenêtres privées sont ouvertes ;
+  l'onglet de page d'accueil vide est réutilisé.
+- `file://` : `normalizeInput` continue de chercher un `file:` tapé, et les pages ne peuvent toujours pas y
+  naviguer. Seul main charge un `file://` (`TabManager.navigate(…, { localFile: true })`) ; une page locale peut
+  suivre un lien vers un autre fichier local (`will-navigate`), jamais une page web.
+
+**Lecteur PDF.** `plugins: true` dans les `webPreferences` des onglets : le seul « plugin » d'Electron est le
+lecteur PDF de Chromium, une extension interne (`chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai`) dans un
+cadre hors processus, bac à sable conservé (`sandbox`, `contextIsolation` inchangés), pour `http(s)` comme pour
+`file://`. Une réponse `Content-Disposition: attachment` reste un téléchargement (ADR-013). L'aperçu des liens
+(ADR-027) garde `plugins` désactivé : un PDF y est proposé au téléchargement, comme avant. Le mode lecture ne
+trouve pas d'article dans un PDF et le dit ; les captures (ADR-031) prennent l'image composée, PDF compris.
+
+**Historique (`browser://history`).** Page interne (ADR-012) `HistoryPage.svelte` : entrées groupées par jour
+(`groupByDay`), recherche (tous les mots, accents ignorés), pages de 100 servies par main (`History.page`, curseur
+`{lastVisit, url}` : ordre total, ni saut ni doublon), défilement infini, suppression d'une page ou d'une
+sélection (`history:remove`), « Effacer l'historique » sur une période (`clearRangeStart` : dernière heure, depuis
+minuit local, 7 jours, tout ; `history:clear-range`). Commande `open-history` (`Ctrl+H`, `⌘Y` sous macOS où
+`⌘H` masque l'application), menu « … » (Tout l'historique), ligne « Tout l'historique » à la fin de `@h` dans la
+barre universelle. Les trois canaux sont refusés aux fenêtres privées (`privateRefused`) et la page y affiche un
+état vide : l'historique n'y est ni écrit (ADR-014) ni montré.
+
+**Import (`browser://import`).**
+- Parseurs purs `src/shared/import/` : `Bookmarks` et `Local State`/`Preferences` des navigateurs Chromium
+  (temps en µs depuis 1601, convertis en `BigInt` car au-delà de `Number.MAX_SAFE_INTEGER`), `profiles.ini` de
+  Firefox, `StorableSidebar.json` d'Arc (espaces, dossiers, onglets épinglés, favoris), CSV de mots de passe.
+  Seules les adresses `http(s)` sont reprises (pas de bookmarklets ni de `file:`).
+- Main `src/main/import/` : `browserLocations` (dossiers par OS : Chrome, Edge, Brave, Vivaldi, Opera, Chromium,
+  Firefox, Arc), `detectSources` (profils par `Local State`/`profiles.ini`, sans lire les données), lecteurs par
+  famille, `ImportService` (dans `AppServices`). SQLite (`History`, `places.sqlite`) lu par **`node:sqlite`**,
+  intégré au Node 24 d'Electron 44 (aucun module natif à compiler), sur une **copie** du fichier et de son WAL :
+  l'autre navigateur peut être ouvert et verrouiller sa base. 10 000 visites au plus (la limite de l'historique).
+- Sans doublons : un favori dont l'URL existe est ignoré, les dossiers (aplatis en « Barre de favoris / Tech »)
+  sont réutilisés par nom ; une page d'historique connue garde son titre et prend la visite la plus récente et le
+  plus grand nombre de visites (`History.importEntries`) ; le moteur de recherche n'est repris que s'il fait partie
+  des nôtres (même site). Arc : onglets épinglés → favoris rangés sous « Arc / espace / dossier », favoris de la
+  barre → grille des favoris (rien n'est ouvert : certains ont des centaines d'onglets épinglés).
+- **Mots de passe : CSV seulement.** Chromium chiffre les siens avec une clé du système (DPAPI sous Windows,
+  trousseau sous macOS, Secret Service sous Linux) et Firefox avec son propre coffre (`key4.db`, éventuellement
+  protégé par un mot de passe principal). Les déchiffrer demanderait de lire les secrets d'une autre application,
+  ce qu'un navigateur ne doit pas faire ni encourager. Chacun exporte un CSV ; `parsePasswordCsv` lit les formats
+  Chrome/Edge/Brave/Opera, Firefox, Safari, Bitwarden et le nôtre (cellules désamorcées). Le fichier est choisi
+  dans une boîte de dialogue de main (l'interface ne donne jamais de chemin), 8 Mo au plus ; même compte (origine +
+  identifiant) et même mot de passe : ignoré, mot de passe différent : mis à jour.
+- Safari : non importé (`Bookmarks.plist` binaire, accès disque complet requis sous macOS récents).
+- Jamais depuis une fenêtre privée (canaux `import:*` en `privateRefused`, page en état vide).
+- Tests : crochet `BROWSER_TEST_IMPORT_DIR` (un dossier « User Data » Chromium ajouté aux sources, ignoré une fois
+  empaqueté, ADR-018) ; profils de test construits par `tests/fixtures/import/profiles.ts`.
+
+**Conséquences.** Les PDF ne sont plus téléchargés quand le site les affiche ; un fichier local s'ouvre en
+`file://` (pages locales liées entre elles, mais toujours inaccessibles depuis le web). L'import d'historique est
+plafonné à 10 000 pages ; les mots de passe demandent un détour par un fichier à supprimer ensuite.

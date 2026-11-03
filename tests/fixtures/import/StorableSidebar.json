@@ -1,0 +1,30 @@
+{
+  "sidebar": {
+    "containers": [
+      { "global": {} },
+      {
+        "spaces": [
+          "space-1",
+          { "id": "space-1", "title": "Travail", "containerIDs": ["unpinned", "c-unpinned", "pinned", "c-pinned"] }
+        ],
+        "items": [
+          "c-pinned",
+          { "id": "c-pinned", "title": null, "childrenIds": ["tab-1", "folder-1"], "data": { "itemContainer": {} } },
+          "tab-1",
+          { "id": "tab-1", "title": "Tableau", "parentID": "c-pinned", "childrenIds": [], "data": { "tab": { "savedURL": "https://board.example.com/", "savedTitle": "Board" } } },
+          "folder-1",
+          { "id": "folder-1", "title": "Docs", "parentID": "c-pinned", "childrenIds": ["tab-2", "tab-bad"], "data": { "list": {} } },
+          "tab-2",
+          { "id": "tab-2", "title": null, "parentID": "folder-1", "childrenIds": [], "data": { "tab": { "savedURL": "https://docs.example.com/", "savedTitle": "Docs Example" } } },
+          "tab-bad",
+          { "id": "tab-bad", "title": "Local", "parentID": "folder-1", "childrenIds": [], "data": { "tab": { "savedURL": "file:///etc/passwd" } } },
+          "top",
+          { "id": "top", "title": null, "childrenIds": ["fav-1"], "data": { "itemContainer": {} } },
+          "fav-1",
+          { "id": "fav-1", "title": "Mail", "parentID": "top", "childrenIds": [], "data": { "tab": { "savedURL": "https://mail.example.com/", "savedTitle": "Inbox" } } }
+        ],
+        "topAppsContainerIDs": [{ "default": true }, "top"]
+      }
+    ]
+  }
+}

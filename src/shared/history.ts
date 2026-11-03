@@ -1,4 +1,5 @@
 import { storableFavicon } from "./favicon";
+import { fold } from "./fuzzy";
 import { rankHistory, topSites } from "./search";
 import type { HistoryEntry } from "./types";
 
@@ -26,6 +27,54 @@ function sanitizeEntry(value: unknown): HistoryEntry | null {
     visitCount: typeof e.visitCount === "number" && e.visitCount >= 1 ? Math.floor(e.visitCount) : 1,
     lastVisit: e.lastVisit,
   };
+}
+
+/** Where a page of `browser://history` ends: the next one starts after this entry. */
+export interface HistoryCursor {
+  lastVisit: number;
+  url: string;
+}
+
+export interface HistoryPage {
+  entries: HistoryEntry[];
+  /** Null on the last page. */
+  next: HistoryCursor | null;
+}
+
+export const HISTORY_PAGE_SIZE = 100;
+
+/** Most recent first, then by URL: a total order, so pages never skip nor repeat an entry. */
+function compareRecent(a: { lastVisit: number; url: string }, b: { lastVisit: number; url: string }): number {
+  return b.lastVisit - a.lastVisit || (a.url < b.url ? -1 : a.url > b.url ? 1 : 0);
+}
+
+/** "Effacer l'historique" ranges of `browser://history`. */
+export type HistoryClearRange = "hour" | "today" | "week" | "all";
+export const HISTORY_CLEAR_RANGES: readonly HistoryClearRange[] = ["hour", "today", "week", "all"];
+
+/** The first instant a range clears (local midnight for "today"); 0 for everything. */
+export function clearRangeStart(range: HistoryClearRange, now: number): number {
+  if (range === "hour") return now - 60 * 60 * 1000;
+  if (range === "week") return now - 7 * 24 * 60 * 60 * 1000;
+  if (range === "today") {
+    const midnight = new Date(now);
+    midnight.setHours(0, 0, 0, 0);
+    return midnight.getTime();
+  }
+  return 0;
+}
+
+/** Entries grouped by local day (`YYYY-MM-DD`), in the given order: the history page's sections. */
+export function groupByDay<T extends { lastVisit: number }>(entries: readonly T[]): { day: string; date: number; entries: T[] }[] {
+  const groups: { day: string; date: number; entries: T[] }[] = [];
+  for (const entry of entries) {
+    const date = new Date(entry.lastVisit);
+    const day = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    const group = groups.at(-1);
+    if (group?.day === day) group.entries.push(entry);
+    else groups.push({ day, date: new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime(), entries: [entry] });
+  }
+  return groups;
 }
 
 /**
@@ -119,6 +168,66 @@ export class History {
 
   clear(): void {
     this.entries.clear();
+  }
+
+  /**
+   * One page of `browser://history`: most recent first, ties by URL, after `cursor` (the last
+   * entry of the previous page), keeping entries whose title or URL contain every word of `query`.
+   */
+  page(options: { query?: string; cursor?: HistoryCursor | null; limit: number }): HistoryPage {
+    const words = fold(options.query ?? "").split(/\s+/).filter(Boolean);
+    const cursor = options.cursor ?? null;
+    const matches = (entry: HistoryEntry) => {
+      if (!words.length) return true;
+      const text = fold(`${entry.title} ${entry.url}`);
+      return words.every((word) => text.includes(word));
+    };
+    const sorted = [...this.entries.values()].filter((entry) => !cursor || compareRecent(entry, cursor) > 0).filter(matches).sort(compareRecent);
+    const entries = sorted.slice(0, options.limit).map((entry) => ({ ...entry }));
+    const last = entries.at(-1);
+    return { entries, next: sorted.length > options.limit && last ? { lastVisit: last.lastVisit, url: last.url } : null };
+  }
+
+  /** Forgets these pages. Returns how many were known. */
+  removeMany(urls: Iterable<string>): number {
+    let removed = 0;
+    for (const url of urls) if (this.entries.delete(url)) removed++;
+    return removed;
+  }
+
+  /** Forgets the pages last visited at or after `since` (epoch ms). Returns how many. */
+  removeSince(since: number): number {
+    let removed = 0;
+    for (const [url, entry] of this.entries) {
+      if (entry.lastVisit >= since) {
+        this.entries.delete(url);
+        removed++;
+      }
+    }
+    return removed;
+  }
+
+  /**
+   * Merges pages imported from another browser: a known page keeps its title (unless it has none)
+   * and gets the most recent visit and the higher visit count. Returns how many pages were new.
+   */
+  importEntries(entries: readonly { url: string; title: string; visitCount: number; lastVisit: number }[]): number {
+    let added = 0;
+    const merged: HistoryEntry[] = [];
+    for (const imported of entries) {
+      if (!isRecordable(imported.url) || !Number.isFinite(imported.lastVisit) || imported.lastVisit <= 0) continue;
+      const existing = this.entries.get(imported.url);
+      if (!existing) added++;
+      merged.push({
+        url: imported.url,
+        title: (existing?.title || imported.title || "").slice(0, MAX_TEXT),
+        favicon: existing?.favicon ?? null,
+        visitCount: Math.max(existing?.visitCount ?? 1, Math.floor(imported.visitCount) || 1),
+        lastVisit: Math.max(existing?.lastVisit ?? 0, imported.lastVisit),
+      });
+    }
+    this.upsertMany(merged);
+    return added;
   }
 
   /** Oldest visit first. */

@@ -84,6 +84,8 @@ export interface BehaviorSettings {
   sleepTabsAfter: TabSleepDelay;
   /** Tabs inactive for this long are archived: closed, listed in `browser://archive` (ADR-022). */
   archiveTabsAfter: TabArchiveDelay;
+  /** The start page's one-time "make it the default browser" card was answered (ADR-039). */
+  defaultBrowserPromptDismissed: boolean;
 }
 
 export interface PrivacySettings {
@@ -235,7 +237,7 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   search: { engine: DEFAULT_SEARCH_ENGINE.id },
   startPage: { widgets: defaultWidgets(), greetingName: "", background: "theme", backgroundImage: "" },
-  behavior: { restoreSession: true, newTabPosition: "end", closeTabActivates: "next", sleepTabsAfter: "30m", archiveTabsAfter: "7d" },
+  behavior: { restoreSession: true, newTabPosition: "end", closeTabActivates: "next", sleepTabsAfter: "30m", archiveTabsAfter: "7d", defaultBrowserPromptDismissed: false },
   privacy: { normalizeAcceptLanguage: false, blockThirdPartyCookies: false, thirdPartyCookieExceptions: [] },
   downloads: { folder: "", askWhere: false },
   reader: { font: "serif", size: 19, width: "medium", theme: "auto" },
@@ -357,6 +359,7 @@ const schema: Schema = {
     closeTabActivates: oneOf("next", "previous", "recent"),
     sleepTabsAfter: oneOf("never", "15m", "30m", "1h", "2h"),
     archiveTabsAfter: oneOf("never", "12h", "24h", "7d", "30d"),
+    defaultBrowserPromptDismissed: bool,
   },
   privacy: { normalizeAcceptLanguage: bool, blockThirdPartyCookies: bool, thirdPartyCookieExceptions: sanitizeSiteList },
   downloads: { folder: folderPath, askWhere: bool },

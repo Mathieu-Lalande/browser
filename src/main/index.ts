@@ -1,4 +1,6 @@
-import { app, BrowserWindow } from "electron";
+import { statSync } from "node:fs";
+import { homedir } from "node:os";
+import { app, shell } from "electron";
 import { ARCHIVE_CHECK_MS } from "@shared/archive";
 import { tabArchiveDelayMs, tabSleepDelayMs } from "@shared/settings";
 import { registerAppScheme, serveAppScheme } from "./app-protocol";
@@ -15,6 +17,7 @@ import { spaces } from "./spaces";
 import { startTabArchiver } from "./organize";
 import { showPageMenu } from "./page-menu";
 import { BrowserController, setPageMenu } from "./window";
+import { LaunchRouter, launchUrl, launchUrls, type LaunchContext } from "./default-browser/launch";
 
 /**
  * Test hook: `BROWSER_TEST_SLEEP_MS` replaces the sleep delay (unless sleeping is off). Test and dev
@@ -43,18 +46,47 @@ hardenApp();
 // The chrome UI and the overlay are served from app:// (registered before ready).
 registerAppScheme();
 
+const isFile = (path: string) => {
+  try {
+    return statSync(path).isFile();
+  } catch {
+    return false;
+  }
+};
+const launchContext = (cwd = process.cwd()): LaunchContext => ({ cwd, isFile });
+
+/**
+ * Links and files handed over by the OS (ADR-039) open in the last focused normal window; those
+ * arriving before the windows exist wait for them.
+ */
+const launches = new LaunchRouter(() => ({
+  lastNormal: () => BrowserController.lastNormal(),
+  create: () => new BrowserController(),
+}));
+
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  app.on("second-instance", () => {
-    const window = BrowserWindow.getAllWindows()[0];
-    if (window) {
-      if (window.isMinimized()) window.restore();
-      window.focus();
-    } else {
-      new BrowserController();
-    }
+  // macOS hands links and files over as events, possibly before the app is ready.
+  app.on("open-url", (event, url) => {
+    event.preventDefault();
+    const target = launchUrl(url, launchContext());
+    if (target) launches.open([target]);
   });
+  app.on("open-file", (event, path) => {
+    event.preventDefault();
+    const target = launchUrl(path, launchContext());
+    if (target) launches.open([target]);
+  });
+  // Another launch (a link clicked in another app, a file opened): this instance shows it.
+  app.on("second-instance", (_event, argv, workingDirectory) => {
+    const urls = launchUrls(argv, launchContext(workingDirectory));
+    if (urls.length) return launches.open(urls);
+    const window = BrowserController.lastNormal() ?? BrowserController.all()[0];
+    if (window) window.focus();
+    else new BrowserController();
+  });
+  launches.open(launchUrls(process.argv, launchContext()));
 
   void app.whenReady().then(() => {
     // The profile comes first: session hardening reads the settings (Accept-Language).
@@ -72,7 +104,19 @@ if (!app.requestSingleInstanceLock()) {
       syncAdapters: desktopAdapters,
       appName: app.getName(),
       locale: app.getLocale(),
-      testHooks: { plainKeychain: !app.isPackaged && process.env.BROWSER_TEST_PLAIN_KEYCHAIN === "1" },
+      defaultClient: {
+        platform: process.platform,
+        packaged: app.isPackaged,
+        appName: app.getName(),
+        isDefaultProtocolClient: (protocol) => app.isDefaultProtocolClient(protocol),
+        setAsDefaultProtocolClient: (protocol) => app.setAsDefaultProtocolClient(protocol),
+        defaultAppNameFor: (url) => app.getApplicationNameForProtocol(url),
+        openExternal: (url) => shell.openExternal(url),
+      },
+      locationEnv: { platform: process.platform, home: homedir(), localAppData: process.env.LOCALAPPDATA, appData: process.env.APPDATA },
+      testHooks: app.isPackaged
+        ? {}
+        : { plainKeychain: process.env.BROWSER_TEST_PLAIN_KEYCHAIN === "1", importChromiumDir: process.env.BROWSER_TEST_IMPORT_DIR || undefined },
     });
     BrowserController.watchServices(services);
     hardenSession();
@@ -95,6 +139,7 @@ if (!app.requestSingleInstanceLock()) {
     const restore = settings.behavior.restoreSession ? (previousSession?.windows ?? []) : [];
     if (restore.length) for (const saved of restore) new BrowserController(saved);
     else new BrowserController();
+    launches.ready();
     // End-to-end encrypted sync (ADR-019): off unless an account was set up on this device.
     services.sync.start();
     app.on("will-quit", () => services.sync.stop());

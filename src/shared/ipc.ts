@@ -3,6 +3,9 @@ import type { AnnotationExportFormat } from "./annotations/export";
 import type { AnnotationResult, AnnotationsList, Highlight, HighlightColor, HighlightPatch, TabAnnotations } from "./annotations/model";
 import type { Boost, BoostInput, BoostResult } from "./boosts";
 import type { CommandId } from "./commands";
+import type { DefaultBrowserStatus } from "./default-browser";
+import type { HistoryClearRange, HistoryCursor, HistoryPage } from "./history";
+import type { ImportItem, ImportProgress, ImportSource, ImportSummary, PasswordImportSummary } from "./import/types";
 import type { ExtensionInfo, ExtensionInstallResult } from "./extensions";
 import type { FolderId, FolderInput } from "./folders";
 import type {
@@ -86,6 +89,15 @@ export const Channels = {
   historySearch: "history:search",
   historyTopSites: "history:top-sites",
   historyClear: "history:clear",
+  historyPage: "history:page",
+  historyRemove: "history:remove",
+  historyClearRange: "history:clear-range",
+  defaultBrowserStatus: "default-browser:status",
+  defaultBrowserSet: "default-browser:set",
+  importSources: "import:sources",
+  importRun: "import:run",
+  importPasswords: "import:passwords",
+  importProgress: "import:progress",
   bookmarksList: "bookmarks:list",
   bookmarksAdd: "bookmarks:add",
   bookmarksRemove: "bookmarks:remove",
@@ -477,6 +489,26 @@ export interface BrowserApi {
     /** Most frecent sites, one entry per host. */
     topSites(limit?: number): Promise<HistoryEntry[]>;
     clear(): Promise<void>;
+    /** `browser://history`: most recent first, after `cursor`. Refused in a private window. */
+    page(query: string, cursor: HistoryCursor | null): Promise<HistoryPage>;
+    /** Forgets these pages; resolves to how many were removed. */
+    remove(urls: string[]): Promise<number>;
+    /** Forgets the pages visited in the range; resolves to how many were removed. */
+    clearRange(range: HistoryClearRange): Promise<number>;
+  };
+  /** ADR-039: whether this browser opens the OS's web links. */
+  defaultBrowser: {
+    status(): Promise<DefaultBrowserStatus>;
+    /** Asks the OS (Windows: opens its Settings). */
+    makeDefault(): Promise<DefaultBrowserStatus>;
+  };
+  /** ADR-039: import from other browsers (refused in a private window). */
+  import: {
+    sources(): Promise<ImportSource[]>;
+    run(profileId: string, items: ImportItem[]): Promise<ImportSummary>;
+    /** Main asks for a CSV file, then merges its logins into the vault. */
+    passwordsCsv(): Promise<PasswordImportSummary>;
+    onProgress(listener: (progress: ImportProgress) => void): () => void;
   };
   bookmarks: {
     list(): Promise<Bookmark[]>;

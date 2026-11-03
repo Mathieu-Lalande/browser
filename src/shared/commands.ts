@@ -55,6 +55,8 @@ export type CommandId =
   | "toggle-favorite"
   | "new-folder"
   | "open-archive"
+  | "open-history"
+  | "import-data"
   | "open-extensions"
   | "open-passwords"
   | "toggle-reader"
@@ -155,6 +157,7 @@ export type CommandIcon =
   | "notebook-pen"
   | "notebook"
   | "history"
+  | "import"
   | "pencil";
 
 /** What a command's label and availability may depend on. */
@@ -386,6 +389,16 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
     keywords: ["archive", "archivés", "anciens onglets", "restaurer", "inactifs"],
     icon: "archive",
   },
+  "open-history": {
+    label: "Tout l'historique",
+    keywords: ["history", "historique", "pages visitées", "visites", "effacer"],
+    icon: "history",
+  },
+  "import-data": {
+    label: "Importer depuis un autre navigateur",
+    keywords: ["import", "importer", "chrome", "firefox", "edge", "brave", "arc", "safari", "favoris", "mots de passe", "csv"],
+    icon: "import",
+  },
   "open-extensions": {
     label: "Extensions",
     keywords: ["extensions", "modules", "add-ons", "plugins", "chrome web store", "crx", "installer une extension"],
@@ -591,6 +604,8 @@ const PLATFORM_ACCELERATORS: Partial<Record<CommandId, { mac: string; other: str
   "find-previous": { mac: "Cmd+Shift+G", other: "Shift+F3" },
   // Chrome's shortcuts for the downloads page.
   "open-downloads": { mac: "Alt+Cmd+L", other: "Ctrl+Shift+J" },
+  // Chrome's shortcuts for the history page (Cmd+H hides the app on macOS).
+  "open-history": { mac: "Cmd+Y", other: "Ctrl+H" },
   "toggle-fullscreen": { mac: "Ctrl+Cmd+F", other: "F11" },
   quit: { mac: "Cmd+Q", other: "Ctrl+Shift+Q" },
 };
@@ -680,6 +695,7 @@ export const COMMAND_GROUPS: readonly { label: string; ids: readonly CommandId[]
     ids: [
       "toggle-bookmark",
       "toggle-favorite",
+      "open-history",
       "open-archive",
       "open-downloads",
       "open-passwords",
@@ -696,6 +712,7 @@ export const COMMAND_GROUPS: readonly { label: string; ids: readonly CommandId[]
       "site-info",
       "clear-site-data",
       "clear-history",
+      "import-data",
       "sync-now",
       "open-sync",
       "check-updates",

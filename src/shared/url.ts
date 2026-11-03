@@ -123,6 +123,18 @@ export function isPageOpenableUrl(url: string): boolean {
   }
 }
 
+/**
+ * A local file (`file:///…`): never typed nor opened by a page, only handed over by the OS (file
+ * associations, ADR-039) and loaded by main directly.
+ */
+export function isLocalFileUrl(url: string): boolean {
+  try {
+    return new URL(url).protocol === "file:";
+  } catch {
+    return false;
+  }
+}
+
 /** Short, human friendly label for a URL (used for tab titles before the page sets one). */
 export function displayUrl(url: string): string {
   if (!url) return "";

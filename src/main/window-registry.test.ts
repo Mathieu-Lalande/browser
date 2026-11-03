@@ -44,4 +44,20 @@ describe("WindowRegistry", () => {
     chrome.emit("destroyed");
     expect(registry.fromUi(1)).toBeUndefined();
   });
+
+  it("remembers the last focused window, filtered (links from other apps skip private windows)", () => {
+    const registry = new WindowRegistry<string>();
+    registry.add(new FakeContents(1), "normal");
+    registry.add(new FakeContents(2), "private");
+    registry.add(new FakeContents(3), "other");
+    expect(registry.lastFocused()).toBe("other");
+    registry.focused(1);
+    registry.focused(2);
+    expect(registry.lastFocused()).toBe("private");
+    expect(registry.lastFocused((window) => window !== "private")).toBe("normal");
+    registry.remove(1);
+    expect(registry.lastFocused((window) => window !== "private")).toBe("other");
+    registry.focused(99);
+    expect(registry.lastFocused((window) => window === "none")).toBeUndefined();
+  });
 });

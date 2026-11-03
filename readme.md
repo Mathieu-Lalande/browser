@@ -25,6 +25,15 @@ Windows, macOS et Linux, avec son application iPhone et Android.
   pastilles d'espace (renommer, réordonner, supprimer) ; sélection de plusieurs onglets (`Ctrl`+clic) avec barre
   d'actions ; rouvrir l'onglet fermé (`Ctrl+Maj+T`).
 
+**Navigateur principal** (ADR-039)
+- Navigateur par défaut (liens `http`/`https`, fichiers HTML et PDF) : réglage et proposition unique au premier
+  lancement ; liens et fichiers venus du système ouverts dans la dernière fenêtre normale.
+- Lecteur PDF intégré de Chromium dans l'onglet (pièces jointes toujours téléchargées).
+- Historique `browser://history` (`Ctrl+H`, `⌘Y`) : jour par jour, recherche, suppression d'une page, d'une
+  sélection ou d'une période (dernière heure, aujourd'hui, 7 jours, tout).
+- Import (`browser://import`) depuis Chrome, Edge, Brave, Vivaldi, Opera, Firefox et Arc : favoris, historique,
+  moteur de recherche, grille et onglets épinglés d'Arc ; mots de passe depuis un export CSV ; sans doublons.
+
 **Trouver et agir**
 - Barre universelle (`Ctrl+K`, `⌘K`) : onglets de tous les espaces, favoris, historique, commandes, réglages,
   onglets des autres appareils et archivés ; filtres `@onglets @favoris @historique @commandes @réglages` ;
@@ -168,6 +177,7 @@ commandes (`src/shared/commands.ts`) : « Maj » pour Shift sous Windows/Linux, 
 | `Ctrl++` / `Ctrl+-` / `Ctrl+0` | `⌘+` / `⌘-` / `⌘0` | Zoom avant / arrière / zoom par défaut (mémorisé par site) |
 | `Ctrl+F` | `⌘F` | Rechercher dans la page (`↵` / `Maj+↵`, `F3` / `Maj+F3` (`⌘G` / `⇧⌘G`) : suivante / précédente) |
 | `Ctrl+Maj+J` | `⌥⌘L` | Téléchargements |
+| `Ctrl+H` | `⌘Y` | Historique (`browser://history`) |
 | `Ctrl+M` | `⌃M` | Couper / réactiver le son de l'onglet |
 | `Ctrl+Tab` / `Ctrl+Maj+Tab` | `⌃Tab` / `⌃⇧Tab` | Onglet suivant / précédent |
 | `Ctrl+1…9` | `⌘1…9` | Aller à l'onglet n |

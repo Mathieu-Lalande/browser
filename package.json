@@ -147,8 +147,47 @@
       "maintainer": "Mathieu Lalande",
       "syncDesktopName": true,
       "synopsis": "Navigateur rapide, privé et personnalisable",
-      "artifactName": "Browser-${version}-linux-${arch}.${ext}"
-    }
+      "artifactName": "Browser-${version}-linux-${arch}.${ext}",
+      "mimeTypes": [
+        "x-scheme-handler/http",
+        "x-scheme-handler/https",
+        "text/html",
+        "application/xhtml+xml",
+        "application/pdf"
+      ]
+    },
+    "protocols": [
+      {
+        "name": "Page web",
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "role": "Viewer"
+      }
+    ],
+    "fileAssociations": [
+      {
+        "ext": [
+          "html",
+          "htm",
+          "xhtml"
+        ],
+        "name": "Page HTML",
+        "description": "Page HTML",
+        "mimeType": "text/html",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": "pdf",
+        "name": "Document PDF",
+        "description": "Document PDF",
+        "mimeType": "application/pdf",
+        "role": "Viewer",
+        "rank": "Alternate"
+      }
+    ]
   },
   "dependencies": {
     "@ghostery/adblocker": "2.20.1",

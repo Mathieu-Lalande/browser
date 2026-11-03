@@ -53,6 +53,27 @@ const SILENT_WAV = (() => {
   return Buffer.concat([header, Buffer.alloc(samples, 128)]);
 })();
 
+/** A one-page PDF ("Bonjour PDF"), built with a correct cross-reference table. */
+export const TINY_PDF = (() => {
+  const objects = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+    "<< /Length 44 >>\nstream\nBT /F1 24 Tf 40 100 Td (Bonjour PDF) Tj ET\nendstream",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+  ];
+  let body = "%PDF-1.4\n";
+  const offsets = objects.map((object, index) => {
+    const offset = body.length;
+    body += `${index + 1} 0 obj\n${object}\nendobj\n`;
+    return offset;
+  });
+  const xref = body.length;
+  body += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${offsets.map((offset) => `${String(offset).padStart(10, "0")} 00000 n \n`).join("")}`;
+  body += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+  return Buffer.from(body, "latin1");
+})();
+
 const query = (path: string, name: string) => new URL(path, "http://x").searchParams.get(name);
 
 /**
@@ -132,6 +153,11 @@ function startServer(): Promise<{ server: Server; origin: string; log: ServerLog
       res.end(`<title>Opener</title><a id="open" href="/second" target="_blank">open</a>`);
     } else if (path.startsWith("/internal-link")) {
       res.end(`<title>Internal link</title><a id="link" href="browser://settings">link</a><a id="popup" href="browser://settings" target="_blank">popup</a>`);
+    } else if (path.startsWith("/doc.pdf") || path.startsWith("/attachment.pdf")) {
+      // ADR-039: a PDF shown inline by the built-in viewer, and the same one sent as an attachment.
+      res.setHeader("content-type", "application/pdf");
+      if (path.startsWith("/attachment")) res.setHeader("content-disposition", 'attachment; filename="attachment.pdf"');
+      res.end(TINY_PDF);
     } else if (path.startsWith("/files/")) {
       // Download targets: a document, an executable, and a slow one (to watch the progress).
       const name = path.slice("/files/".length);
@@ -279,10 +305,11 @@ function startServer(): Promise<{ server: Server; origin: string; log: ServerLog
  * Launches the app on `profile`; tests that restart the app call it directly. `env`: extra test
  * hooks (e.g. `BROWSER_TEST_SLEEP_MS`).
  */
-export function launch(profile: string, env: Record<string, string> = {}): Promise<ElectronApplication> {
+export function launch(profile: string, env: Record<string, string> = {}, extraArgs: string[] = []): Promise<ElectronApplication> {
   return electron.launch({
     // `*.test` hosts resolve to the local server, to exercise HTTPS-Only on a "public" hostname.
-    args: ["--no-sandbox", "--host-resolver-rules=MAP *.test 127.0.0.1", "."],
+    // `extraArgs`: what the OS would hand over (a link, a file to open: ADR-039).
+    args: ["--no-sandbox", "--host-resolver-rules=MAP *.test 127.0.0.1", ".", ...extraArgs],
     env: { ...process.env, BROWSER_PROFILE_DIR: profile, BROWSER_TEST_FILTERS: TEST_FILTERS, ...env },
   });
 }

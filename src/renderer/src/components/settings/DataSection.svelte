@@ -5,6 +5,7 @@
   import Favicon from "../Favicon.svelte";
   import Icon from "../Icon.svelte";
   import { platform } from "../../lib/platform.svelte";
+  import Button from "../ui/Button.svelte";
   import ConfirmButton from "../ui/ConfirmButton.svelte";
   import Row from "../ui/Row.svelte";
 
@@ -28,7 +29,12 @@
   }
 </script>
 
+<Row anchor="import" label="Importer depuis un autre navigateur" hint="Favoris, historique, moteur de recherche et mots de passe (CSV) de Chrome, Edge, Brave, Vivaldi, Opera, Firefox ou Arc." keywords="import chrome firefox edge arc">
+  <Button icon="import" onclick={() => api.commands.run("import-data")}>Importer…</Button>
+</Row>
+
 <Row anchor="history" label="Historique de navigation" hint="Efface toutes les pages visitées, et les suggestions qui en découlent.">
+  <Button variant="quiet" icon="history" onclick={() => api.commands.run("open-history")}>Tout l'historique</Button>
   {#if cleared}<span class="done"><Icon name="check" size={12} /> Historique effacé</span>{/if}
   <ConfirmButton variant="outlined" question="Tout l'historique ?" confirmLabel="Effacer" onconfirm={clearHistory}>
     <Icon name="trash" size={12} /> Effacer l'historique

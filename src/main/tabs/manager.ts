@@ -2,7 +2,7 @@ import { WebContentsView, session as electronSession, type BaseWindow, type Sess
 import type { FolderId, FolderInput } from "@shared/folders";
 import { INTERNAL_PAGES, internalPageOf, internalUrl, type InternalPage } from "@shared/internal";
 import type { Bounds, TabId, TabState, TabsState } from "@shared/types";
-import { displayUrl, normalizeInput } from "@shared/url";
+import { displayUrl, isLocalFileUrl, normalizeInput } from "@shared/url";
 import { webHostname } from "@shared/hosts";
 import { InPageVisits } from "../activation";
 import { onShieldsChange, shieldsEnabledFor } from "../privacy";
@@ -144,12 +144,13 @@ export class TabManager {
     if (zoomChanged) for (const tab of this.store.all) this.actions.applyZoom(tab);
   }
 
-  create(input = "", options: { activate?: boolean; index?: number; folderId?: FolderId | null } = {}): TabId {
+  /** `localFile`: `input` is a `file://` URL main checked (ADR-039), loaded as it is. */
+  create(input = "", options: { activate?: boolean; index?: number; folderId?: FolderId | null; localFile?: boolean } = {}): TabId {
     const folderId = options.folderId && this.folders.has(options.folderId) ? options.folderId : undefined;
     const tab = this.insert({ url: "", title: START_TITLE, favicon: null, pinned: false, folderId }, options.index ?? this.store.newTabIndex(this.options.newTabPosition));
     if (folderId) this.folders.reorder();
     if (options.activate ?? true) this.activate(tab.id);
-    this.navigate(tab.id, input);
+    this.navigate(tab.id, input, { localFile: options.localFile });
     this.emit();
     return tab.id;
   }
@@ -346,10 +347,14 @@ export class TabManager {
     return this.layout.splitVisible;
   }
 
-  navigate(id: TabId, input: string): void {
+  /**
+   * Loads what the user typed (or an internal page). `localFile`: a `file://` URL handed over by the
+   * OS and checked by main (ADR-039); typed `file:` text is searched instead, like any other scheme.
+   */
+  navigate(id: TabId, input: string, options: { localFile?: boolean } = {}): void {
     const tab = this.store.find(id);
     if (!tab) return;
-    const url = normalizeInput(input, this.options.searchEngine);
+    const url = options.localFile && isLocalFileUrl(input) ? input : normalizeInput(input, this.options.searchEngine);
     const wasWebPage = showsWebPage(tab.state.url);
     tab.state.url = url;
     tab.state.interstitial = null;
@@ -689,6 +694,9 @@ export class TabManager {
         webSecurity: true,
         allowRunningInsecureContent: false,
         spellcheck: true,
+        // Chromium's built-in PDF viewer (ADR-039): a component extension in its own sandboxed
+        // process; no other plugin exists in Electron. Attachments still download.
+        plugins: true,
       },
     });
     view.setBorderRadius(this.options.pageRadius);

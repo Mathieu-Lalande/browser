@@ -7,7 +7,10 @@ import { BoostService } from "./boosts/service";
 import { CaptureService } from "./capture/service";
 import { DownloadService } from "./downloads/service";
 import { ExtensionService } from "./extensions/service";
-import { PasswordVaultStore } from "./passwords/vault";
+import { DefaultBrowserService, type DefaultClientPort } from "./default-browser/service";
+import { ImportService } from "./import/service";
+import { browserLocations, detectSources, type BrowserLocation, type LocationEnv } from "./import/sources";
+import { newPasswordId, PasswordVaultStore } from "./passwords/vault";
 import { installPrivacy, isTabPage } from "./privacy";
 import { ReaderService } from "./reader";
 import type { WindowDirectory } from "./ports";
@@ -65,8 +68,16 @@ export interface AppConfig {
   syncAdapters(deps: AdapterDeps): CollectionAdapter[];
   appName: string;
   locale: string;
+  /** The OS's default-app registration (Electron's `app`/`shell`), ADR-039. */
+  defaultClient: DefaultClientPort;
+  /** Where other browsers keep their data (home folder, Windows app data folders), ADR-039. */
+  locationEnv: LocationEnv;
   /** Test hooks honored by an unpackaged app only (ADR-018). */
-  testHooks?: { plainKeychain?: boolean };
+  testHooks?: {
+    plainKeychain?: boolean;
+    /** A Chromium "User Data" folder listed as an extra import source. */
+    importChromiumDir?: string;
+  };
 }
 
 /**
@@ -82,6 +93,8 @@ export class AppServices {
   readonly boosts: BoostService;
   readonly capture: CaptureService;
   readonly sync: SyncService;
+  readonly defaultBrowser: DefaultBrowserService;
+  readonly imports: ImportService;
   /** Installed into each tab session, in this order. */
   readonly sessionServices: readonly SessionService[];
   readonly hardener: SessionHardener;
@@ -110,6 +123,19 @@ export class AppServices {
       windows,
       onLocalChange: (listener) => config.profile().onChange(() => listener()),
       adapters: () => config.syncAdapters({ windows, boosts: this.boosts }),
+    });
+    this.defaultBrowser = new DefaultBrowserService(config.defaultClient);
+    const testSource = config.testHooks?.importChromiumDir;
+    const extraSources: (BrowserLocation & { id: string; name: string })[] = testSource
+      ? [{ id: "test-chromium", browser: "chrome", family: "chromium", path: testSource, name: "Chrome (test)" }]
+      : [];
+    this.imports = new ImportService({
+      profile: () => config.profile(),
+      updateSettings: (patch) => config.updateSettings(patch),
+      passwords: this.passwords,
+      newPasswordId,
+      detect: () => detectSources(browserLocations(config.locationEnv), extraSources),
+      refreshAll: () => windows.refreshAll(),
     });
     // Downloads: tab pages only, no automatic opening, dangerous types confirmed first (ADR-013); a
     // private session's ones never reach the history (ADR-014). Extensions: ADR-024.

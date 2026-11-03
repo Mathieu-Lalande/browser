@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { internalPageOf } from "@shared/internal";
+  import { internalPageOf, type InternalPage } from "@shared/internal";
   import type { TabState } from "@shared/types";
   import Favicon from "./Favicon.svelte";
   import Icon, { type IconName } from "./Icon.svelte";
@@ -7,7 +7,12 @@
   let { tab }: { tab: TabState } = $props();
 
   // Internal pages have no favicon: they get the icon of their section.
-  const INTERNAL_ICONS: Record<string, IconName> = { settings: "settings", downloads: "download", archive: "archive", extensions: "extension", passwords: "key" };
+  const INTERNAL_ICONS: Record<InternalPage, IconName> = { settings: "settings", downloads: "download", archive: "archive", extensions: "extension", passwords: "key",
+    boosts: "rocket",
+    notes: "notebook",
+    history: "history",
+    import: "import",
+  };
   const internal = $derived(internalPageOf(tab.url));
 </script>
 

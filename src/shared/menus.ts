@@ -97,7 +97,7 @@ export function buildAppMenu(context: AppMenuContext): MenuNode[] {
   const history: MenuNode[] = [
     ...links("history", context.history, APP_MENU_HISTORY),
     separator,
-    command("command-palette", { label: "Tout l'historique…" }),
+    command("open-history"),
     command("reopen-closed-tab"),
   ];
   const bookmarks: MenuNode[] = [

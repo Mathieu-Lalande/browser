@@ -87,6 +87,7 @@
             <li><a href="#installation">Installation</a></li>
             <li><a href="#mobile">Application mobile</a></li>
             <li><a href="#premiers-pas">Premiers pas</a></li>
+            <li><a href="#principal">Navigateur principal, historique, import</a></li>
             <li><a href="#onglets">Onglets</a></li>
             <li><a href="#menus">Menus et gestes</a></li>
             <li><a href="#espaces">Espaces et gestes</a></li>
@@ -225,6 +226,51 @@
           <p>
             Au démarrage, Browser restaure votre session : les onglets reviennent, chargés seulement quand vous les
             ouvrez.
+          </p>
+        </section>
+
+        <!-- Main browser (ADR-039) -->
+        <section class="doc-section" id="principal" aria-labelledby="t-principal">
+          <h2 id="t-principal"><i data-icon="badge-check"></i>Navigateur principal, historique, import</h2>
+          <h3>Navigateur par défaut</h3>
+          <p>
+            Au premier lancement, la page d'accueil propose une fois de faire de Browser votre navigateur par défaut
+            (« Plus tard » la fait disparaître). Le réglage se retrouve dans Paramètres, Comportement,
+            <strong>Navigateur par défaut</strong>. Sous Windows 10 et 11, le bouton ouvre les Paramètres de Windows
+            sur la page de Browser : choisissez-le pour les liens web et, si vous le souhaitez, pour les fichiers HTML
+            et PDF. Sous macOS, le système vous demande confirmation ; sous Linux, Browser devient le gestionnaire des
+            liens <code>http</code> et <code>https</code>.
+          </p>
+          <p>
+            Un lien cliqué dans une autre application, ou un fichier HTML ou PDF ouvert depuis l'explorateur, s'ouvre
+            dans un nouvel onglet de la dernière fenêtre normale utilisée (jamais dans une fenêtre privée).
+          </p>
+          <h3>Lecteur PDF</h3>
+          <p>
+            Les PDF s'affichent directement dans l'onglet, en ligne comme sur votre disque, avec le lecteur intégré de
+            Chromium (zoom, recherche, impression, téléchargement). Un PDF envoyé comme pièce jointe par le site est
+            téléchargé, comme avant.
+          </p>
+          <h3>Historique</h3>
+          <p>
+            <kbd>Ctrl</kbd> <kbd>H</kbd> (<kbd>⌘</kbd> <kbd>Y</kbd>), le menu « … », Historique, Tout l'historique, ou
+            <code>@h</code> dans la barre universelle ouvrent <code>browser://history</code> : les pages visitées jour
+            par jour, une recherche, la suppression d'une page ou d'une sélection, et
+            <strong>Effacer l'historique</strong> sur la dernière heure, aujourd'hui, les 7 derniers jours ou tout.
+            Les fenêtres privées n'enregistrent ni n'affichent l'historique.
+          </p>
+          <h3>Importer depuis un autre navigateur</h3>
+          <p>
+            Paramètres, Données, <strong>Importer…</strong> (ou <code>browser://import</code>) détecte Chrome, Edge,
+            Brave, Vivaldi, Opera, Chromium, Firefox et Arc et leurs profils. Choisissez ce qu'il faut reprendre :
+            favoris (rangés dans des dossiers du même nom), historique, moteur de recherche, et pour Arc les
+            favoris de la barre et les onglets épinglés de chaque espace. Rien n'est importé deux fois.
+          </p>
+          <p>
+            Les mots de passe des autres navigateurs sont chiffrés avec une clé du système que Browser ne doit pas
+            lire : exportez-les en CSV depuis l'autre navigateur (Chrome, Edge : Gestionnaire de mots de passe,
+            Exporter ; Firefox : Mots de passe, « … », Exporter), choisissez le fichier dans la page d'import, puis
+            supprimez-le. Safari n'est pas importé.
           </p>
         </section>
 

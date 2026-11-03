@@ -12,6 +12,8 @@ export interface UiContents {
 export class WindowRegistry<W> {
   private readonly windows = new Map<number, W>();
   private readonly uiOwners = new Map<number, W>();
+  /** Chrome ids, the most recently focused window last. */
+  private focusOrder: number[] = [];
 
   /** A new window: its chrome UI is registered as one of its UIs too. */
   add(chrome: UiContents, window: W): void {
@@ -29,6 +31,23 @@ export class WindowRegistry<W> {
   /** The window closed (its UIs leave the allow-list when their webContents go). */
   remove(chromeId: number): void {
     this.windows.delete(chromeId);
+    this.focusOrder = this.focusOrder.filter((id) => id !== chromeId);
+  }
+
+  /** The window got the focus. */
+  focused(chromeId: number): void {
+    if (!this.windows.has(chromeId)) return;
+    this.focusOrder = [...this.focusOrder.filter((id) => id !== chromeId), chromeId];
+  }
+
+  /** The most recently focused window accepted by `filter`; windows never focused come after, newest first. */
+  lastFocused(filter: (window: W) => boolean = () => true): W | undefined {
+    const never = [...this.windows.keys()].filter((id) => !this.focusOrder.includes(id));
+    for (const id of [...this.focusOrder].reverse().concat(never.reverse())) {
+      const window = this.windows.get(id);
+      if (window && filter(window)) return window;
+    }
+    return undefined;
   }
 
   /** Window of a chrome UI webContents (not the overlay). */

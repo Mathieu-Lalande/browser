@@ -10,6 +10,7 @@
   import Icon from "./Icon.svelte";
   import { StartLayout } from "./start/layout.svelte";
   import WidgetCard from "./start/WidgetCard.svelte";
+  import DefaultBrowserPrompt from "./start/DefaultBrowserPrompt.svelte";
   import WidgetGallery from "./start/WidgetGallery.svelte";
   import Button from "./ui/Button.svelte";
   import Segmented from "./ui/Segmented.svelte";
@@ -170,6 +171,8 @@
   {:else if !hasHeading}
     <h1 class="visually-hidden">Nouvel onglet</h1>
   {/if}
+
+  <DefaultBrowserPrompt />
 
   <div class="board" bind:this={board}>
     <div class="grid" role="list" aria-label="Widgets de la page d'accueil">
