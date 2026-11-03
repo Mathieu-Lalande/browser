@@ -161,7 +161,7 @@ describe("gesture thresholds", () => {
 });
 
 describe("link peek sheet (ADR-027)", () => {
-  it("closes past a quarter of its height or on a fling down, springs back otherwise", () => {
+  it("closes past a quarter of its height or on a fling down, settles back otherwise", () => {
     expect(shouldDismissSheet(100, 0, 600)).toBe(false);
     expect(shouldDismissSheet(200, 0, 600)).toBe(true);
     expect(shouldDismissSheet(20, 1500, 600)).toBe(true);

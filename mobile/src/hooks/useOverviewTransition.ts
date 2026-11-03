@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Easing, interpolate, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { interpolate, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { settleConfig } from "../lib/motion";
 import { scheduleOnRN } from "react-native-worklets";
 import { initialScroll, overviewGeometry, overviewTarget } from "../components/TabOverview";
 import type { Rect } from "../lib/overviewLayout";
@@ -48,7 +49,8 @@ export function useOverviewTransition({
     () => overviewGeometry(width, height, insets.top, insets.bottom, hasPinned, hasFavorites),
     [width, height, insets.top, insets.bottom, hasPinned, hasFavorites],
   );
-  const timing = { duration: reduceMotion ? 0 : 360, easing: Easing.bezier(0.2, 0.85, 0.1, 1) };
+  // Short ease-out, no overshoot (`lib/motion`).
+  const timing = settleConfig(reduceMotion);
 
   const open = useEvent(() => {
     const scroll = initialScroll(geometry, model, tabId, insets.bottom);

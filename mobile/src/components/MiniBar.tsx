@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import Animated, { FadeInDown, FadeOutDown } from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 import { useTheme } from "../state/theme";
 import { Icon } from "./Icon";
 import { IconButton } from "./ui";
@@ -15,11 +15,9 @@ interface Props {
 
 /** "Pause des médias" on the phone (ADR-035): a bar above the toolbar while the page has media. */
 export const MiniBar = memo(function MiniBar({ title, subtitle, playing, onToggle, onClose }: Props) {
-  const { colors, reduceMotion } = useTheme();
+  const { colors } = useTheme();
   return (
     <Animated.View
-      entering={FadeInDown.duration(reduceMotion ? 0 : 160)}
-      exiting={FadeOutDown.duration(reduceMotion ? 0 : 120)}
       style={[styles.bar, { backgroundColor: colors.bgElevated, borderColor: colors.hairline }]}
       accessibilityLabel="Lecture en cours"
       testID="mini-bar"

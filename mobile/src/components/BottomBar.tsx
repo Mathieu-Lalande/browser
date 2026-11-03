@@ -2,7 +2,8 @@ import { BlurView } from "expo-blur";
 import { memo, useEffect } from "react";
 import { Platform, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
-import Animated, { interpolate, useAnimatedStyle, useSharedValue, withSpring, withTiming, type SharedValue } from "react-native-reanimated";
+import Animated, { interpolate, useAnimatedStyle, useSharedValue, type SharedValue } from "react-native-reanimated";
+import { settle } from "../lib/motion";
 import { scheduleOnRN } from "react-native-worklets";
 import { isSwipeUp, resolveHorizontalSwipe, rubberBand } from "../lib/gestures";
 import { siteLabel } from "../lib/site";
@@ -90,24 +91,24 @@ export const BottomBar = memo(function BottomBar(props: Props) {
       "worklet";
       const horizontal = Math.abs(event.translationX) > Math.abs(event.translationY);
       if (!horizontal) {
-        pillY.value = withSpring(0, { damping: 18, stiffness: 260 });
+        pillY.value = settle(0, reduceMotion);
         if (isSwipeUp(event.translationY, event.velocityY)) scheduleOnRN(onSwipeUp);
-        pillX.value = withSpring(0);
+        pillX.value = settle(0, reduceMotion);
         return;
       }
       const direction = resolveHorizontalSwipe(event.translationX, event.velocityX, width);
       const allowed = direction === 1 ? canNext.value : direction === -1 ? canPrevious.value : false;
       if (!allowed || direction === 0) {
-        pillX.value = withSpring(0, { damping: 18, stiffness: 260 });
+        pillX.value = settle(0, reduceMotion);
         return;
       }
       if (reduceMotion) {
         pillX.value = 0;
       } else {
         // Slide out with the finger, then come back in from the other side.
-        pillX.value = withTiming(-direction * width * 0.7, { duration: 130 }, () => {
+        pillX.value = settle(-direction * width * 0.7, false, () => {
           pillX.value = direction * width * 0.5;
-          pillX.value = withSpring(0, { damping: 20, stiffness: 240 });
+          pillX.value = settle(0, false);
         });
       }
       scheduleOnRN(onSwipeTab, direction);

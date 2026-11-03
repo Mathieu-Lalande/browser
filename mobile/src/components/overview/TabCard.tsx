@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import Animated, { FadeOut, interpolate, LinearTransition, useAnimatedStyle, type SharedValue } from "react-native-reanimated";
+import Animated, { interpolate, useAnimatedStyle, type SharedValue } from "react-native-reanimated";
 import type { GridLayout } from "../../lib/overviewLayout";
 import { siteLabel } from "../../lib/site";
 import { isPrivateTab, type MobileTab } from "../../lib/tabs";
@@ -16,7 +16,6 @@ export const TabCard = memo(function TabCard({
   layout,
   active,
   progress,
-  reduceMotion,
   onPress,
   onClose,
   onLongPress,
@@ -25,7 +24,6 @@ export const TabCard = memo(function TabCard({
   layout: GridLayout;
   active: boolean;
   progress: SharedValue<number>;
-  reduceMotion: boolean;
   onPress: (id: string) => void;
   onClose: (id: string) => void;
   onLongPress: (tab: MobileTab) => void;
@@ -47,19 +45,13 @@ export const TabCard = memo(function TabCard({
     const p = progress.value;
     return {
       opacity: active ? interpolate(p, [0.85, 1], [0, 1], "clamp") : interpolate(p, [0.2, 1], [0, 1], "clamp"),
-      transform: [{ scale: active || reduceMotion ? 1 : interpolate(p, [0, 1], [0.92, 1]) }],
     };
   });
 
   return (
     <>
-      {/* Layout animations on the wrapper, animated opacity/transform on the child: Reanimated
-          warns (and the layout animation wins) when both target the same view. */}
-      <Animated.View
-        layout={reduceMotion ? undefined : LinearTransition.springify().damping(20).stiffness(200)}
-        exiting={FadeOut.duration(120)}
-        style={{ width, height: layout.cardHeight }}
-      >
+      {/* No layout/exiting animation and no scale pop-in (`lib/motion`): cards move and leave at once. */}
+      <Animated.View style={{ width, height: layout.cardHeight }}>
         <Animated.View style={[{ flex: 1 }, style]}>
           <Tap
             accessibilityRole="button"

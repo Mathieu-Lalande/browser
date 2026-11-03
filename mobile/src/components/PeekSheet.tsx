@@ -1,8 +1,9 @@
 import { displayUrl } from "@shared/url";
-import { memo, useEffect, useMemo, useState, type ComponentType } from "react";
+import { memo, useMemo, useState, type ComponentType } from "react";
 import { Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
-import Animated, { Easing, interpolate, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
+import Animated, { interpolate, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
+import { settle } from "../lib/motion";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView as RNWebView } from "react-native-webview";
 import type { WebViewProps } from "react-native-webview/lib/WebView";
@@ -46,22 +47,13 @@ export const PeekSheet = memo(function PeekSheet({ peek, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const sheetHeight = Math.round(height * 0.88);
-  /** 0 = open, sheetHeight = off screen. */
-  const offset = useSharedValue(sheetHeight);
+  /** 0 = open, sheetHeight = off screen. Appears at once (no entrance animation, `lib/motion`). */
+  const offset = useSharedValue(0);
   const [source, setSource] = useState(() => ({ uri: peek.url }));
   const [page, setPage] = useState({ url: peek.url, title: "", loading: true });
 
-  useEffect(() => {
-    offset.value = reduceMotion ? 0 : withSpring(0, { damping: 24, stiffness: 240, overshootClamping: true });
-  }, [offset, reduceMotion]);
-
-  /** Slides out, then unmounts. */
-  const dismiss = useEvent(() => {
-    if (reduceMotion) return onClose();
-    offset.value = withTiming(sheetHeight, { duration: 200, easing: Easing.in(Easing.cubic) }, (finished) => {
-      if (finished) scheduleOnRN(onClose);
-    });
-  });
+  /** Closes at once. */
+  const dismiss = useEvent(() => onClose());
 
   const drag = usePanGesture({
     activeOffsetY: [-10, 10],
@@ -72,11 +64,12 @@ export const PeekSheet = memo(function PeekSheet({ peek, onClose }: Props) {
     onDeactivate: (event) => {
       "worklet";
       if (shouldDismissSheet(event.translationY, event.velocityY, sheetHeight)) {
-        offset.value = withTiming(sheetHeight, { duration: 180, easing: Easing.out(Easing.cubic) }, (finished) => {
+        // Released mid-drag: settles from the finger position, then unmounts.
+        offset.value = settle(sheetHeight, reduceMotion, (finished) => {
           if (finished) scheduleOnRN(onClose);
         });
       } else {
-        offset.value = withSpring(0, { damping: 22, stiffness: 260, overshootClamping: true });
+        offset.value = settle(0, reduceMotion);
       }
     },
   });
