@@ -1,0 +1,81 @@
+<script lang="ts">
+  import { ARCHIVE_DELAY_OPTIONS, type CloseTabActivates, type NewTabPosition, type SettingsPatch, type TabArchiveDelay, type TabSleepDelay } from "@shared/settings";
+  import { api } from "../../lib/browser.svelte";
+  import { settings } from "../../lib/settings.svelte";
+  import Button from "../ui/Button.svelte";
+  import Row from "../ui/Row.svelte";
+  import Segmented from "../ui/Segmented.svelte";
+  import Toggle from "../ui/Toggle.svelte";
+
+  /** Settings > Comportement: session restore, where tabs open, sleep and archiving, extensions. */
+
+  const s = $derived(settings.current);
+  const update = (patch: SettingsPatch) => settings.update(patch);
+</script>
+
+<Row anchor="restore-session" label="Restaurer la session au démarrage" hint="Rouvre les onglets de la dernière fois (chargés à la demande).">
+  <Toggle
+    label="Restaurer la session au démarrage"
+    checked={s.behavior.restoreSession}
+    onchange={(restoreSession) => update({ behavior: { restoreSession } })}
+  />
+</Row>
+<Row anchor="new-tab-position" label="Ouvrir les nouveaux onglets">
+  <Segmented
+    label="Ouvrir les nouveaux onglets"
+    value={s.behavior.newTabPosition}
+    options={[
+      { value: "end" as NewTabPosition, label: "À la fin" },
+      { value: "next" as NewTabPosition, label: "Après l'onglet actif" },
+    ]}
+    onchange={(newTabPosition) => update({ behavior: { newTabPosition } })}
+  />
+</Row>
+<Row anchor="after-close" label="Après la fermeture d'un onglet, afficher">
+  <Segmented
+    label="Après la fermeture d'un onglet, afficher"
+    value={s.behavior.closeTabActivates}
+    options={[
+      { value: "next" as CloseTabActivates, label: "Le suivant" },
+      { value: "previous" as CloseTabActivates, label: "Le précédent" },
+      { value: "recent" as CloseTabActivates, label: "Le dernier utilisé" },
+    ]}
+    onchange={(closeTabActivates) => update({ behavior: { closeTabActivates } })}
+  />
+</Row>
+<Row
+  anchor="sleep"
+  label="Mettre en veille les onglets inactifs après"
+  hint="Libère la mémoire : la page se recharge quand vous revenez sur l'onglet. Jamais pour un onglet qui joue du son ou un formulaire en cours."
+>
+  <Segmented
+    label="Mettre en veille les onglets inactifs après"
+    value={s.behavior.sleepTabsAfter}
+    options={[
+      { value: "never" as TabSleepDelay, label: "Jamais" },
+      { value: "15m" as TabSleepDelay, label: "15 min" },
+      { value: "30m" as TabSleepDelay, label: "30 min" },
+      { value: "1h" as TabSleepDelay, label: "1 h" },
+      { value: "2h" as TabSleepDelay, label: "2 h" },
+    ]}
+    onchange={(sleepTabsAfter) => update({ behavior: { sleepTabsAfter } })}
+  />
+</Row>
+<Row
+  anchor="archive"
+  label="Archiver les onglets inactifs après"
+  hint="L'onglet est fermé et rangé dans les onglets archivés, d'où il se restaure. Jamais pour un onglet épinglé, favori, qui joue du son ou dans une vue scindée."
+>
+  <Segmented
+    label="Archiver les onglets inactifs après"
+    value={s.behavior.archiveTabsAfter}
+    options={ARCHIVE_DELAY_OPTIONS.map((option) => ({ value: option.value as TabArchiveDelay, label: option.label }))}
+    onchange={(archiveTabsAfter) => update({ behavior: { archiveTabsAfter } })}
+  />
+</Row>
+<Row label="Onglets archivés" hint="Les onglets fermés par l'archivage, à restaurer ou supprimer.">
+  <Button icon="archive" onclick={() => api.commands.run("open-archive")}>Voir les onglets archivés</Button>
+</Row>
+<Row label="Extensions" hint="Installer, activer ou retirer des extensions." keywords="modules addons">
+  <Button icon="extension" onclick={() => api.commands.run("open-extensions")}>Gérer les extensions</Button>
+</Row>

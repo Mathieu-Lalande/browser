@@ -1,51 +1,33 @@
 <script lang="ts">
-  import {
-    ACCENT_PRESETS,
-    LIMITS,
-    PAGE_ZOOM_LEVELS,
-    type BackgroundStyle,
-    type CloseTabActivates,
-    type Density,
-    type NewTabPosition,
-    type SettingsPatch,
-    type SidebarPosition,
-    type StartBackground,
-    type TabSleepDelay,
-    type TabArchiveDelay,
-    type ThemeMode,
-    type UiFont,
-    ARCHIVE_DELAY_OPTIONS,
-  } from "@shared/settings";
-  import { api, browser } from "../../lib/browser.svelte";
+  import { tick } from "svelte";
   import { internalFragment } from "@shared/internal";
-  import { LAYOUT_PRESETS, applyPreset } from "@shared/start-widgets";
-  import { FONT_STACKS, backdrop } from "@shared/theme";
-  import { SEARCH_ENGINES } from "@shared/url";
+  import { browser } from "../../lib/browser.svelte";
   import { settings } from "../../lib/settings.svelte";
   import Icon, { type IconName } from "../Icon.svelte";
-  import ColorPicker from "./ColorPicker.svelte";
-  import ConfirmButton from "../ui/ConfirmButton.svelte";
-  import { platform } from "../../lib/platform.svelte";
-  import DataSection from "./DataSection.svelte";
-  import DownloadsSection from "./DownloadsSection.svelte";
-  import MiniBrowser from "./MiniBrowser.svelte";
-  import Row from "../ui/Row.svelte";
-  import Section from "./Section.svelte";
-  import Segmented from "../ui/Segmented.svelte";
-  import ShortcutsSection from "./ShortcutsSection.svelte";
-  import SiteDataSection from "./SiteDataSection.svelte";
-  import Slider from "./Slider.svelte";
-  import SyncSection from "./SyncSection.svelte";
-  import ThemeShare from "./ThemeShare.svelte";
-  import UpdatesSection from "./UpdatesSection.svelte";
-  import TranslateSection from "./TranslateSection.svelte";
-  import Toggle from "../ui/Toggle.svelte";
   import Button from "../ui/Button.svelte";
+  import ConfirmButton from "../ui/ConfirmButton.svelte";
   import EmptyState from "../ui/EmptyState.svelte";
   import SearchField from "../ui/SearchField.svelte";
   import { queryFilter, setRowFilter } from "../ui/filter";
-  import { tick } from "svelte";
+  import AppearanceSection from "./AppearanceSection.svelte";
+  import BehaviorSection from "./BehaviorSection.svelte";
+  import DataSection from "./DataSection.svelte";
+  import DownloadsSection from "./DownloadsSection.svelte";
+  import LayoutSection from "./LayoutSection.svelte";
+  import PrivacySection from "./PrivacySection.svelte";
+  import SearchSection from "./SearchSection.svelte";
+  import Section from "./Section.svelte";
+  import ShortcutsSection from "./ShortcutsSection.svelte";
+  import SiteDataSection from "./SiteDataSection.svelte";
+  import StartPageSection from "./StartPageSection.svelte";
+  import SyncSection from "./SyncSection.svelte";
+  import TranslateSection from "./TranslateSection.svelte";
+  import UpdatesSection from "./UpdatesSection.svelte";
 
+  /**
+   * browser://settings: side navigation, search, and the sections (one component each, wrapped in
+   * `Section`). Deep links (`#section/row`) scroll to a section's `data-setting` row.
+   */
   const NAV: { id: string; label: string; icon: IconName }[] = [
     { id: "appearance", label: "Apparence", icon: "palette" },
     { id: "layout", label: "Disposition", icon: "sidebar" },
@@ -61,35 +43,6 @@
     { id: "sync", label: "Synchronisation", icon: "cloud" },
     { id: "updates", label: "Mises à jour", icon: "update" },
   ];
-
-  const MODES: { value: ThemeMode; label: string; icon: IconName }[] = [
-    { value: "system", label: "Système", icon: "monitor" },
-    { value: "light", label: "Clair", icon: "sun" },
-    { value: "dark", label: "Sombre", icon: "moon" },
-  ];
-  const BACKGROUNDS: { value: BackgroundStyle; label: string }[] = [
-    { value: "gradient", label: "Dégradé" },
-    { value: "mesh", label: "Nuances" },
-    { value: "solid", label: "Uni" },
-  ];
-  const FONTS: { value: UiFont; label: string }[] = [
-    { value: "system", label: "Système" },
-    { value: "rounded", label: "Arrondie" },
-    { value: "serif", label: "Serif" },
-    { value: "mono", label: "Mono" },
-  ];
-
-  const s = $derived(settings.current);
-  const update = (patch: SettingsPatch) => settings.update(patch);
-
-  const accentSwatches = ACCENT_PRESETS.map((preset) => ({
-    ...preset,
-    color: preset.accent,
-    gradient: `linear-gradient(135deg, ${preset.accent} 45%, ${preset.accent2})`,
-  }));
-  const secondarySwatches = $derived(
-    [...new Set(ACCENT_PRESETS.map((preset) => preset.accent2))].map((color) => ({ name: color, color })),
-  );
 
   /** Settings search: rows hide themselves when they do not match (ui/filter.ts). */
   let query = $state("");
@@ -115,9 +68,6 @@
   let jumpTimer: ReturnType<typeof setTimeout> | undefined;
   /** Room after the last section, so every section (the last ones too) can scroll to the top. */
   let tail = $state(0);
-  /** URL field of the start page image: saved once complete (on change), not on every keystroke. */
-  let imageDraft = $state<string | null>(null);
-  let imageError = $state(false);
 
   // Highlight the section being read in the side navigation: the last one whose title passed
   // the top third, or the last one once scrolled to the bottom.
@@ -148,7 +98,7 @@
     const margin = target ? content.clientHeight / 3 : parseFloat(getComputedStyle(section).scrollMarginTop) || 0;
     const top = element.getBoundingClientRect().top - content.getBoundingClientRect().top + content.scrollTop - margin;
     // Only the settings column scrolls: scrollIntoView would also nudge its scrollable ancestors.
-    const reduceMotion = s.appearance.reduceMotion || matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduceMotion = settings.current.appearance.reduceMotion || matchMedia("(prefers-reduced-motion: reduce)").matches;
     content.scrollTo({ top, behavior: reduceMotion ? "auto" : "smooth" });
   }
 
@@ -188,13 +138,6 @@
     });
   });
 
-  function commitImage(event: Event & { currentTarget: HTMLInputElement }): void {
-    const value = event.currentTarget.value.trim();
-    imageError = value !== "" && !/^https:\/\/\S+$/i.test(value);
-    if (imageError) return;
-    imageDraft = null;
-    update({ startPage: { backgroundImage: value } });
-  }
 </script>
 
 <div class="settings">
@@ -236,140 +179,7 @@
         description="Couleurs, ambiance et typographie de l'interface."
         onReset={() => settings.reset("appearance")}
       >
-        <Row anchor="theme" label="Mode" hint="Clair, sombre, ou selon le réglage du système." keywords="thème clair sombre système dark light" stacked>
-        <div class="modes" role="radiogroup" aria-label="Thème">
-          {#each MODES as mode (mode.value)}
-            <button
-              class="mode"
-              role="radio"
-              aria-checked={s.appearance.mode === mode.value}
-              onclick={() => update({ appearance: { mode: mode.value } })}
-            >
-              <span class="frame">
-                {#if mode.value === "system"}
-                  <span class="half"><MiniBrowser settings={s} mode="light" /></span>
-                  <span class="half dark"><MiniBrowser settings={s} mode="dark" /></span>
-                {:else}
-                  <MiniBrowser settings={s} mode={mode.value} />
-                {/if}
-              </span>
-              <span class="caption"><Icon name={mode.icon} size={12} /> {mode.label}</span>
-            </button>
-          {/each}
-        </div>
-        </Row>
-
-        <ThemeShare />
-        <Row anchor="accent" label="Couleur d'accent" hint="Boutons, sélection, focus et reflets de l'arrière-plan.">
-          <ColorPicker
-            label="Couleur d'accent"
-            value={s.appearance.accent}
-            swatches={accentSwatches}
-            onselect={(preset) => update({ appearance: { accent: preset.accent, accent2: preset.accent2 } })}
-            onchange={(hex) => update({ appearance: { accent: hex } })}
-          />
-        </Row>
-        <Row anchor="secondary" label="Couleur secondaire" hint="Seconde teinte des dégradés.">
-          <ColorPicker
-            label="Couleur secondaire"
-            value={s.appearance.accent2}
-            swatches={secondarySwatches}
-            onselect={(swatch) => update({ appearance: { accent2: swatch.color } })}
-            onchange={(hex) => update({ appearance: { accent2: hex } })}
-          />
-        </Row>
-        <Row
-          anchor="dynamic-theme"
-          label="Thème dynamique"
-          hint="L'accent prend la couleur du site affiché (couleur de thème ou de son icône), ajustée pour rester lisible. Sinon, la couleur de l'espace."
-        >
-          <Toggle label="Thème dynamique" checked={s.appearance.dynamicTheme} onchange={(dynamicTheme) => update({ appearance: { dynamicTheme } })} />
-        </Row>
-        <Row anchor="background" label="Arrière-plan" hint="Fond de la fenêtre, autour de la page.">
-          <div class="tiles" role="radiogroup" aria-label="Arrière-plan">
-            {#each BACKGROUNDS as option (option.value)}
-              <button
-                class="tile"
-                role="radio"
-                aria-checked={s.appearance.background === option.value}
-                onclick={() => update({ appearance: { background: option.value } })}
-              >
-                <span class="sample" style:background={backdrop(option.value, settings.mode)}></span>
-                {option.label}
-              </button>
-            {/each}
-          </div>
-        </Row>
-        <Row anchor="font" label="Police de l'interface">
-          <div class="tiles" role="radiogroup" aria-label="Police de l'interface">
-            {#each FONTS as option (option.value)}
-              <button
-                class="tile font"
-                role="radio"
-                aria-checked={s.appearance.font === option.value}
-                onclick={() => update({ appearance: { font: option.value } })}
-              >
-                <span class="aa" style:font-family={FONT_STACKS[option.value]}>Aa</span>
-                {option.label}
-              </button>
-            {/each}
-          </div>
-        </Row>
-        <Row anchor="density" label="Densité" hint="Hauteur des onglets et des contrôles.">
-          <Segmented
-            label="Densité"
-            value={s.appearance.density}
-            options={[
-              { value: "compact" as Density, label: "Compacte" },
-              { value: "comfortable" as Density, label: "Confortable" },
-              { value: "spacious" as Density, label: "Aérée" },
-            ]}
-            onchange={(density) => update({ appearance: { density } })}
-          />
-        </Row>
-        <Row anchor="radius" label="Arrondi des coins">
-          <Slider
-            label="Arrondi des coins"
-            value={s.appearance.radius}
-            min={LIMITS.radius.min}
-            max={LIMITS.radius.max}
-            onchange={(radius) => update({ appearance: { radius } })}
-          />
-        </Row>
-        <Row anchor="shadows" label="Ombres" hint="Ombre portée de la page et de la fenêtre.">
-          <Toggle label="Ombres" checked={s.appearance.shadows} onchange={(shadows) => update({ appearance: { shadows } })} />
-        </Row>
-        <Row anchor="reduce-motion" label="Réduire les animations" hint="Coupe transitions et animations, en plus du réglage du système.">
-          <Toggle
-            label="Réduire les animations"
-            checked={s.appearance.reduceMotion}
-            onchange={(reduceMotion) => update({ appearance: { reduceMotion } })}
-          />
-        </Row>
-        <Row anchor="hand-cursor" label="Curseur main" hint="Pointeur en forme de main sur les boutons, onglets et liens de l'interface.">
-          <Toggle
-            label="Curseur main"
-            checked={s.appearance.pointerCursor}
-            onchange={(pointerCursor) => update({ appearance: { pointerCursor } })}
-          />
-        </Row>
-        <Row
-          anchor="page-zoom"
-          label="Zoom par défaut"
-          hint="Taille des pages web. Le zoom choisi sur un site ({platform.shortcut('zoom-in')} / {platform.shortcut('zoom-out')}) est mémorisé pour ce site."
-          id="page-zoom"
-        >
-          <select
-            id="page-zoom"
-            class="ui-field select"
-            value={s.appearance.pageZoom}
-            onchange={(event) => update({ appearance: { pageZoom: Number(event.currentTarget.value) } })}
-          >
-            {#each PAGE_ZOOM_LEVELS as level (level)}
-              <option value={level}>{level}&#8239;%</option>
-            {/each}
-          </select>
-        </Row>
+        <AppearanceSection />
       </Section>
 
       <Section
@@ -379,54 +189,7 @@
         description="Place de la barre latérale et de la page."
         onReset={() => settings.reset("layout")}
       >
-        <Row anchor="sidebar-position" label="Position de la barre latérale">
-          <Segmented
-            label="Position de la barre latérale"
-            value={s.layout.sidebarPosition}
-            options={[
-              { value: "left" as SidebarPosition, label: "Gauche" },
-              { value: "right" as SidebarPosition, label: "Droite" },
-            ]}
-            onchange={(sidebarPosition) => update({ layout: { sidebarPosition } })}
-          />
-        </Row>
-        <Row anchor="sidebar-width" label="Largeur de la barre latérale" hint="Se règle aussi en faisant glisser son bord.">
-          <Slider
-            label="Largeur de la barre latérale"
-            value={s.layout.sidebarWidth}
-            min={LIMITS.sidebarWidth.min}
-            max={LIMITS.sidebarWidth.max}
-            step={4}
-            onchange={(sidebarWidth) => update({ layout: { sidebarWidth } })}
-          />
-        </Row>
-        <Row anchor="gutter" label="Marge autour de la page" hint="0 pour une page bord à bord.">
-          <Slider
-            label="Marge autour de la page"
-            value={s.layout.gutter}
-            min={LIMITS.gutter.min}
-            max={LIMITS.gutter.max}
-            onchange={(gutter) => update({ layout: { gutter } })}
-          />
-        </Row>
-        <Row
-          anchor="zen"
-          label="Mode zen"
-          hint="Masque la barre latérale et affiche la page bord à bord. Survolez le bord de la fenêtre pour la faire apparaître. Raccourci : {platform.shortcut('toggle-zen')}."
-        >
-          <Toggle label="Mode zen" checked={s.layout.zenMode} onchange={(zenMode) => update({ layout: { zenMode } })} />
-        </Row>
-        <Row
-          anchor="tab-preview"
-          label="Aperçu des onglets au survol"
-          hint="Survoler un onglet, un favori ou une icône du rail affiche une carte : miniature, titre, site, son et veille."
-        >
-          <Toggle
-            label="Aperçu des onglets au survol"
-            checked={s.layout.tabHoverPreview}
-            onchange={(tabHoverPreview) => update({ layout: { tabHoverPreview } })}
-          />
-        </Row>
+        <LayoutSection />
       </Section>
 
       <Section
@@ -436,22 +199,7 @@
         description="Moteur utilisé par la barre d'adresse et la page d'accueil."
         onReset={() => settings.reset("search")}
       >
-        <Row anchor="engine" label="Moteur de recherche" hint="Utilisé quand le texte saisi n'est pas une adresse." keywords="google duckduckgo bing qwant ecosia" stacked>
-        <div class="engines" role="radiogroup" aria-label="Moteur de recherche">
-          {#each SEARCH_ENGINES as engine (engine.id)}
-            <button
-              class="engine"
-              role="radio"
-              aria-checked={s.search.engine === engine.id}
-              onclick={() => update({ search: { engine: engine.id } })}
-            >
-              <span class="radio"></span>
-              <span class="engine-name">{engine.name}</span>
-              <span class="engine-host">{new URL(engine.template).hostname.replace(/^www\./, "")}</span>
-            </button>
-          {/each}
-        </div>
-        </Row>
+        <SearchSection />
       </Section>
 
       <Section
@@ -461,58 +209,7 @@
         description="Ce qu'affiche un nouvel onglet."
         onReset={() => settings.reset("startPage")}
       >
-        <Row anchor="name" label="Prénom" hint="Pour un accueil personnalisé : « Bonjour, Mathieu. »" id="greeting-name">
-          <input
-            id="greeting-name"
-            class="ui-field"
-            value={s.startPage.greetingName}
-            maxlength={LIMITS.greetingName}
-            placeholder="Votre prénom"
-            autocomplete="off"
-            oninput={(event) => update({ startPage: { greetingName: event.currentTarget.value } })}
-          />
-        </Row>
-        <Row
-          anchor="widgets"
-          label="Widgets"
-          hint="Horloge, recherche, sites fréquents, notes, météo… Bouton « Personnaliser » de la page d'accueil pour les ajouter, les déplacer et les régler."
-          keywords="horloge sites fréquents notes météo tâches calendrier disposition"
-        >
-          <div class="actions">
-            {#each LAYOUT_PRESETS as preset (preset.id)}
-              <Button size="sm" onclick={() => update({ startPage: { widgets: applyPreset(s.startPage.widgets, preset.id) } })}>{preset.label}</Button>
-            {/each}
-          </div>
-        </Row>
-        <Row anchor="background" label="Fond" hint={s.startPage.background === "image" ? "Adresse https d'une image." : undefined}>
-          <div class="stack">
-            <Segmented
-              label="Fond de la page d'accueil"
-              value={s.startPage.background}
-              options={[
-                { value: "theme" as StartBackground, label: "Thème" },
-                { value: "aurora" as StartBackground, label: "Aurore" },
-                { value: "dynamic" as StartBackground, label: "Dynamique" },
-                { value: "image" as StartBackground, label: "Image" },
-              ]}
-              onchange={(background) => update({ startPage: { background } })}
-            />
-            {#if s.startPage.background === "image"}
-              <input
-                class="ui-field wide"
-                class:invalid={imageError}
-                type="url"
-                value={imageDraft ?? s.startPage.backgroundImage}
-                placeholder="https://…/image.jpg"
-                aria-label="Adresse de l'image de fond"
-                aria-invalid={imageError}
-                spellcheck="false"
-                oninput={(event) => ((imageDraft = event.currentTarget.value), (imageError = false))}
-                onchange={commitImage}
-              />
-            {/if}
-          </div>
-        </Row>
+        <StartPageSection />
       </Section>
 
       <Section
@@ -522,72 +219,7 @@
         description="Démarrage et gestion des onglets."
         onReset={() => settings.reset("behavior")}
       >
-        <Row anchor="restore-session" label="Restaurer la session au démarrage" hint="Rouvre les onglets de la dernière fois (chargés à la demande).">
-          <Toggle
-            label="Restaurer la session au démarrage"
-            checked={s.behavior.restoreSession}
-            onchange={(restoreSession) => update({ behavior: { restoreSession } })}
-          />
-        </Row>
-        <Row anchor="new-tab-position" label="Ouvrir les nouveaux onglets">
-          <Segmented
-            label="Ouvrir les nouveaux onglets"
-            value={s.behavior.newTabPosition}
-            options={[
-              { value: "end" as NewTabPosition, label: "À la fin" },
-              { value: "next" as NewTabPosition, label: "Après l'onglet actif" },
-            ]}
-            onchange={(newTabPosition) => update({ behavior: { newTabPosition } })}
-          />
-        </Row>
-        <Row anchor="after-close" label="Après la fermeture d'un onglet, afficher">
-          <Segmented
-            label="Après la fermeture d'un onglet, afficher"
-            value={s.behavior.closeTabActivates}
-            options={[
-              { value: "next" as CloseTabActivates, label: "Le suivant" },
-              { value: "previous" as CloseTabActivates, label: "Le précédent" },
-              { value: "recent" as CloseTabActivates, label: "Le dernier utilisé" },
-            ]}
-            onchange={(closeTabActivates) => update({ behavior: { closeTabActivates } })}
-          />
-        </Row>
-        <Row
-          anchor="sleep"
-          label="Mettre en veille les onglets inactifs après"
-          hint="Libère la mémoire : la page se recharge quand vous revenez sur l'onglet. Jamais pour un onglet qui joue du son ou un formulaire en cours."
-        >
-          <Segmented
-            label="Mettre en veille les onglets inactifs après"
-            value={s.behavior.sleepTabsAfter}
-            options={[
-              { value: "never" as TabSleepDelay, label: "Jamais" },
-              { value: "15m" as TabSleepDelay, label: "15 min" },
-              { value: "30m" as TabSleepDelay, label: "30 min" },
-              { value: "1h" as TabSleepDelay, label: "1 h" },
-              { value: "2h" as TabSleepDelay, label: "2 h" },
-            ]}
-            onchange={(sleepTabsAfter) => update({ behavior: { sleepTabsAfter } })}
-          />
-        </Row>
-        <Row
-          anchor="archive"
-          label="Archiver les onglets inactifs après"
-          hint="L'onglet est fermé et rangé dans les onglets archivés, d'où il se restaure. Jamais pour un onglet épinglé, favori, qui joue du son ou dans une vue scindée."
-        >
-          <Segmented
-            label="Archiver les onglets inactifs après"
-            value={s.behavior.archiveTabsAfter}
-            options={ARCHIVE_DELAY_OPTIONS.map((option) => ({ value: option.value as TabArchiveDelay, label: option.label }))}
-            onchange={(archiveTabsAfter) => update({ behavior: { archiveTabsAfter } })}
-          />
-        </Row>
-        <Row label="Onglets archivés" hint="Les onglets fermés par l'archivage, à restaurer ou supprimer.">
-          <Button icon="archive" onclick={() => api.commands.run("open-archive")}>Voir les onglets archivés</Button>
-        </Row>
-        <Row label="Extensions" hint="Installer, activer ou retirer des extensions." keywords="modules addons">
-          <Button icon="extension" onclick={() => api.commands.run("open-extensions")}>Gérer les extensions</Button>
-        </Row>
+        <BehaviorSection />
       </Section>
 
       <Section
@@ -607,28 +239,7 @@
         description="Ce que le navigateur révèle de vous aux sites."
         onReset={() => settings.reset("privacy")}
       >
-        <Row
-          anchor="accept-language"
-          label="Uniformiser la langue envoyée aux sites"
-          hint="Annonce « en-US, en » comme la majorité des navigateurs, pour moins se distinguer. Les sites peuvent alors s'afficher en anglais."
-        >
-          <Toggle
-            label="Uniformiser la langue envoyée aux sites"
-            checked={s.privacy.normalizeAcceptLanguage}
-            onchange={(normalizeAcceptLanguage) => update({ privacy: { normalizeAcceptLanguage } })}
-          />
-        </Row>
-        <Row
-          anchor="weather"
-          label="Widget Météo"
-          hint="Absent par défaut. Une fois ajouté, il envoie à Open-Meteo les coordonnées de la ville choisie (sans clé, sans cookie, réponses gardées 30 min) : rien d'autre ne quitte l'appareil."
-          keywords="open-meteo localisation réseau page d'accueil"
-        >
-          <span class="note">Réglé depuis la page d'accueil</span>
-        </Row>
-        <Row label="Mots de passe" hint="Identifiants enregistrés, chiffrés sur cet appareil." keywords="identifiants comptes connexion">
-          <Button icon="key" onclick={() => api.commands.run("open-passwords")}>Gérer les mots de passe</Button>
-        </Row>
+        <PrivacySection />
       </Section>
 
       <Section id="siteData" icon="cookie" title="Données des sites" description="Cookies et stockage laissés par les sites, et cookies tiers.">
@@ -825,172 +436,6 @@
     }
   }
 
-  /* Theme mode cards with a live miniature of the browser. */
-  .modes {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: var(--space-3);
-  }
-  .mode {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-    padding: 0;
-    color: var(--text-muted);
-  }
-  .frame {
-    position: relative;
-    display: block;
-    overflow: hidden;
-    aspect-ratio: 16 / 10;
-    border-radius: var(--radius-md);
-    box-shadow:
-      0 0 0 1px var(--border),
-      0 6px 18px -10px rgb(0 0 0 / 0.5);
-    transition: box-shadow var(--motion-fast) var(--ease);
-  }
-  .mode:hover .frame {
-    box-shadow:
-      0 0 0 1px color-mix(in oklab, var(--accent) 50%, transparent),
-      0 6px 18px -10px rgb(0 0 0 / 0.5);
-  }
-  .mode[aria-checked="true"] .frame {
-    box-shadow:
-      0 0 0 2px var(--accent-text),
-      0 8px 24px -10px color-mix(in oklab, var(--accent) 60%, transparent);
-  }
-  .mode[aria-checked="true"] {
-    color: var(--text);
-  }
-  .half {
-    position: absolute;
-    inset: 0;
-  }
-  .half.dark {
-    clip-path: polygon(58% 0, 100% 0, 100% 100%, 42% 100%);
-  }
-  .caption {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    font-size: var(--text-xs);
-  }
-
-  /* Picture tiles (background style, font). */
-  .tiles {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
-  }
-  .tile {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    width: 76px;
-    padding: 6px 6px 8px;
-    border-radius: var(--radius-md);
-    color: var(--text-muted);
-    font-size: var(--text-xs);
-    box-shadow: inset 0 0 0 1px var(--border);
-    transition:
-      background var(--motion-fast) var(--ease),
-      box-shadow var(--motion-fast) var(--ease);
-  }
-  .tile:hover {
-    background: var(--surface-hover);
-  }
-  .tile[aria-checked="true"] {
-    background: color-mix(in oklab, var(--accent) 10%, transparent);
-    color: var(--text);
-    box-shadow: inset 0 0 0 2px var(--accent-text);
-  }
-  .sample {
-    width: 100%;
-    height: 38px;
-    border-radius: var(--radius-sm);
-    box-shadow: inset 0 0 0 1px var(--border);
-  }
-  .aa {
-    display: grid;
-    place-items: center;
-    width: 100%;
-    height: 38px;
-    color: var(--text);
-    font-size: var(--text-lg);
-  }
-
-  /* Search engines. */
-  .engines {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: var(--space-2);
-  }
-  .engine {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    align-items: center;
-    column-gap: var(--space-3);
-    padding: 10px var(--space-3);
-    border-radius: var(--radius-md);
-    text-align: left;
-    box-shadow: inset 0 0 0 1px var(--border);
-    transition:
-      background var(--motion-fast) var(--ease),
-      box-shadow var(--motion-fast) var(--ease);
-  }
-  .engine:hover {
-    background: var(--surface-hover);
-  }
-  .engine[aria-checked="true"] {
-    background: color-mix(in oklab, var(--accent) 10%, transparent);
-    box-shadow: inset 0 0 0 2px var(--accent-text);
-  }
-  .radio {
-    grid-row: span 2;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    box-shadow: inset 0 0 0 1.5px var(--text-faint);
-  }
-  .engine[aria-checked="true"] .radio {
-    background: #fff;
-    box-shadow: inset 0 0 0 5px var(--accent-text);
-  }
-  .engine-name {
-    font-weight: 500;
-  }
-  .engine-host {
-    color: var(--text-muted);
-    font-size: var(--text-xs);
-  }
-
-  .actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-  .note {
-    color: var(--text-faint);
-    font-size: 12px;
-  }
-  .stack {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: var(--space-2);
-  }
-  .ui-field {
-    width: 220px;
-  }
-  .ui-field.wide {
-    width: min(300px, 100%);
-  }
-  .ui-field.select {
-    width: 110px;
-    padding-right: 6px;
-  }
   @keyframes rise {
     from {
       opacity: 0;
