@@ -5,6 +5,7 @@ import { defaultWidgets, migrateLegacyStartPage, sanitizeWidgets, type StartWidg
 import { normalizeLanguage, sanitizeLanguageList } from "./translate/languages";
 import { normalizeServerUrl, type DeepLPlan, type TranslateProviderChoice } from "./translate/providers";
 import { sanitizeSiteKeys } from "./translate/rules";
+import { ASSISTANT_MODELS, DEFAULT_ASSISTANT_MODEL, type AssistantModelId } from "./assistant/models";
 import { DEFAULT_SEARCH_ENGINE, SEARCH_ENGINES, type SearchEngine } from "./url";
 
 /** User preferences, persisted as `settings.json` and applied live in every window. */
@@ -159,6 +160,18 @@ export interface TranslateSettings {
   neverSites: string[];
 }
 
+/** The AI assistant (ADR-044): off by default, the user's own Anthropic API key (kept by main). */
+export interface AssistantSettings {
+  enabled: boolean;
+  model: AssistantModelId;
+  /** The privacy notice (page text is sent to Anthropic) was accepted. */
+  acknowledged: boolean;
+  /** Keep a tab's conversation when it goes to another page (still in memory only). */
+  keepConversations: boolean;
+  /** Questions carry the current page by default. */
+  includePage: boolean;
+}
+
 /** Notes and highlights (ADR-037). */
 export interface AnnotationSettings {
   /** Opt-in: the `annotations` sync collection (end-to-end encrypted like the others). */
@@ -199,6 +212,7 @@ export interface Settings {
   reader: ReaderSettings;
   updates: UpdateSettings;
   translate: TranslateSettings;
+  assistant: AssistantSettings;
   annotations: AnnotationSettings;
   autofill: AutofillSettings;
   notifications: NotificationSettings;
@@ -284,6 +298,7 @@ export const DEFAULT_SETTINGS: Settings = {
     neverLanguages: [],
     neverSites: [],
   },
+  assistant: { enabled: false, model: DEFAULT_ASSISTANT_MODEL, acknowledged: false, keepConversations: false, includePage: true },
   annotations: { sync: false },
   autofill: { addresses: true, cards: true, syncAddresses: false },
   notifications: { doNotDisturb: false },
@@ -422,6 +437,13 @@ const schema: Schema = {
     alwaysLanguages: sanitizeLanguageList,
     neverLanguages: sanitizeLanguageList,
     neverSites: sanitizeSiteKeys,
+  },
+  assistant: {
+    enabled: bool,
+    model: oneOf(...ASSISTANT_MODELS.map((model) => model.id)),
+    acknowledged: bool,
+    keepConversations: bool,
+    includePage: bool,
   },
   annotations: { sync: bool },
   autofill: { addresses: bool, cards: bool, syncAddresses: bool },

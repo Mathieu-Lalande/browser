@@ -64,6 +64,7 @@ export type CommandId =
   | "translate-page"
   | "highlight-selection"
   | "toggle-notes-panel"
+  | "toggle-assistant"
   | "open-notes"
   | "open-boosts"
   | "zap-elements"
@@ -163,7 +164,8 @@ export type CommandIcon =
   | "import"
   | "pencil"
   | "activity"
-  | "users";
+  | "users"
+  | "sparkles";
 
 /** What a command's label and availability may depend on. */
 export interface CommandContext {
@@ -468,6 +470,12 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
     accelerator: "CmdOrCtrl+Alt+N",
     icon: "notebook-pen",
   },
+  "toggle-assistant": {
+    label: "Assistant IA",
+    keywords: ["assistant", "ia", "ai", "claude", "anthropic", "résumer", "résumé", "question", "chat", "expliquer"],
+    accelerator: "CmdOrCtrl+Alt+A",
+    icon: "sparkles",
+  },
   "open-notes": {
     label: "Toutes les notes",
     keywords: ["notes", "annotations", "surlignages", "exporter", "markdown", "highlights"],
@@ -707,6 +715,7 @@ export const COMMAND_GROUPS: readonly { label: string; ids: readonly CommandId[]
       "toggle-mobile-site",
       "translate-page",
       "toggle-notes-panel",
+      "toggle-assistant",
       "zoom-in",
       "zoom-out",
       "zoom-reset",

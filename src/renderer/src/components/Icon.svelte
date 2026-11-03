@@ -169,6 +169,7 @@
   import LogOut from "@lucide/svelte/icons/log-out";
   import Send from "@lucide/svelte/icons/send";
   import Languages from "@lucide/svelte/icons/languages";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
   import Highlighter from "@lucide/svelte/icons/highlighter";
   import NotebookPen from "@lucide/svelte/icons/notebook-pen";
   import Notebook from "@lucide/svelte/icons/notebook";
@@ -327,6 +328,7 @@
     "log-out": LogOut,
     send: Send,
     languages: Languages,
+    sparkles: Sparkles,
     highlighter: Highlighter,
     "notebook-pen": NotebookPen,
     notebook: Notebook,

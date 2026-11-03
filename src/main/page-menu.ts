@@ -160,6 +160,12 @@ function runEntry(id: string, c: BrowserController, tabId: TabId, contents: WebC
       return c.toggleBookmark();
     case "page-translate":
       return void c.translator.toggle(tabId);
+    case "assistant-summarize":
+      return void c.assistant.open({ action: "summarize" }, tabId);
+    case "assistant-explain":
+      return void c.assistant.open({ action: "explain-selection" }, tabId);
+    case "assistant-translate":
+      return void c.assistant.open({ action: "translate-selection" }, tabId);
     case "page-select-all":
       return contents.selectAll();
     case "page-capture-visible":
@@ -227,6 +233,7 @@ export function buildPageContextMenu(c: BrowserController, tabId: TabId, params:
     autofill: appServices().autofill.menuSections(c),
     isBookmarked: tab.isBookmarked,
     translated: !!tab.translated,
+    assistant: settings().assistant.enabled,
     canAnnotate: annotationUrl(contents.getURL()) !== null,
     devices: sendableDevices(c),
     shortcut: (command) => effectiveAccelerator(command, process.platform, settings().shortcuts),

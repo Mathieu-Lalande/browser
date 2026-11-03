@@ -108,6 +108,7 @@ const RUNNERS: Record<CommandId, Runner> = {
   "translate-page": onActiveTab((c, id) => void c.translator.toggle(id)),
   "highlight-selection": onActiveTab((c, id) => void c.annotator.highlightSelection(id)),
   "toggle-notes-panel": (c) => c.sendUiCommand("toggle-notes"),
+  "toggle-assistant": (c) => c.sendUiCommand("toggle-assistant"),
   "open-notes": (c) => c.openNotes(),
   "open-boosts": (c) => c.openBoosts(),
   "zap-elements": onActiveTab((c, id) => appServices().boosts.startZap(c, id)),

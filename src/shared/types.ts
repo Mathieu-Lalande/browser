@@ -213,6 +213,9 @@ export type UiCommand =
   | "select-all-tabs"
   /** Shows or hides the notes panel next to the page (ADR-037). */
   | "toggle-notes"
+  /** Shows or hides the assistant panel (ADR-044); `open-assistant` only shows it. */
+  | "toggle-assistant"
+  | "open-assistant"
   /** Opens a space's editor (`edit-space:<id>`), its name field focused with `rename-space:<id>`. */
   | `edit-space:${string}`
   | `rename-space:${string}`;

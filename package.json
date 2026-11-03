@@ -32,6 +32,7 @@
     "release:version": "npm version -m \"Version %s\""
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^1.4.0",
     "@electron/asar": "^3.4.1",
     "@electron/fuses": "^1.8.0",
     "@lucide/svelte": "1.56.0",

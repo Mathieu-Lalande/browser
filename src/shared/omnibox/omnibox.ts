@@ -3,6 +3,7 @@ import { CommandsProvider, SettingsProvider } from "./providers/commands";
 import { AnnotationsProvider, ArchivedTabsProvider, BookmarksProvider, FavoritesProvider, HistoryProvider, RemoteTabsProvider } from "./providers/pages";
 import { TabsProvider } from "./providers/tabs";
 import { WebProvider } from "./providers/web";
+import { AssistantProvider } from "./providers/assistant";
 import { rank, SCOPED_LIMIT } from "./scorer";
 import { parseScope, scopesMatching } from "./scopes";
 import type { OmniboxData, OmniboxResult, Provider, ScopeId, Section, Suggestion } from "./types";
@@ -78,5 +79,6 @@ export function sharedProviders(): Provider[] {
     new AnnotationsProvider(),
     new CommandsProvider(),
     new SettingsProvider(),
+    new AssistantProvider(),
   ];
 }

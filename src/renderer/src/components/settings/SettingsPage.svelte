@@ -25,6 +25,7 @@
   import StartPageSection from "./StartPageSection.svelte";
   import SyncSection from "./SyncSection.svelte";
   import TranslateSection from "./TranslateSection.svelte";
+  import AssistantSection from "./AssistantSection.svelte";
   import UpdatesSection from "./UpdatesSection.svelte";
 
   /**
@@ -43,6 +44,7 @@
     { id: "siteData", label: "Données des sites", icon: "cookie" },
     { id: "notifications", label: "Notifications", icon: "bell" },
     { id: "translate", label: "Traduction", icon: "languages" },
+    { id: "assistant", label: "Assistant IA", icon: "sparkles" },
     { id: "spellcheck", label: "Orthographe", icon: "spell-check" },
     { id: "downloads", label: "Téléchargements", icon: "download" },
     { id: "data", label: "Données", icon: "database" },
@@ -282,6 +284,17 @@
         onReset={() => settings.reset("translate")}
       >
         <TranslateSection />
+      </Section>
+
+      <Section
+        id="assistant"
+        icon="sparkles"
+        title="Assistant IA"
+        description="Résumer, expliquer et interroger les pages avec Claude, avec votre propre clé d'API Anthropic : le texte des pages choisies lui est envoyé."
+        keywords="assistant ia ai claude anthropic résumé chat"
+        onReset={() => settings.reset("assistant")}
+      >
+        <AssistantSection />
       </Section>
 
       <Section

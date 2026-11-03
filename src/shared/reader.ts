@@ -218,6 +218,15 @@ export function sanitizeReaderArticle(value: unknown, url: string): ReaderArticl
   };
 }
 
+/**
+ * Validates any tree (untrusted, e.g. built from an assistant's markdown, ADR-044) with the same
+ * rules and budgets as an article's content: allowed tags only, http(s) links, bounded size.
+ */
+export function sanitizeReaderContent(value: unknown): ReaderNode[] {
+  const budget: Budget = { nodes: READER_LIMITS.nodes, text: READER_LIMITS.text, images: READER_LIMITS.images, words: 0 };
+  return sanitizeNodes(value, 0, false, budget);
+}
+
 /** Image sources of an article, in document order (desktop: main fetches them as `data:`). */
 export function readerImageSources(nodes: readonly ReaderNode[], out: string[] = []): string[] {
   for (const node of nodes) {

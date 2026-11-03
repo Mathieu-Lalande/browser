@@ -109,6 +109,7 @@ export function installMenu(): void {
         ...commandMenuItems("translate-page"),
         ...commandMenuItems("highlight-selection"),
         ...commandMenuItems("toggle-notes-panel"),
+        ...commandMenuItems("toggle-assistant"),
         ...commandMenuItems("open-notes"),
         { type: "separator" },
         ...commandMenuItems("reload"),

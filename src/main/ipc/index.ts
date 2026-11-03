@@ -16,6 +16,7 @@ import { startSyncBroadcast, syncHandlers, themeHandlers, updateHandlers } from 
 import { extensionHandlers, siteInfoHandlers } from "./site";
 import { tabHandlers } from "./tabs";
 import { translateHandlers } from "./translate";
+import { assistantHandlers } from "./assistant";
 import { windowHandlers } from "./window";
 import { lifecycleHandlers } from "./lifecycle";
 
@@ -41,6 +42,7 @@ type EventChannel = (typeof Channels)[
   | "mediaChanged"
   | "pageSwipeState"
   | "annotationsChanged"
+  | "assistantChanged"
   | "importProgress"];
 
 /** Every channel the UI sends or invokes: the compiler checks each one has exactly one handler. */
@@ -69,6 +71,7 @@ const handlers = {
   ...themeHandlers,
   ...mediaHandlers,
   ...translateHandlers,
+  ...assistantHandlers,
   ...annotationHandlers,
   ...defaultBrowserHandlers,
   ...drmHandlers,

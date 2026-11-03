@@ -24,10 +24,11 @@ export type SectionId =
   | "remote"
   | "archived"
   | "notes"
+  | "assistant"
   | "web";
 
 /** Prefix scopes (`@onglets`, `@o`…): restrict the bar to some providers. */
-export type ScopeId = "tabs" | "favorites" | "history" | "commands" | "settings" | "notes";
+export type ScopeId = "tabs" | "favorites" | "history" | "commands" | "settings" | "notes" | "assistant";
 
 /** Semantic icons; each UI maps them to its own Lucide component (commands use their `icon`). */
 export type OmniboxIcon =
@@ -46,6 +47,7 @@ export type OmniboxIcon =
   | "tab"
   | "command"
   | "highlighter"
+  | "sparkles"
   | "at";
 
 /** What choosing a suggestion does. Each UI performs it with its own APIs. */
@@ -62,6 +64,8 @@ export type SuggestionAction =
   | { type: "archived"; archiveId: string; url: string }
   /** Sets the prefix scope (chip). */
   | { type: "scope"; scope: ScopeId }
+  /** `@ia`: asks the AI assistant (ADR-044), with the current page or not. */
+  | { type: "assistant"; question: string; includePage: boolean }
   /** Platform-specific actions (mobile share…), defined by the platform's own providers. */
   | { type: "custom"; id: string };
 
@@ -130,6 +134,8 @@ export interface OmniboxData {
   archived: readonly ArchivedTab[];
   /** Highlights and their notes (`@n`, ADR-037); none: the provider is quiet. */
   annotations?: readonly OmniboxAnnotation[];
+  /** The AI assistant is enabled (`@ia`, ADR-044); none: the provider is quiet. */
+  assistant?: { pageAvailable: boolean; includePage: boolean } | null;
   commandContext: CommandContext;
   /** Effective shortcut keys of a command (ADR-028); none on the phone. */
   shortcut?: (id: CommandId) => string[];

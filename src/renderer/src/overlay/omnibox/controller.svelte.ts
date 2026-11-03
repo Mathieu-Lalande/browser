@@ -73,6 +73,9 @@ export class OmniboxController {
       remoteTabs: sync.remoteTabs,
       archived: this.archived,
       annotations: this.annotations,
+      assistant: settings.current.assistant.enabled
+        ? { pageAvailable: /^https?:/.test(browser.activeTab?.url ?? ""), includePage: settings.current.assistant.includePage }
+        : null,
       commandContext: { activeTab: browser.activeTab },
       shortcut: (id) => platform.keys(id),
       settings: SETTINGS_INDEX,
@@ -158,6 +161,9 @@ export class OmniboxController {
         api.commands.run(action.command.id);
         // Its popover replaces the bar in the overlay layer, which must stay attached.
         if (action.command.opensOverlay) return;
+        break;
+      case "assistant":
+        api.assistant.open({ action: "ask", question: action.question, includePage: action.includePage });
         break;
       case "custom":
         return;

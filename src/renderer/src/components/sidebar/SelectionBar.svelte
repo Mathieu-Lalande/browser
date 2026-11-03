@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { assistantPanel } from "../../lib/assistant.svelte";
   import { browser } from "../../lib/browser.svelte";
+  import { settings } from "../../lib/settings.svelte";
   import type { TabSelection } from "../../lib/tab-selection.svelte";
   import IconButton from "../ui/IconButton.svelte";
 
@@ -17,6 +19,9 @@
     {#each otherSpaces as space (space.id)}
       <IconButton size="sm" icon={space.icon} label="Déplacer vers {space.name}" onclick={() => selection.moveTo(space.id)} />
     {/each}
+    {#if count >= 2 && settings.current.assistant.enabled}
+      <IconButton size="sm" icon="sparkles" label="Comparer avec l'assistant" onclick={() => assistantPanel.compareTabs(selection.ids.slice(0, 6))} />
+    {/if}
     <IconButton size="sm" icon="trash" label="Fermer les onglets sélectionnés" onclick={() => selection.close()} />
     <IconButton size="sm" icon="close" label="Annuler la sélection" onclick={() => selection.clear()} />
   </div>

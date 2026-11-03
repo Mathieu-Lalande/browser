@@ -25,6 +25,8 @@
   import SplitView from "./components/split/SplitView.svelte";
   import StartPage from "./components/StartPage.svelte";
   import NotesPanel from "./components/annotations/NotesPanel.svelte";
+  import AssistantPanel from "./components/assistant/AssistantPanel.svelte";
+  import { assistantPanel } from "./lib/assistant.svelte";
 
   /** Delay before a revealed zen sidebar hides once the pointer left it. */
   const ZEN_HIDE_DELAY = 450;
@@ -62,6 +64,8 @@
   /** The notes panel (ADR-037), beside web pages: it narrows the viewport. */
   let notesOpen = $state(false);
   const showNotes = $derived(notesOpen && !!browser.activeTab && /^https?:/.test(browser.activeTab.url) && !internalPage);
+  /** The assistant panel (ADR-044), beside any page but the internal ones: it narrows the viewport too. */
+  const showAssistant = $derived(assistantPanel.open && !!browser.activeTab && !internalPage);
   let findFocusPending = $state(false);
   /**
    * The space color goes through the theme's contrast engine (clamped lightness, WCAG-adjusted
@@ -236,6 +240,8 @@
       // The bar may not be rendered yet (its state is on its way): focused as soon as it is.
       if (command === "focus-find") findFocusPending = true;
       if (command === "toggle-notes") notesOpen = !notesOpen;
+      if (command === "toggle-assistant") assistantPanel.toggle();
+      if (command === "open-assistant") assistantPanel.open = true;
     });
   });
 
@@ -346,6 +352,9 @@
     </main>
     {#if showNotes && browser.activeTab}
       <NotesPanel tab={browser.activeTab} onClose={() => (notesOpen = false)} />
+    {/if}
+    {#if showAssistant && browser.activeTab}
+      <AssistantPanel tab={browser.activeTab} onClose={() => (assistantPanel.open = false)} />
     {/if}
     </div>
   </div>

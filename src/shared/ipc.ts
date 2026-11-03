@@ -37,6 +37,8 @@ import type { OmniboxTab, OpenDisposition } from "./omnibox/types";
 import type { PeekAction, PeekState } from "./peek";
 import type { ReaderArticle } from "./reader";
 import type { TranslateProviderId } from "./translate/providers";
+import type { AssistantRequest } from "./assistant/conversation";
+import type { AssistantKeyStatus, AssistantPanelState, AssistantResult } from "./assistant/state";
 import type { TranslateKeysStatus, TranslatePanelState, TranslateResultMessage, TranslateRuleChange } from "./translate/state";
 import type { Settings, SettingsPatch, SettingsSection } from "./settings";
 import type { ClosedLists } from "./recovery";
@@ -255,6 +257,18 @@ export const Channels = {
   translateKeys: "translate:keys",
   translateSetKey: "translate:set-key",
   translateTest: "translate:test",
+  assistantState: "assistant:state",
+  assistantAsk: "assistant:ask",
+  assistantOpen: "assistant:open",
+  assistantAccept: "assistant:accept",
+  assistantStop: "assistant:stop",
+  assistantClear: "assistant:clear",
+  assistantCopy: "assistant:copy",
+  assistantInsertNote: "assistant:insert-note",
+  assistantKey: "assistant:key",
+  assistantSetKey: "assistant:set-key",
+  assistantTest: "assistant:test",
+  assistantChanged: "assistant:changed",
   annotationsForTab: "annotations:for-tab",
   annotationsList: "annotations:list",
   annotationsGet: "annotations:get",
@@ -485,6 +499,31 @@ export interface BrowserApi {
     setKey(provider: TranslateProviderId, key: string): Promise<TranslateResultMessage>;
     /** Translates a short sample with the configured provider. */
     test(): Promise<TranslateResultMessage>;
+  };
+  /**
+   * The AI assistant (ADR-044): main reads the pages, calls the Claude API with the user's key and
+   * keeps each tab's conversation in memory; the UIs name tabs of their own window. The key goes
+   * in, never back out (only whether one is set).
+   */
+  assistant: {
+    state(tabId: TabId): Promise<AssistantPanelState>;
+    /** Resolves once the answer started (it streams into the state) or with why it could not. */
+    ask(tabId: TabId, request: AssistantRequest): Promise<AssistantResult>;
+    /** Shows the panel and asks about the active tab (universal bar `@ia`). */
+    open(request: AssistantRequest): void;
+    /** "Accepter et envoyer": the privacy notice is accepted and the waiting request sent. */
+    accept(tabId: TabId): Promise<AssistantResult>;
+    stop(tabId: TabId): void;
+    clear(tabId: TabId): void;
+    copy(tabId: TabId, turnId: string): void;
+    insertNote(tabId: TabId, turnId: string): Promise<AssistantResult>;
+    key(): Promise<AssistantKeyStatus>;
+    /** Saves the key in the OS keychain (empty: removes it). Refused from a private window. */
+    setKey(key: string): Promise<AssistantResult>;
+    /** Checks the key and model against the API (no token spent). */
+    test(): Promise<AssistantResult>;
+    /** A tab's conversation changed (a streamed piece of answer…). */
+    onChanged(listener: (tabId: TabId) => void): () => void;
   };
   /**
    * Notes and highlights (ADR-037): the UIs name tabs of their own window and highlights by id;

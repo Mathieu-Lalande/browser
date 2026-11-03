@@ -15,6 +15,7 @@ import { LinkPeek } from "./peek";
 import { TabPreviews } from "./tab-preview";
 import { MediaHub } from "./media";
 import { PageTranslator } from "./translate";
+import { PageAssistant } from "./assistant";
 import { PageAnnotator } from "./annotations";
 import { watchPasswordForms } from "./passwords";
 import { hasPasswordsFor } from "./passwords/vault";
@@ -112,6 +113,8 @@ export class BrowserController {
   readonly media: MediaHub = new MediaHub(this);
   /** Page translation of this window's tabs (ADR-036). */
   readonly translator: PageTranslator = new PageTranslator(this);
+  /** The AI assistant's conversations of this window's tabs (ADR-044). */
+  readonly assistant: PageAssistant = new PageAssistant(this);
   /** Highlights and notes of this window's pages (ADR-037). */
   readonly annotator: PageAnnotator = new PageAnnotator(this, { all: () => BrowserController.all() });
   /** Tab hover preview cards and their thumbnails (ADR-038). */

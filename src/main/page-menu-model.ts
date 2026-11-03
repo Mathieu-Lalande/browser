@@ -44,6 +44,8 @@ export interface PageMenuContext {
   translated?: boolean;
   /** The page can be annotated (a web page): a selection offers "Surligner" (ADR-037). */
   canAnnotate?: boolean;
+  /** The AI assistant is enabled (ADR-044): its entries are offered (selection, page). */
+  assistant?: boolean;
   /** The page is bookmarked (the bookmark entry offers to remove it). */
   isBookmarked?: boolean;
   /**
@@ -178,6 +180,12 @@ export function buildPageMenu(params: PageMenuParams, context: PageMenuContext):
     items.push({ id: "selection-search", label: `Rechercher « ${quote(selection)} » avec ${context.engine.name}` });
     if (selectionAddress(selection, context.engine)) items.push({ id: "selection-open", label: "Ouvrir comme adresse" });
     sections.push(items);
+    if (!editable && context.assistant) {
+      sections.push([
+        { id: "assistant-explain", label: "Expliquer avec l'assistant" },
+        { id: "assistant-translate", label: "Traduire avec l'assistant" },
+      ]);
+    }
   }
 
   // A plain right click on the page: navigation first (with their shortcuts, as a native menu
@@ -196,6 +204,7 @@ export function buildPageMenu(params: PageMenuParams, context: PageMenuContext):
         { id: "page-save", label: "Enregistrer la page sous…", accelerator: key("save-page") },
         { id: "page-select-all", label: "Tout sélectionner", accelerator: "CmdOrCtrl+A" },
         { id: "page-translate", label: context.translated ? "Afficher l'original" : "Traduire la page", accelerator: key("translate-page") },
+        ...(context.assistant ? [{ id: "assistant-summarize", label: "Résumer avec l'assistant", accelerator: key("toggle-assistant") }] : []),
         {
           id: "page-capture",
           label: "Capture d'écran",
