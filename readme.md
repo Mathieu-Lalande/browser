@@ -18,6 +18,8 @@ Windows, macOS et Linux, avec son application iPhone et Android.
 - Dossiers d'onglets imbriqués, grille des favoris commune aux espaces, archivage automatique des onglets
   inactifs (`browser://archive`) (ADR-022).
 - Mise en veille des onglets inactifs (jamais pendant du son, une autorisation ou un formulaire) (ADR-014).
+- Aperçu des onglets au survol : miniature, titre, site, badges son et veille, aussi sur les favoris et le rail compact ;
+  thème dynamique (désactivé par défaut) : l'accent suit la couleur du site affiché, ajustée pour rester lisible (ADR-038).
 - Menus (ADR-033) : menu « … » de l'application (synchro, zoom, plein écran, historique, favoris, outils), clic
   droit sur l'espace vide de la barre latérale (mode compact en rail d'icônes, côté de la barre) et sur les
   pastilles d'espace (renommer, réordonner, supprimer) ; sélection de plusieurs onglets (`Ctrl`+clic) avec barre

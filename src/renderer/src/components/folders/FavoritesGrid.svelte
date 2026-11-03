@@ -2,6 +2,7 @@
   import { displayUrl } from "@shared/url";
   import { api, browser } from "../../lib/browser.svelte";
   import { settings } from "../../lib/settings.svelte";
+  import { previewsEnabled, tabPreview } from "../../lib/tab-preview";
   import Favicon from "../Favicon.svelte";
   import Icon from "../Icon.svelte";
 
@@ -28,7 +29,8 @@
           class:current={activeUrl === favorite.url}
           data-favorite-url={favorite.url}
           aria-label={`${favorite.title}${favorite.open ? " (ouvert)" : ""}`}
-          title={`${favorite.title}\n${displayUrl(favorite.url)}`}
+          title={previewsEnabled() ? undefined : `${favorite.title}\n${displayUrl(favorite.url)}`}
+          use:tabPreview={{ kind: "favorite", id: favorite.url }}
           onclick={() => api.favorites.open(favorite.url)}
           oncontextmenu={(event) => (event.preventDefault(), api.favorites.contextMenu(favorite.url))}
         >

@@ -4,6 +4,7 @@ import type { FolderId, TabFolder } from "./folders";
 import type { LoadError } from "./load-error";
 import type { PeekState } from "./peek";
 import type { SpaceIcon } from "./spaces";
+import type { TabPreview } from "./tab-preview";
 import type { TabTranslation } from "./translate/state";
 
 export type TabId = string;
@@ -56,6 +57,8 @@ export interface TabState {
   /** The page is playing sound (even if muted). */
   isAudible: boolean;
   isMuted: boolean;
+  /** The page's `theme-color` (`#rrggbb`), for the dynamic theme (ADR-038). */
+  themeColor?: string | null;
   /** Page zoom in % (the site's remembered zoom, or the default zoom). */
   zoom: number;
   /** Find in page: null until the find bar was first opened in this tab (the query is kept per tab). */
@@ -223,7 +226,9 @@ export type OverlayKind =
   | "app-menu"
   | "page-swipe"
   | "translate"
-  | "annotation";
+  | "annotation"
+  /** Tab hover preview (ADR-038): passive, never focused, its view only as large as the card. */
+  | "tab-preview";
 
 export interface OverlayRequest {
   kind: OverlayKind;
@@ -241,6 +246,10 @@ export interface OverlayRequest {
   swipe?: PageSwipeIndicator;
   /** Highlight popover (ADR-037): the highlight clicked in the tab's page. */
   annotationId?: string;
+  /** Tab hover preview (ADR-038): what the card shows (updates are new requests of the same kind). */
+  preview?: TabPreview;
+  /** The overlay view covers only this part of the window (default: all of it). */
+  region?: Bounds;
 }
 
 /** The back/forward indicator of a two-finger swipe on the page (ADR-033), drawn by the overlay. */

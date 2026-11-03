@@ -17,6 +17,9 @@ interface OverlayHooks {
   dismissed?(): void;
 }
 
+/** Floating UI that only shows: never focused, input stays where it is. */
+const isPassive = (kind: OverlayKind) => kind === "page-swipe" || kind === "tab-preview";
+
 /** Backdrop snapshots are downscaled this much (they are blurred anyway). */
 const BACKDROP_SCALE = 4;
 
@@ -42,6 +45,10 @@ export class Overlay {
   private kind: OverlayKind | null = null;
   /** A native view kept above the overlay page while it is open: the link peek's page (ADR-027). */
   private topView: WebContentsView | null = null;
+  /** What is shown takes no focus (closing it moves none either). */
+  private passive = false;
+  /** Part of the window the view covers while showing a small passive card (null: all of it). */
+  private region: Bounds | null = null;
 
   constructor(
     private readonly window: BaseWindow,
@@ -78,9 +85,13 @@ export class Overlay {
     const view = this.ensureView();
     const chrome = this.hooks.chrome();
     const opening = !this.attached;
-    // The page swipe indicator (ADR-033) only shows: keyboard focus stays where it is.
-    const passive = request.kind === "page-swipe";
-    if (opening) this.returnFocus = passive ? null : chrome.isFocused() ? chrome : this.hooks.focusTarget();
+    // The page swipe indicator (ADR-033) and the tab preview (ADR-038) only show: keyboard focus
+    // stays where it is, and closing them gives it to nothing.
+    const passive = isPassive(request.kind);
+    if (!passive && (opening || this.passive)) this.returnFocus = chrome.isFocused() ? chrome : this.hooks.focusTarget();
+    if (opening && passive) this.returnFocus = null;
+    this.passive = passive;
+    this.region = request.region ?? null;
     // Anything else replacing the link peek (Ctrl+K…) takes its place.
     if (request.kind !== "link-peek") this.hooks.dismissed?.();
     this.kind = request.kind;
@@ -89,6 +100,7 @@ export class Overlay {
     if (this.ready) view.webContents.send(Channels.overlayShow, request);
     else this.pending = request;
     this.raise();
+    this.layout();
     if (!passive) view.webContents.focus();
     if (opening) this.openings++;
     if (opening && !isPopover(request.kind)) void this.sendBackdrop(this.openings);
@@ -128,6 +140,10 @@ export class Overlay {
     this.attached = false;
     this.kind = null;
     this.hooks.dismissed?.();
+    if (this.passive) {
+      this.passive = false;
+      return;
+    }
     const target = restoreFocus && this.returnFocus && !this.returnFocus.isDestroyed() ? this.returnFocus : this.hooks.focusTarget();
     this.returnFocus = null;
     if (!target.isDestroyed()) target.focus();
@@ -160,7 +176,7 @@ export class Overlay {
   private layout(): void {
     if (!this.view || !this.attached || this.window.isDestroyed()) return;
     const { width, height } = this.window.getContentBounds();
-    this.view.setBounds({ x: 0, y: 0, width, height });
+    this.view.setBounds(this.region ?? { x: 0, y: 0, width, height });
   }
 
   private ensureView(): WebContentsView {

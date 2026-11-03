@@ -1,7 +1,8 @@
 <script lang="ts">
   import { internalPageOf } from "@shared/internal";
   import { accentVariables } from "@shared/theme";
-  import { tick } from "svelte";
+  import { siteAccent } from "@shared/site-color";
+  import { tick, untrack } from "svelte";
   import { cubicOut } from "svelte/easing";
   import { api, browser } from "./lib/browser.svelte";
   import ReaderView from "./components/reader/ReaderView.svelte";
@@ -14,6 +15,7 @@
   import { settings } from "./lib/settings.svelte";
   import { applyTheme } from "./lib/theme";
   import { installRecorder } from "./lib/recorder";
+  import { animateAccent, faviconColor, type AccentVars } from "./lib/dynamic-accent";
   import Icon from "./components/Icon.svelte";
   import PermissionBar from "./components/PermissionBar.svelte";
   import PopupBar from "./components/PopupBar.svelte";
@@ -65,7 +67,29 @@
    * The space color goes through the theme's contrast engine (clamped lightness, WCAG-adjusted
    * accent text, readable ink on accent fills), like the theme accent itself.
    */
-  const spaceAccent = $derived(spaceColor ? accentVariables(spaceColor, browser.isPrivate ? "dark" : settings.mode) : null);
+  /**
+   * Dynamic theme (ADR-038, never in a private window: its theme stays recognizable): the web
+   * page on screen lends its color (`theme-color`, else its favicon's), else the space color.
+   */
+  const dynamicTheme = $derived(settings.current.appearance.dynamicTheme && !browser.isPrivate);
+  const siteTab = $derived(dynamicTheme && /^https?:/.test(browser.activeTab?.url ?? "") ? browser.activeTab : null);
+  let siteFaviconColor = $state<string | null>(null);
+  $effect(() => {
+    const favicon = siteTab?.favicon;
+    let current = true;
+    if (favicon) void faviconColor(favicon).then((color) => current && (siteFaviconColor = color));
+    else siteFaviconColor = null;
+    return () => (current = false);
+  });
+  const siteColor = $derived(siteTab ? siteAccent({ themeColor: siteTab.themeColor, faviconColor: siteFaviconColor }) : null);
+  const accentColor = $derived(siteColor ?? spaceColor);
+  const targetAccent = $derived(accentColor ? accentVariables(accentColor, browser.isPrivate ? "dark" : settings.mode) : null);
+  /** What the shell shows: `targetAccent`, reached through a short transition (`--motion-base`). */
+  let spaceAccent = $state<AccentVars | null>(null);
+  $effect(() => {
+    const target = targetAccent;
+    return untrack(() => animateAccent(spaceAccent, target, (value) => (spaceAccent = value)));
+  });
   /** The sidebar is hidden by the user (Ctrl+S), outside zen mode: its toggle moves to the window bar. */
   const collapsed = $derived(!showSidebar && !zen);
   /**

@@ -15,7 +15,7 @@ export interface Rgb {
   b: number;
 }
 
-interface Oklch {
+export interface Oklch {
   l: number;
   c: number;
   /** Degrees. */
@@ -71,7 +71,7 @@ export function blend(top: Rgb, alpha: number, bottom: Rgb): Rgb {
   return { r: mix(top.r, bottom.r), g: mix(top.g, bottom.g), b: mix(top.b, bottom.b) };
 }
 
-function toOklch(color: Rgb): Oklch {
+export function toOklch(color: Rgb): Oklch {
   const r = toLinear(color.r);
   const g = toLinear(color.g);
   const b = toLinear(color.b);
@@ -98,7 +98,7 @@ function oklchToLinear({ l: L, c, h }: Oklch): Rgb {
 }
 
 /** OKLCH → sRGB, reducing chroma (not lightness) until the color fits the sRGB gamut. */
-function fromOklch(color: Oklch): Rgb {
+export function fromOklch(color: Oklch): Rgb {
   const l = Math.min(1, Math.max(0, color.l));
   let c = color.c;
   let linear = oklchToLinear({ l, c, h: color.h });

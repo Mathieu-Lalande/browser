@@ -14,6 +14,7 @@ import { recordingOf } from "./capture/record";
 import { favoriteFavicon, favoriteTiles, setArchiveNotifier, setFavoritesRefresh } from "./organize";
 import { Overlay } from "./overlay";
 import { LinkPeek } from "./peek";
+import { TabPreviews } from "./tab-preview";
 import { MediaHub } from "./media";
 import { PageTranslator } from "./translate";
 import { PageAnnotator } from "./annotations";
@@ -140,6 +141,8 @@ export class BrowserController {
   readonly translator: PageTranslator = new PageTranslator(this);
   /** Highlights and notes of this window's pages (ADR-037). */
   readonly annotator: PageAnnotator = new PageAnnotator(this);
+  /** Tab hover preview cards and their thumbnails (ADR-038). */
+  readonly previews: TabPreviews;
   /**
    * Private window: never written to the profile (history, session, permissions…). Anything that
    * persists per window checks this; per-session hooks (downloads) use `isPrivateSession` (./private).
@@ -203,6 +206,8 @@ export class BrowserController {
         if (this.overlay.isOpen) this.overlay.raise();
         if (!this.isPrivate) BrowserController.saveSession();
         this.media.sync();
+        // Undefined only while the spaces are being created (first state, before the window is up).
+        this.previews?.sync();
       },
       tabHooksFor(
         {
@@ -257,6 +262,7 @@ export class BrowserController {
       dismissed: () => this.peek.close(),
     });
     this.peek = new LinkPeek(this);
+    this.previews = new TabPreviews(this);
 
     // A native macOS swipe navigates the active page when possible. If there is no page history,
     // retain the existing space-switching gesture.
@@ -288,6 +294,7 @@ export class BrowserController {
       controllers.delete(chrome.id);
       if (outcome === "forget") BrowserController.saveSession();
       this.media.destroy();
+      this.previews.destroy();
       try {
         this.spaces.destroy();
       } finally {

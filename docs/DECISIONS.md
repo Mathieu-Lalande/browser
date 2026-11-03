@@ -1784,3 +1784,56 @@ interrupteur de synchro dans Paramètres, « Notes et surlignages ».
 le passage (il est alors réancré). Pas d'ancrage dans les iframes ni le Shadow DOM. Sur le téléphone, la page voit
 l'annotateur (pas de monde isolé) ; elle ne peut au pire que surligner son propre texte ou signaler un clic sur un id
 que l'application vérifie.
+
+## ADR-038 — Aperçu des onglets au survol et thème dynamique
+
+**Contexte.** Retrouver un onglet parmi beaucoup d'autres sans l'ouvrir ; laisser la couleur du site habiller
+l'interface sans jamais sacrifier la lisibilité. La barre latérale ne peut pas dessiner au-dessus des pages
+(`WebContentsView` natif, ADR-010) : la carte vit dans le calque overlay.
+
+**Aperçu au survol** (réglage `layout.tabHoverPreview`, « Aperçu des onglets au survol », activé par défaut).
+- **Intention** (interface, `src/renderer/src/lib/tab-preview.ts`, action `use:tabPreview` sur les onglets, les
+  onglets épinglés, les tuiles de favoris et les icônes du rail compact) : `HoverIntent` pur
+  (`src/shared/tab-preview.ts`) — 400 ms avant la première carte ; tant qu'une carte est affichée (ou 300 ms
+  après), la ligne suivante s'affiche aussitôt ; quitter une ligne masque après 60 ms (pas de clignotement d'une
+  ligne à l'autre). Défilement, molette, glisser, touche, clic ou perte du focus masquent et réarment le délai.
+  Avec l'aperçu actif, les infobulles natives (`title`) des lignes disparaissent (la carte dit la même chose).
+- **Main** (`src/main/tab-preview.ts`, `TabPreviews` par fenêtre, canaux `tab-preview:show`/`hide`, chrome
+  seulement, arguments vérifiés) : construit la carte (titre, hôte, favicon, badges son/sourdine/« En veille »)
+  et la place à côté de la ligne (`previewCardBounds` : à droite d'une barre à gauche, à gauche d'une barre à
+  droite, dans la fenêtre). Une tuile de favori sans onglet ouvert montre titre, adresse et icône.
+- **Calque overlay passif** : genre `tab-preview`, comme l'indicateur de balayage (ADR-033) il ne prend jamais le
+  focus et sa fermeture n'en déplace aucun ; la vue overlay ne couvre **que la carte et sa marge d'ombre**
+  (`OverlayRequest.region`), donc la barre latérale garde le pointeur. Les mises à jour (autre ligne, miniature
+  arrivée) modifient la même carte sans la remonter : apparition en `--motion-fast` (≤ 120 ms, 0 si mouvements
+  réduits), déplacement instantané. La carte ne s'ouvre pas par-dessus une autre interface flottante.
+- **Miniatures** : `webContents.capturePage()` ne vaut que pour une page attachée (à l'écran). Main capture donc
+  l'onglet affiché 700 ms après son affichage ou la fin de son chargement, et l'onglet survolé s'il est visible et
+  que sa miniature a plus de 30 s ; réduite à 2× la largeur de la carte, JPEG. `ThumbnailCache` (pur, testé) :
+  une entrée par onglet **et par page** (une navigation hors ancre la supprime : jamais l'image d'une autre page),
+  40 au plus, onglets fermés oubliés ; une entrée expirée reste affichée (un onglet en veille ne peut pas être
+  recapturé) et n'est que « à refaire ». Sans miniature (veille, jamais affiché) : favicon, titre, adresse,
+  « En veille ». Les miniatures ne quittent pas la mémoire, **fenêtres privées comprises**, et n'atteignent
+  l'overlay qu'en `data:image/…` (CSP `img-src 'self' data:`, vérifié par `isThumbnailUrl` des deux côtés).
+- **Téléphone** : pas de survol ; la vue des onglets montre déjà des cartes. Rien à faire.
+
+**Thème dynamique** (réglage `appearance.dynamicTheme`, « Thème dynamique », désactivé par défaut).
+- Source : l'événement Electron `did-change-theme-color` (le nom actuel de `page-theme-color-updated`), relevé par
+  `TabManager` dans `TabState.themeColor` (`normalizeThemeColor`, `#rrggbb`) ; sinon la couleur dominante du
+  favicon (déjà en `data:`, ADR-018), décodée par un canevas dans l'interface (`lib/dynamic-accent.ts`, mise en
+  cache) puis calculée par `dominantColor` (pur : pixels opaques et colorés groupés par teinte OKLCH, pondérés par
+  la chroma ; gris, blanc et noir ignorés). `siteAccent` garde la première couleur **digne d'un accent**
+  (chroma ≥ 0,045, ni presque noire ni presque blanche), sinon `null` : la couleur de l'espace, sinon l'accent
+  du thème.
+- Contraste : la couleur passe par `accentVariables` comme une couleur d'espace (luminosité bornée, `--accent-text`
+  ajusté au niveau AA, encre la plus lisible sur l'accent). Seulement pour une page web (`http(s)`) : page
+  d'accueil et pages internes gardent la couleur de l'espace.
+- Transition : `animateAccent` mélange en OKLab image par image pendant `--motion-base` (0 si mouvements
+  réduits) ; la dernière image vaut exactement la cible. Pas de `@property` : enregistrer `--accent` comme
+  `<color>` le ferait lire en `rgb()` partout.
+- Fenêtres privées : jamais (leur thème doit rester reconnaissable, ADR-014).
+- **Téléphone** : non fait ; il faudrait un guetteur de `meta[name=theme-color]` injecté avec nonce par document
+  (règle d'ADR-025/035) et le relayer à `ThemeProvider`. `siteAccent`/`accentVariables` sont déjà partagés.
+
+**Conséquences.** Un onglet en arrière-plan jamais affiché depuis son chargement n'a pas de miniature. Une page
+peut choisir sa couleur : elle ne change que l'accent, toujours ramené à un contraste lisible.

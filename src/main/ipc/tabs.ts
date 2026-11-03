@@ -3,7 +3,7 @@ import { isSpaceId } from "@shared/spaces";
 import { readerArticle } from "../reader";
 import { showTabMenu } from "../tab-menu";
 import { MAX_QUERY_LENGTH } from "./limits";
-import { bool, defineHandlers, handle, maxStr, num, on, opt, str } from "./registry";
+import { bool, bounds, defineHandlers, handle, maxStr, num, on, oneOf, opt, str } from "./registry";
 
 /** Tabs of the sender's window, named by id (TabManager ignores ids it does not own). */
 export const tabHandlers = defineHandlers({
@@ -34,5 +34,12 @@ export const tabHandlers = defineHandlers({
   [Channels.findQuery]: on([str, maxStr(MAX_QUERY_LENGTH), bool], (c, tabId, text, matchCase) => c.tabs.findQuery(tabId, text, matchCase)),
   [Channels.findStep]: on([str, bool], (c, tabId, forward) => c.tabs.findStep(tabId, forward)),
   [Channels.findClose]: on([str], (c, tabId) => c.tabs.closeFind(tabId)),
+  // Tab hover preview (ADR-038): the chrome names what it hovers and where; main draws the card.
+  [Channels.tabPreviewShow]: on(
+    [oneOf("tab", "favorite"), maxStr(8192), bounds],
+    (c, kind, id, anchor) => c.previews.show(kind === "tab" ? { kind, id } : { kind, url: id }, anchor),
+    { from: "chrome" },
+  ),
+  [Channels.tabPreviewHide]: on([], (c) => c.previews.hide(), { from: "chrome" }),
   [Channels.readerArticle]: handle([str], (c, tabId) => readerArticle(c, tabId)),
 });
