@@ -24,7 +24,7 @@ import {
 import { Channels } from "@shared/ipc";
 import type { TabId } from "@shared/types";
 import { profile } from "../profile";
-import { BrowserController } from "../window";
+import type { WindowDirectory, WindowPort } from "../ports";
 import { applyMarks, captureSelection, documentChanged, scrollToMark, type MarkClick } from "./page";
 
 /**
@@ -66,12 +66,18 @@ class MemoryBook implements AnnotationBook {
 
 /** Every window using `book` redraws its pages and tells its UIs. */
 function bookChanged(book: AnnotationBook): void {
-  for (const c of BrowserController.all()) {
-    if (c.annotator.book !== book) continue;
-    c.annotator.refreshAll();
+  for (const c of windows?.all() ?? []) {
+    const annotator = annotators.get(c);
+    if (!annotator || annotator.book !== book) continue;
+    annotator.refreshAll();
     c.send(Channels.annotationsChanged);
   }
 }
+
+/** The open windows (injected by the first `PageAnnotator`, not imported: no cycle with `window.ts`). */
+let windows: Pick<WindowDirectory, "all"> | null = null;
+/** The annotator of each window. */
+const annotators = new WeakMap<WindowPort, PageAnnotator>();
 
 /** Sync applies remote changes through this (ADR-019): same path as the UI. */
 export function setProfileAnnotations(next: AnnotationsData): void {
@@ -91,7 +97,13 @@ export class PageAnnotator {
   /** Pages whose current document was given highlights (so a removal clears them). */
   private readonly drawn = new WeakSet<WebContents>();
 
-  constructor(private readonly c: BrowserController) {}
+  constructor(
+    private readonly c: WindowPort,
+    directory: Pick<WindowDirectory, "all">,
+  ) {
+    windows = directory;
+    annotators.set(c, this);
+  }
 
   /** Read lazily: the window's privacy is not known yet when this is built. */
   get book(): AnnotationBook {

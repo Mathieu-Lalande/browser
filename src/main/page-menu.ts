@@ -13,7 +13,7 @@ import { buildPageMenu, isSavableUrl, selectionAddress, type PageMenuEntry } fro
 import { settings } from "./settings";
 import { spaces } from "./spaces";
 import { savePage, viewSource } from "./page-actions";
-import { appServices } from "./services";
+import { appServices } from "./app-services-ref";
 import { BrowserController } from "./window";
 
 /** Isolated world of the media actions script (PiP uses 1002, cosmetic filtering 1001). */

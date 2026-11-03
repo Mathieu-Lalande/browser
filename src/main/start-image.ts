@@ -1,6 +1,6 @@
 import { session } from "electron";
 import { faviconImageType } from "@shared/favicon";
-import { appServices } from "./services";
+import { appServices } from "./app-services-ref";
 
 /**
  * The start page's background image (a https URL chosen in the settings), fetched by main and

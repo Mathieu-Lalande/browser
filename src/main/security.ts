@@ -1,7 +1,8 @@
 import { app, session, shell, type Session, type WebContents } from "electron";
 import { isNavigableUrl, isPageOpenableUrl } from "@shared/url";
 import { UserActivation, isActivatingInput, isPeekGesture } from "./activation";
-import { appServices, type SessionOptions } from "./services";
+import { appServices } from "./app-services-ref";
+import type { SessionOptions } from "./services";
 
 /** Process-wide hardening, applied once before any window is created. */
 export function hardenApp(): void {

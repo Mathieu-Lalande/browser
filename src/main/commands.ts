@@ -8,7 +8,7 @@ import { clearTabSiteData } from "./site-info";
 import { sleepTabNow, sleepTabs } from "./sleep";
 import { spaces } from "./spaces";
 import { toggleSplit } from "./split";
-import { appServices } from "./services";
+import { appServices } from "./app-services-ref";
 import { checkForUpdates, installUpdate } from "./updates";
 import { BrowserController } from "./window";
 import { ISSUES_URL, printPage, savePage, showAppMenu, viewSource } from "./page-actions";

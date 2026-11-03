@@ -1,7 +1,7 @@
 import type { BaseWindow, Session } from "electron";
 import type { DownloadEntry, DownloadsChange } from "@shared/downloads";
 import type { Settings } from "@shared/settings";
-import { appServices } from "../services";
+import { appServices } from "../app-services-ref";
 import type { DownloadViewer } from "./list";
 
 /**

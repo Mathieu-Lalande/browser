@@ -3,7 +3,7 @@ import { mapReaderImages, readerImageSources, sanitizeReaderArticle, type Reader
 import type { TabId } from "@shared/types";
 import { fetchImageDataUrl } from "../favicons";
 import { faviconRequestUrl } from "../privacy";
-import { appServices } from "../services";
+import { appServices } from "../app-services-ref";
 import type { BrowserController } from "../window";
 import { extractArticle } from "./page";
 

@@ -18,6 +18,7 @@ export interface TabPort {
   /** The page of a tab, null while it sleeps (or for an internal page). */
   pageOf(id: TabId): WebContents | null;
   create(input?: string, options?: { activate?: boolean }): TabId;
+  activate(id: TabId): void;
 }
 
 /** The floating UI above the pages (popovers). */

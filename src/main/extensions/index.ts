@@ -1,6 +1,6 @@
 import type { BaseWindow } from "electron";
 import type { ExtensionInfo, ExtensionInstallResult } from "@shared/extensions";
-import { appServices } from "../services";
+import { appServices } from "../app-services-ref";
 
 /** Browser extensions (ADR-024): function facades over the app's `ExtensionService` (./service.ts). */
 

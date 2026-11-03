@@ -1,6 +1,6 @@
 import { Channels, type SyncActionResult } from "@shared/ipc";
 import { SyncError } from "@shared/sync/client";
-import { appServices } from "../services";
+import { appServices } from "../app-services-ref";
 import { exportTheme, importTheme } from "../theme-share";
 import { checkForUpdates, downloadUpdate, installUpdate, updateService } from "../updates";
 import { BrowserController } from "../window";

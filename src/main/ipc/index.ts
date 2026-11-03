@@ -1,6 +1,6 @@
 import { ipcMain } from "electron";
 import type { Channels } from "@shared/ipc";
-import { appServices } from "../services";
+import { appServices } from "../app-services-ref";
 import { BrowserController } from "../window";
 import { downloadHandlers } from "./downloads";
 import { mediaHandlers } from "./media";

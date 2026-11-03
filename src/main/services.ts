@@ -13,6 +13,7 @@ import { ReaderService } from "./reader";
 import type { WindowDirectory } from "./ports";
 import type { Profile } from "./profile";
 import { SessionHardener } from "./session-hardener";
+import { setAppServices } from "./app-services-ref";
 import { trackCertificates } from "./site-info/certificates";
 import { StartImageCache } from "./start-image";
 import type { AdapterDeps } from "./sync/adapters";
@@ -128,17 +129,9 @@ export class AppServices {
   }
 }
 
-let current: AppServices | null = null;
-
-/** Builds the app services (once, at startup). */
+/** Builds the app services (once, at startup); `appServices()` (./app-services-ref) then returns them. */
 export function buildAppServices(config: AppConfig): AppServices {
-  if (current) throw new Error("App services are already built");
-  current = new AppServices(config);
-  return current;
-}
-
-/** The app services; only once `buildAppServices` ran (the app is ready). */
-export function appServices(): AppServices {
-  if (!current) throw new Error("App services used before startup (buildAppServices)");
-  return current;
+  const services = new AppServices(config);
+  setAppServices(services);
+  return services;
 }

@@ -6,7 +6,7 @@
 - Services du process principal : conteneur `AppServices` (`src/main/services.ts`) construit une fois dans `src/main/index.ts`
   (chemins, profil, réglages, `BrowserController.directory` passés aux constructeurs) ; l'état vit dans les instances
   (`DownloadService`, `ExtensionService`, `PasswordVaultStore`, `ReaderService`, `StartImageCache`, `BoostService`,
-  `CaptureService`, `SyncService`), les fonctions exportées des modules n'en sont que des façades. Un service ne
+  `CaptureService`, `SyncService`), les fonctions exportées des modules n'en sont que des façades (via `appServices()` de `src/main/app-services-ref.ts`, jamais `services.ts` : pas de cycle, `npm run check:cycles`). Un service ne
   dépend pas de `window.ts` : il reçoit les ports étroits de `src/main/ports.ts` (`WindowPort`, `TabPort`, `WindowDirectory`).
   Une fonctionnalité par session implémente `SessionService` (`install`/`release`) : `SessionHardener` les installe dans l'ordre
   à chaque `hardenSession` (jamais d'appel à la main). Fenêtres : registre `WindowRegistry` (`src/main/window-registry.ts`) ; `BrowserController` compose

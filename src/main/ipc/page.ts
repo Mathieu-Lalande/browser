@@ -1,7 +1,7 @@
 import { isBoostId, isValidSelector } from "@shared/boosts";
 import { Channels } from "@shared/ipc";
 import { isRecordingData } from "../capture/recorder";
-import { appServices } from "../services";
+import { appServices } from "../app-services-ref";
 import { MAX_BOOST_PAYLOAD } from "./limits";
 import { bounds, custom, defineHandlers, handle, handleUi, on, str } from "./registry";
 

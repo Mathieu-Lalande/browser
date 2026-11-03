@@ -10,7 +10,7 @@ import {
   type PasswordVault,
   type PasswordsStatus,
 } from "@shared/passwords";
-import { appServices } from "../services";
+import { appServices } from "../app-services-ref";
 import { JsonFile } from "../storage/json-file";
 
 const VERSION = 1;

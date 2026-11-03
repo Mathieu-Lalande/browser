@@ -28,7 +28,8 @@ import { uiSession } from "./ui-session";
 import { PageGestures } from "./page-swipe";
 import { watchPageWheel } from "./page-swipe-script";
 import type { WindowDirectory } from "./ports";
-import { appServices, type AppServices } from "./services";
+import { appServices } from "./app-services-ref";
+import type { AppServices } from "./services";
 import { WindowRegistry } from "./window-registry";
 import { ChromeBridge } from "./window-parts/chrome-bridge";
 import { PageHooks } from "./window-parts/page-hooks";
@@ -111,7 +112,7 @@ export class BrowserController {
   /** Page translation of this window's tabs (ADR-036). */
   readonly translator: PageTranslator = new PageTranslator(this);
   /** Highlights and notes of this window's pages (ADR-037). */
-  readonly annotator: PageAnnotator = new PageAnnotator(this);
+  readonly annotator: PageAnnotator = new PageAnnotator(this, { all: () => BrowserController.all() });
   /** Tab hover preview cards and their thumbnails (ADR-038). */
   readonly previews: TabPreviews;
   /**
