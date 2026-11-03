@@ -139,9 +139,78 @@ Pour construire l'installateur sur un PC Windows : `npm run dist:win` (sortie da
 
 **Signature (facultative).** Sans secrets, les paquets sont construits non signés (SmartScreen et
 Gatekeeper avertissent ; sur macOS, signature *ad hoc* pour éviter le message « endommagé » sur
-Apple Silicon). Pour signer, ajouter dans *Settings → Secrets and variables → Actions* :
-`WIN_CSC_LINK` (certificat `.pfx` en base64) et `WIN_CSC_KEY_PASSWORD` pour Windows, `CSC_LINK` et
-`CSC_KEY_PASSWORD` pour macOS (la notarisation Apple n'est pas encore configurée).
+Apple Silicon). Tous les secrets se rangent dans *Settings → Secrets and variables → Actions → New
+repository secret* ; chaque signature s'active seule dès que ses secrets existent (ADR-040).
+
+*Windows avec Azure Trusted Signing (recommandé, environ 10 $/mois).* Pas de clé USB ni de fichier
+`.pfx` : Microsoft garde le certificat, renouvelé tous les jours, et SmartScreen fait confiance aux
+fichiers signés bien plus vite qu'avec un certificat classique.
+
+1. Créer un compte Azure (<https://portal.azure.com>, carte bancaire demandée) et un abonnement
+   « Paiement à l'utilisation ».
+2. Dans le portail, rechercher **Trusted Signing Accounts** (« Comptes de signature approuvée »),
+   *Créer* : un groupe de ressources (ex. `browser-signing`), un nom de compte (ex. `browser-signing`,
+   c'est `AZURE_SIGNING_ACCOUNT`), une région (ex. *West Europe*) et le niveau **Basic**. Noter
+   l'**URI du compte** affichée sur sa page (ex. `https://weu.codesigning.azure.net/`, c'est
+   `AZURE_SIGNING_ENDPOINT` : elle dépend de la région).
+3. Se donner le rôle **Trusted Signing Identity Verifier** sur ce compte (*Contrôle d'accès (IAM) →
+   Ajouter une attribution de rôle*), puis *Identity validation → New identity → Public* : nom légal,
+   adresse et pièce d'identité (particulier : vérification par Microsoft/Au10tix, quelques jours ; une
+   entreprise doit exister depuis 3 ans). Attendre le statut **Completed**.
+4. *Certificate profiles → Create → Public Trust*, choisir l'identité validée. Le nom du profil
+   (ex. `browser`) est `AZURE_CERTIFICATE_PROFILE` ; le **nom commun (CN)** du certificat affiché par le
+   profil (votre nom légal, ex. `Mathieu Lalande`) est `AZURE_PUBLISHER_NAME`, à recopier exactement.
+5. Créer l'identité de la CI : *Microsoft Entra ID → Inscriptions d'applications → Nouvelle
+   inscription* (ex. `browser-release`). Noter l'**ID d'application (client)** (`AZURE_CLIENT_ID`) et
+   l'**ID de l'annuaire (locataire)** (`AZURE_TENANT_ID`). *Certificats et secrets → Nouveau secret
+   client* : copier sa **valeur** tout de suite (`AZURE_CLIENT_SECRET`, à renouveler avant expiration).
+6. Sur le compte Trusted Signing, *Contrôle d'accès (IAM) → Ajouter une attribution de rôle* :
+   **Trusted Signing Certificate Profile Signer** pour l'application `browser-release`.
+7. Ajouter les sept secrets GitHub : `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`,
+   `AZURE_SIGNING_ENDPOINT`, `AZURE_SIGNING_ACCOUNT`, `AZURE_CERTIFICATE_PROFILE`, `AZURE_PUBLISHER_NAME`.
+8. Publier une version : le journal du job Windows affiche « Signature Windows : Azure Trusted
+   Signing » ; clic droit sur l'installateur → *Propriétés → Signatures numériques* pour vérifier.
+
+Une fois les versions signées, `publisherName` est inscrit dans `app-update.yml` : la mise à jour
+automatique refuse alors tout installateur qui ne serait pas signé par ce nom (ne plus changer de nom
+légal ou de certificat sans publier d'abord une version de transition). Les installations non signées
+existantes acceptent la première version signée.
+
+*Windows avec un certificat classique* (`.pfx` d'une autorité de certification, à défaut d'Azure) :
+`WIN_CSC_LINK` (le `.pfx` en base64 ou une URL https) et `WIN_CSC_KEY_PASSWORD` ; electron-builder lit
+le nom de l'éditeur dans le certificat. Azure est prioritaire si ses secrets sont présents.
+
+*macOS* : `CSC_LINK` et `CSC_KEY_PASSWORD` (la notarisation Apple n'est pas encore configurée).
+
+**Contenus protégés (Widevine, Netflix…).** Le bureau est construit sur *Electron for Content
+Security* de castLabs (dépendance `electron` = `github:castlabs/electron-releases#v<version>+wvcus`,
+binaire téléchargé depuis les releases castLabs par `scripts/ensure-electron.mjs` et par
+electron-builder via `build.electronDownload`). Le module Widevine est téléchargé au premier lancement
+(Paramètres → Confidentialité → « Contenus protégés (DRM) » affiche sa version). Pour que Netflix,
+Disney+ ou Prime Video acceptent de lire en production sous Windows et macOS, l'application
+empaquetée doit être **signée VMP** par castLabs (gratuit) :
+
+1. Installer Python 3 puis `python -m pip install --upgrade castlabs-evs`.
+2. Créer le compte : `python -m castlabs_evs.account signup` (nom de compte, adresse e-mail, mot de
+   passe, code reçu par e-mail). Gratuit, pour un usage commercial comme personnel.
+3. Ajouter les secrets GitHub `EVS_ACCOUNT_NAME` et `EVS_PASSWD`. Le workflow de release installe
+   alors `castlabs-evs` et les crochets `scripts/vmp-after-pack.cjs` / `vmp-after-sign.cjs` signent
+   l'application (macOS : avant la signature Apple ; Windows : après Authenticode).
+4. En local : `EVS_ACCOUNT_NAME=… EVS_PASSWD=… npm run dist:win` signe de même ; sans ces variables,
+   rien n'est signé. Vérifier : `python -m castlabs_evs.vmp verify-pkg release/win-unpacked`.
+
+Sans signature VMP, Widevine s'installe mais les services exigeant une plateforme vérifiée refusent la
+lecture (ou la limitent en basse définition). Sous Linux, pas de VMP : le module Widevine n'y est pas
+distribué par le service de composants de castLabs, le réglage affiche « Widevine indisponible ».
+Pour revenir à Electron standard : remettre `"electron": "^44.x.y"` dans `package.json`, retirer
+`build.electronDownload`, `npm install` ; le code détecte l'absence de l'API `components` et le
+réglage affiche « Widevine indisponible ».
+
+**Connexion Google.** Google refuse les « navigateurs intégrés ». Browser se présente comme Google
+Chrome de la même version (agent utilisateur sans « Electron » ni nom d'application, en-têtes
+`Sec-CH-UA` avec les marques de Chrome), ce qui est vérifié par les tests e2e. La connexion réelle à
+un compte Google reste à **vérifier à la main** à chaque montée de version d'Electron (Windows :
+accounts.google.com → se connecter, puis Gmail), Google pouvant changer ses contrôles.
 
 **Site vitrine.** Le dossier `site/` (Vite + TypeScript, sans framework) est publié sur GitHub Pages par
 `.github/workflows/site.yml` à chaque push sur `master` qui touche `site/`. **Une seule fois** :

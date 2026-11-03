@@ -167,6 +167,9 @@ const api: BrowserApi = {
     status: () => ipcRenderer.invoke(Channels.defaultBrowserStatus),
     makeDefault: () => ipcRenderer.invoke(Channels.defaultBrowserSet),
   },
+  drm: {
+    status: () => ipcRenderer.invoke(Channels.drmStatus),
+  },
   import: {
     sources: () => ipcRenderer.invoke(Channels.importSources),
     run: (profileId, items) => ipcRenderer.invoke(Channels.importRun, profileId, items),

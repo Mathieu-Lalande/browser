@@ -1,3 +1,4 @@
+import { WidevineService, type ComponentsPort } from "./drm";
 import { join } from "node:path";
 import type { Session } from "electron";
 import type { Settings, SettingsPatch } from "@shared/settings";
@@ -72,6 +73,9 @@ export interface AppConfig {
   defaultClient: DefaultClientPort;
   /** Where other browsers keep their data (home folder, Windows app data folders), ADR-039. */
   locationEnv: LocationEnv;
+  /** castLabs' `components` API (Widevine, ADR-040), null with stock Electron. */
+  components: ComponentsPort | null;
+  platform: string;
   /** Test hooks honored by an unpackaged app only (ADR-018). */
   testHooks?: {
     plainKeychain?: boolean;
@@ -95,6 +99,7 @@ export class AppServices {
   readonly sync: SyncService;
   readonly defaultBrowser: DefaultBrowserService;
   readonly imports: ImportService;
+  readonly widevine: WidevineService;
   /** Installed into each tab session, in this order. */
   readonly sessionServices: readonly SessionService[];
   readonly hardener: SessionHardener;
@@ -136,6 +141,11 @@ export class AppServices {
       newPasswordId,
       detect: () => detectSources(browserLocations(config.locationEnv), extraSources),
       refreshAll: () => windows.refreshAll(),
+    });
+    this.widevine = new WidevineService({
+      components: config.components,
+      enabled: () => config.settings().privacy.protectedContent,
+      platform: config.platform,
     });
     // Downloads: tab pages only, no automatic opening, dangerous types confirmed first (ADR-013); a
     // private session's ones never reach the history (ADR-014). Extensions: ADR-024.

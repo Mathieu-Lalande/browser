@@ -209,6 +209,10 @@ function startServer(): Promise<{ server: Server; origin: string; log: ServerLog
       );
     } else if (path.startsWith("/file-link")) {
       res.end(`<title>File link</title><a id="file" href="file:///etc/hostname">file</a>`);
+    } else if (path.startsWith("/hints")) {
+      // Asks for the full version list, like Google's sign-in pages (ADR-040).
+      res.setHeader("accept-ch", "Sec-CH-UA-Full-Version-List");
+      res.end(`<title>Page hints</title><h1>hints</h1>`);
     } else if (path.startsWith("/headers")) {
       // What the browser sent (user agent, client hints, languages…), as JSON.
       res.setHeader("content-type", "application/json");
@@ -309,7 +313,8 @@ export function launch(profile: string, env: Record<string, string> = {}, extraA
   return electron.launch({
     // `*.test` hosts resolve to the local server, to exercise HTTPS-Only on a "public" hostname.
     // `extraArgs`: what the OS would hand over (a link, a file to open: ADR-039).
-    args: ["--no-sandbox", "--host-resolver-rules=MAP *.test 127.0.0.1", ".", ...extraArgs],
+    // `--disable-component-update`: no Widevine download per test profile, no startup wait (ADR-040).
+    args: ["--no-sandbox", "--disable-component-update", "--host-resolver-rules=MAP *.test 127.0.0.1", ".", ...extraArgs],
     env: { ...process.env, BROWSER_PROFILE_DIR: profile, BROWSER_TEST_FILTERS: TEST_FILTERS, ...env },
   });
 }

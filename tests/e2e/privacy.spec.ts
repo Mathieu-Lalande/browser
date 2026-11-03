@@ -13,10 +13,25 @@ test("the user agent and client hints never mention Electron; Accept-Language ca
   expect(sent["sec-ch-ua"]).not.toMatch(/electron|browser/i);
   expect(sent["user-agent"]).toMatch(/ Chrome\/\d+\.0\.0\.0 /);
   expect(sent["user-agent"]).not.toMatch(/electron|browser\//i);
-  // Same major version in the user agent and the client hints.
+  // Same major version in the user agent and the client hints, announced as Google Chrome (ADR-040).
   const major = /Chrome\/(\d+)/.exec(sent["user-agent"])![1];
+  const chromeMajor = await app.evaluate(() => process.versions.chrome.split(".")[0]);
+  expect(major).toBe(chromeMajor);
   expect(sent["sec-ch-ua"]).toContain(`"Chromium";v="${major}"`);
+  expect(sent["sec-ch-ua"]).toContain(`"Google Chrome";v="${major}"`);
   expect(sent["sec-gpc"]).toBe("1");
+  // Electron does not persist `Accept-CH`, so the full version list is rarely sent; when it is, it says Chrome too.
+  const fullList = sent["sec-ch-ua-full-version-list"];
+  if (fullList) expect(fullList).toContain(`"Google Chrome";v="${await app.evaluate(() => process.versions.chrome)}"`);
+
+  // What the page's scripts see: the same user agent, and no Electron or Node global (no preload).
+  const page = await evalInTab<{ ua: string; globals: string[] }>(
+    app,
+    server.url("/hints"),
+    "({ ua: navigator.userAgent, globals: ['process', 'require', 'module', 'Buffer', 'global', 'electron', 'ipcRenderer', 'browser'].filter((n) => n in window) })",
+  );
+  expect(page.ua).toBe(sent["user-agent"]);
+  expect(page.globals).toEqual([]);
 
   await chrome.evaluate(() =>
     (globalThis as unknown as { browser: BrowserApi }).browser.settings.update({ privacy: { normalizeAcceptLanguage: true } }),

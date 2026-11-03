@@ -17,6 +17,7 @@ import { spaces } from "./spaces";
 import { startTabArchiver } from "./organize";
 import { showPageMenu } from "./page-menu";
 import { BrowserController, setPageMenu } from "./window";
+import { castlabsComponents } from "./drm";
 import { LaunchRouter, launchUrl, launchUrls, type LaunchContext } from "./default-browser/launch";
 
 /**
@@ -88,7 +89,7 @@ if (!app.requestSingleInstanceLock()) {
   });
   launches.open(launchUrls(process.argv, launchContext()));
 
-  void app.whenReady().then(() => {
+  void app.whenReady().then(async () => {
     // The profile comes first: session hardening reads the settings (Accept-Language).
     const { previousSession, settings } = openProfile();
     serveAppScheme();
@@ -113,6 +114,8 @@ if (!app.requestSingleInstanceLock()) {
         defaultAppNameFor: (url) => app.getApplicationNameForProtocol(url),
         openExternal: (url) => shell.openExternal(url),
       },
+      components: castlabsComponents(),
+      platform: process.platform,
       locationEnv: { platform: process.platform, home: homedir(), localAppData: process.env.LOCALAPPDATA, appData: process.env.APPDATA },
       testHooks: app.isPackaged
         ? {}
@@ -134,6 +137,9 @@ if (!app.requestSingleInstanceLock()) {
       idleMs: archiveDelay,
       checkMs: TEST_ARCHIVE_MS > 0 ? 250 : ARCHIVE_CHECK_MS,
     });
+    // Widevine (ADR-040): pages created before the CDM is registered cannot play protected content;
+    // the wait is bounded so that the browser starts all the same without it.
+    await services.widevine.prepare();
     // Spaces are kept even when windows are not restored.
     spaces.init(previousSession?.spaces);
     const restore = settings.behavior.restoreSession ? (previousSession?.windows ?? []) : [];

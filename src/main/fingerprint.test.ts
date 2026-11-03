@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { acceptLanguages, chromeMajor, mobileUserAgent, normalizeBrandList, normalizeClientHints, reduceUserAgent } from "./fingerprint";
+import { acceptLanguages, brandHeader, chromeBrands, chromeMajor, chromeVersion, mobileUserAgent, normalizeClientHints, reduceUserAgent } from "./fingerprint";
 
 const ELECTRON_UA =
   "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) browser/0.2.0 Chrome/152.0.7977.167 Electron/44.9.3 Safari/537.36";
@@ -37,42 +37,40 @@ describe("mobileUserAgent", () => {
 });
 
 describe("client hints", () => {
-  const chromium = `"Not?A_Brand";v="24", "Chromium";v="152"`;
+  const chrome = chromeVersion("152.0.7977.167");
 
-  it("passes Chromium's own brand list through untouched", () => {
-    expect(normalizeBrandList(chromium, "Browser")).toBe(chromium);
+  it("builds Google Chrome's brand list, GREASE brand and order included", () => {
+    // Known Chrome values: 120 and 131 (ordering and GREASE derive from the major version).
+    expect(brandHeader(chromeBrands(chromeVersion("120.0.6099.71")))).toBe(`"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"`);
+    expect(brandHeader(chromeBrands(chromeVersion("131.0.6778.86")))).toBe(`"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"`);
+    expect(brandHeader(chromeBrands(chromeVersion("131.0.6778.86"), true))).toBe(
+      `"Google Chrome";v="131.0.6778.86", "Chromium";v="131.0.6778.86", "Not_A Brand";v="24.0.0.0"`,
+    );
   });
 
-  it("removes brands naming Electron or the app", () => {
-    expect(normalizeBrandList(`"Not?A_Brand";v="24", "Electron";v="44", "Chromium";v="152"`, "Browser")).toBe(chromium);
-    expect(normalizeBrandList(`"Browser";v="0.2.0.0", "Chromium";v="152.0.7977.167"`, "Browser")).toBe(`"Chromium";v="152.0.7977.167"`);
-  });
-
-  it("falls back to a plain Chromium brand when nothing is left", () => {
-    expect(normalizeBrandList(`"Electron";v="44"`, "Browser", "152")).toBe(`"Chromium";v="152"`);
-    expect(normalizeBrandList("garbage", "Browser")).toBe("");
-  });
-
-  it("normalizes Sec-CH-UA headers whatever their case, and leaves other headers alone", () => {
+  it("replaces Sec-CH-UA headers whatever their case, and leaves other headers alone", () => {
     const headers = {
       "sec-ch-ua": `"Electron";v="44", "Chromium";v="152"`,
       "Sec-CH-UA-Full-Version-List": `"Chromium";v="152.0.7977.167", "electron";v="44.9.3"`,
       "sec-ch-ua-platform": `"Linux"`,
       Accept: "*/*",
     };
-    expect(normalizeClientHints(headers, "Browser")).toEqual({
-      "sec-ch-ua": `"Chromium";v="152"`,
-      "Sec-CH-UA-Full-Version-List": `"Chromium";v="152.0.7977.167"`,
+    const result = normalizeClientHints(headers, chrome);
+    expect(result).toEqual({
+      "sec-ch-ua": brandHeader(chromeBrands(chrome)),
+      "Sec-CH-UA-Full-Version-List": brandHeader(chromeBrands(chrome, true)),
       "sec-ch-ua-platform": `"Linux"`,
       Accept: "*/*",
     });
-    // Untouched input: same object, no copy.
-    const clean = { "sec-ch-ua": chromium, Accept: "*/*" };
-    expect(normalizeClientHints(clean, "Browser")).toBe(clean);
+    expect(JSON.stringify(result)).not.toMatch(/electron|browser/i);
+    expect(result["sec-ch-ua"]).toContain(`"Google Chrome";v="152"`);
   });
 
-  it("drops a brand header that would be empty", () => {
-    expect(normalizeClientHints({ "sec-ch-ua": `"Electron";v="44"` }, "Browser")).toEqual({});
+  it("returns the same object when there is nothing to change, and never adds a header", () => {
+    const clean = { "sec-ch-ua": brandHeader(chromeBrands(chrome)), Accept: "*/*" };
+    expect(normalizeClientHints(clean, chrome)).toBe(clean);
+    const none = { Accept: "*/*" };
+    expect(normalizeClientHints(none, chrome)).toBe(none);
   });
 });
 

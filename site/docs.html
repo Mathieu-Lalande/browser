@@ -818,7 +818,11 @@
           <h2 id="t-depannage"><i data-icon="circle-help"></i>Dépannage et questions</h2>
           <dl class="faq-dl">
             <dt>Windows affiche « Windows a protégé votre ordinateur ».</dt>
-            <dd>Les paquets ne sont pas encore signés : « Informations complémentaires », puis « Exécuter quand même ». Vérifiez le fichier avec <code>SHA256SUMS.txt</code> si vous le souhaitez.</dd>
+            <dd>C'est SmartScreen, qui avertit pour un programme non signé ou encore peu téléchargé. Tant que les paquets ne sont pas signés : « Informations complémentaires », puis « Exécuter quand même ». Vérifiez le fichier avec <code>SHA256SUMS.txt</code> si vous le souhaitez. La signature (Azure Trusted Signing) est prête et sera activée dans une prochaine version ; même signé, un nouvel exécutable peut être signalé quelques jours, le temps d'acquérir sa réputation.</dd>
+            <dt>Netflix, Disney+, Prime Video ou Spotify refusent de lire.</dt>
+            <dd>Ils exigent le module de contenus protégés Widevine. Vérifiez Paramètres, Confidentialité, « Contenus protégés (DRM) » : l'interrupteur doit être activé et une version de Widevine affichée. Au tout premier lancement, le module se télécharge en quelques secondes ; relancez le navigateur s'il indique « installation en cours ». Sous Linux, Widevine n'est pas disponible. Certains services réservent la haute définition aux navigateurs dont la plateforme est vérifiée (signature VMP des versions publiées).</dd>
+            <dt>Google refuse la connexion (« Ce navigateur ou cette application n'est peut-être pas sécurisé »).</dt>
+            <dd>Browser se présente comme Google Chrome de la même version, ce qui suffit d'ordinaire. Si Google refuse malgré tout, mettez Browser à jour, réessayez depuis <code>accounts.google.com</code> plutôt que depuis une fenêtre surgissante, et désactivez les protections pour ce site le temps de la connexion. Signalez-le sur GitHub en précisant la version : les contrôles de Google évoluent.</dd>
             <dt>macOS dit que l'application ne peut pas être ouverte.</dt>
             <dd>Clic droit sur Browser dans Applications, « Ouvrir » ; ou Réglages Système, Confidentialité et sécurité, « Ouvrir quand même ».</dd>
             <dt>L'AppImage ne se lance pas sous Linux.</dt>

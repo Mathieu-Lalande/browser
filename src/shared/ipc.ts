@@ -4,6 +4,7 @@ import type { AnnotationResult, AnnotationsList, Highlight, HighlightColor, High
 import type { Boost, BoostInput, BoostResult } from "./boosts";
 import type { CommandId } from "./commands";
 import type { DefaultBrowserStatus } from "./default-browser";
+import type { WidevineStatus } from "./drm";
 import type { HistoryClearRange, HistoryCursor, HistoryPage } from "./history";
 import type { ImportItem, ImportProgress, ImportSource, ImportSummary, PasswordImportSummary } from "./import/types";
 import type { ExtensionInfo, ExtensionInstallResult } from "./extensions";
@@ -94,6 +95,7 @@ export const Channels = {
   historyClearRange: "history:clear-range",
   defaultBrowserStatus: "default-browser:status",
   defaultBrowserSet: "default-browser:set",
+  drmStatus: "drm:status",
   importSources: "import:sources",
   importRun: "import:run",
   importPasswords: "import:passwords",
@@ -501,6 +503,10 @@ export interface BrowserApi {
     status(): Promise<DefaultBrowserStatus>;
     /** Asks the OS (Windows: opens its Settings). */
     makeDefault(): Promise<DefaultBrowserStatus>;
+  };
+  /** ADR-040: protected content (Widevine CDM) status, for the settings row. */
+  drm: {
+    status(): Promise<WidevineStatus>;
   };
   /** ADR-039: import from other browsers (refused in a private window). */
   import: {

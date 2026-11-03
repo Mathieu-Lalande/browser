@@ -1926,3 +1926,57 @@ barre universelle. Les trois canaux sont refusés aux fenêtres privées (`priva
 **Conséquences.** Les PDF ne sont plus téléchargés quand le site les affiche ; un fichier local s'ouvre en
 `file://` (pages locales liées entre elles, mais toujours inaccessibles depuis le web). L'import d'historique est
 plafonné à 10 000 pages ; les mots de passe demandent un détour par un fichier à supprimer ensuite.
+
+## ADR-040 — Contenus protégés (Widevine), connexion Google, signature Windows
+
+**Contexte.** Trois obstacles empêchaient d'en faire le navigateur de tous les jours : Netflix, Disney+, Prime
+Video et Spotify exigent un module DRM (Widevine) qu'Electron standard n'embarque pas ; Google refuse la
+connexion aux « navigateurs intégrés » qu'il reconnaît ; Windows SmartScreen avertit à chaque installation
+d'un exécutable non signé.
+
+**Décision — Widevine.**
+- Dépendance `electron` = **castLabs Electron for Content Security** (`github:castlabs/electron-releases#v44.9.3+wvcus`,
+  même Chromium que la 44.9.3 standard). Son `install.js` télécharge le binaire depuis les releases castLabs :
+  `scripts/ensure-electron.mjs` n'a pas changé. electron-builder télécharge les binaires des autres
+  plateformes/architectures depuis le même endroit (`build.electronDownload.mirror`). Le lockfile référence
+  un commit (`git+ssh` réécrit en https par npm : `npm ci` marche sans clé SSH).
+- `src/main/drm.ts` : `castlabsComponents()` lit l'API `components` par l'espace de noms `electron` (absente
+  avec Electron standard : l'interrupteur est la seule ligne de `package.json`) ; `WidevineService` (dans
+  `AppServices`) attend `components.whenReady([WIDEVINE_CDM_ID])` **avant de créer les fenêtres** (une page
+  créée avant l'enregistrement du CDM ne peut pas l'utiliser), mais jamais plus de `WIDEVINE_WAIT_MS` (6 s) :
+  hors ligne ou en échec, le navigateur démarre sans DRM. `--disable-component-update` (tests e2e) : ni
+  téléchargement ni attente. Linux : le service de composants répond « Unsupported component » (constaté
+  sur 44.9.3+wvcus) : refus immédiat, aucun délai, « Widevine indisponible ».
+- Permission `mediaKeySystem` : sans invite, décidée par le réglage `privacy.protectedContent` (vrai par
+  défaut, aussi en fenêtre privée : rien n'est écrit dans le profil par le CDM hors de son dossier de
+  composants). Désactivé : la page se voit refuser Widevine et le démarrage n'attend plus le CDM.
+- Paramètres → Confidentialité, ligne « Contenus protégés (DRM) » (`DrmRow`, ancre `drm`, canal `drm:status`) :
+  version du CDM, « installation en cours », « actif au prochain démarrage » (Linux, premier
+  téléchargement), « Widevine indisponible » ou « Désactivé » (modèle pur `src/shared/drm.ts`).
+- **Signature VMP** (castLabs EVS, gratuite) : exigée en production sous Windows et macOS. Crochets
+  electron-builder `scripts/vmp-after-pack.cjs` / `vmp-after-sign.cjs` (`scripts/vmp-sign.cjs`), actifs
+  seulement avec `EVS_ACCOUNT_NAME`/`EVS_PASSWD` : macOS en `afterPack` **après les fusibles** (le crochet
+  les applique lui-même ; electron-builder les réapplique aux mêmes valeurs, octets inchangés) et avant la
+  signature Apple ; Windows en `afterSign` (après Authenticode), ou en `afterPack` sans signature de code.
+
+**Décision — connexion Google.** `navigator.userAgent` et l'en-tête `User-Agent` sont déjà ceux de Chrome
+réduit (ADR-014). Les en-têtes `Sec-CH-UA` et `Sec-CH-UA-Full-Version-List` sont désormais **remplacés** par la
+liste de marques exacte de Google Chrome de la même version (`chromeBrands` : algorithme
+`GenerateBrandVersionList` de Chromium, marque GREASE et ordre dérivés du numéro majeur ; testé sur les
+valeurs réelles de Chrome 120 et 131), pour toutes les requêtes des sessions d'onglets, travailleurs
+compris. Les pages n'ont aucun global Electron/Node (pas de preload, ADR-003) : vérifié par e2e.
+Limite connue : `navigator.userAgentData.brands` reste celui de Chromium (« Chromium » + GREASE) ; le
+changer exigerait `Emulation.setUserAgentOverride` par le protocole DevTools, débogueur attaché en
+permanence à chaque onglet (et aux cadres hors processus), écarté. La connexion réelle se vérifie à la
+main à chaque montée d'Electron (docs/INSTALL.md).
+
+**Décision — signature Windows.** Prête à activer, sans effet tant que les secrets manquent : Azure
+Trusted Signing (prioritaire) par `win.azureSignOptions` (endpoint, compte, profil, `publisherName`),
+écrit par le workflow de release (`npm pkg set`) seulement si les secrets `AZURE_*` existent ; sinon
+certificat classique `WIN_CSC_LINK`. `publisherName` n'est jamais mis dans `package.json` : présent
+dans `app-update.yml` d'une version non signée, il ferait refuser toutes les mises à jour.
+
+**Conséquences.** Le binaire Electron vient de castLabs (mises à jour de sécurité au rythme de leurs
+publications, à suivre à chaque montée de version : choisir le tag `v<version>+wvcus` correspondant).
+Premier lancement sous Windows/macOS : jusqu'à 6 s d'attente le temps de télécharger le CDM. Sans
+secrets EVS, Widevine est présent mais les grands services refusent (ou limitent) la lecture.

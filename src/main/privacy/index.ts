@@ -1,7 +1,8 @@
 import { join } from "node:path";
 import { app, session, type Session, type WebContents } from "electron";
 import type { PermissionKind, PermissionPrompt } from "@shared/types";
-import { normalizeClientHints } from "../fingerprint";
+import { chromeVersion, normalizeClientHints } from "../fingerprint";
+import { DRM_PERMISSION } from "../drm";
 import { ContentBlocker } from "./blocker";
 import { TabCosmetics } from "./cosmetics";
 import { webHostname } from "@shared/hosts";
@@ -100,6 +101,9 @@ function shieldsOn(ses: Session | undefined, host: string): boolean {
   return own ?? privacy?.shields.isEnabled(host) ?? true;
 }
 
+/** The Chrome this Electron is built on: client hints announce Google Chrome of that version (ADR-040). */
+const CHROME = chromeVersion(process.versions.chrome);
+
 /** Sessions already filtered: `webRequest` accepts one listener per event, so install only once. */
 const installed = new WeakSet<Session>();
 
@@ -151,10 +155,11 @@ export function installPrivacy(ses: Session, alwaysAllowed: ReadonlySet<string>,
   // lives in the same listeners as the rest of the pipeline.
   ses.webRequest.onBeforeSendHeaders((details, callback) => {
     const tab = details.webContentsId === undefined ? undefined : tabs.get(details.webContentsId);
-    if (!tab) return callback({});
+    // Workers and other requests without a tab announce the same brands as the pages.
+    if (!tab) return callback({ requestHeaders: normalizeClientHints(details.requestHeaders, CHROME) });
     // Global Privacy Control: a legally meaningful "do not sell/share" signal in several jurisdictions.
     // Client hints (Sec-CH-UA*) are made consistent with the reduced user agent (ADR-014).
-    let headers: Record<string, string> = { ...normalizeClientHints(details.requestHeaders, app.getName()), "Sec-GPC": "1" };
+    let headers: Record<string, string> = { ...normalizeClientHints(details.requestHeaders, CHROME), "Sec-GPC": "1" };
     if (stripsCookies(details.url, pageOf(tab), details.resourceType, settings().privacy)) headers = withoutHeaders(headers, ["cookie"]);
     callback({ requestHeaders: headers });
   });
@@ -167,6 +172,8 @@ export function installPrivacy(ses: Session, alwaysAllowed: ReadonlySet<string>,
 
   ses.setPermissionRequestHandler((contents, permission, callback, details) => {
     if (alwaysAllowed.has(permission)) return callback(true);
+    // Protected content (Widevine, ADR-040): no prompt, the "Contenus protégés (DRM)" setting decides.
+    if (permission === DRM_PERMISSION) return callback(settings().privacy.protectedContent);
     const kinds = permissionKinds(permission, "mediaTypes" in details ? (details.mediaTypes ?? []) : []);
     if (!kinds || !tabs.has(contents.id)) return callback(false);
     // Decisions are keyed by (requesting origin, top-level origin): an embedded frame allowed
@@ -175,6 +182,7 @@ export function installPrivacy(ses: Session, alwaysAllowed: ReadonlySet<string>,
   });
   ses.setPermissionCheckHandler((contents, permission, requestingOrigin, details) => {
     if (alwaysAllowed.has(permission)) return true;
+    if (permission === DRM_PERMISSION) return settings().privacy.protectedContent;
     if (!contents || !tabs.has(contents.id)) return false;
     const kinds = permissionKinds(permission, details.mediaType ? [details.mediaType] : []);
     return kinds !== null && prompts.check(requestingOrigin, kinds, contents.getURL());

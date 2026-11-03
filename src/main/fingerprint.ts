@@ -5,7 +5,7 @@
  * read (canvas, WebGL, fonts, `navigator.*`) is not covered: it would need code injected in pages.
  */
 
-/** Tokens to remove from the user agent and brand lists: Electron itself and the app's name. */
+/** Tokens to remove from the user agent: Electron itself and the app's name. */
 function leakPattern(appName: string): RegExp {
   const token = appName.replace(/[^\w-]/g, "");
   return new RegExp(`^(electron${token ? `|${token}` : ""})$`, "i");
@@ -39,38 +39,73 @@ export function chromeMajor(userAgent: string): string | null {
   return /\bChrome\/(\d+)/.exec(userAgent)?.[1] ?? null;
 }
 
-const BRAND = /"((?:[^"\\]|\\.)*)"\s*;\s*v\s*=\s*"([^"]*)"/g;
+/** Chrome's version: `major` for `Sec-CH-UA`, `full` (e.g. `152.0.7977.167`) for the full version list. */
+export interface ChromeVersion {
+  major: string;
+  full: string;
+}
+
+/** Chrome's version from Electron's `process.versions.chrome` (`152.0.7977.167`). */
+export function chromeVersion(full: string): ChromeVersion {
+  return { major: full.split(".", 1)[0] ?? "", full };
+}
+
+export interface Brand {
+  brand: string;
+  version: string;
+}
+
+const GREASE_CHARS = [" ", "(", ":", "-", ".", "/", ")", ";", "=", "?", "_"];
+const GREASE_VERSIONS = ["8", "99", "24"];
+const ORDERS = [
+  [0, 1, 2],
+  [0, 2, 1],
+  [1, 0, 2],
+  [1, 2, 0],
+  [2, 0, 1],
+  [2, 1, 0],
+] as const;
 
 /**
- * `Sec-CH-UA` / `Sec-CH-UA-Full-Version-List` value without brands that name Electron or the app
- * (structured header list `"Brand";v="1", …`). Unchanged when nothing leaks; malformed values
- * are replaced by a plain Chromium brand rather than passed through.
+ * The brand list of Google Chrome, exactly as Chrome builds it (Chromium's
+ * `GenerateBrandVersionList`, seeded by the major version): a GREASE brand, "Chromium" and
+ * "Google Chrome", in a stable order per version. `full`: versions of the full version list.
  */
-export function normalizeBrandList(value: string, appName: string, fallbackVersion = ""): string {
-  const leaks = leakPattern(appName);
-  const brands = [...value.matchAll(BRAND)].map(([, brand, version]) => ({ brand, version }));
-  const kept = brands.filter(({ brand }) => !leaks.test(brand.trim()));
-  if (brands.length && kept.length === brands.length) return value;
-  if (!kept.length) return fallbackVersion ? `"Chromium";v="${fallbackVersion}"` : "";
-  return kept.map(({ brand, version }) => `"${brand}";v="${version}"`).join(", ");
+export function chromeBrands(chrome: ChromeVersion, full = false): Brand[] {
+  const seed = Number.parseInt(chrome.major, 10) || 0;
+  const order = ORDERS[seed % ORDERS.length];
+  const grease = `Not${GREASE_CHARS[seed % GREASE_CHARS.length]}A${GREASE_CHARS[(seed + 1) % GREASE_CHARS.length]}Brand`;
+  const greaseVersion = GREASE_VERSIONS[seed % GREASE_VERSIONS.length];
+  const own = full ? chrome.full : chrome.major;
+  const list: Brand[] = [];
+  list[order[0]] = { brand: grease, version: full ? `${greaseVersion}.0.0.0` : greaseVersion };
+  list[order[1]] = { brand: "Chromium", version: own };
+  list[order[2]] = { brand: "Google Chrome", version: own };
+  return list;
+}
+
+/** A brand list as a structured header (`"Brand";v="1", …`), the form of `Sec-CH-UA`. */
+export function brandHeader(brands: readonly Brand[]): string {
+  return brands.map(({ brand, version }) => `"${brand}";v="${version}"`).join(", ");
 }
 
 const BRAND_HEADERS = /^sec-ch-ua(-full-version-list)?$/i;
 
 /**
- * Request headers with consistent client hints: brand lists never mention Electron or the app.
- * (Chromium's own brands are "Chromium" and a GREASE brand, consistent with the reduced user agent.)
- * Returns the same object when there is nothing to change.
+ * Request headers whose brand lists (`Sec-CH-UA`, `Sec-CH-UA-Full-Version-List`) are those of
+ * Google Chrome of the same version (ADR-040): Electron's Chromium announces "Chromium" alone,
+ * which, next to a Chrome user agent, singles the browser out (and Google's sign-in is wary of
+ * embedded browsers). Never a brand naming Electron or the app. Headers the request did not carry
+ * are not added. Returns the same object when there is nothing to change.
  */
-export function normalizeClientHints(headers: Record<string, string>, appName: string): Record<string, string> {
+export function normalizeClientHints(headers: Record<string, string>, chrome: ChromeVersion): Record<string, string> {
   let result = headers;
   for (const [name, value] of Object.entries(headers)) {
     if (!BRAND_HEADERS.test(name)) continue;
-    const normalized = normalizeBrandList(value, appName);
+    const normalized = brandHeader(chromeBrands(chrome, name.length > "sec-ch-ua".length));
     if (normalized === value) continue;
     if (result === headers) result = { ...headers };
-    if (normalized) result[name] = normalized;
-    else delete result[name];
+    result[name] = normalized;
   }
   return result;
 }

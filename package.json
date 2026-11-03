@@ -40,7 +40,7 @@
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@tsconfig/svelte": "^5.0.8",
     "@types/node": "^22.20.5",
-    "electron": "^44.9.3",
+    "electron": "github:castlabs/electron-releases#v44.9.3+wvcus",
     "electron-builder": "^26.18.0",
     "electron-vite": "^6.0.0",
     "svelte": "^5.57.2",
@@ -187,7 +187,12 @@
         "role": "Viewer",
         "rank": "Alternate"
       }
-    ]
+    ],
+    "afterPack": "./scripts/vmp-after-pack.cjs",
+    "afterSign": "./scripts/vmp-after-sign.cjs",
+    "electronDownload": {
+      "mirror": "https://github.com/castlabs/electron-releases/releases/download/"
+    }
   },
   "dependencies": {
     "@ghostery/adblocker": "2.20.1",

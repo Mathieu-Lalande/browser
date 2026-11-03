@@ -1,8 +1,12 @@
 # Builds the installers on the three OSes and publishes them as a GitHub Release (ADR-023).
 # Triggered by pushing a `v*` tag (`npm run release:version -- <version>` then `git push --follow-tags`)
 # or manually from the Actions tab with a version number.
-# Code signing is optional: without the secrets below, the packages are built unsigned.
-#   Windows: WIN_CSC_LINK (base64 .pfx or https URL) + WIN_CSC_KEY_PASSWORD
+# Code signing is optional: without the secrets below, the packages are built unsigned (docs/INSTALL.md).
+#   Windows, Azure Trusted Signing (preferred, ADR-040): AZURE_TENANT_ID, AZURE_CLIENT_ID,
+#            AZURE_CLIENT_SECRET, AZURE_SIGNING_ENDPOINT, AZURE_SIGNING_ACCOUNT,
+#            AZURE_CERTIFICATE_PROFILE, AZURE_PUBLISHER_NAME
+#   Windows, classic certificate: WIN_CSC_LINK (base64 .pfx or https URL) + WIN_CSC_KEY_PASSWORD
+#   Widevine VMP (castLabs EVS, Windows and macOS): EVS_ACCOUNT_NAME + EVS_PASSWD
 #   macOS:   CSC_LINK (base64 .p12) + CSC_KEY_PASSWORD (signing only, no notarization)
 name: Release
 
@@ -102,9 +106,33 @@ jobs:
           WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_SIGNING_ENDPOINT: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
+          AZURE_SIGNING_ACCOUNT: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          AZURE_CERTIFICATE_PROFILE: ${{ secrets.AZURE_CERTIFICATE_PROFILE }}
+          AZURE_PUBLISHER_NAME: ${{ secrets.AZURE_PUBLISHER_NAME }}
         run: |
           signed=false
-          if [ "$RUNNER_OS" = "Windows" ] && [ -n "$WIN_CSC_LINK" ]; then
+          if [ "$RUNNER_OS" = "Windows" ] && [ -n "$AZURE_CLIENT_SECRET" ] && [ -n "$AZURE_SIGNING_ENDPOINT" ]; then
+            # Azure Trusted Signing (ADR-040): electron-builder signs through Invoke-TrustedSigning,
+            # authenticated by the AZURE_TENANT_ID/CLIENT_ID/CLIENT_SECRET environment variables.
+            # publisherName (the certificate's CN) is also written to app-update.yml: electron-updater
+            # then refuses an update not signed by that publisher.
+            npm pkg set build.win.azureSignOptions.endpoint="$AZURE_SIGNING_ENDPOINT"
+            npm pkg set build.win.azureSignOptions.codeSigningAccountName="$AZURE_SIGNING_ACCOUNT"
+            npm pkg set build.win.azureSignOptions.certificateProfileName="$AZURE_CERTIFICATE_PROFILE"
+            npm pkg set build.win.azureSignOptions.publisherName="$AZURE_PUBLISHER_NAME"
+            {
+              echo "AZURE_TENANT_ID=$AZURE_TENANT_ID"
+              echo "AZURE_CLIENT_ID=$AZURE_CLIENT_ID"
+              echo "AZURE_CLIENT_SECRET=$AZURE_CLIENT_SECRET"
+            } >> "$GITHUB_ENV"
+            signed=true
+            echo "Signature Windows : Azure Trusted Signing."
+          elif [ "$RUNNER_OS" = "Windows" ] && [ -n "$WIN_CSC_LINK" ]; then
+            # Classic certificate (.pfx): electron-builder reads the publisher name from it.
             {
               echo "WIN_CSC_LINK=$WIN_CSC_LINK"
               echo "WIN_CSC_KEY_PASSWORD=$WIN_CSC_KEY_PASSWORD"
@@ -127,9 +155,36 @@ jobs:
             fi
             echo "Pas de certificat : paquets non signés."
           fi
+      # castLabs EVS VMP signing (Widevine in production, ADR-040): only with the EVS secrets,
+      # Windows and macOS (Linux needs none). The electron-builder hooks (scripts/vmp-sign.cjs)
+      # sign the packaged app; without the secrets they do nothing.
+      - name: Configure VMP signing (optional)
+        id: vmp
+        if: runner.os != 'Linux'
+        shell: bash
+        env:
+          EVS_ACCOUNT_NAME: ${{ secrets.EVS_ACCOUNT_NAME }}
+          EVS_PASSWD: ${{ secrets.EVS_PASSWD }}
+        run: |
+          if [ -n "$EVS_ACCOUNT_NAME" ] && [ -n "$EVS_PASSWD" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Pas de compte castLabs EVS : paquets non signés VMP (Widevine refusé par Netflix & co. en production)."
+          fi
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        if: steps.vmp.outputs.enabled == 'true'
+        with:
+          python-version: "3.12"
+      - name: Install castLabs EVS
+        if: steps.vmp.outputs.enabled == 'true'
+        run: python -m pip install --upgrade castlabs-evs
       - run: npm run build
       - name: Package
         run: npx electron-builder ${{ matrix.platform }} --publish never
+        env:
+          EVS_ACCOUNT_NAME: ${{ steps.vmp.outputs.enabled == 'true' && secrets.EVS_ACCOUNT_NAME || '' }}
+          EVS_PASSWD: ${{ steps.vmp.outputs.enabled == 'true' && secrets.EVS_PASSWD || '' }}
+          EVS_PYTHON: python
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: packages-${{ runner.os }}

@@ -13,6 +13,11 @@ export const defaultBrowserHandlers = defineHandlers({
   [Channels.defaultBrowserSet]: handleUi([], () => appServices().defaultBrowser.makeDefault()),
 });
 
+/** Protected content (ADR-040): the Widevine CDM status, read-only. */
+export const drmHandlers = defineHandlers({
+  [Channels.drmStatus]: handleUi([], () => appServices().widevine.status()),
+});
+
 const NOTHING: Omit<PasswordImportSummary, "ok"> = { added: 0, updated: 0, skipped: 0, invalid: 0 };
 
 /** The file is chosen in main's own dialog: the UI never names a path. */

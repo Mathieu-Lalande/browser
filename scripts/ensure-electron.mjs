@@ -2,6 +2,8 @@
 // `electron` is required. electron-vite reads the binary path directly and never triggers that,
 // so a fresh clone fails with "Electron uninstall". Run Electron's own installer (a no-op when
 // the binary is already there) after every install and before dev/build commands.
+// The dependency is castLabs' Electron for Content Security (Widevine, ADR-040): its installer has
+// the same name and downloads from the castLabs releases instead.
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 

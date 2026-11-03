@@ -1,5 +1,5 @@
 import type { ElectronApplication, Page } from "@playwright/test";
-import { chromeOf, expect, launch, tabUrls, test } from "./fixtures";
+import { chromeOf, evalInTab, expect, launch, tabUrls, test } from "./fixtures";
 
 /** Native key press through the main process, so Electron menu accelerators fire (see library.spec.ts). */
 async function press(app: ElectronApplication, keyCode: string, modifiers: ("control" | "shift")[] = ["control"]): Promise<void> {
@@ -225,4 +225,23 @@ test("the side navigation brings each section to the top, the last ones included
     expect(await landing(id)).toBe(24);
     await expect(nav.locator("[aria-current=true]")).toHaveText(label);
   }
+});
+
+test("protected content (DRM): Widevine status and switch", async ({ app, chrome, server }) => {
+  await visit(chrome, "browser://settings#privacy/drm", "Paramètres");
+  const row = chrome.locator('[data-setting="drm"]');
+  await expect(row).toBeVisible();
+  // The e2e app runs with the component updater off (fixtures): no CDM is downloaded.
+  await expect(row.getByTestId("drm-status")).toHaveText("Widevine indisponible");
+  await row.getByRole("switch", { name: "Contenus protégés (DRM)" }).click();
+  await expect(row.getByTestId("drm-status")).toHaveText("Désactivé");
+
+  // Off, pages are refused the Widevine key system.
+  await visit(chrome, server.url("/page"), "Page page");
+  const access = await evalInTab<string>(
+    app,
+    server.url("/page"),
+    `navigator.requestMediaKeySystemAccess("com.widevine.alpha", [{ videoCapabilities: [{ contentType: 'video/mp4; codecs="avc1.42E01E"' }] }]).then(() => "granted", (e) => e.name)`,
+  );
+  expect(access).not.toBe("granted");
 });

@@ -5,6 +5,7 @@
   import Button from "../ui/Button.svelte";
   import Row from "../ui/Row.svelte";
   import Toggle from "../ui/Toggle.svelte";
+  import DrmRow from "./DrmRow.svelte";
 
   /** Settings > Confidentialité: language sent to sites, weather widget note, passwords. */
 
@@ -23,6 +24,7 @@
     onchange={(normalizeAcceptLanguage) => update({ privacy: { normalizeAcceptLanguage } })}
   />
 </Row>
+<DrmRow />
 <Row
   anchor="weather"
   label="Widget Météo"

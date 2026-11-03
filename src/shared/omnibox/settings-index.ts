@@ -68,6 +68,7 @@ export const SETTINGS_INDEX: readonly SettingEntry[] = [
   entry("shortcuts", null, "Raccourcis clavier", ["raccourci", "touches", "keyboard", "shortcut"]),
   entry("privacy", "weather", "Widget Météo", ["open-meteo", "localisation", "réseau"]),
   entry("privacy", "accept-language", "Uniformiser la langue envoyée aux sites", ["langue", "empreinte", "fingerprint"]),
+  entry("privacy", "drm", "Contenus protégés (DRM)", ["widevine", "netflix", "disney", "spotify", "prime video", "streaming"]),
   entry("siteData", "third-party-cookies", "Bloquer les cookies tiers", ["cookies", "pistage", "tracking"]),
   entry("siteData", null, "Cookies et données des sites", ["cookies", "stockage", "effacer"]),
   entry("translate", "provider", "Service de traduction", ["traduire", "translate", "deepl", "libretranslate", "google"]),

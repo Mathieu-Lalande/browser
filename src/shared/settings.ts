@@ -98,6 +98,11 @@ export interface PrivacySettings {
   blockThirdPartyCookies: boolean;
   /** Sites (registrable domains) where third-party cookies stay allowed. */
   thirdPartyCookieExceptions: string[];
+  /**
+   * Protected content (Widevine DRM, ADR-040: Netflix, Disney+, Spotify…). On by default; off,
+   * pages are refused the DRM key system (and the desktop app does not wait for the CDM at startup).
+   */
+  protectedContent: boolean;
 }
 
 export interface DownloadSettings {
@@ -238,7 +243,7 @@ export const DEFAULT_SETTINGS: Settings = {
   search: { engine: DEFAULT_SEARCH_ENGINE.id },
   startPage: { widgets: defaultWidgets(), greetingName: "", background: "theme", backgroundImage: "" },
   behavior: { restoreSession: true, newTabPosition: "end", closeTabActivates: "next", sleepTabsAfter: "30m", archiveTabsAfter: "7d", defaultBrowserPromptDismissed: false },
-  privacy: { normalizeAcceptLanguage: false, blockThirdPartyCookies: false, thirdPartyCookieExceptions: [] },
+  privacy: { normalizeAcceptLanguage: false, blockThirdPartyCookies: false, thirdPartyCookieExceptions: [], protectedContent: true },
   downloads: { folder: "", askWhere: false },
   reader: { font: "serif", size: 19, width: "medium", theme: "auto" },
   updates: { autoDownload: true, channel: "stable" },
@@ -361,7 +366,7 @@ const schema: Schema = {
     archiveTabsAfter: oneOf("never", "12h", "24h", "7d", "30d"),
     defaultBrowserPromptDismissed: bool,
   },
-  privacy: { normalizeAcceptLanguage: bool, blockThirdPartyCookies: bool, thirdPartyCookieExceptions: sanitizeSiteList },
+  privacy: { normalizeAcceptLanguage: bool, blockThirdPartyCookies: bool, thirdPartyCookieExceptions: sanitizeSiteList, protectedContent: bool },
   downloads: { folder: folderPath, askWhere: bool },
   reader: {
     font: oneOf("serif", "sans"),

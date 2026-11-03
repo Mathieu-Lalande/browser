@@ -124,3 +124,8 @@
 - Aperçu des onglets au survol et thème dynamique (ADR-038) : purs `src/shared/tab-preview.ts` (`ThumbnailCache`, `HoverIntent`,
   géométrie) et `src/shared/site-color.ts` ; main `src/main/tab-preview.ts` (captures en mémoire, overlay passif `tab-preview`
   limité à la carte par `OverlayRequest.region`), action `use:tabPreview`, accent animé `lib/dynamic-accent.ts` via `accentVariables`.
+- Widevine, connexion Google, signature Windows (ADR-040) : `electron` = castLabs ECS (`github:castlabs/electron-releases#v<x.y.z>+wvcus`,
+  monter le tag avec Electron ; `build.electronDownload.mirror`) ; `src/main/drm.ts` (`WidevineService`, attente bornée avant les fenêtres,
+  permission `mediaKeySystem` selon `privacy.protectedContent`), modèle pur `src/shared/drm.ts`, ligne `DrmRow` ; signature VMP
+  `scripts/vmp-sign.cjs` (secrets `EVS_*`) ; `Sec-CH-UA` = marques de Google Chrome (`chromeBrands`, `src/main/fingerprint.ts`) ;
+  Azure Trusted Signing / `publisherName` écrits par release.yml seulement si les secrets existent (jamais dans `package.json`).
