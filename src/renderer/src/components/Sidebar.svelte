@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { cubicOut } from "svelte/easing";
-  import { fly } from "svelte/transition";
   import { isFavoriteUrl } from "@shared/favorites";
   import type { SpaceId } from "@shared/types";
   import { api, browser } from "../lib/browser.svelte";
@@ -88,14 +86,6 @@
     next: browser.state.spaces[spaceIndex + 1],
   });
   const peekOf = (id: SpaceId) => browser.state.peeks?.find((peek) => peek.spaceId === id);
-  let previousIndex = -1;
-  let direction = $state(1);
-  $effect.pre(() => {
-    const index = spaceIndex;
-    direction = index >= previousIndex ? 1 : -1;
-    previousIndex = index;
-  });
-
   const swipe = new SpaceSwipeController({
     neighbours: () => neighbours,
     reduceMotion: () => reduceMotion,
@@ -109,10 +99,10 @@
     if (sidebarElement) return swipe.attach(sidebarElement, () => spaceArea);
   });
 
-  /** The space content's entrance: one slide for a click or shortcut, none after a swipe. */
-  function spaceIn(node: Element) {
-    if (swipe.takeInstantSwitch()) return { duration: 0 };
-    return fly(node, { x: direction * 36, duration: reduceMotion ? 0 : 240, easing: cubicOut, opacity: 0 });
+  /** Space changes are immediate: the page must not bounce after a swipe or shortcut. */
+  function spaceIn(_node: Element) {
+    swipe.takeInstantSwitch();
+    return { duration: 0 };
   }
 
   /** Right click on the sidebar's empty space (not a tab, folder, button or field): its native menu. */

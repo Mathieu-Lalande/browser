@@ -7,6 +7,10 @@ Windows, macOS et Linux, avec son application iPhone et Android.
 - **Guide d'utilisation** : https://mathieu-lalande.github.io/browser/docs.html
 - **Installer, développer, publier** : [`docs/INSTALL.md`](docs/INSTALL.md) · **Décisions** :
   [`docs/DECISIONS.md`](docs/DECISIONS.md) · **Feuille de route** : [`docs/ROADMAP.md`](docs/ROADMAP.md)
+- **Guides** : [`docs/USER.md`](docs/USER.md) · [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) ·
+  [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) · [`docs/PRIVACY.md`](docs/PRIVACY.md)
+- **Projet** : [`CONTRIBUTING.md`](CONTRIBUTING.md) · [`SECURITY.md`](SECURITY.md) ·
+  [`CHANGELOG.md`](CHANGELOG.md) · [`LICENSE`](LICENSE)
 
 ## Fonctionnalités
 
