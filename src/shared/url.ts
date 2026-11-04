@@ -18,7 +18,7 @@ export const SEARCH_ENGINES: readonly SearchEngine[] = [
 export const DEFAULT_SEARCH_ENGINE = SEARCH_ENGINES[0];
 
 /**
- * Schemes a tab is allowed to load. Everything else (file:, javascript:, browser:…) is refused:
+ * Schemes a page is allowed to load. Everything else (file:, javascript:, browser:…) is refused:
  * internal `browser://` pages are only reachable from `normalizeInput`, i.e. typed by the user.
  */
 const NAVIGABLE_SCHEMES = new Set(["http:", "https:", "about:", "data:"]);
@@ -60,6 +60,16 @@ export function normalizeInput(raw: string, engine: SearchEngine = DEFAULT_SEARC
   if (/\s/.test(input)) return searchUrl(input, engine);
   const internal = internalPageOf(input);
   if (internal) return internalUrl(internal, internalFragment(input));
+
+  if (/^file:/i.test(input)) {
+    try {
+      const url = new URL(input);
+      if (url.protocol === "file:") return url.href;
+    } catch {
+      // fall through to search
+    }
+    return searchUrl(input, engine);
+  }
 
   if (isViewSourceUrl(input)) return `view-source:${new URL(input.slice("view-source:".length)).href}`;
   if (/^[a-z][a-z\d+\-.]*:/i.test(input) && !/^[^:/]+:\d+(\/|$)/.test(input)) {
@@ -124,8 +134,9 @@ export function isPageOpenableUrl(url: string): boolean {
 }
 
 /**
- * A local file (`file:///…`): never typed nor opened by a page, only handed over by the OS (file
- * associations, ADR-039) and loaded by main directly.
+ * A local file (`file:///…`): accepted from the address bar or OS file associations, but never
+ * opened by a web page. The main tab manager handles it as a user navigation without including
+ * `file:` in the schemes pages may navigate to.
  */
 export function isLocalFileUrl(url: string): boolean {
   try {

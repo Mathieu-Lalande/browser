@@ -358,13 +358,13 @@ export class TabManager {
   }
 
   /**
-   * Loads what the user typed (or an internal page). `localFile`: a `file://` URL handed over by the
-   * OS and checked by main (ADR-039); typed `file:` text is searched instead, like any other scheme.
+   * Loads what the user typed (or an internal page). Local file URLs may come from the address bar
+   * or from an OS file association; page-initiated file navigation remains blocked by hardening.
    */
-  navigate(id: TabId, input: string, options: { localFile?: boolean } = {}): void {
+  navigate(id: TabId, input: string, _options: { localFile?: boolean } = {}): void {
     const tab = this.store.find(id);
     if (!tab) return;
-    const url = options.localFile && isLocalFileUrl(input) ? input : normalizeInput(input, this.options.searchEngine);
+    const url = isLocalFileUrl(input) ? input : normalizeInput(input, this.options.searchEngine);
     const wasWebPage = showsWebPage(tab.state.url);
     tab.state.url = url;
     tab.state.interstitial = null;

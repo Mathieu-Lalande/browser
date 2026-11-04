@@ -35,12 +35,16 @@ describe("normalizeInput", () => {
     expect(normalizeInput(input)).toBe(expected);
   });
 
-  it.each(["hello world", "typescript", "what is 1.5", "file:///etc/passwd", "javascript:alert(1)", "foo.bar1", "foo:bar", "devbox:port", "a.:b", "."])(
+  it.each(["hello world", "typescript", "what is 1.5", "javascript:alert(1)", "foo.bar1", "foo:bar", "devbox:port", "a.:b", "."])(
     "searches %j",
     (input) => {
       expect(normalizeInput(input)).toBe(ddg(input));
     },
   );
+
+  it("keeps a local file URL for the active tab", () => {
+    expect(normalizeInput("file:///C:/Users/test/Downloads/document.pdf")).toBe("file:///C:/Users/test/Downloads/document.pdf");
+  });
 
   it("uses the requested search engine", () => {
     const google = SEARCH_ENGINES.find((engine) => engine.id === "google")!;
