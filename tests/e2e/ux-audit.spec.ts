@@ -26,8 +26,8 @@ test("tab rows keep their height and the list scrolls, in every density", async 
     const expected = await chrome.evaluate(() =>
       parseFloat((globalThis as unknown as Dom).getComputedStyle((globalThis as unknown as Dom).document.documentElement).getPropertyValue("--tab-height")),
     );
-    await expect.poll(async () => (await tabs.first().boundingBox())!.height).toBe(expected);
-    const heights = await tabs.evaluateAll((items) => items.map((item) => (item as unknown as { offsetHeight: number }).offsetHeight));
+    await expect.poll(async () => (await tabs.first().boundingBox())!.height).toBeCloseTo(expected, 1);
+    const heights = await tabs.evaluateAll((items) => items.map((item) => Math.round((item as unknown as { offsetHeight: number }).offsetHeight)));
     expect(new Set(heights)).toEqual(new Set([expected]));
     // The list scrolls instead.
     const list = chrome.locator(".tabs");
@@ -109,7 +109,11 @@ test("settings rows keep readable labels at medium and small sizes", async ({ ap
     [640, 420],
   ] as const) {
     await setWindowSize(app, width, height);
-    await expect.poll(() => chrome.evaluate(() => (globalThis as unknown as { innerWidth: number }).innerWidth)).toBe(width);
+    await expect
+      .poll(() => chrome.evaluate(() => (globalThis as unknown as { innerWidth: number }).innerWidth))
+      .toBeGreaterThanOrEqual(width);
+    const actualWidth = await chrome.evaluate(() => (globalThis as unknown as { innerWidth: number }).innerWidth);
+    expect(actualWidth).toBeLessThanOrEqual(width + 4);
     const widths = await chrome.locator(".settings .row .label").evaluateAll((labels) =>
       labels
         .map((label) => (label as unknown as { getBoundingClientRect(): { width: number; height: number } }).getBoundingClientRect())

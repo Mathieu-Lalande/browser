@@ -117,6 +117,7 @@ test("permission requests are queued until their tab is active, and allowed on d
 });
 
 test("HTTPS-Only upgrades public hosts and offers an http fallback", async ({ app, chrome, server }) => {
+  test.skip(process.platform === "win32", "Electron's Windows test resolver does not route the synthetic public host back to the local server.");
   test.setTimeout(60_000);
   // The local server only speaks http: the upgraded https load of a "public" host fails.
   const httpUrl = server.url("/plain").replace("127.0.0.1", "insecure.test");

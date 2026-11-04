@@ -29,6 +29,10 @@ export function parseCsv(text: string): string[][] {
         cell += '"';
         i++;
       } else if (char === '"') quoted = false;
+      else if (char === "\r") {
+        cell += "\n";
+        if (source[i + 1] === "\n") i++;
+      } else if (char === "\n") cell += "\n";
       else cell += char;
     } else if (char === '"') quoted = true;
     else if (char === ",") {

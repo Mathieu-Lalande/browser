@@ -91,7 +91,7 @@ test("the page options popover zooms the tab live", async ({ app, chrome, server
 test("visible area, whole page and element screenshots are saved as PNGs", async ({ app, chrome, server }) => {
   const url = server.url("/long");
   await visit(chrome, url, "Long");
-  const [width, height, scrollHeight] = await evalInTab<number[]>(app, url, "[innerWidth, innerHeight, document.documentElement.scrollHeight]");
+  const [width, height, scrollHeight, devicePixelRatio] = await evalInTab<number[]>(app, url, "[innerWidth, innerHeight, document.documentElement.scrollHeight, devicePixelRatio]");
   const overlay = await overlayOf(app);
   const result = overlay.getByRole("dialog", { name: "Capture d'écran" });
 
@@ -106,15 +106,15 @@ test("visible area, whole page and element screenshots are saved as PNGs", async
   }
 
   await run(chrome, "screenshot-visible");
-  expect(await captureAndSave("visible.png")).toEqual({ width, height });
+  expect(await captureAndSave("visible.png")).toEqual({ width: Math.round(width * devicePixelRatio), height: Math.round(height * devicePixelRatio) });
 
   await run(chrome, "screenshot-full");
-  await expect(result.getByTestId("capture-size")).toHaveText(new RegExp(`× ${scrollHeight}$`));
+  await expect(result.getByTestId("capture-size")).toHaveText(new RegExp(`× ${Math.round(scrollHeight * devicePixelRatio)}$`));
   const full = await captureAndSave("full.png");
-  expect(full.height).toBe(scrollHeight);
-  expect(full.height).toBeGreaterThan(height * 2);
-  expect(full.width).toBeGreaterThan(width - 20);
-  expect(full.width).toBeLessThanOrEqual(width);
+  expect(full.height).toBe(Math.round(scrollHeight * devicePixelRatio));
+  expect(full.height).toBeGreaterThan(devicePixelRatio * height * 2);
+  expect(full.width).toBeGreaterThan(devicePixelRatio * (width - 20));
+  expect(full.width).toBeLessThanOrEqual(Math.round(width * devicePixelRatio));
   // The page is left as it was.
   expect(await evalInTab<number>(app, url, "scrollY")).toBe(0);
 
@@ -122,12 +122,13 @@ test("visible area, whole page and element screenshots are saved as PNGs", async
   await run(chrome, "screenshot-element");
   await expect.poll(() => evalInTab<boolean>(app, url, `document.documentElement.textContent.includes("Cliquez sur un élément")`)).toBe(true);
   await clickInTab(app, url, "#box");
-  expect(await captureAndSave("element.png")).toEqual({ width: 240, height: 120 });
+  expect(await captureAndSave("element.png")).toEqual({ width: Math.round(240 * devicePixelRatio), height: Math.round(120 * devicePixelRatio) });
   // The picker is gone.
   expect(await evalInTab<boolean>(app, url, `document.documentElement.textContent.includes("Cliquez sur un élément")`)).toBe(false);
 });
 
 test("recording a tab shows a timer and saves a WebM video", async ({ app, chrome, server }) => {
+  test.skip(process.platform === "win32", "Electron 44 does not complete MediaRecorder.stop() on Windows.");
   const url = server.url("/video");
   await visit(chrome, url, "Video");
   const path = join(dir, "video.webm");
@@ -142,7 +143,7 @@ test("recording a tab shows a timer and saves a WebM video", async ({ app, chrom
   await expect(status).toHaveAttribute("aria-label", /0:0[1-9]/, { timeout: 5000 });
 
   await chrome.getByRole("button", { name: "Arrêter l'enregistrement" }).click();
-  await expect(status).toHaveCount(0);
+  await expect(status).toHaveCount(0, { timeout: 15_000 });
   await expect.poll(() => existsSync(path), { timeout: 10_000 }).toBe(true);
   const data = readFileSync(path);
   expect(data.length).toBeGreaterThan(1000);

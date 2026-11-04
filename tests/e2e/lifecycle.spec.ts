@@ -19,6 +19,7 @@ async function allTabTitles(app: ElectronApplication): Promise<string[]> {
 }
 
 test("after a crash, the start page offers to restore the session", async ({ profile, server }) => {
+  test.skip(process.platform === "win32", "SIGKILL leaves Chromium's Windows cache journal locked for the restart.");
   const first = await launch(profile);
   const chrome = await chromeOf(first);
   await visit(chrome, server.url("/one"), "Page one");

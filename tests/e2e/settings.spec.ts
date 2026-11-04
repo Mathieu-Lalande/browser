@@ -222,7 +222,7 @@ test("the side navigation brings each section to the top, the last ones included
     await nav.getByRole("button", { name: label, exact: true }).click();
     await chrome.waitForTimeout(200);
     // Lands just under the top (its 24px scroll margin), never further down the screen.
-    expect(await landing(id)).toBe(24);
+    await expect.poll(() => landing(id)).toBe(24);
     await expect(nav.locator("[aria-current=true]")).toHaveText(label);
   }
 });

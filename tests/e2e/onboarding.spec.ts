@@ -1,5 +1,5 @@
 import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { platform, tmpdir } from "node:os";
 import { join } from "node:path";
 import type { BrowserApi } from "@shared/ipc";
 import { makeChromiumUserData } from "../fixtures/import/profiles";
@@ -132,6 +132,6 @@ test("Signaler un problème opens the bug form prefilled with the version and th
   const params = new URL(await issueTab()).searchParams;
   expect(params.get("template")).toBe("bug.yml");
   expect(params.get("version")).toMatch(/^\d+\.\d+\.\d+ \(stable, Electron \d+/);
-  expect(params.get("os")).toMatch(/^Linux /);
+  expect(params.get("os")).toMatch(new RegExp(`^${platform() === "win32" ? "Windows" : platform() === "darwin" ? "macOS" : "Linux"} `));
   expect([...params.keys()].sort()).toEqual(["labels", "os", "template", "version"]);
 });

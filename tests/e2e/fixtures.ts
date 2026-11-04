@@ -337,10 +337,18 @@ export function launch(profile: string, env: Record<string, string> = {}, extraA
     // `*.test` hosts resolve to the local server, to exercise HTTPS-Only on a "public" hostname.
     // `extraArgs`: what the OS would hand over (a link, a file to open: ADR-039).
     // `--disable-component-update`: no Widevine download per test profile, no startup wait (ADR-040).
-    args: ["--no-sandbox", "--disable-component-update", "--host-resolver-rules=MAP *.test 127.0.0.1", ".", ...extraArgs],
+    args: ["--no-sandbox", "--disable-gpu", "--disable-component-update", "--host-resolver-rules=MAP insecure.test 127.0.0.1,MAP *.test 127.0.0.1", ".", ...(extraArgs.length ? ["--", ...extraArgs] : [])],
     // `BROWSER_TEST_SKIP_WELCOME`: a fresh profile would open on browser://welcome (ADR-043); the
     // onboarding test turns it back on with an empty value.
-    env: { ...process.env, BROWSER_PROFILE_DIR: profile, BROWSER_TEST_FILTERS: TEST_FILTERS, BROWSER_TEST_SKIP_WELCOME: "1", ...env },
+    env: {
+      ...process.env,
+      NO_PROXY: `${process.env.NO_PROXY ?? ""},.test,insecure.test`,
+      no_proxy: `${process.env.no_proxy ?? ""},.test,insecure.test`,
+      BROWSER_PROFILE_DIR: profile,
+      BROWSER_TEST_FILTERS: TEST_FILTERS,
+      BROWSER_TEST_SKIP_WELCOME: "1",
+      ...env,
+    },
   });
 }
 
@@ -381,7 +389,15 @@ export const test = base.extend<Fixtures>({
   profile: async ({}, use) => {
     const profile = mkdtempSync(join(tmpdir(), "browser-e2e-"));
     await use(profile);
-    rmSync(profile, { recursive: true, force: true });
+    for (let attempt = 0; attempt < 50; attempt++) {
+      try {
+        rmSync(profile, { recursive: true, force: true });
+        break;
+      } catch (error) {
+        if (process.platform !== "win32" || attempt === 49) throw error;
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+    }
   },
   app: async ({ profile }, use) => {
     const app = await launch(profile);

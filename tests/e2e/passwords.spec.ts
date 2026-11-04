@@ -18,6 +18,7 @@ const PASSWORD = "s3cret-pw-42";
 
 test("without keychain encryption, nothing is saved and the page says why", async ({ chrome }) => {
   // xvfb has no keyring: Electron reports encryption unavailable (the hook below is not set).
+  test.skip(process.platform !== "linux", "The host keychain is available outside Linux CI.");
   await chrome.evaluate(() => (globalThis as unknown as Global).browser.commands.run("open-passwords"));
   await expect(chrome.getByTestId("passwords-page").getByRole("alert")).toContainText("ne peuvent pas être enregistrés");
 });

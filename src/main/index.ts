@@ -76,7 +76,7 @@ const isFile = (path: string) => {
     return false;
   }
 };
-const launchContext = (cwd = process.cwd()): LaunchContext => ({ cwd, isFile });
+const launchContext = (cwd = process.cwd()): LaunchContext => ({ cwd, platform: process.platform, isFile });
 
 /**
  * Links and files handed over by the OS (ADR-039) open in the last focused normal window; those

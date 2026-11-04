@@ -1,4 +1,4 @@
-import { extname, isAbsolute, resolve } from "node:path";
+import { extname, posix, win32 } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { isPageOpenableUrl } from "@shared/url";
 
@@ -17,15 +17,20 @@ export const MAX_LAUNCH_TARGETS = 20;
 export interface LaunchContext {
   /** Working directory of the launching process (relative paths). */
   cwd: string;
+  /** Platform whose path syntax is used by the launching process. */
+  platform?: NodeJS.Platform;
   /** Whether a regular file exists at this absolute path. */
   isFile(path: string): boolean;
 }
 
 /** The `file://` URL of a local file the browser may open: an existing file of an associated type. */
 export function localFileUrl(path: string, context: LaunchContext): string | null {
-  const absolute = isAbsolute(path) ? path : resolve(context.cwd, path);
+  const platform = context.platform ?? (context.cwd.startsWith("/") ? "linux" : process.platform);
+  const pathApi = platform === "win32" ? win32 : posix;
+  const absolute = pathApi.isAbsolute(path) ? path : pathApi.resolve(context.cwd, path);
   if (!LOCAL_FILE_EXTENSIONS.includes(extname(absolute).toLowerCase())) return null;
-  return context.isFile(absolute) ? pathToFileURL(absolute).href : null;
+  if (!context.isFile(absolute)) return null;
+  return platform === "win32" ? pathToFileURL(absolute).href : `file://${absolute.split("/").map(encodeURIComponent).join("/")}`;
 }
 
 /**
@@ -38,7 +43,9 @@ export function launchUrl(input: string, context: LaunchContext): string | null 
   if (!value || value.length > 8192) return null;
   if (/^file:/i.test(value)) {
     try {
-      return localFileUrl(fileURLToPath(value), context);
+      const platform = context.platform ?? (context.cwd.startsWith("/") ? "linux" : process.platform);
+      const path = platform === "win32" ? fileURLToPath(value) : decodeURIComponent(new URL(value).pathname);
+      return localFileUrl(path, context);
     } catch {
       return null;
     }

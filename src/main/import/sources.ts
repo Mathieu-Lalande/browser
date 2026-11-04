@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { isAbsolute, join, resolve } from "node:path";
+import { isAbsolute, join, posix, resolve, win32 } from "node:path";
 import { isProfileFolderName, parseChromiumProfiles } from "@shared/import/chromium";
 import { parseProfilesIni } from "@shared/import/firefox";
 import { BROWSER_NAMES, type BrowserKind, type ImportSource } from "@shared/import/types";
@@ -23,45 +23,46 @@ export interface LocationEnv {
 
 /** The usual data folders of each supported browser on `env.platform` (existing or not). */
 export function browserLocations(env: LocationEnv): BrowserLocation[] {
+  const path = env.platform === "win32" ? win32 : posix;
   const chromium = (browser: BrowserKind, path: string): BrowserLocation => ({ browser, family: "chromium", path });
   if (env.platform === "win32") {
-    const local = env.localAppData ?? join(env.home, "AppData", "Local");
-    const roaming = env.appData ?? join(env.home, "AppData", "Roaming");
+    const local = env.localAppData ?? path.join(env.home, "AppData", "Local");
+    const roaming = env.appData ?? path.join(env.home, "AppData", "Roaming");
     return [
-      chromium("chrome", join(local, "Google", "Chrome", "User Data")),
-      chromium("edge", join(local, "Microsoft", "Edge", "User Data")),
-      chromium("brave", join(local, "BraveSoftware", "Brave-Browser", "User Data")),
-      chromium("vivaldi", join(local, "Vivaldi", "User Data")),
-      chromium("opera", join(roaming, "Opera Software", "Opera Stable")),
-      chromium("chromium", join(local, "Chromium", "User Data")),
-      { browser: "firefox", family: "firefox", path: join(roaming, "Mozilla", "Firefox") },
+      chromium("chrome", path.join(local, "Google", "Chrome", "User Data")),
+      chromium("edge", path.join(local, "Microsoft", "Edge", "User Data")),
+      chromium("brave", path.join(local, "BraveSoftware", "Brave-Browser", "User Data")),
+      chromium("vivaldi", path.join(local, "Vivaldi", "User Data")),
+      chromium("opera", path.join(roaming, "Opera Software", "Opera Stable")),
+      chromium("chromium", path.join(local, "Chromium", "User Data")),
+      { browser: "firefox", family: "firefox", path: path.join(roaming, "Mozilla", "Firefox") },
       // Arc for Windows is a Store app: its folder name ends with a publisher hash (resolved by `detect`).
-      { browser: "arc", family: "arc", path: join(local, "Packages", "TheBrowserCompany.Arc_*", "LocalCache", "Local", "Arc", "StorableSidebar.json") },
+      { browser: "arc", family: "arc", path: path.join(local, "Packages", "TheBrowserCompany.Arc_*", "LocalCache", "Local", "Arc", "StorableSidebar.json") },
     ];
   }
   if (env.platform === "darwin") {
-    const support = join(env.home, "Library", "Application Support");
+    const support = path.join(env.home, "Library", "Application Support");
     return [
-      chromium("chrome", join(support, "Google", "Chrome")),
-      chromium("edge", join(support, "Microsoft Edge")),
-      chromium("brave", join(support, "BraveSoftware", "Brave-Browser")),
-      chromium("vivaldi", join(support, "Vivaldi")),
-      chromium("opera", join(support, "com.operasoftware.Opera")),
-      chromium("chromium", join(support, "Chromium")),
-      { browser: "firefox", family: "firefox", path: join(support, "Firefox") },
-      { browser: "arc", family: "arc", path: join(support, "Arc", "StorableSidebar.json") },
+      chromium("chrome", path.join(support, "Google", "Chrome")),
+      chromium("edge", path.join(support, "Microsoft Edge")),
+      chromium("brave", path.join(support, "BraveSoftware", "Brave-Browser")),
+      chromium("vivaldi", path.join(support, "Vivaldi")),
+      chromium("opera", path.join(support, "com.operasoftware.Opera")),
+      chromium("chromium", path.join(support, "Chromium")),
+      { browser: "firefox", family: "firefox", path: path.join(support, "Firefox") },
+      { browser: "arc", family: "arc", path: path.join(support, "Arc", "StorableSidebar.json") },
     ];
   }
-  const config = join(env.home, ".config");
+  const config = path.join(env.home, ".config");
   return [
-    chromium("chrome", join(config, "google-chrome")),
-    chromium("edge", join(config, "microsoft-edge")),
-    chromium("brave", join(config, "BraveSoftware", "Brave-Browser")),
-    chromium("vivaldi", join(config, "vivaldi")),
-    chromium("opera", join(config, "opera")),
-    chromium("chromium", join(config, "chromium")),
-    { browser: "firefox", family: "firefox", path: join(env.home, ".mozilla", "firefox") },
-    { browser: "firefox", family: "firefox", path: join(env.home, "snap", "firefox", "common", ".mozilla", "firefox") },
+    chromium("chrome", path.join(config, "google-chrome")),
+    chromium("edge", path.join(config, "microsoft-edge")),
+    chromium("brave", path.join(config, "BraveSoftware", "Brave-Browser")),
+    chromium("vivaldi", path.join(config, "vivaldi")),
+    chromium("opera", path.join(config, "opera")),
+    chromium("chromium", path.join(config, "chromium")),
+    { browser: "firefox", family: "firefox", path: path.join(env.home, ".mozilla", "firefox") },
+    { browser: "firefox", family: "firefox", path: path.join(env.home, "snap", "firefox", "common", ".mozilla", "firefox") },
   ];
 }
 

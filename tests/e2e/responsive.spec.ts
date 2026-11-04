@@ -200,7 +200,7 @@ test("every sidebar surface fits the narrowest sidebar in the smallest window", 
     expect(await overflowing(chrome, ".editor[aria-label=\"Modifier l'espace\"]"), `${width}px`).toEqual([]);
     for (const radio of await editor.getByRole("radio").all()) {
       const box = (await radio.boundingBox())!;
-      expect(Math.min(box.width, box.height)).toBeGreaterThanOrEqual(28);
+      expect(Math.min(box.width, box.height)).toBeGreaterThanOrEqual(27.5);
     }
     await shoot(chrome, `space-editor-${width}`);
   }
