@@ -139,7 +139,7 @@ export function hardenWebContents(contents: WebContents, hooks: TabHooks): void 
             createWindow: (options) => adopt(options, url, foreground),
           };
       } else tab.hooks.popupBlocked(url);
-    } else     if (isExternalUrl(url) && tab.activation.consumeExternal(Date.now())) openExternal(url);
+    } else if (isExternalUrl(url) && tab.activation.consumeExternal(Date.now())) openExternal(url);
     return { action: "deny" };
   });
 
