@@ -68,6 +68,20 @@ interface TabHooks {
 
 /** Schemes handed to the OS (mail and phone apps), after a user gesture only. */
 const isExternalUrl = (url: string) => /^(mailto|tel):/i.test(url);
+const isGoogleAuthenticationUrl = (url: string): boolean => {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" && parsed.hostname === "accounts.google.com";
+  } catch {
+    return false;
+  }
+};
+
+function openExternal(url: string): void {
+  void shell.openExternal(url).catch((error: unknown) => {
+    console.warn("[security] Could not open the external authentication page:", error);
+  });
+}
 
 /** Room for every feature's pending isolated-world scripts on one page (see `hardenWebContents`). */
 const MAX_TAB_LISTENERS = 50;
@@ -101,6 +115,10 @@ export function hardenWebContents(contents: WebContents, hooks: TabHooks): void 
   });
 
   contents.setWindowOpenHandler(({ url, disposition, features }) => {
+    if (isGoogleAuthenticationUrl(url)) {
+      openExternal(url);
+      return { action: "deny" };
+    }
     // Never a top-level data: (or any non-web) document opened by a page.
     if (isPageOpenableUrl(url)) {
       // Chromium opens a Shift+clicked link as a new window without features (window.open with
@@ -121,18 +139,21 @@ export function hardenWebContents(contents: WebContents, hooks: TabHooks): void 
             createWindow: (options) => adopt(options, url, foreground),
           };
       } else tab.hooks.popupBlocked(url);
-    } else if (isExternalUrl(url) && tab.activation.consumeExternal(Date.now())) {
-      void shell.openExternal(url);
-    }
+    } else     if (isExternalUrl(url) && tab.activation.consumeExternal(Date.now())) openExternal(url);
     return { action: "deny" };
   });
 
   contents.on("will-navigate", (event, url) => {
+    if (isGoogleAuthenticationUrl(url)) {
+      event.preventDefault();
+      openExternal(url);
+      return;
+    }
     if (isNavigableUrl(url)) return;
     // A local file the OS handed over (ADR-039) may link to its neighbours, never a web page to a file.
     if (isLocalFileUrl(url) && isLocalFileUrl(contents.getURL())) return;
     event.preventDefault();
-    if (isExternalUrl(url) && tab.activation.consumeExternal(Date.now())) void shell.openExternal(url);
+    if (isExternalUrl(url) && tab.activation.consumeExternal(Date.now())) openExternal(url);
   });
   contents.on("will-redirect", (event, url) => {
     if (!isNavigableUrl(url)) event.preventDefault();

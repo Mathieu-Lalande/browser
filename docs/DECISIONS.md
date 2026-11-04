@@ -1972,10 +1972,14 @@ liste de marques exacte de Google Chrome de la même version (`chromeBrands` : a
 `GenerateBrandVersionList` de Chromium, marque GREASE et ordre dérivés du numéro majeur ; testé sur les
 valeurs réelles de Chrome 120 et 131), pour toutes les requêtes des sessions d'onglets, travailleurs
 compris. Les pages n'ont aucun global Electron/Node (pas de preload, ADR-003) : vérifié par e2e.
-Limite connue : `navigator.userAgentData.brands` reste celui de Chromium (« Chromium » + GREASE) ; le
-changer exigerait `Emulation.setUserAgentOverride` par le protocole DevTools, débogueur attaché en
-permanence à chaque onglet (et aux cadres hors processus), écarté. La connexion réelle se vérifie à la
-main à chaque montée d'Electron (docs/INSTALL.md).
+Limite connue : `navigator.userAgentData.brands` reste celui de Chromium (« Chromium » + GREASE) ;
+le changer exigerait `Emulation.setUserAgentOverride` par le protocole DevTools, incompatible avec le
+changement d'UA mobile par onglet sous Electron 44. La connexion réelle se vérifie à la main à chaque
+montée d'Electron (docs/INSTALL.md).
+
+**Décision — authentification Google.** Google refuse l'authentification depuis les navigateurs
+intégrés. Les navigations HTTPS vers l'hôte exact `accounts.google.com` sont donc ouvertes dans le
+navigateur système, tandis que les autres sites OAuth (notamment Okta) conservent leur flux intégré.
 
 **Décision — signature Windows.** Prête à activer, sans effet tant que les secrets manquent : Azure
 Trusted Signing (prioritaire) par `win.azureSignOptions` (endpoint, compte, profil, `publisherName`),
