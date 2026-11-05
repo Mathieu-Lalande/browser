@@ -49,6 +49,8 @@
   /** Space whose edit popover is open. */
   let editing = $state<SpaceId | null>(null);
   const editedSpace = $derived(browser.state.spaces.find((space) => space.id === editing));
+  let confirmingNewSpace = $state(false);
+  let confirmNewSpaceButton = $state<HTMLButtonElement>();
 
   // The tab tree (ADR-022), folders and regular tabs, and the folder whose edit popover is open.
   const folders = $derived(browser.state.folders ?? []);
@@ -94,8 +96,11 @@
     onLift: () => drag.swallowNextClick(),
     atBoundary: (direction) => {
       if (direction < 0) api.overlay.showTabOverview();
-      else if (!browser.isPrivate) void api.spaces.create();
+      else if (!browser.isPrivate) confirmingNewSpace = true;
     },
+  });
+  $effect(() => {
+    if (confirmingNewSpace) confirmNewSpaceButton?.focus();
   });
   // The switch the release slid to arrived: drop the offset in the same update as the new content.
   $effect.pre(() => swipe.spaceShown(browser.state.activeSpaceId));
@@ -121,6 +126,18 @@
   function newTab(): void {
     api.tabs.create();
     focusAddress();
+  }
+
+  function createConfirmedSpace(): void {
+    confirmingNewSpace = false;
+    void api.spaces.create();
+  }
+
+  function onSidebarKeydown(event: KeyboardEvent): void {
+    if (event.key === "Escape" && confirmingNewSpace) {
+      event.preventDefault();
+      confirmingNewSpace = false;
+    }
   }
 </script>
 
@@ -166,6 +183,16 @@
     </div>
   </div>
 
+  {#if confirmingNewSpace}
+    <div class="new-space-confirm" role="dialog" aria-label="Créer un espace" tabindex="-1" onkeydown={onSidebarKeydown}>
+      <p>Créer un nouvel espace&nbsp;?</p>
+      <div class="new-space-actions">
+        <button type="button" class="secondary" onclick={() => (confirmingNewSpace = false)}>Annuler</button>
+        <button type="button" class="primary" bind:this={confirmNewSpaceButton} onclick={createConfirmedSpace}>Créer</button>
+      </div>
+    </div>
+  {/if}
+
   {#if editedSpace}
     <SpaceEditor space={editedSpace} onClose={() => (editing = null)} />
   {/if}
@@ -203,6 +230,43 @@
     container: sidebar / inline-size;
     /* Indentation of the tab tree's levels (TreeRow): narrows with the sidebar. */
     --indent: clamp(8px, 5cqi, 14px);
+  }
+  .new-space-confirm {
+    position: absolute;
+    z-index: 20;
+    right: 12px;
+    bottom: 52px;
+    left: 12px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg-elevated);
+    box-shadow: 0 12px 30px rgb(0 0 0 / 0.25);
+  }
+  .new-space-confirm p {
+    margin: 0 0 10px;
+    color: var(--text);
+    font-size: 13px;
+  }
+  .new-space-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+  .new-space-actions button {
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 7px;
+    font-size: 12px;
+  }
+  .secondary {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+  }
+  .primary {
+    background: var(--accent);
+    color: var(--on-accent);
   }
   .favorites-area {
     position: relative;
