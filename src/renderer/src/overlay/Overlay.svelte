@@ -12,6 +12,7 @@
   import PageOptionsPanel from "./PageOptionsPanel.svelte";
   import AppMenuPanel from "./AppMenuPanel.svelte";
   import PageSwipePanel from "./PageSwipePanel.svelte";
+  import TabOverviewPanel from "./TabOverviewPanel.svelte";
   import TabPreviewCard from "./TabPreviewCard.svelte";
   import type { Component } from "svelte";
 
@@ -135,6 +136,8 @@
         <AppMenuPanel anchor={current.request.anchor} onClose={close} />
       {:else if current.request.kind === "page-swipe" && current.request.swipe}
         <PageSwipePanel anchor={current.request.anchor} initial={current.request.swipe} />
+      {:else if current.request.kind === "tab-overview"}
+        <TabOverviewPanel />
       {:else if current.request.kind === "translate" && current.request.tabId && TranslatePanel}
         <TranslatePanel anchor={current.request.anchor} tabId={current.request.tabId} onClose={close} />
       {:else if current.request.kind === "annotation" && current.request.annotationId && AnnotationPanel}

@@ -37,6 +37,8 @@ export interface SpaceSwipeOptions {
   endGapMs?: number;
   /** Distance (px) a finger travels before the axis is decided. */
   touchLockDistance?: number;
+  /** Allow a committed gesture to be reported even without a neighbour. */
+  commitAtBounds?: boolean;
 }
 
 /** A finger's position (`PointerEvent` with `pointerType` "touch"). */
@@ -111,6 +113,7 @@ export class SpaceSwipe {
       axisRatio: 1.2,
       endGapMs: 140,
       touchLockDistance: 10,
+      commitAtBounds: false,
       ...options,
     };
   }
@@ -280,7 +283,7 @@ export class SpaceSwipe {
     const { width, commitRatio, flingVelocity, flingMinDistance } = this.options;
     const offset = -phase.x;
     const direction: 1 | -1 = offset < 0 ? 1 : -1;
-    if (!(direction === 1 ? bounds.next : bounds.previous)) return null;
+    if (!(direction === 1 ? bounds.next : bounds.previous) && !this.options.commitAtBounds) return null;
     const first = phase.samples[0];
     const last = phase.samples[phase.samples.length - 1];
     const velocity = (last.x - first.x) / Math.max(MIN_DT_MS, last.time - first.time);

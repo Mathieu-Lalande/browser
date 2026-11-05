@@ -240,7 +240,8 @@ export type OverlayKind =
   /** Print preview (ADR-042): options drawn here, the PDF in a native view above. */
   | "print-preview"
   /** Tab hover preview (ADR-038): passive, never focused, its view only as large as the card. */
-  | "tab-preview";
+  | "tab-preview"
+  | "tab-overview";
 
 export interface OverlayRequest {
   kind: OverlayKind;

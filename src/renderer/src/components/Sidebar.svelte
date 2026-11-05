@@ -92,6 +92,10 @@
     switchTo: (id) => api.spaces.switchTo(id),
     blocked: () => !!drag.current,
     onLift: () => drag.swallowNextClick(),
+    atBoundary: (direction) => {
+      if (direction < 0) api.overlay.showTabOverview();
+      else if (!browser.isPrivate) void api.spaces.create();
+    },
   });
   // The switch the release slid to arrived: drop the offset in the same update as the new content.
   $effect.pre(() => swipe.spaceShown(browser.state.activeSpaceId));

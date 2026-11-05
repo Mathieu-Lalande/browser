@@ -35,6 +35,7 @@ export const windowHandlers = defineHandlers({
   [Channels.omniboxOpen]: on([text(MAX_URL_LENGTH), oneOf(...OPEN_DISPOSITIONS)], (c, input, disposition) => omniboxOpen(c, input, disposition)),
   [Channels.omniboxCopy]: on([text(MAX_COPY_LENGTH)], (_c, value) => omniboxCopy(value)),
   [Channels.overlayClose]: on([opt(bool)], (c, restoreFocus) => c.overlay.close(restoreFocus)),
+  [Channels.tabOverviewShow]: on([], (c) => c.overlay.open({ kind: "tab-overview" })),
   // App menu, sidebar menu and page gestures (ADR-033).
   [Channels.appMenuShow]: on([bounds], (c, anchor) => showAppMenu(c, anchor), { from: "chrome" }),
   [Channels.sidebarContextMenu]: on([], (c) => showSidebarMenu(c), { from: "chrome" }),

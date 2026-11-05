@@ -25,6 +25,8 @@ export interface SpaceSwipeHost {
   blocked: () => boolean;
   /** The finger lifted after a swipe: that lift is not a tap on the row below it. */
   onLift: () => void;
+  /** Called when the gesture reaches a missing neighbour at either end. */
+  atBoundary?: (direction: 1 | -1) => void;
 }
 
 export class SpaceSwipeController {
@@ -94,7 +96,7 @@ export class SpaceSwipeController {
    * whose width a full swipe covers. Returns the cleanup.
    */
   attach(element: HTMLElement, area: () => HTMLElement | undefined): () => void {
-    const swipe = new SpaceSwipe({ width: area()?.clientWidth ?? element.clientWidth });
+    const swipe = new SpaceSwipe({ width: area()?.clientWidth ?? element.clientWidth, commitAtBounds: true });
     let endTimer: ReturnType<typeof setTimeout> | undefined;
     const bounds = () => {
       const { previous, next } = this.#host.neighbours();
@@ -174,7 +176,10 @@ export class SpaceSwipeController {
   #commit(direction: 1 | -1): void {
     const neighbours = this.#host.neighbours();
     const target = direction === 1 ? neighbours.next : neighbours.previous;
-    if (!target) return this.#snapBack();
+    if (!target) {
+      this.#host.atBoundary?.(direction);
+      return this.#snapBack();
+    }
     this.#switchingTo = target.id;
     this.swiping = false;
     this.settling = false;

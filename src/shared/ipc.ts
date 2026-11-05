@@ -132,6 +132,7 @@ export const Channels = {
   overlayShow: "overlay:show",
   overlayBackdrop: "overlay:backdrop",
   overlayClose: "overlay:close",
+  tabOverviewShow: "tab-overview:show",
   appMenuShow: "app-menu:show",
   sidebarContextMenu: "sidebar:context-menu",
   spaceContextMenu: "spaces:context-menu",
@@ -677,6 +678,8 @@ export interface BrowserApi {
     onPageSwipe(listener: (indicator: PageSwipeIndicator) => void): () => void;
     /** Overlay page only: wheel events received while the swipe indicator covers the page. */
     swipeWheel(sample: { deltaX: number; deltaY: number; deltaMode: number; shiftKey: boolean; ctrlKey: boolean }): void;
+    /** Opens the temporary overview of tabs from every space. */
+    showTabOverview(): void;
   };
   /** The "…" app menu (ADR-033), in the overlay layer, hanging from `anchor` (its button). Chrome UI only. */
   appMenu: {

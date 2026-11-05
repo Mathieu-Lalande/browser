@@ -230,6 +230,7 @@ const api: BrowserApi = {
     close: (restoreFocus) => send(Channels.overlayClose, restoreFocus),
     onPageSwipe: (listener) => subscribe<PageSwipeIndicator>(Channels.pageSwipeState, listener),
     swipeWheel: (sample) => send(Channels.pageSwipeWheel, sample),
+    showTabOverview: () => send(Channels.tabOverviewShow),
   },
   appMenu: {
     show: (anchor) => send(Channels.appMenuShow, anchor),

@@ -68,6 +68,13 @@ describe("SpaceSwipeController", () => {
     expect(controller.swiping).toBe(false);
   });
 
+  it("reports a committed gesture at a space boundary", () => {
+    const atBoundary = vi.fn();
+    const { controller } = setup({ neighbours: () => ({ next: { id: "n" } }), atBoundary });
+    controller.apply({ kind: "commit", direction: -1 });
+    expect(atBoundary).toHaveBeenCalledWith(-1);
+  });
+
   it("switches in place with reduced motion", () => {
     const { controller, switchTo } = setup({ reduceMotion: () => true });
     controller.apply({ kind: "track", offset: -80 });
