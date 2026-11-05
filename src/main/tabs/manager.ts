@@ -364,7 +364,7 @@ export class TabManager {
   navigate(id: TabId, input: string, _options: { localFile?: boolean } = {}): void {
     const tab = this.store.find(id);
     if (!tab) return;
-    const url = isLocalFileUrl(input) ? input : normalizeInput(input, this.options.searchEngine);
+    const url = _options.localFile && isLocalFileUrl(input) ? input : normalizeInput(input, this.options.searchEngine);
     const wasWebPage = showsWebPage(tab.state.url);
     tab.state.url = url;
     tab.state.interstitial = null;

@@ -42,8 +42,8 @@ describe("normalizeInput", () => {
     },
   );
 
-  it("keeps a local file URL for the active tab", () => {
-    expect(normalizeInput("file:///C:/Users/test/Downloads/document.pdf")).toBe("file:///C:/Users/test/Downloads/document.pdf");
+  it("searches local file URLs typed in the address bar", () => {
+    expect(normalizeInput("file:///C:/Users/test/Downloads/document.pdf")).toBe(ddg("file:///C:/Users/test/Downloads/document.pdf"));
   });
 
   it("uses the requested search engine", () => {

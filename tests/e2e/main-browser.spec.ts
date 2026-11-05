@@ -76,12 +76,14 @@ test("browser://history lists visits by day, searches, deletes, and stays hidden
   await expect(rows.first()).toContainText("Page gamma");
 
   await page.getByRole("button", { name: "Supprimer Page beta de l'historique" }).click();
+  await page.getByRole("button", { name: "Supprimer", exact: true }).click();
   await expect(rows).toHaveCount(2);
 
   await page.getByLabel("Rechercher dans l'historique").fill("alpha");
   await expect(rows).toHaveCount(1);
   await rows.first().getByRole("checkbox").click();
   await page.getByRole("button", { name: "Supprimer la sélection" }).click();
+  await page.getByRole("button", { name: "Supprimer", exact: true }).click();
   await expect(rows).toHaveCount(0);
   await page.getByLabel("Rechercher dans l'historique").fill("");
   await expect(rows).toHaveCount(1);

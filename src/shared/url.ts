@@ -61,16 +61,6 @@ export function normalizeInput(raw: string, engine: SearchEngine = DEFAULT_SEARC
   const internal = internalPageOf(input);
   if (internal) return internalUrl(internal, internalFragment(input));
 
-  if (/^file:/i.test(input)) {
-    try {
-      const url = new URL(input);
-      if (url.protocol === "file:") return url.href;
-    } catch {
-      // fall through to search
-    }
-    return searchUrl(input, engine);
-  }
-
   if (isViewSourceUrl(input)) return `view-source:${new URL(input.slice("view-source:".length)).href}`;
   if (/^[a-z][a-z\d+\-.]*:/i.test(input) && !/^[^:/]+:\d+(\/|$)/.test(input)) {
     try {
