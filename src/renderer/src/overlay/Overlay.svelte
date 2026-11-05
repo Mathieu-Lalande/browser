@@ -110,6 +110,7 @@
     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
     <div
       class="scrim"
+      class:page-swipe={current.request.kind === "page-swipe"}
       class:clear={isPopover(current.request.kind) && current.request.kind !== "link-peek"}
       class:passive={current.request.kind === "tab-preview"}
       onmousedown={(event) => event.target === event.currentTarget && close(true)}
@@ -162,6 +163,10 @@
     inset: 0;
     background: rgb(10 8 18 / 0.5);
     animation: fade 0.14s var(--ease);
+  }
+  .scrim.page-swipe {
+    background: transparent;
+    animation: none;
   }
   /* CSS cannot blur the native views behind this page: main sends a snapshot of them instead. */
   .backdrop {

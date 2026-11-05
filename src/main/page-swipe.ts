@@ -6,7 +6,7 @@ import type { PageWheelSample } from "./page-swipe-script";
 import type { BrowserController } from "./window";
 
 /** How long the commit animation shows before the indicator goes. */
-const COMMIT_HIDE_MS = 160;
+const COMMIT_HIDE_MS = 0;
 
 /**
  * Page gestures of a window (ADR-033). Two-finger horizontal swipe on the active page goes back or

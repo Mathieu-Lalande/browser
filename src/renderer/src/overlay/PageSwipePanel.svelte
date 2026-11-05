@@ -62,9 +62,7 @@
       0 10px 30px -10px rgb(0 0 0 / 0.5);
     opacity: calc(0.4 + var(--progress) * 0.6);
     pointer-events: none;
-    transition:
-      background var(--motion-fast, 0.12s) var(--ease),
-      transform var(--motion-fast, 0.12s) var(--ease);
+    transition: none;
   }
   .swipe.ready {
     color: var(--on-accent);
@@ -72,6 +70,5 @@
   }
   .swipe.committed {
     opacity: 0;
-    transition: opacity var(--motion-base, 0.16s) var(--ease);
   }
 </style>

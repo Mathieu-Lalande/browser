@@ -42,7 +42,7 @@ export class PageSwipe {
 
   constructor(options: PageSwipeOptions = {}) {
     this.commitDistance = options.commitDistance ?? 120;
-    this.swipe = new SpaceSwipe({ width: this.commitDistance / COMMIT_RATIO, commitRatio: COMMIT_RATIO, endGapMs: options.endGapMs ?? 140 });
+    this.swipe = new SpaceSwipe({ width: this.commitDistance / COMMIT_RATIO, commitRatio: COMMIT_RATIO, endGapMs: options.endGapMs ?? 200 });
   }
 
   get endGapMs(): number {

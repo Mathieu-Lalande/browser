@@ -20,7 +20,7 @@ const PREFIX = `browser-swipe:${randomUUID()}:`;
 /** Isolated world of the watcher. */
 const WORLD_ID = 1010;
 /** A pause this long starts a new burst (same as the gesture's release gap). */
-const BURST_GAP_MS = 140;
+const BURST_GAP_MS = 240;
 
 export interface PageWheelSample {
   deltaX: number;
