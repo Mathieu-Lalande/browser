@@ -1,4 +1,4 @@
-import { Menu, dialog, type MenuItemConstructorOptions } from "electron";
+import { Menu, type MenuItemConstructorOptions } from "electron";
 import { effectiveAccelerator } from "@shared/commands";
 import { buildSidebarMenu, buildSpaceMenu, nodeLabel, type MenuNode, type SpaceUiAction } from "@shared/menus";
 import { MAX_SPACES } from "@shared/spaces";
@@ -67,7 +67,7 @@ export function showSidebarMenu(c: BrowserController): void {
 }
 
 /** What the space menu does in main; the editor entries go back to the chrome UI. */
-async function runSpaceAction(c: BrowserController, spaceId: SpaceId, id: string): Promise<void> {
+function runSpaceAction(c: BrowserController, spaceId: SpaceId, id: string): void {
   switch (id as SpaceUiAction | "space-move-left" | "space-move-right" | "space-delete") {
     case "space-rename":
       return c.sendUiCommand(`rename-space:${spaceId}`);
@@ -80,15 +80,7 @@ async function runSpaceAction(c: BrowserController, spaceId: SpaceId, id: string
     case "space-delete": {
       const space = spaces.get(spaceId);
       if (!space) return;
-      const { response } = await dialog.showMessageBox(c.window, {
-        type: "warning",
-        message: `Supprimer l'espace « ${space.name} » ?`,
-        detail: "Ses onglets seront fermés, dans toutes les fenêtres.",
-        buttons: ["Supprimer", "Annuler"],
-        defaultId: 1,
-        cancelId: 1,
-      });
-      if (response === 0) spaces.remove(spaceId);
+      c.sendUiCommand(`edit-space:${spaceId}`);
     }
   }
 }
