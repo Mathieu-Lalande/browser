@@ -1,6 +1,6 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, win32 } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { History } from "@shared/history";
 import { EMPTY_VAULT, type PasswordVault } from "@shared/passwords";
@@ -79,7 +79,7 @@ describe("profile readers (SQLite copies)", () => {
 describe("detection", () => {
   it("knows each OS's folders", () => {
     const windows = browserLocations({ platform: "win32", home: "C:\\Users\\a", localAppData: "L", appData: "R" });
-    expect(windows.find((location) => location.browser === "edge")?.path).toContain(join("L", "Microsoft", "Edge", "User Data"));
+    expect(windows.find((location) => location.browser === "edge")?.path).toContain(win32.join("L", "Microsoft", "Edge", "User Data"));
     expect(browserLocations({ platform: "darwin", home: "/Users/a" }).find((location) => location.browser === "arc")?.path).toBe("/Users/a/Library/Application Support/Arc/StorableSidebar.json");
     expect(browserLocations({ platform: "linux", home: "/home/a" }).map((location) => location.browser)).toContain("firefox");
   });
