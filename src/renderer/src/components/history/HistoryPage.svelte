@@ -3,12 +3,13 @@
   import type { HistoryEntry } from "@shared/types";
   import { displayUrl } from "@shared/url";
   import { api, browser } from "../../lib/browser.svelte";
+  import Icon from "../Icon.svelte";
   import Favicon from "../Favicon.svelte";
   import Button from "../ui/Button.svelte";
   import Card from "../ui/Card.svelte";
   import Checkbox from "../ui/Checkbox.svelte";
+  import ConfirmButton from "../ui/ConfirmButton.svelte";
   import EmptyState from "../ui/EmptyState.svelte";
-  import IconButton from "../ui/IconButton.svelte";
   import ListRow from "../ui/ListRow.svelte";
   import Menu from "../ui/Menu.svelte";
   import MenuItem from "../ui/MenuItem.svelte";
@@ -138,7 +139,14 @@
       <div class="selection" role="toolbar" aria-label="Sélection">
         <span>{selected.size} sélectionnée{selected.size > 1 ? "s" : ""}</span>
         <Button size="sm" variant="quiet" onclick={() => (selected = new Set())}>Annuler</Button>
-        <Button size="sm" variant="danger" icon="trash" onclick={() => remove([...selected])}>Supprimer la sélection</Button>
+        <ConfirmButton
+          variant="outlined"
+          question={`Supprimer ${selected.size} entrée${selected.size > 1 ? "s" : ""} ?`}
+          confirmLabel="Supprimer"
+          onconfirm={() => remove([...selected])}
+        >
+          <Icon name="trash" size={12} /> Supprimer la sélection
+        </ConfirmButton>
       </div>
     {/if}
 
@@ -157,7 +165,16 @@
                 <span class="title">{entry.title || displayUrl(entry.url)}</span>
                 <span class="detail">{displayUrl(entry.url)}</span>
               </button>
-              <IconButton size="row" icon="trash" iconSize={16} label={`Supprimer ${entry.title || displayUrl(entry.url)} de l'historique`} title="Supprimer de l'historique" onclick={() => remove([entry.url])} />
+              <ConfirmButton
+                variant="ghost"
+                question="Supprimer cette entrée ?"
+                confirmLabel="Supprimer"
+                title="Supprimer de l'historique"
+                onconfirm={() => remove([entry.url])}
+              >
+                <Icon name="trash" size={16} />
+                <span class="sr">Supprimer {entry.title || displayUrl(entry.url)} de l'historique</span>
+              </ConfirmButton>
             </ListRow>
           {/each}
         </Card>
