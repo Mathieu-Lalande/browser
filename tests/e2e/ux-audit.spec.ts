@@ -14,7 +14,7 @@ const api = (chrome: Page) => ({
 });
 
 async function setWindowSize(app: ElectronApplication, width: number, height: number): Promise<void> {
-  await app.evaluate(({ BrowserWindow }, [w, h]) => BrowserWindow.getAllWindows()[0].setContentSize(w, h), [width, height] as const);
+  await app.evaluate(({ BrowserWindow }, [w, h]) => BrowserWindow.getAllWindows().forEach((window) => window.setContentSize(w, h)), [width, height] as const);
 }
 
 test("tab rows keep their height and the list scrolls, in every density", async ({ chrome, server }) => {
