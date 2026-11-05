@@ -60,14 +60,13 @@ export class PageSwipe {
     const plain = sample.deltaMode === 0 && !sample.shiftKey && !sample.ctrlKey;
     if (gate.name === "idle" || sample.time - gate.last >= this.swipe.endGapMs) {
       if (gate.name === "open" && this.swipe.active) return this.map(this.swipe.end(sample.time, bounds(history)), history);
-      if (!plain || Math.abs(sample.deltaX) <= Math.abs(sample.deltaY) * 1.2 || sample.deltaX === 0) {
+      if (!plain || sample.deltaX === 0) {
         this.gate = { name: "blocked", last: sample.time };
         return { kind: "ignore" };
       }
-      // Nowhere to go that way: no swipe.
-      const direction = sample.deltaX < 0 ? -1 : 1;
-      this.gate = { name: (direction < 0 ? history.back : history.forward) ? "open" : "blocked", last: sample.time };
-      if (this.gate.name === "blocked") return { kind: "ignore" };
+      // Let the underlying state machine accumulate the initial deltas before locking the axis.
+      // This matters on Windows precision touchpads, whose first events can be tiny or diagonal.
+      this.gate = { name: "open", last: sample.time };
     } else {
       gate.last = sample.time;
       if (gate.name !== "open") return { kind: "ignore" };
@@ -90,6 +89,10 @@ export class PageSwipe {
         const direction = output.offset > 0 ? -1 : 1;
         const progress = Math.min(1, Math.abs(output.offset) / this.commitDistance);
         const allowed = direction < 0 ? history.back : history.forward;
+        if (!allowed) {
+          this.gate = { name: "blocked", last: "last" in this.gate ? this.gate.last : 0 };
+          return { kind: "ignore" };
+        }
         return { kind: "track", direction, offset: output.offset, progress, ready: allowed && progress >= 1 };
       }
       case "commit":

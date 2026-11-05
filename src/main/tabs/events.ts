@@ -141,6 +141,14 @@ export class TabEvents {
       if (hooks.pageZoom) hooks.pageZoom(tab.id, step);
       else deps.zoom(tab.id, step);
     });
+    on("input-event", (_event, input) => {
+      if (input.type !== "gesturePinchUpdate") return;
+      const deltaY = (input as Electron.InputEvent & { deltaY?: number }).deltaY;
+      if (typeof deltaY !== "number" || !Number.isFinite(deltaY) || deltaY === 0) return;
+      const step = deltaY < 0 ? 1 : -1;
+      if (hooks.pageZoom) hooks.pageZoom(tab.id, step);
+      else deps.zoom(tab.id, step);
+    });
     on("context-menu", (_event, params) => {
       // A parked page (below the start page or an internal page) is not on screen.
       if (showsWebPage(tab.state.url) && !tab.state.interstitial && !tab.state.loadError) hooks.contextMenu?.(tab.id, params);

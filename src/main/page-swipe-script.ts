@@ -52,10 +52,17 @@ const SCRIPT = `(() => {
     if (!event.isTrusted) return;
     const now = event.timeStamp;
     if (!burst || now - burst.last > ${BURST_GAP_MS}) {
-      const horizontal = event.deltaMode === 0 && !event.ctrlKey && !event.shiftKey && Math.abs(event.deltaX) > Math.abs(event.deltaY) * 1.2;
-      burst = { last: now, swipe: horizontal && !pageScrolls(event, Math.sign(event.deltaX)) };
+      burst = { last: now, x: 0, y: 0, swipe: null };
     }
     burst.last = now;
+    if (burst.swipe === null) {
+      burst.x += event.deltaX;
+      burst.y += event.deltaY;
+      if (Math.abs(burst.x) + Math.abs(burst.y) >= 4) {
+        const horizontal = event.deltaMode === 0 && !event.ctrlKey && !event.shiftKey && Math.abs(burst.x) > Math.abs(burst.y) * 1.2;
+        burst.swipe = horizontal && !pageScrolls(event, Math.sign(burst.x));
+      }
+    }
     if (burst.swipe) console.debug(prefix + JSON.stringify([event.deltaX, event.deltaY, event.deltaMode, event.ctrlKey ? 1 : 0, event.shiftKey ? 1 : 0]));
   }, { capture: true, passive: true });
 })()`;

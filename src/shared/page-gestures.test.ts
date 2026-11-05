@@ -26,6 +26,17 @@ describe("page swipe", () => {
     expect(swipe.end(16 * 16 + 200, both)).toEqual({ kind: "commit", direction: -1 });
   });
 
+  it("waits for slow touchpad deltas before locking the axis", () => {
+    const swipe = new PageSwipe();
+    const outputs = [
+      swipe.wheel(wheel(-1, 0), both),
+      swipe.wheel(wheel(-1, 40), both),
+      ...burst(swipe, -12, 14, 80),
+    ];
+    expect(outputs.some((output) => output.kind === "track")).toBe(true);
+    expect(swipe.end(1000, both)).toEqual({ kind: "commit", direction: -1 });
+  });
+
   it("goes forward the other way, and cancels short of the threshold", () => {
     const forward = new PageSwipe();
     burst(forward, 12, 16);

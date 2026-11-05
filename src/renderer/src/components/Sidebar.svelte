@@ -3,7 +3,7 @@
   import type { SpaceId } from "@shared/types";
   import { api, browser } from "../lib/browser.svelte";
   import { settings } from "../lib/settings.svelte";
-  import { PEEK_GAP, SETTLE_MS, SpaceSwipeController } from "../lib/space-swipe-controller.svelte";
+  import { PEEK_GAP, SpaceSwipeController } from "../lib/space-swipe-controller.svelte";
   import { TabSelection } from "../lib/tab-selection.svelte";
   import { treeRows, type FolderRow } from "../lib/tab-tree";
   import { TreeDrag } from "../lib/tree-drag.svelte";
@@ -132,8 +132,6 @@
   <div class="space-area" data-testid="space-area" bind:this={spaceArea}>
     <div
       class="space-track"
-      class:settling={swipe.settling}
-      style:--settle="{SETTLE_MS}ms"
       style:--peek-gap="{PEEK_GAP}px"
       style:transform={swipe.offset ? `translate3d(${swipe.offset}px, 0, 0)` : undefined}
     >
@@ -227,9 +225,6 @@
     grid-template-columns: minmax(0, 1fr);
     min-width: 0;
     min-height: 0;
-  }
-  .space-track.settling {
-    transition: transform var(--settle) cubic-bezier(0.2, 0.8, 0.2, 1);
   }
   .space-content {
     display: flex;
