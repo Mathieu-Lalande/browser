@@ -96,6 +96,9 @@ const hardenedContents = new WeakMap<WebContents, { hooks: TabHooks; activation:
 export function hardenWebContents(contents: WebContents, hooks: TabHooks): void {
   const known = hardenedContents.get(contents);
   if (known) return void (known.hooks = hooks);
+  void contents.setVisualZoomLevelLimits(0.25, 5).catch((error: unknown) =>
+    console.warn("[security] Could not enable page pinch zoom:", error),
+  );
   const tab = { hooks, activation: new UserActivation() };
   hardenedContents.set(contents, tab);
   // Not a leak: each feature's isolated-world script (cosmetics, passwords, autofill, notes, media,

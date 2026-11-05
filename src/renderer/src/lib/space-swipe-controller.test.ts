@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { PEEK_GAP, SETTLE_MS, SpaceSwipeController, type SpaceSwipeHost } from "./space-swipe-controller.svelte";
+import { PEEK_GAP, SpaceSwipeController, type SpaceSwipeHost } from "./space-swipe-controller.svelte";
 
 function setup(overrides: Partial<SpaceSwipeHost> = {}) {
   const switchTo = vi.fn();
@@ -35,15 +35,13 @@ describe("SpaceSwipeController", () => {
     expect(controller.progress).toBe(0);
   });
 
-  it("slides to the neighbour, then switches, and lands without a slide of its own", () => {
+  it("switches to the neighbour without an animation", () => {
     const { controller, switchTo } = setup();
     controller.apply({ kind: "track", offset: -120 });
     controller.apply({ kind: "commit", direction: 1 });
-    expect(controller.settling).toBe(true);
-    expect(controller.offset).toBe(-(200 + PEEK_GAP));
-    expect(switchTo).not.toHaveBeenCalled();
-    vi.advanceTimersByTime(SETTLE_MS);
     expect(switchTo).toHaveBeenCalledWith("n");
+    expect(controller.settling).toBe(false);
+    expect(controller.offset).toBe(0);
     controller.spaceShown("n");
     expect(controller.offset).toBe(0);
     expect(controller.swiping).toBe(false);
@@ -54,9 +52,8 @@ describe("SpaceSwipeController", () => {
   it("snaps back when the switch never arrives", () => {
     const { controller } = setup();
     controller.apply({ kind: "commit", direction: -1 });
-    vi.advanceTimersByTime(SETTLE_MS + 600);
+    vi.runAllTimers();
     expect(controller.offset).toBe(0);
-    vi.advanceTimersByTime(SETTLE_MS);
     expect(controller.settling).toBe(false);
     expect(controller.swiping).toBe(false);
   });

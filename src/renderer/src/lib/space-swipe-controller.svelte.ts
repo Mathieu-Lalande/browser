@@ -13,7 +13,6 @@ import type { SpaceId } from "@shared/types";
 
 /** Room between the shown space and its neighbours on the track, px. */
 export const PEEK_GAP = 16;
-export const SETTLE_MS = 220;
 /** A switch that main has not confirmed after this long is given up (back to rest), ms. */
 const SWITCH_TIMEOUT_MS = 600;
 
@@ -31,7 +30,7 @@ export interface SpaceSwipeHost {
 export class SpaceSwipeController {
   /** Horizontal offset of the track, px. */
   offset = $state(0);
-  /** The track animates (release), instead of following the fingers. */
+  /** Kept for the UI contract; space switches are intentionally immediate. */
   settling = $state(false);
   /** The neighbours are drawn (from the first tracked event until the track is back at rest). */
   swiping = $state(false);
@@ -165,42 +164,29 @@ export class SpaceSwipeController {
     };
   }
 
-  #settleTo(offset: number, then: () => void): void {
-    clearTimeout(this.#settleTimer);
-    this.settling = true;
-    this.offset = offset;
-    this.#settleTimer = setTimeout(then, this.#host.reduceMotion() ? 0 : SETTLE_MS);
-  }
-
   #snapBack(): void {
-    this.#settleTo(0, () => {
-      this.settling = false;
-      this.swiping = false;
-    });
+    clearTimeout(this.#settleTimer);
+    this.settling = false;
+    this.offset = 0;
+    this.swiping = false;
   }
 
   #commit(direction: 1 | -1): void {
     const neighbours = this.#host.neighbours();
     const target = direction === 1 ? neighbours.next : neighbours.previous;
     if (!target) return this.#snapBack();
-    if (this.#host.reduceMotion()) {
-      // No motion: the content is replaced in place.
-      this.swiping = false;
-      this.offset = 0;
-      this.#instantSwitch = true;
-      this.#host.switchTo(target.id);
-      return;
-    }
-    this.#settleTo(-direction * (this.trackWidth + PEEK_GAP), () => {
-      this.#switchingTo = target.id;
-      this.#host.switchTo(target.id);
-      // Refused or lost: back to rest rather than stuck half-way.
-      this.#settleTimer = setTimeout(() => {
-        if (this.#switchingTo === target.id) {
-          this.#switchingTo = null;
-          this.#snapBack();
-        }
-      }, SWITCH_TIMEOUT_MS);
-    });
+    this.#switchingTo = target.id;
+    this.swiping = false;
+    this.settling = false;
+    this.offset = 0;
+    this.#instantSwitch = true;
+    this.#host.switchTo(target.id);
+    // Refused or lost: return to rest rather than getting stuck.
+    this.#settleTimer = setTimeout(() => {
+      if (this.#switchingTo === target.id) {
+        this.#switchingTo = null;
+        this.#snapBack();
+      }
+    }, SWITCH_TIMEOUT_MS);
   }
 }
