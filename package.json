@@ -2,7 +2,7 @@
   "name": "browser",
   "productName": "Browser",
   "private": true,
-  "version": "0.6.2",
+  "version": "0.6.3",
   "description": "Un navigateur desktop rapide, privé et entièrement personnalisable.",
   "author": "Mathieu Lalande",
   "homepage": "https://github.com/Mathieu-Lalande/browser",
