@@ -99,7 +99,7 @@ test("an isolated space has its own cookies, and the same blocker and permission
 
   // Hardened like the default session: the test filter list blocks the decoy ads…
   await visit(chrome, server.url("/shields"), "Shields");
-  await expect(chrome.locator(".address .shield .count")).toHaveText("2");
+  await expect(chrome.getByRole("button", { name: /^Infos sur le site/ })).toHaveAttribute("title", /protections \(2 bloqués\)/);
   expect(await evalInTab(app, server.url("/shields"), "window.adLoaded === true")).toBe(false);
   // …and permission requests go through the permission bar.
   await visit(chrome, server.url("/permission"), "Permission");

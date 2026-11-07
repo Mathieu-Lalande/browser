@@ -3,7 +3,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { test as base, expect, _electron as electron, type ElectronApplication, type Page } from "@playwright/test";
+import { test as base, expect, _electron as electron, type ElectronApplication, type Locator, type Page } from "@playwright/test";
 
 export type { ElectronApplication };
 
@@ -475,6 +475,18 @@ export async function openPrivateWindow(app: ElectronApplication, chrome: Page):
     .toBe(true);
   await found!.waitForSelector(".sidebar");
   return found!;
+}
+
+/**
+ * Opens the page options popover ("…" of the address bar, ADR-045: copy, reader, translation,
+ * passwords…) and returns it.
+ */
+export async function pageOptions(app: ElectronApplication, chrome: Page): Promise<Locator> {
+  await chrome.locator(".address").hover();
+  await chrome.getByRole("button", { name: "Options de la page" }).click();
+  const panel = (await overlayOf(app)).getByRole("dialog", { name: "Options de la page" });
+  await expect(panel).toBeVisible();
+  return panel;
 }
 
 /** Types `url` in the address bar of `chrome` and waits for the active tab's title. */

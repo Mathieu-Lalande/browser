@@ -1,13 +1,16 @@
 <script lang="ts" generics="T extends string">
   import Icon, { type IconName } from "../Icon.svelte";
 
-  /** A single choice among a few options (radio group drawn as a segmented control). */
+  /**
+   * A single choice among a few options (radio group drawn as a segmented control). `onchange` also
+   * runs for a click on the current option (a caller may treat it as "back to the default").
+   */
   let {
     value,
     options,
     label,
     onchange,
-  }: { value: T; options: { value: T; label: string; icon?: IconName }[]; label: string; onchange: (value: T) => void } = $props();
+  }: { value: T | null; options: { value: T; label: string; icon?: IconName; title?: string }[]; label: string; onchange: (value: T) => void } = $props();
 
   function onKeydown(event: KeyboardEvent): void {
     if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
@@ -26,6 +29,7 @@
       aria-checked={option.value === value}
       tabindex={option.value === value ? 0 : -1}
       class:selected={option.value === value}
+      title={option.title}
       onclick={() => onchange(option.value)}
     >
       {#if option.icon}<Icon name={option.icon} size={16} />{/if}

@@ -15,17 +15,11 @@
   import NavButtons from "./sidebar/NavButtons.svelte";
   import SelectionBar from "./sidebar/SelectionBar.svelte";
   import SidebarFooter from "./sidebar/SidebarFooter.svelte";
-  import SidebarHeader from "./sidebar/SidebarHeader.svelte";
   import SpaceHeader from "./sidebar/SpaceHeader.svelte";
   import SpacePeek from "./sidebar/SpacePeek.svelte";
   import TabTree from "./sidebar/TabTree.svelte";
   import SpaceEditor from "./spaces/SpaceEditor.svelte";
 
-  /**
-   * `windowControls`: draw the window buttons in the title bar (Windows/Linux, see App and
-   * SidebarHeader).
-   */
-  let { onToggle, windowControls = false }: { onToggle: () => void; windowControls?: boolean } = $props();
   let addressBar: AddressBar;
   let sidebarElement = $state<HTMLElement>();
   let spaceArea = $state<HTMLElement>();
@@ -66,6 +60,11 @@
       return !browser.isPrivate && !!tab && isFavoriteUrl(tab.url);
     },
     onStart: () => (editingFolder = null),
+    // A tab dropped on another one (ADR-045): both side by side, the target shown first.
+    onSplit: (tabId, targetId) => {
+      api.tabs.activate(targetId);
+      api.split.open(tabId);
+    },
     onDrop: (item, target) => {
       if ("favorite" in target) api.favorites.add(item.id);
       else if (target.kind === "tab") api.tabs.place(item.id, target.folderId, target.beforeId);
@@ -142,7 +141,6 @@
 </script>
 
 <aside class="sidebar" bind:this={sidebarElement} oncontextmenu={onSidebarContextMenu}>
-  <SidebarHeader {onToggle} {windowControls} />
   <NavButtons />
   <AddressBar bind:this={addressBar} />
 
@@ -201,8 +199,8 @@
   {/if}
   {#if drag.current}
     <div class="drag-ghost" style:left="{drag.current.x + 12}px" style:top="{drag.current.y + 8}px" aria-hidden="true">
-      <Icon name={drag.current.item.kind === "folder" ? "folder" : drag.overFavorites ? "favorite" : "file"} size={12} />
-      <span>{drag.current.label}</span>
+      <Icon name={drag.current.item.kind === "folder" ? "folder" : drag.overFavorites ? "favorite" : drag.splitTarget ? "split" : "file"} size={12} />
+      <span>{drag.splitTarget ? `Vue scindée : ${drag.current.label}` : drag.current.label}</span>
     </div>
   {/if}
   <MiniPlayer />

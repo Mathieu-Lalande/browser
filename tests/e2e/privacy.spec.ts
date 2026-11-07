@@ -1,5 +1,5 @@
 import type { BrowserApi } from "@shared/ipc";
-import { evalInTab, expect, tabUrls, test, type ElectronApplication } from "./fixtures";
+import { evalInTab, expect, overlayOf, tabUrls, test, type ElectronApplication } from "./fixtures";
 
 test("the user agent and client hints never mention Electron; Accept-Language can be normalized", async ({ app, chrome, server }) => {
   const address = chrome.getByLabel("Barre d'adresse");
@@ -49,24 +49,29 @@ test("blocks matching requests, counts them, and can be turned off per site", as
   await address.press("Enter");
   await expect(chrome.locator(".tab.active .title")).toHaveText("Shields");
 
-  const shield = chrome.locator(".address .shield");
-  // The image and the script are blocked.
-  await expect(shield.locator(".count")).toHaveText("2");
-  await expect(shield).toHaveAttribute("aria-pressed", "true");
+  // The image and the script are blocked: the lock says so (ADR-045, the shields live behind it).
+  const lock = chrome.getByRole("button", { name: /^Infos sur le site/ });
+  await expect(lock).toHaveAttribute("title", /protections \(2 bloqués\)/);
   expect(await evalInTab(app, server.url("/shields"), "window.adLoaded === true")).toBe(false);
   // Cosmetic filtering, without any preload: site rules at commit, generic rules after a DOM scan.
   await expect.poll(() => adDisplay(app, server.url("/shields"))).toEqual(["none", "none"]);
 
-  await shield.click();
-  await expect(shield).toHaveAttribute("aria-pressed", "false");
-  await expect(shield.locator(".count")).toHaveCount(0);
+  // Turned off from the site info popover: the address bar then shows them off, struck out.
+  await lock.click();
+  const panel = (await overlayOf(app)).getByRole("dialog", { name: "Infos sur le site" });
+  await panel.getByRole("switch", { name: "Protections sur ce site" }).click();
+  await expect(panel.getByRole("switch", { name: "Protections sur ce site" })).toHaveAttribute("aria-checked", "false");
+  await (await overlayOf(app)).keyboard.press("Escape");
+  await expect(panel).toBeHidden();
+  const off = chrome.getByRole("button", { name: /^Protections désactivées sur ce site/ });
+  await expect(off).toBeVisible();
   await expect.poll(() => evalInTab(app, server.url("/shields"), "window.adLoaded === true")).toBe(true);
   expect(await adDisplay(app, server.url("/shields"))).toEqual(["block", "block"]);
 
-  // And back on.
-  await shield.click();
-  await expect(shield).toHaveAttribute("aria-pressed", "true");
-  await expect(shield.locator(".count")).toHaveText("2");
+  // And back on, in one click on that indicator.
+  await off.click();
+  await expect(off).toHaveCount(0);
+  await expect(lock).toHaveAttribute("title", /protections \(2 bloqués\)/);
 });
 
 test("permission requests show a bar; Bloquer denies them", async ({ app, chrome, server }) => {

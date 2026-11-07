@@ -162,6 +162,7 @@
         depth={entry.depth}
         selected={selection.has(entry.tab.id)}
         dragged={drag.isDragged("tab", entry.tab.id)}
+        dropSplit={drag.splitTarget?.id === entry.tab.id}
         data-row-index={entry.index}
         data-depth={entry.depth}
         data-drag-kind={entry.tab.isPinned ? undefined : "tab"}

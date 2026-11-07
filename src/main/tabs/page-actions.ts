@@ -5,7 +5,7 @@ import { allowHttp, respondPermission, setShieldsEnabled } from "../privacy";
 import { mobileUserAgent } from "../fingerprint";
 import { isPageReaderable } from "../reader/page";
 import { togglePictureInPicture } from "../media/pip";
-import { rememberSiteZoom, siteZoomFactor } from "../zoom";
+import { browserPagesZoomFactor, rememberBrowserPagesZoom, rememberSiteZoom, siteZoomFactor } from "../zoom";
 import { nextZoomFactor, sameFactor } from "../zoom/levels";
 import { liveContents, showsWebPage, type Tab, type TabOptions } from "./model";
 import type { TabLayout } from "./layout";
@@ -34,9 +34,17 @@ export class TabPageActions {
   /**
    * Zooms the tab's page one step in (1) or out (-1), or back to the default zoom (0). The level
    * is remembered for the site (every tab on it follows), except for pages without a web host.
+   * The pages the chrome UI draws (start page, browser://…) share one remembered level (ADR-045),
+   * which the UI applies to them alone, never to the sidebar.
    */
   zoom(id: TabId, direction: 1 | -1 | 0): void {
     const tab = this.deps.store.find(id);
+    if (tab && !showsWebPage(tab.state.url)) {
+      const { defaultZoom } = this.deps.options();
+      const next = nextZoomFactor(this.browserPagesZoom(), direction, defaultZoom);
+      if (next !== undefined) rememberBrowserPagesZoom(next, defaultZoom, this.deps.session());
+      return;
+    }
     const contents = tab && liveContents(tab);
     if (!tab || !contents || !showsWebPage(tab.state.url)) return;
     const { defaultZoom } = this.deps.options();
@@ -45,6 +53,11 @@ export class TabPageActions {
     if (webHostname(contents.getURL())) rememberSiteZoom(contents.getURL(), next, defaultZoom, this.deps.session());
     else contents.setZoomFactor(next);
     this.applyZoom(tab);
+  }
+
+  /** The zoom factor of the pages the chrome UI draws, in this tab session. */
+  browserPagesZoom(): number {
+    return browserPagesZoomFactor(this.deps.options().defaultZoom, this.deps.session());
   }
 
   /** Gives the page its site's zoom (or the default zoom), and mirrors it in the tab state. */

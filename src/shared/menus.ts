@@ -142,8 +142,8 @@ export interface AppMenuContext {
 }
 
 /**
- * The library pages of the app menu and, in the same order, of the sidebar's Outils menu: every
- * internal page (ADR-012) without a button of its own. Groups are separated in both menus.
+ * The library pages of the app menu: every internal page (ADR-012) without a button of its own.
+ * The app menu is the window's only "…" menu (ADR-045): no other menu repeats them.
  */
 export const LIBRARY_MAIN: readonly CommandId[] = [
   "open-passwords",
@@ -159,15 +159,6 @@ export const LIBRARY_MORE: readonly CommandId[] = [
 
 const libraryMore = (isPrivate: boolean) =>
   LIBRARY_MORE.filter((id) => !isPrivate || id !== "open-boosts");
-
-/** The sidebar Outils menu, as groups of commands (Boosts are edited from normal windows only, ADR-029). */
-export function toolsMenuGroups(isPrivate: boolean): CommandId[][] {
-  return [
-    [...LIBRARY_MAIN],
-    libraryMore(isPrivate),
-    ["open-task-manager", "open-profiles"],
-  ];
-}
 
 /** The profile a Profils submenu entry opens (`profile-open-<id>`), null for other ids. */
 export function profileEntryOf(id: string): string | null {

@@ -1,7 +1,7 @@
 import type { ElectronApplication, Page } from "@playwright/test";
 import type { BrowserApi } from "@shared/ipc";
 import type { BrowserState } from "@shared/types";
-import { expect, overlayOf, tabUrls, test, visit } from "./fixtures";
+import { expect, overlayOf, pageOptions, tabUrls, test, visit } from "./fixtures";
 
 // "Essentiels" (ADR-021): page context menu, site info popover, site data, copy link.
 
@@ -88,10 +88,12 @@ test("site info: connection, cookies cleared, copy link", async ({ app, chrome, 
   const page = server.url("/context");
   await visit(chrome, page, "Context");
 
-  // Copy link button in the address bar, with its confirmation.
-  await chrome.getByRole("button", { name: "Copier le lien" }).click();
-  await expect(chrome.getByRole("status")).toHaveText("Lien copié");
+  // Copy link, from the page options (ADR-045), with its confirmation.
+  const options = await pageOptions(app, chrome);
+  await options.getByRole("button", { name: "Copier le lien" }).click();
+  await expect(options.getByRole("button", { name: "Lien copié" })).toBeVisible();
   await expect.poll(() => clipboardText(app)).toBe(page);
+  await expect(options).toBeHidden();
 
   await chrome.getByRole("button", { name: /^Infos sur le site/ }).click();
   const overlay = await overlayOf(app);

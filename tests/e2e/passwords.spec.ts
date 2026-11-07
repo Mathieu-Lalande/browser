@@ -3,7 +3,7 @@ import { join } from "node:path";
 import type { ElectronApplication, Page } from "@playwright/test";
 import type { BrowserApi } from "@shared/ipc";
 import type { BrowserState } from "@shared/types";
-import { chromeOf, clickInTab, evalInTab, expect, launch, overlayOf, test, visit } from "./fixtures";
+import { chromeOf, clickInTab, evalInTab, expect, launch, overlayOf, pageOptions, test, visit } from "./fixtures";
 
 // Password manager (ADR-025): capture on submit, save prompt, encrypted file, fill, browser://passwords.
 
@@ -52,10 +52,10 @@ async function savesAndFills(app: ElectronApplication, chrome: Page, login: stri
   expect(stored).not.toContain(PASSWORD);
   expect(stored).not.toContain("alice");
 
-  // Back on the login page: the key appears, and filling puts the account in the form.
+  // Back on the login page: the page options offer the saved account, and filling puts it in the form.
   await visit(chrome, login, "Login");
   await expect.poll(async () => (await activeTab(chrome))?.hasPasswords).toBe(true);
-  await chrome.getByRole("button", { name: "Remplir un mot de passe enregistré" }).click();
+  await (await pageOptions(app, chrome)).getByRole("button", { name: "Remplir un mot de passe enregistré" }).click();
   const chooser = overlay.getByRole("dialog", { name: "Mots de passe enregistrés" });
   await expect(chooser).toBeVisible();
   await chooser.getByRole("button", { name: /alice/ }).click();

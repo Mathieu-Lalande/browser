@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 import type { BrowserApi } from "@shared/ipc";
 import type { BrowserState } from "@shared/types";
-import { evalInTab, expect, openPrivateWindow, overlayOf, test, visit } from "./fixtures";
+import { evalInTab, expect, openPrivateWindow, overlayOf, pageOptions, test, visit } from "./fixtures";
 
 // Page translation (ADR-036) with a fake LibreTranslate server (the test server uppercases texts):
 // off by default, a privacy notice first, text nodes translated in place (never code, scripts,
@@ -21,17 +21,21 @@ async function useFakeServer(chrome: Page, origin: string): Promise<void> {
 
 test("translates a page in place after the privacy notice, then shows the original", async ({ app, chrome, server }) => {
   const url = server.url("/translate-page");
-  // Off by default: no button, nothing sent.
+  // Off by default: nothing offered, nothing sent.
   await visit(chrome, url, "Translate me");
-  await expect(chrome.getByRole("button", { name: "Traduire la page" })).toHaveCount(0);
+  let options = await pageOptions(app, chrome);
+  await expect(options.getByRole("button", { name: "Traduire la page" })).toHaveCount(0);
+  await options.press("Escape");
+  await expect(options).toBeHidden();
 
   await useFakeServer(chrome, server.url(""));
   await chrome.evaluate(() => (globalThis as unknown as Global).browser.commands.run("reload"));
-  const button = chrome.getByRole("button", { name: "Traduire la page" });
-  await expect(button).toBeVisible();
+  await expect.poll(async () => (await state(chrome)).tabs.find((tab) => tab.url === url)?.translation?.offer).toBe(true);
+  options = await pageOptions(app, chrome);
   expect(server.log.translations).toHaveLength(0);
 
-  await button.click();
+  // Offered in the page options (ADR-045); the first time, the privacy notice comes first.
+  await options.getByRole("button", { name: "Traduire la page" }).click();
   const overlay = await overlayOf(app);
   const panel = overlay.getByTestId("translate-panel");
   await expect(panel).toContainText("sera envoyé à LibreTranslate");
@@ -79,7 +83,7 @@ test("'always translate' applies on load; a private window asks first and keeps 
   const privateChrome = await openPrivateWindow(app, chrome);
   const privateUrl = server.url("/translate-page?lang=de&private");
   await visit(privateChrome, privateUrl, "Translate me");
-  await expect(privateChrome.getByRole("button", { name: "Traduire la page" })).toBeVisible();
+  await expect.poll(async () => (await state(privateChrome)).tabs.find((tab) => tab.url === privateUrl)?.translation?.offer).toBe(true);
   const tabId = (await state(privateChrome)).activeTabId!;
   const refused = await privateChrome.evaluate((id) => (globalThis as unknown as Global).browser.translate.run(id, null, "fr", false), tabId);
   expect(refused.ok).toBe(false);

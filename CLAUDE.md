@@ -27,7 +27,7 @@
   durées d'animation via `--motion-fast`/`--motion-base` (0 si mouvements réduits) ; échelles partagées dans `global.css`
   (`--space-1…6`, `--radius-sm/md/lg`, `--text-xs…xl`, `--hit-min`, champ `.ui-field`), jamais de valeurs propres à un composant ;
   mise en page partagée des panneaux découpés en sous-composants : `styles/kit.css` (`.kit-line`, `.kit-list`…, sous `.kit`).
-- Composants du chrome : `Sidebar.svelte` ne fait que composer `components/sidebar/` (`SidebarHeader`, `NavButtons`,
+- Composants du chrome : `Sidebar.svelte` ne fait que composer `components/sidebar/` (`NavButtons`,
   `SpaceHeader`, `SelectionBar`, `TabTree` (lignes + clavier), `SpacePeek`, `SidebarFooter`) ; glisser-déposer
   `lib/tree-drag.svelte.ts` (`TreeDrag`), balayage entre espaces `lib/space-swipe-controller.svelte.ts`, sélection
   `lib/tab-selection.svelte.ts` (Vitest compile les runes : contrôleurs testables). Réglages : une section par composant
@@ -158,3 +158,8 @@
 - Stores mobiles (INSTALL 2.3) : `mobile/app.json` + `app.config.ts` (projet EAS, `eas update`, `IOS_DEFAULT_BROWSER=1` seulement après l'accord d'Apple),
   `mobile/eas.json` (numéros de build tenus par EAS), fiches et réponses confidentialité/chiffrement `mobile/store/`, liens entrants
   `useIncomingLinks` (nouvel onglet), workflow `mobile-release.yml` ; pages `site/privacy.html`/`support.html`.
+- Barre de fenêtre et menus (ADR-045) : `WindowBar.svelte` (dépliée seulement quand la souris touche le haut ; mode de la barre
+  latérale complète/compacte/zen à gauche, boutons de fenêtre à droite ; sortie du pointeur suivie par main via `window:top-bar`), un seul menu « … »
+  (menu de l'application, pied de la barre latérale, ouvert vers le haut) ; barre d'adresse : favori + options de la page
+  au survol, le reste dans les options de la page ou derrière le cadenas ; zoom propre des pages dessinées par l'interface
+  (clé `browser://` de `zoom.json`, `.drawn-page`) ; onglet lâché au milieu d'un autre = vue scindée (`splitTargetFromBoxes`).

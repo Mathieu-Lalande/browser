@@ -26,6 +26,7 @@ export const windowHandlers = defineHandlers({
   [Channels.windowToggleMaximize]: on([], (c) => (c.window.isMaximized() ? c.window.unmaximize() : c.window.maximize())),
   [Channels.windowClose]: on([], (c) => c.window.close()),
   [Channels.windowIsMaximized]: handle([], (c) => c.window.isMaximized(), { from: "chrome", fallback: false }),
+  [Channels.windowTopBar]: on([num], (c, height) => c.watchTopBar(height), { from: "chrome" }),
 
   // Command palette: registry commands and the overlay layer.
   [Channels.commandRun]: on([isCommandId], (c, commandId) => runCommand(commandId, c)),

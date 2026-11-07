@@ -1,9 +1,9 @@
 import type { Page } from "@playwright/test";
 import type { BrowserApi } from "@shared/ipc";
 import type { BrowserState } from "@shared/types";
-import { attachedViews, evalInTab, expect, test, visit } from "./fixtures";
+import { attachedViews, evalInTab, expect, pageOptions, test, visit } from "./fixtures";
 
-// Reader mode (ADR-026): readerable pages get a button, the chrome UI draws the validated article
+// Reader mode (ADR-026): readerable pages get an entry in the page options, the chrome UI draws the validated article
 // in place of the page view, and nothing of the page's markup (scripts, handlers) comes along.
 
 type Global = { browser: BrowserApi; __pwned?: unknown };
@@ -13,9 +13,9 @@ test("reader mode shows the article drawn by the chrome UI, without the page's s
   const url = server.url("/article");
   await visit(chrome, url, "Un article de test");
 
-  const button = chrome.getByRole("button", { name: "Mode lecture", exact: true });
-  await expect(button).toBeVisible();
-  await button.click();
+  // Offered in the page options (ADR-045) once Readability sees an article.
+  await expect.poll(async () => (await state(chrome)).tabs.find((tab) => tab.url === url)?.readerable).toBe(true);
+  await (await pageOptions(app, chrome)).getByRole("button", { name: /^Mode lecture/ }).click();
 
   const reader = chrome.getByTestId("reader-view");
   await expect(reader.getByRole("heading", { level: 1 })).toHaveText("Un article de test");
@@ -57,7 +57,11 @@ test("short pages get no reader button; the mobile site toggle changes the user 
   const url = server.url("/second");
   await visit(chrome, url, "Page second");
   await expect.poll(async () => (await state(chrome)).tabs.find((tab) => tab.url === url)?.isLoading).toBe(false);
-  await expect(chrome.getByRole("button", { name: "Mode lecture", exact: true })).toHaveCount(0);
+  const options = await pageOptions(app, chrome);
+  await expect(options.getByRole("button", { name: "Version mobile" })).toBeVisible();
+  await expect(options.getByRole("button", { name: /^Mode lecture/ })).toHaveCount(0);
+  await options.press("Escape");
+  await expect(options).toBeHidden();
 
   const run = () => chrome.evaluate(() => (globalThis as unknown as Global).browser.commands.run("toggle-mobile-site"));
   await run();

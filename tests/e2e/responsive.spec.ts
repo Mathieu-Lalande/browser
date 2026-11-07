@@ -70,29 +70,18 @@ async function overflowing(page: Page, root: string): Promise<string[]> {
   }, root);
 }
 
-/** Title bar: its parts sit side by side inside it, never overlapping; its buttons keep ≥ 24px. */
-async function checkTitlebar(page: Page): Promise<void> {
-  const titlebar = (await page.locator(".titlebar").boundingBox())!;
-  const parts = await page.locator(".titlebar button, .titlebar .private-badge").all();
-  const boxes = [];
-  for (const part of parts) {
-    const box = (await part.boundingBox())!;
-    boxes.push(box);
-    expect(box.x).toBeGreaterThanOrEqual(titlebar.x - 0.5);
-    expect(box.x + box.width).toBeLessThanOrEqual(titlebar.x + titlebar.width + 0.5);
-  }
-  boxes.sort((a, b) => a.x - b.x);
-  for (let index = 1; index < boxes.length; index++) expect(boxes[index].x).toBeGreaterThanOrEqual(boxes[index - 1].x + boxes[index - 1].width - 0.5);
-  for (const button of await page.locator(".titlebar button, .nav button, .footer button").all()) {
+/** The sidebar's rows (ADR-045: no title bar any more): buttons keep ≥ 24px, the private hint fits the footer. */
+async function checkRows(page: Page): Promise<void> {
+  for (const button of await page.locator(".nav button, .footer button").all()) {
     const box = (await button.boundingBox())!;
     expect(Math.min(box.width, box.height)).toBeGreaterThanOrEqual(24);
   }
-  // The badge is never cut: whole, or folded to its icon.
-  const badge = page.locator(".private-badge");
-  if (await badge.count()) {
-    const slot = (await page.locator(".title-slot").boundingBox())!;
-    const box = (await badge.boundingBox())!;
-    expect(box.x + box.width).toBeLessThanOrEqual(slot.x + slot.width + 0.5);
+  const hint = page.locator(".private-hint");
+  if (await hint.count()) {
+    const footer = (await page.locator(".footer").boundingBox())!;
+    const box = (await hint.boundingBox())!;
+    expect(box.x).toBeGreaterThanOrEqual(footer.x - 0.5);
+    expect(box.x + box.width).toBeLessThanOrEqual(footer.x + footer.width + 0.5);
   }
 }
 
@@ -113,12 +102,11 @@ async function shoot(page: Page, name: string, selector = ".sidebar"): Promise<v
   await page.locator(selector).screenshot({ path: `${shots}/${name}.png` });
 }
 
-test("private window: the title bar and the sidebar never overflow, sidebar left and right", async ({ app, chrome }) => {
+test("private window: the sidebar never overflows and says it is private, sidebar left and right", async ({ app, chrome }) => {
   test.setTimeout(120_000);
   const priv = await openPrivateWindow(app, chrome);
   await setWindowSize(app, MIN_WINDOW.width, MIN_WINDOW.height);
-  await expect(priv.locator(".titlebar .controls")).toBeVisible();
-  await expect(priv.locator(".private-badge")).toBeVisible();
+  await expect(priv.locator(".private-hint")).toContainText("Navigation privée");
 
   for (const position of ["left", "right"] as const) {
     for (const width of [LIMITS.sidebarWidth.min, 264]) {
@@ -126,18 +114,12 @@ test("private window: the title bar and the sidebar never overflow, sidebar left
         await update(priv, { layout: { sidebarPosition: position, sidebarWidth: width }, appearance: { density } });
         await settle(priv, width);
         expect(await overflowing(priv, ".sidebar"), `${position} ${width}px ${density}`).toEqual([]);
-        await checkTitlebar(priv);
+        await checkRows(priv);
       }
-      await shoot(priv, `private-titlebar-${position}-${width}`, ".titlebar");
+      await shoot(priv, `private-sidebar-${position}-${width}`);
     }
   }
-  // Wide enough: the badge shows its label again.
-  await setWindowSize(app, 1200, 700);
-  await update(priv, { layout: { sidebarPosition: "left", sidebarWidth: 420 }, appearance: { density: "comfortable" } });
-  await settle(priv, 420);
-  await expect(priv.locator(".private-label")).toHaveCSS("position", "static");
-  await checkTitlebar(priv);
-  await update(priv, { layout: { sidebarWidth: 264 } });
+  await update(priv, { layout: { sidebarPosition: "left", sidebarWidth: 264 }, appearance: { density: "comfortable" } });
 });
 
 test("every sidebar surface fits the narrowest sidebar in the smallest window", async ({ app, chrome, server }) => {
@@ -239,19 +221,24 @@ test("the favorites hint can be dismissed for good", async ({ chrome }) => {
   expect(settings.layout.favoritesHintDismissed).toBe(true);
 });
 
-test("the Outils menu stays inside the narrowest sidebar, sidebar left and right", async ({ chrome }) => {
+test("the app menu stays inside the window from the narrowest sidebar, left and right", async ({ app, chrome }) => {
+  const overlay = await overlayOf(app);
   for (const position of ["left", "right"] as const) {
     await update(chrome, { layout: { sidebarPosition: position, sidebarWidth: LIMITS.sidebarWidth.min } });
     await settle(chrome, LIMITS.sidebarWidth.min);
-    await chrome.getByRole("button", { name: "Outils" }).click();
-    const menu = chrome.getByRole("menu", { name: "Outils" });
+    await chrome.getByTestId("app-menu-button").click();
+    const menu = overlay.getByTestId("app-menu");
     await expect(menu).toBeVisible();
-    const sidebar = (await chrome.locator(".sidebar").boundingBox())!;
+    const size = await overlay.evaluate(() => ({
+      width: (globalThis as unknown as { innerWidth: number }).innerWidth,
+      height: (globalThis as unknown as { innerHeight: number }).innerHeight,
+    }));
     const box = (await menu.boundingBox())!;
-    expect(box.x).toBeGreaterThanOrEqual(sidebar.x);
-    expect(box.x + box.width).toBeLessThanOrEqual(sidebar.x + sidebar.width + 0.5);
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(size.width + 0.5);
     expect(box.y).toBeGreaterThanOrEqual(0);
-    await chrome.keyboard.press("Escape");
+    expect(box.y + box.height).toBeLessThanOrEqual(size.height + 0.5);
+    await overlay.keyboard.press("Escape");
     await expect(menu).toHaveCount(0);
   }
   await update(chrome, { layout: { sidebarPosition: "left", sidebarWidth: 264 } });

@@ -8,7 +8,6 @@ import {
   menuCommands,
   nodeLabel,
   profileEntryOf,
-  toolsMenuGroups,
   type MenuNode,
 } from "./menus";
 import type { ProfilesView } from "./profiles";
@@ -132,7 +131,7 @@ describe("app menu", () => {
     ).not.toContain("open-boosts");
   });
 
-  it("reaches every internal page, each once, in the order of the sidebar Outils menu", () => {
+  it("reaches every internal page, each once (the only app menu of the window, ADR-045)", () => {
     const ids = menuCommands(buildAppMenu({ ...context, profiles: PROFILES }));
     const pages = [
       "open-history",
@@ -152,16 +151,6 @@ describe("app menu", () => {
       "open-settings",
     ] as const)
       expect(ids.filter((x) => x === id)).toHaveLength(1);
-    const library = toolsMenuGroups(false)
-      .flat()
-      .filter(
-        (id) =>
-          ids.includes(id) &&
-          id !== "open-task-manager" &&
-          id !== "open-profiles",
-      );
-    expect(ids.filter((id) => library.includes(id))).toEqual(library);
-    expect(toolsMenuGroups(true).flat()).not.toContain("open-boosts");
   });
 
   it("has a Profils submenu: the current profile, the others to open, manage and create (ADR-042)", () => {

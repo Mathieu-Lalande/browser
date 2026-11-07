@@ -13,7 +13,8 @@
   import MenuList from "./MenuList.svelte";
 
   /**
-   * The "…" app menu (ADR-033), hanging from its button at the start of the sidebar's nav row:
+   * The "…" app menu (ADR-033), opening from its button in the sidebar's footer (ADR-045; upwards
+   * from a button in the lower half of the window, downwards otherwise):
    * sync, windows, history and favorites, library pages, page tools, zoom, settings, more tools,
    * help, quit. Every entry is a registry command (src/shared/menus.ts) run by main.
    */
@@ -30,7 +31,6 @@
   let profiles = $state<ProfilesView | null>(null);
 
   const tab = $derived(browser.activeTab);
-  const isWeb = $derived(!!tab && /^(https?|file):/.test(tab.url) && !tab.interstitial);
   const defaultZoom = $derived(settings.current.appearance.pageZoom);
 
   $effect(() => {
@@ -67,9 +67,13 @@
 
   const position = $derived.by(() => {
     const box = anchor ?? { x: MARGIN, y: MARGIN, width: 0, height: 0 };
-    const top = Math.max(MARGIN, box.y + box.height + 6);
     const left = Math.max(MARGIN, Math.min(box.x, innerWidth - WIDTH - MARGIN));
-    return { left, top, maxHeight: Math.max(240, innerHeight - top - MARGIN) };
+    if (box.y > innerHeight / 2) {
+      const bottom = Math.max(MARGIN, innerHeight - box.y + 6);
+      return { left, top: undefined, bottom, maxHeight: Math.max(240, innerHeight - bottom - MARGIN), up: true };
+    }
+    const top = Math.max(MARGIN, box.y + box.height + 6);
+    return { left, top, bottom: undefined, maxHeight: Math.max(240, innerHeight - top - MARGIN), up: false };
   });
 
   /** Commands that show their own floating UI take the layer's place; the zoom row keeps the menu. */
@@ -129,7 +133,9 @@
   class="panel"
   data-testid="app-menu"
   style:left="{position.left}px"
-  style:top="{position.top}px"
+  class:up={position.up}
+  style:top={position.top === undefined ? undefined : `${position.top}px`}
+  style:bottom={position.bottom === undefined ? undefined : `${position.bottom}px`}
   style:max-height="{position.maxHeight}px"
   style:width="{Math.min(WIDTH, innerWidth - 2 * MARGIN)}px"
   onkeydown={onKeydown}
@@ -157,7 +163,7 @@
     <div class="zoom" role="group" aria-label="Zoom">
       <Icon name="zoom-in" size={16} />
       <span class="label">Zoom</span>
-      <button class="round" aria-label="Zoom arrière" title={platform.tip("Zoom arrière", "zoom-out")} disabled={!isWeb} onclick={() => runCommand("zoom-out", true)}>
+      <button class="round" aria-label="Zoom arrière" title={platform.tip("Zoom arrière", "zoom-out")} disabled={!tab} onclick={() => runCommand("zoom-out", true)}>
         <Icon name="minimize" size={14} />
       </button>
       <button
@@ -166,12 +172,12 @@
         aria-label="Zoom {tab?.zoom ?? defaultZoom} %, revenir à {defaultZoom} %"
         title={platform.tip(`Revenir à ${defaultZoom} %`, "zoom-reset")}
         data-testid="app-menu-zoom"
-        disabled={!isWeb}
+        disabled={!tab}
         onclick={() => runCommand("zoom-reset", true)}
       >
-        {isWeb ? tab!.zoom : defaultZoom}&#8239;%
+        {tab?.zoom ?? defaultZoom}&#8239;%
       </button>
-      <button class="round" aria-label="Zoom avant" title={platform.tip("Zoom avant", "zoom-in")} disabled={!isWeb} onclick={() => runCommand("zoom-in", true)}>
+      <button class="round" aria-label="Zoom avant" title={platform.tip("Zoom avant", "zoom-in")} disabled={!tab} onclick={() => runCommand("zoom-in", true)}>
         <Icon name="plus" size={14} />
       </button>
       <IconButton size="sm" icon="maximize" label="Plein écran" command="toggle-fullscreen" onclick={() => runCommand("toggle-fullscreen", true)} />
@@ -194,6 +200,10 @@
     outline: none;
     animation: pop var(--motion-base, 0.16s) var(--ease);
     transform-origin: top left;
+  }
+  .panel.up {
+    animation-name: pop-up;
+    transform-origin: bottom left;
   }
   .sync {
     display: flex;
@@ -277,6 +287,12 @@
     from {
       opacity: 0;
       transform: scale(0.97) translateY(-4px);
+    }
+  }
+  @keyframes pop-up {
+    from {
+      opacity: 0;
+      transform: scale(0.97) translateY(4px);
     }
   }
 </style>

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { sidebarRows, type TabFolder } from "@shared/folders";
-import { autoScrollStep, dropFromBoxes, indicatorIndent, overBox, passedThreshold, TreeDrag } from "./tree-drag.svelte";
+import { autoScrollStep, dropFromBoxes, indicatorIndent, overBox, passedThreshold, splitTargetFromBoxes, TreeDrag } from "./tree-drag.svelte";
 
 const folders: TabFolder[] = [{ id: "f", name: "Dossier", icon: "folder", parentId: null, collapsed: false }];
 const rows = sidebarRows(
@@ -42,6 +42,16 @@ describe("tree drag helpers", () => {
   it("drops a tab before or after a row by the pointer's half", () => {
     expect(dropFromBoxes(rows, folders, { kind: "tab", id: "c" }, boxes, 162)).toMatchObject({ kind: "tab", beforeId: "b" });
     expect(dropFromBoxes(rows, folders, { kind: "tab", id: "a" }, boxes, 182)).toMatchObject({ kind: "tab", beforeId: "c" });
+  });
+
+  it("splits with a tab when dropped on the middle of its row, never on its own row or a folder (ADR-045)", () => {
+    // Row b spans 160…190: its middle half (167.5…182.5) splits, its quarters still reorder.
+    expect(splitTargetFromBoxes(rows, { kind: "tab", id: "c" }, boxes, 175)).toEqual({ id: "b", row: 2 });
+    expect(splitTargetFromBoxes(rows, { kind: "tab", id: "c" }, boxes, 162)).toBeNull();
+    expect(splitTargetFromBoxes(rows, { kind: "tab", id: "c" }, boxes, 188)).toBeNull();
+    expect(splitTargetFromBoxes(rows, { kind: "tab", id: "b" }, boxes, 175)).toBeNull();
+    expect(splitTargetFromBoxes(rows, { kind: "tab", id: "c" }, boxes, 115)).toBeNull();
+    expect(splitTargetFromBoxes(rows, { kind: "folder", id: "f" }, boxes, 175)).toBeNull();
   });
 
   it("drops past the last row at the end, and just above the first one before it", () => {

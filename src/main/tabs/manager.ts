@@ -9,7 +9,7 @@ import { onShieldsChange, shieldsEnabledFor } from "../privacy";
 import type { SleepCandidate } from "../sleep";
 import type { SessionTab, SessionTabList } from "../storage/session";
 import { TAB_WEB_PREFERENCES, type PopupOptions } from "../security";
-import { onSiteZoomChange } from "../zoom";
+import { BROWSER_PAGES_ZOOM, onSiteZoomChange } from "../zoom";
 import { sameFactor } from "../zoom/levels";
 import { TabEvents } from "./events";
 import { TabFolders } from "./folders";
@@ -112,15 +112,20 @@ export class TabManager {
     });
     // A site zoomed (from any window): its other tabs follow.
     this.unsubscribeZoom = onSiteZoomChange((host) => {
+      // The pages the chrome UI draws: their zoom is read in getState.
+      if (host === BROWSER_PAGES_ZOOM) return this.emit();
       for (const tab of store.all) if (webHostname(liveContents(tab)?.getURL() ?? "") === host) this.actions.applyZoom(tab);
     });
   }
 
   getState(): TabsState {
     const { split } = this.layout;
+    const browserPagesZoom = Math.round(this.actions.browserPagesZoom() * 100);
     return {
       tabs: this.store.all.map((tab) => ({
         ...tab.state,
+        // The start page and internal pages share one zoom (ADR-045), applied by the chrome UI.
+        ...(showsWebPage(tab.state.url) ? {} : { zoom: browserPagesZoom }),
         isBookmarked: this.isBookmarked(tab.state.url),
         isFavorite: tab.state.url !== "" && (this.hooks.isFavorite?.(tab.state.url) ?? false),
         isAsleep: isDiscarded(tab),

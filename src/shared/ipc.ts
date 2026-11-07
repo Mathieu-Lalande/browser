@@ -107,6 +107,8 @@ export const Channels = {
   windowClose: "window:close",
   windowIsMaximized: "window:is-maximized",
   windowMaximized: "window:maximized",
+  windowTopBar: "window:top-bar",
+  windowTopBarLeft: "window:top-bar-left",
   historySearch: "history:search",
   historyTopSites: "history:top-sites",
   historyClear: "history:clear",
@@ -609,6 +611,13 @@ export interface BrowserApi {
     /** Whether the window is maximized (the maximize button shows "restore" then). */
     isMaximized(): Promise<boolean>;
     onMaximizedChange(listener: (maximized: boolean) => void): () => void;
+    /**
+     * The window bar unfolded (`height`: its height in px) or folded (0, ADR-045): main then tells
+     * `onTopBarLeft` when the pointer leaves that band, also over the page view or a drag region
+     * (where the UI sees no pointer events). macOS: the traffic lights show with the bar.
+     */
+    watchTopBar(height: number): void;
+    onTopBarLeft(listener: () => void): () => void;
   };
   history: {
     /** Entries matching `query` (url + title), best first by match quality × frecency. */

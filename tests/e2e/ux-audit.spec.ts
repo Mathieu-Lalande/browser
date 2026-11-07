@@ -1,5 +1,5 @@
 import type { BrowserApi } from "@shared/ipc";
-import { attachedViews, expect, test, visit, type ElectronApplication } from "./fixtures";
+import { attachedViews, expect, overlayOf, test, visit, type ElectronApplication } from "./fixtures";
 import type { Page } from "@playwright/test";
 
 type Window = { browser: BrowserApi };
@@ -129,61 +129,107 @@ test("settings rows keep readable labels at medium and small sizes", async ({ ap
   }
 });
 
-test("window controls sit in the sidebar, and unfold at the top of the window when it is hidden", async ({ chrome }) => {
+test("the window bar unfolds from the top edge only: the sidebar's modes at its start, window buttons at its end (ADR-045)", async ({ chrome }) => {
   const contentWidth = () => chrome.evaluate(() => (globalThis as unknown as { innerWidth: number }).innerWidth);
   const close = chrome.getByRole("button", { name: "Fermer la fenêtre" });
-  const checkButtons = async () => {
+  const bar = chrome.getByTestId("window-bar");
+  const viewportTop = async () => (await chrome.locator(".viewport").boundingBox())!.y;
+
+  // At rest: folded to the top gutter, no button drawn; the sidebar starts with its navigation row.
+  await chrome.mouse.move(600, 500);
+  await expect(close).toHaveCount(0);
+  await expect(chrome.getByRole("button", { name: /^Mode zen/ })).toHaveCount(0);
+  expect(await viewportTop()).toBeLessThanOrEqual(10);
+  expect((await chrome.getByRole("button", { name: "Précédent" }).boundingBox())!.y).toBeLessThan(16);
+
+  const unfold = async () => {
+    const strip = (await bar.boundingBox())!;
+    await chrome.mouse.move(strip.x + strip.width / 2, strip.y + 2);
     await expect(close).toBeVisible();
+  };
+  const checkButtons = async () => {
     expect((await close.boundingBox())!.y).toBeLessThan(16);
     for (const name of ["Réduire", "Agrandir", "Fermer la fenêtre"])
       expect((await chrome.getByRole("button", { name }).boundingBox())!.width).toBeGreaterThanOrEqual(28);
+    // The window buttons at the window's right edge, the toggles at its left.
+    expect((await close.boundingBox())!.x + 36).toBeGreaterThan((await contentWidth()) - 12);
+    const modes = chrome.getByRole("radiogroup", { name: "Barre latérale" }).getByRole("radio");
+    await expect(modes).toHaveCount(3);
+    expect((await modes.first().boundingBox())!.x).toBeLessThan(60);
+    expect((await modes.last().boundingBox())!.x).toBeLessThan(140);
   };
-  // Sidebar on the left: buttons at the start of its title bar, the page takes the full height.
-  await checkButtons();
-  const sidebar = (await chrome.locator(".sidebar").boundingBox())!;
-  expect((await close.boundingBox())!.x + 36).toBeLessThan(sidebar.x + sidebar.width);
-  expect((await chrome.locator(".viewport").boundingBox())!.y).toBeLessThanOrEqual(10);
 
-  // Sidebar hidden: no bar above the page until the pointer reaches the top edge.
-  await chrome.getByRole("button", { name: "Masquer la barre latérale" }).click();
-  await expect(chrome.locator(".sidebar")).toHaveCount(0);
-  await expect(close).toHaveCount(0);
-  expect((await chrome.locator(".viewport").boundingBox())!.y).toBeLessThanOrEqual(10);
-  // Move the pointer there (the strip is replaced by the bar as soon as it is hovered).
-  const edge = (await chrome.getByTestId("top-edge").boundingBox())!;
-  await chrome.mouse.move(edge.x + edge.width / 2, edge.y + 2);
+  await unfold();
   await checkButtons();
-  expect((await close.boundingBox())!.x + 36).toBeGreaterThan((await contentWidth()) - 12);
-  // Back down on the page: the bar folds away and the page gets its height back.
-  await chrome.mouse.move(edge.x + edge.width / 2, 400);
+  // The page makes room below it, and gets its height back once the pointer leaves.
+  await expect.poll(viewportTop).toBeGreaterThanOrEqual(40);
+  await chrome.mouse.move(600, 400);
   await expect(close).toHaveCount(0);
-  await chrome.mouse.move(edge.x + edge.width / 2, edge.y + 2);
-  await expect(chrome.getByRole("button", { name: "Afficher la barre latérale" })).toBeVisible();
-  await chrome.getByRole("button", { name: "Afficher la barre latérale" }).click();
+  await expect.poll(viewportTop).toBeLessThanOrEqual(10);
+
+  // One labeled choice among Complète, Compacte and Zen: the current one is checked.
+  await unfold();
+  const full = chrome.getByRole("radio", { name: "Complète" });
+  const compact = chrome.getByRole("radio", { name: "Compacte" });
+  await expect(full).toHaveAttribute("aria-checked", "true");
+  await compact.click();
+  await expect(chrome.getByTestId("compact-rail")).toBeVisible();
+  await expect(compact).toHaveAttribute("aria-checked", "true");
+  await expect(full).toHaveAttribute("aria-checked", "false");
+  // Clicking the current Compacte again goes back to Complète, never a no-op.
+  await compact.click();
+  await expect(chrome.locator(".sidebar")).toBeVisible();
+  await expect(full).toHaveAttribute("aria-checked", "true");
+  await compact.click();
+  await full.click();
+  await expect(chrome.locator(".sidebar")).toBeVisible();
+  await expect(chrome.getByTestId("compact-rail")).toHaveCount(0);
   await chrome.mouse.move(600, 500);
+  await expect(close).toHaveCount(0);
 
-  // Sidebar on the right: buttons at the window's right edge, in its title bar.
+  // Sidebar on the right: same bar.
   await api(chrome).update({ layout: { sidebarPosition: "right" } });
+  await unfold();
   await checkButtons();
-  expect((await close.boundingBox())!.x + 36).toBeGreaterThan((await contentWidth()) - 12);
+  await chrome.mouse.move(600, 500);
+  await expect(close).toHaveCount(0);
   await api(chrome).update({ layout: { sidebarPosition: "left" } });
 
-  // macOS layout (simulated): no drawn controls, and the traffic lights' corner stays empty.
+  // macOS layout (simulated): no drawn window buttons, and the traffic lights' corner stays empty.
   await chrome.evaluate(() => ((globalThis as unknown as Dom).document.documentElement.dataset.platform = "darwin"));
-  await expect(chrome.getByRole("button", { name: "Fermer la fenêtre" })).toHaveCount(0);
-  const titlebarButtons = await chrome.locator(".titlebar button").evaluateAll((items) =>
-    items.map((item) => (item as unknown as { getBoundingClientRect(): { x: number } }).getBoundingClientRect().x),
-  );
-  expect(Math.min(...titlebarButtons)).toBeGreaterThanOrEqual(72);
-  await chrome.getByRole("button", { name: "Masquer la barre latérale" }).click();
-  const reveal = (await chrome.getByRole("button", { name: "Afficher la barre latérale" }).boundingBox())!;
-  expect(reveal.x).toBeGreaterThanOrEqual(72);
-  const viewport = (await chrome.locator(".viewport").boundingBox())!;
-  expect(viewport.y).toBeGreaterThanOrEqual(36);
-  await chrome.getByRole("button", { name: "Afficher la barre latérale" }).click();
-  await api(chrome).update({ layout: { sidebarPosition: "right" } });
-  await expect(chrome.getByTestId("traffic-lights-band")).toBeVisible();
-  await expect.poll(async () => (await chrome.locator(".sidebar").boundingBox())!.y).toBeGreaterThanOrEqual(36);
+  const strip = (await bar.boundingBox())!;
+  await chrome.mouse.move(strip.x + strip.width / 2, strip.y + 2);
+  const toggle = chrome.getByRole("radiogroup", { name: "Barre latérale" });
+  await expect(toggle).toBeVisible();
+  await expect(close).toHaveCount(0);
+  expect((await toggle.boundingBox())!.x).toBeGreaterThanOrEqual(72);
+  await chrome.mouse.move(600, 500);
+  await expect(toggle).toHaveCount(0);
+});
+
+test("the start page zooms on its own, never the sidebar (ADR-045)", async ({ app, chrome }) => {
+  const sidebar = (await chrome.locator(".sidebar").boundingBox())!;
+  const page = chrome.locator(".drawn-page");
+  await expect(page).toBeVisible();
+  await chrome.getByTestId("app-menu-button").click();
+  const overlay = await overlayOf(app);
+  const zoomOut = overlay.getByRole("button", { name: "Zoom arrière" });
+  await expect(zoomOut).toBeEnabled();
+  await zoomOut.click();
+  await expect(overlay.getByTestId("app-menu-zoom")).toHaveText(/90/);
+  await overlay.keyboard.press("Escape");
+  await expect(page).toHaveCSS("zoom", "0.9");
+  // Still filling the page's card; the sidebar keeps its size.
+  const card = (await chrome.locator(".viewport").boundingBox())!;
+  const box = (await page.boundingBox())!;
+  expect(Math.abs(box.width - card.width)).toBeLessThanOrEqual(1);
+  expect(Math.abs(box.height - card.height)).toBeLessThanOrEqual(1);
+  expect((await chrome.locator(".sidebar").boundingBox())!.width).toBe(sidebar.width);
+  // Remembered for the pages the UI draws: browser://settings is zoomed too, and its chip resets it.
+  await visit(chrome, "browser://settings", "Paramètres");
+  await expect(page).toHaveCSS("zoom", "0.9");
+  await chrome.getByRole("button", { name: /^Zoom 90 %/ }).click();
+  await expect(page).toHaveCSS("zoom", "1");
 });
 
 test("a space color goes through the contrast engine", async ({ chrome }) => {
@@ -202,25 +248,33 @@ test("a space color goes through the contrast engine", async ({ chrome }) => {
   expect(light.text).not.toBe(light.accent);
 });
 
-test("the Outils menu of the sidebar opens the internal pages", async ({ chrome }) => {
-  await chrome.getByRole("button", { name: "Outils" }).click();
-  const menu = chrome.getByRole("menu", { name: "Outils" });
-  await expect(menu.getByRole("menuitem")).toHaveText([
-    "Mots de passe",
-    "Adresses et paiements",
-    "Extensions",
-    "Toutes les notes",
-    "Onglets archivés",
-    "Boosts",
-    "Importer depuis un autre navigateur",
-    "Gestionnaire de tâches",
-    "Profils",
-  ]);
-  await menu.getByRole("menuitem", { name: "Boosts" }).click();
-  await expect(menu).toHaveCount(0);
-  await expect(chrome.getByRole("combobox", { name: "Barre d'adresse" })).toHaveValue("browser://boosts");
-  await chrome.getByRole("button", { name: "Outils" }).click();
-  await chrome.keyboard.press("Escape");
+test("the app menu opens upwards from the sidebar footer and reaches the internal pages (ADR-045)", async ({ app, chrome }) => {
+  // One "…" menu in the sidebar: no separate Outils menu any more.
+  await expect(chrome.getByRole("button", { name: "Outils" })).toHaveCount(0);
+  const button = chrome.getByTestId("app-menu-button");
+  const footer = (await chrome.locator(".footer").boundingBox())!;
+  const anchor = (await button.boundingBox())!;
+  expect(anchor.y).toBeGreaterThanOrEqual(footer.y);
+  await button.click();
+  const overlay = await overlayOf(app);
+  const menu = overlay.getByRole("menu", { name: "Menu de l'application" });
+  await expect(menu).toBeVisible();
+  // Above its button, inside the window.
+  const box = (await overlay.getByTestId("app-menu").boundingBox())!;
+  expect(box.y).toBeGreaterThanOrEqual(0);
+  expect(box.y + box.height).toBeLessThanOrEqual(anchor.y);
+  for (const name of ["Mots de passe", "Adresses et paiements", "Extensions et thèmes", "Bibliothèque"])
+    await expect(menu.getByRole("menuitem", { name, exact: true })).toBeVisible();
+  // A submenu near the bottom opens upwards, inside the window too.
+  await menu.getByRole("menuitem", { name: "Aide", exact: true }).hover();
+  const help = overlay.getByRole("menu", { name: "Aide" });
+  await expect(help).toBeVisible();
+  const height = await overlay.evaluate(() => (globalThis as unknown as { innerHeight: number }).innerHeight);
+  const helpBox = (await help.boundingBox())!;
+  expect(helpBox.y).toBeGreaterThanOrEqual(0);
+  expect(helpBox.y + helpBox.height).toBeLessThanOrEqual(height);
+  await overlay.keyboard.press("Escape");
+  await overlay.keyboard.press("Escape");
   await expect(menu).toHaveCount(0);
 });
 
@@ -231,7 +285,7 @@ test("at rest, the URL uses the whole address bar and its host is never clipped"
   await chrome.mouse.move(900, 600);
   const display = chrome.getByTestId("address-display");
   await expect(display).toBeVisible();
-  await expect(chrome.getByRole("button", { name: "Copier le lien" })).toHaveCSS("opacity", "0");
+  await expect(chrome.getByRole("button", { name: "Options de la page" })).toHaveCSS("opacity", "0");
   const host = await display.locator(".host").evaluate((element) => {
     const box = element as unknown as Box;
     return { scroll: box.scrollWidth, client: box.clientWidth };
@@ -244,7 +298,7 @@ test("at rest, the URL uses the whole address bar and its host is never clipped"
   expect(url.width).toBeGreaterThanOrEqual(bar.width - 48);
   // Hovering does not move the URL.
   await chrome.locator(".address").hover();
-  await expect(chrome.getByRole("button", { name: "Copier le lien" })).toHaveCSS("opacity", "1");
+  await expect(chrome.getByRole("button", { name: "Options de la page" })).toHaveCSS("opacity", "1");
   expect((await display.boundingBox())!.x).toBe(url.x);
 });
 

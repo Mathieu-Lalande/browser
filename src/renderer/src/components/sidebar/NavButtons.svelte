@@ -2,27 +2,15 @@
   import { api, browser } from "../../lib/browser.svelte";
   import IconButton from "../ui/IconButton.svelte";
 
-  /** The sidebar's navigation row: app menu, back/forward/reload, split view and universal bar. */
+  /**
+   * The sidebar's first row (ADR-045): back/forward/reload, then split view and the universal bar.
+   * The window buttons live in the window bar, the app menu in the footer.
+   */
   const tab = $derived(browser.activeTab);
   const split = $derived(browser.splitTabs.length > 1);
-  let appMenuButton = $state<HTMLElement>();
-
-  function showAppMenu(): void {
-    const rect = appMenuButton?.getBoundingClientRect();
-    if (rect) api.appMenu.show({ x: rect.x, y: rect.y, width: rect.width, height: rect.height });
-  }
 </script>
 
 <nav class="nav">
-  <IconButton
-    bind:element={appMenuButton}
-    icon="more"
-    label="Menu de l'application"
-    title="Menu : synchronisation, historique, favoris, outils, aide…"
-    aria-haspopup="menu"
-    data-testid="app-menu-button"
-    onclick={showAppMenu}
-  />
   <IconButton icon="back" label="Précédent" command="back" disabled={!tab?.canGoBack} onclick={() => tab && api.tabs.back(tab.id)} />
   <IconButton icon="forward" label="Suivant" command="forward" disabled={!tab?.canGoForward} onclick={() => tab && api.tabs.forward(tab.id)} />
   {#if tab?.isLoading}
@@ -51,8 +39,10 @@
 <style>
   .nav {
     display: flex;
+    flex: none;
     gap: 2px;
     min-width: 0;
+    margin-top: 2px;
   }
   .spacer {
     flex: 1;

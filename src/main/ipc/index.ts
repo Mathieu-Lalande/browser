@@ -25,6 +25,7 @@ type EventChannel = (typeof Channels)[
   | "state"
   | "uiCommand"
   | "windowMaximized"
+  | "windowTopBarLeft"
   | "overlayShow"
   | "overlayBackdrop"
   | "settingsChanged"

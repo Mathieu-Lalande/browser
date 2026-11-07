@@ -187,6 +187,8 @@ const api: BrowserApi = {
     close: () => send(Channels.windowClose),
     isMaximized: () => ipcRenderer.invoke(Channels.windowIsMaximized),
     onMaximizedChange: (listener) => subscribe<boolean>(Channels.windowMaximized, listener),
+    watchTopBar: (height) => send(Channels.windowTopBar, height),
+    onTopBarLeft: (listener) => subscribe<void>(Channels.windowTopBarLeft, listener),
   },
   history: {
     search: (query, limit) => ipcRenderer.invoke(Channels.historySearch, query, limit),

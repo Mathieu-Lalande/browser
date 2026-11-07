@@ -2,7 +2,8 @@ import { dropZone, resolveDrop, type DragItem, type DropResult, type SidebarRow,
 
 /**
  * Pointer drag and drop of the sidebar's tab tree (ADR-022): tabs and folders in the tree, tabs
- * onto the favorites grid. The keyboard has the tab menu's "Déplacer vers le dossier…" instead.
+ * onto the favorites grid, a tab onto another one to show both side by side (ADR-045). The
+ * keyboard has the tab menu's "Déplacer vers le dossier…" and "Vue scindée" instead.
  */
 
 /** Pixels the pointer must travel before a press becomes a drag. */
@@ -14,6 +15,8 @@ const ABOVE_FIRST = 24;
 /** Band at the list's top and bottom edges that scrolls it during a drag, px, and the step. */
 const SCROLL_EDGE = 24;
 const SCROLL_STEP = 8;
+/** Middle band of a tab row (fraction of its height on each side of the center) where a dropped tab splits the view. */
+const SPLIT_BAND = 0.25;
 
 type Box = Pick<DOMRect, "top" | "bottom" | "left" | "right">;
 
@@ -54,6 +57,24 @@ export function dropFromBoxes(
 }
 
 /**
+ * The tab a dragged tab would be shown beside: another tab's row, under the pointer's middle band
+ * (its top and bottom quarters still move the tab before or after it). Null otherwise.
+ */
+export function splitTargetFromBoxes(
+  rows: readonly SidebarRow[],
+  item: DragItem,
+  boxes: readonly { index: number; top: number; bottom: number }[],
+  y: number,
+): { id: string; row: number } | null {
+  if (item.kind !== "tab") return null;
+  const box = boxes.find((candidate) => y >= candidate.top && y <= candidate.bottom);
+  const row = box && rows[box.index];
+  if (!box || row?.kind !== "tab" || row.id === item.id) return null;
+  const ratio = (y - box.top) / Math.max(1, box.bottom - box.top);
+  return Math.abs(ratio - 0.5) <= SPLIT_BAND ? { id: row.id, row: box.index } : null;
+}
+
+/**
  * Extra indentation of the insertion line: a folder dropped "after" an open folder it lands in
  * goes one level deeper than that folder's row.
  */
@@ -71,6 +92,8 @@ export interface TreeDragOptions {
   onStart?: () => void;
   /** Released over the favorites grid (`favorite`) or a place in the tree. */
   onDrop: (item: DragItem, target: { favorite: true } | DropResult) => void;
+  /** A tab released on the middle of another tab's row: show them side by side. */
+  onSplit?: (tabId: string, targetId: string) => void;
 }
 
 export class TreeDrag {
@@ -82,6 +105,8 @@ export class TreeDrag {
   current = $state<{ item: DragItem; label: string; x: number; y: number } | null>(null);
   drop = $state<DropResult | null>(null);
   overFavorites = $state(false);
+  /** The tab row the dragged tab would split the view with. */
+  splitTarget = $state<{ id: string; row: number } | null>(null);
 
   #press: { x: number; y: number; item: DragItem; pointerId: number; label: string } | null = null;
   /** The click that ends a drag (or a swipe) must not activate the row under the pointer. */
@@ -158,6 +183,7 @@ export class TreeDrag {
     this.current = null;
     this.drop = null;
     this.overFavorites = false;
+    this.splitTarget = null;
     window.removeEventListener("pointermove", this.#onMove);
     window.removeEventListener("pointerup", this.#onUp);
     window.removeEventListener("pointercancel", this.cancel);
@@ -177,7 +203,8 @@ export class TreeDrag {
     this.current.y = point.y;
     const grid = this.favorites?.querySelector<HTMLElement>("[data-drop=favorites]")?.getBoundingClientRect();
     this.overFavorites = this.canFavorite && !!grid && overBox(grid, point.x, point.y);
-    this.drop = this.overFavorites ? null : this.#dropAt(point.y);
+    this.splitTarget = this.overFavorites || !this.#options.onSplit ? null : this.#splitAt(point.y);
+    this.drop = this.overFavorites || this.splitTarget ? null : this.#dropAt(point.y);
     this.#autoScroll(point.y);
   };
 
@@ -187,6 +214,7 @@ export class TreeDrag {
       this.swallowNextClick();
       const { item } = this.current;
       if (this.overFavorites && item.kind === "tab") this.#options.onDrop(item, { favorite: true });
+      else if (this.splitTarget) this.#options.onSplit?.(item.id, this.splitTarget.id);
       else if (this.drop) this.#options.onDrop(item, this.drop);
     }
     this.cancel();
@@ -199,13 +227,21 @@ export class TreeDrag {
     this.cancel();
   };
 
-  #dropAt(y: number): DropResult | null {
-    if (!this.current || !this.list) return null;
-    const boxes = [...this.list.querySelectorAll<HTMLElement>("[data-row-index]")].map((element) => {
+  #boxes(): { index: number; top: number; bottom: number }[] {
+    return [...(this.list?.querySelectorAll<HTMLElement>("[data-row-index]") ?? [])].map((element) => {
       const rect = element.getBoundingClientRect();
       return { index: Number(element.dataset.rowIndex), top: rect.top, bottom: rect.bottom };
     });
-    return dropFromBoxes(this.#options.rows(), this.#options.folders(), this.current.item, boxes, y);
+  }
+
+  #dropAt(y: number): DropResult | null {
+    if (!this.current || !this.list) return null;
+    return dropFromBoxes(this.#options.rows(), this.#options.folders(), this.current.item, this.#boxes(), y);
+  }
+
+  #splitAt(y: number): { id: string; row: number } | null {
+    if (!this.current || !this.list) return null;
+    return splitTargetFromBoxes(this.#options.rows(), this.current.item, this.#boxes(), y);
   }
 
   #autoScroll(y: number): void {

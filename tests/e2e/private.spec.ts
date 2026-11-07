@@ -53,7 +53,7 @@ test("a private window has its own cookies, writes no history and is not restore
     await evalInTab(app, server.url("/normal"), "document.cookie = 'who=normal; path=/'");
 
     const priv = await openPrivateWindow(app);
-    await expect(priv.locator(".private-badge")).toHaveText("Navigation privée");
+    await expect(priv.locator(".private-hint")).toHaveText("Navigation privée");
     await expect(priv.getByRole("heading", { name: "Navigation privée" })).toBeVisible();
     // One ephemeral space, no space switcher.
     await expect(priv.getByRole("tablist", { name: "Espaces" })).toHaveCount(0);
@@ -73,8 +73,12 @@ test("a private window has its own cookies, writes no history and is not restore
 
     // Shields toggled in a private window are not written to the profile.
     await visit(priv, server.url("/shields"), "Shields");
-    await priv.locator(".address .shield").click();
-    await expect(priv.locator(".address .shield")).toHaveAttribute("aria-pressed", "false");
+    await priv.evaluate(async () => {
+      const api = (globalThis as unknown as { browser: BrowserApi }).browser;
+      const state = await api.getState();
+      api.tabs.toggleShields(state.activeTabId!);
+    });
+    await expect(priv.getByRole("button", { name: /^Protections désactivées sur ce site/ })).toBeVisible();
 
     // No history: neither the visit nor the page title is recorded.
     const search = (text: string) =>

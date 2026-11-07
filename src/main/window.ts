@@ -231,7 +231,10 @@ export class BrowserController {
     // Pre-warm the overlay once the window is up, so the first Ctrl+K opens instantly.
     this.frame.showWhenReady(() => this.overlay.warm());
     this.window.on("focus", () => windows.focused(chromeId));
-    this.window.on("closed", () => this.closed(chromeId));
+    this.window.on("closed", () => {
+      this.frame.watchTopBar(0, () => {});
+      this.closed(chromeId);
+    });
   }
 
   private closed(chromeId: number): void {
@@ -396,6 +399,11 @@ export class BrowserController {
   /** Pushes a message to this window's browser UIs (chrome and overlay). */
   send(channel: string, ...args: unknown[]): void {
     this.bridge.send(channel, ...args);
+  }
+
+  /** The chrome's window bar unfolded (`height` px) or folded (0): see `WindowChrome.watchTopBar`. */
+  watchTopBar(height: number): void {
+    this.frame.watchTopBar(height, () => this.bridge.toChrome(Channels.windowTopBarLeft));
   }
 
   static toggleZenMode(): void {

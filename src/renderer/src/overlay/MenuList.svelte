@@ -31,11 +31,13 @@
   let { nodes, label, onRun, onBack, special, autofocus = false, class: className, style }: Props = $props();
 
   let element = $state<HTMLElement>();
-  /** The open submenu and where it hangs. */
-  let open = $state<{ id: string; top: number; left: number; keyboard: boolean } | null>(null);
+  /** The open submenu and where it hangs: from its row's top, or (near the window's bottom) up from its row's bottom. */
+  let open = $state<{ id: string; top?: number; bottom?: number; left: number; keyboard: boolean } | null>(null);
   let hoverTimer: ReturnType<typeof setTimeout> | undefined;
 
   const SUBMENU_WIDTH = 280;
+  /** Below this much room under its row, a submenu opens upwards (the app menu sits at the sidebar's bottom). */
+  const SUBMENU_ROOM = 320;
 
   $effect(() => {
     if (autofocus) element?.querySelector<HTMLElement>("button:not(:disabled)")?.focus();
@@ -45,7 +47,10 @@
     const rect = row.getBoundingClientRect();
     const fits = rect.right + 4 + SUBMENU_WIDTH <= window.innerWidth - 8;
     const left = fits ? rect.right + 4 : Math.max(8, rect.left - SUBMENU_WIDTH - 4);
-    open = { id, top: Math.max(8, rect.top - 5), left, keyboard };
+    open =
+      window.innerHeight - rect.top >= SUBMENU_ROOM
+        ? { id, top: Math.max(8, rect.top - 5), left, keyboard }
+        : { id, bottom: Math.max(8, window.innerHeight - rect.bottom - 5), left, keyboard };
   }
 
   function rowOf(id: string): HTMLElement | null {
@@ -149,7 +154,9 @@
     onBack={closeSubmenu}
     autofocus={open.keyboard}
     class="submenu"
-    style="top: {open.top}px; left: {open.left}px; width: {SUBMENU_WIDTH}px; max-height: {window.innerHeight - open.top - 8}px"
+    style={open.top !== undefined
+      ? `top: ${open.top}px; left: ${open.left}px; width: ${SUBMENU_WIDTH}px; max-height: ${window.innerHeight - open.top - 8}px`
+      : `bottom: ${open.bottom}px; left: ${open.left}px; width: ${SUBMENU_WIDTH}px; max-height: ${window.innerHeight - open.bottom! - 8}px`}
   />
 {/if}
 

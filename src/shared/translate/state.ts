@@ -11,7 +11,7 @@ export interface TabTranslation {
   from: string | null;
   to: string;
   status: TranslationStatus;
-  /** The address bar offers translation (the page's language differs from the target). */
+  /** Translation is offered (page options, ADR-045): the page's language differs from the target. */
   offer: boolean;
   /** French message of the last failure. */
   error?: string;

@@ -10,13 +10,11 @@
   import FindBar from "./components/FindBar.svelte";
   import HttpsOnlyPage from "./components/HttpsOnlyPage.svelte";
   import LoadErrorPage from "./components/LoadErrorPage.svelte";
-  import { platform } from "./lib/platform.svelte";
-  import WindowControls from "./components/WindowControls.svelte";
+  import WindowBar, { type SidebarMode } from "./components/WindowBar.svelte";
   import { settings } from "./lib/settings.svelte";
   import { applyTheme } from "./lib/theme";
   import { installRecorder } from "./lib/recorder";
   import { animateAccent, faviconColor, type AccentVars } from "./lib/dynamic-accent";
-  import Icon from "./components/Icon.svelte";
   import PermissionBar from "./components/PermissionBar.svelte";
   import PopupBar from "./components/PopupBar.svelte";
   import Sidebar from "./components/Sidebar.svelte";
@@ -54,6 +52,8 @@
   /** The active space's accent (null: the theme's own accent). */
   const spaceColor = $derived(browser.activeSpace?.color ?? null);
   const internalPage = $derived(internalPageOf(browser.activeTab?.url ?? ""));
+  /** The zoom of the pages drawn here (start page, browser://…): theirs alone, never the sidebar's (ADR-045). */
+  const pageZoom = $derived((browser.activeTab?.zoom ?? 100) / 100);
   /** Find bar of the active tab, over web pages only. */
   const findState = $derived(
     browser.activeTab?.find?.open && !showStartPage && !internalPage && !browser.activeTab.interstitial && !browser.activeTab.loadError && !browser.activeTab.reader
@@ -94,39 +94,6 @@
     const target = targetAccent;
     return untrack(() => animateAccent(spaceAccent, target, (value) => (spaceAccent = value)));
   });
-  /** The sidebar is hidden by the user (Ctrl+S), outside zen mode: its toggle moves to the window bar. */
-  const collapsed = $derived(!showSidebar && !zen);
-  /**
-   * Window buttons. macOS: native traffic lights at the top-left, kept clear of the UI by the
-   * sidebar's title bar (sidebar on the left), a 36px band (sidebar on the right) or the window
-   * bar's left padding (sidebar hidden); main hides them in zen mode. Windows/Linux (frameless):
-   * minimize/maximize/close drawn at the window's outer top-right corner: in the sidebar's title
-   * bar when it is on the right (or revealed in zen mode), else in a draggable bar above the page,
-   * which shrinks to a thin drag strip in zen mode.
-   */
-  const trafficLights = $derived(platform.isMac && !zen && right && showSidebar);
-  const controlsInSidebar = $derived(!platform.isMac && showSidebar);
-  /**
-   * Windows/Linux with the sidebar hidden (Ctrl+S or zen): the page keeps the full height, and the
-   * window bar only unfolds while the pointer is at the very top of the window (a thin strip the
-   * page view does not cover), then folds back once the pointer leaves it.
-   */
-  let topReveal = $state(false);
-  let topTimer: ReturnType<typeof setTimeout> | undefined;
-  const topEdge = $derived(!platform.isMac && !showSidebar && !topReveal);
-  const windowBar = $derived(platform.isMac ? collapsed : !showSidebar && topReveal);
-  const barControls = $derived(!platform.isMac);
-
-  function revealTop(): void {
-    clearTimeout(topTimer);
-    topReveal = true;
-  }
-
-  function hideTop(): void {
-    clearTimeout(topTimer);
-    topTimer = setTimeout(() => (topReveal = false), 350);
-  }
-
   /** Zen and Ctrl+S: the sidebar grows/shrinks (the page view follows, one bounds update per frame). */
   function slide(node: HTMLElement, { duration = 180 }: { duration?: number } = {}) {
     const width = node.offsetWidth;
@@ -149,6 +116,16 @@
     revealed = false;
     unfolded = false;
   });
+
+  /** The window bar's choice (ADR-045): one layout among full, compact and zen; picking one shows the sidebar. */
+  const sidebarMode = $derived<SidebarMode>(zen ? "zen" : !sidebarVisible ? "hidden" : compact ? "compact" : "full");
+  function setSidebarMode(mode: Exclude<SidebarMode, "hidden">): void {
+    if (mode === "zen") settings.update({ layout: { zenMode: true } });
+    else {
+      settings.update({ layout: { zenMode: false, compactMode: mode === "compact" } });
+      sidebarVisible = true;
+    }
+  }
 
   function toggleSidebar(): void {
     if (zen) revealed = !revealed;
@@ -256,106 +233,74 @@
 <!-- The space color overrides the accent for everything inside the shell (theme layer: `--space-color`). -->
 <div
   class="shell"
-  class:right
-  class:zen
-  class:collapsed={!showSidebar}
-  class:lights={trafficLights}
-  class:barred={windowBar || topEdge}
   class:tinted={spaceAccent}
   style:--space-color={spaceAccent?.["--accent"]}
   style:--accent={spaceAccent?.["--accent"]}
   style:--accent-text={spaceAccent?.["--accent-text"]}
   style:--on-accent={spaceAccent?.["--on-accent"]}
 >
-  {#if trafficLights}<div class="lights-band drag" data-testid="traffic-lights-band"></div>{/if}
-  {#if showSidebar}
-    <!-- Pointer tracking only (zen auto-hide); every control inside stays keyboard reachable. -->
-    <div
-      class="sidebar-frame"
-      transition:slide
-      bind:this={sidebarFrame}
-      role="presentation"
-      class:compact
-      onmouseenter={onFrameEnter}
-      onmouseleave={() => scheduleHide()}
-      onfocusout={() => scheduleHide()}
-    >
-      {#if folded}
-        <CompactRail />
-      {:else}
-        <Sidebar bind:this={sidebar} onToggle={toggleSidebar} windowControls={controlsInSidebar} />
-        <SidebarResizer side={right ? "right" : "left"} />
-      {/if}
-    </div>
-  {:else if zen}
-    <!-- A thin strip left uncovered by the page view: the chrome UI cannot see the pointer over the page. -->
-    <div class="edge" role="presentation" data-testid="zen-edge" onmouseenter={revealFromEdge}></div>
-  {/if}
-  <div class="content">
-    {#if topEdge}
-      <!-- Not covered by the page view: hovering it unfolds the window bar. Not a drag region:
-           those swallow mouse events, so hovering would never be seen. -->
-      <div class="top-edge" role="presentation" data-testid="top-edge" onmouseenter={revealTop}></div>
-    {/if}
-    {#if windowBar}
-      <!-- Its empty middle moves the window (macOS: the whole bar), whatever the sidebar's state. -->
+  <!-- Window buttons, zen and sidebar toggles: unfolded from the top edge only (ADR-045). -->
+  <WindowBar mode={sidebarMode} onMode={setSidebarMode} />
+  <div class="panes" class:right class:zen class:collapsed={!showSidebar}>
+    {#if showSidebar}
+      <!-- Pointer tracking only (zen auto-hide); every control inside stays keyboard reachable. -->
       <div
-        class="window-bar"
-        class:drag={platform.isMac}
-        class:mac={platform.isMac}
+        class="sidebar-frame"
+        transition:slide
+        bind:this={sidebarFrame}
         role="presentation"
-        data-testid="window-bar"
-        onmouseenter={revealTop}
-        onmouseleave={() => !platform.isMac && hideTop()}
+        class:compact
+        onmouseenter={onFrameEnter}
+        onmouseleave={() => scheduleHide()}
+        onfocusout={() => scheduleHide()}
       >
-        {#if collapsed}
-          <button
-            class="reveal no-drag"
-            aria-label="Afficher la barre latérale"
-            title={platform.tip("Afficher la barre latérale", "toggle-sidebar")}
-            onclick={toggleSidebar}
-          >
-            <Icon name="sidebar" />
-          </button>
+        {#if folded}
+          <CompactRail />
+        {:else}
+          <Sidebar bind:this={sidebar} />
+          <SidebarResizer side={right ? "right" : "left"} />
         {/if}
-        <span class="bar-spacer drag"></span>
-        {#if barControls}<WindowControls />{/if}
       </div>
+    {:else if zen}
+      <!-- A thin strip left uncovered by the page view: the chrome UI cannot see the pointer over the page. -->
+      <div class="edge" role="presentation" data-testid="zen-edge" onmouseenter={revealFromEdge}></div>
     {/if}
-    <!-- The page view is native and cannot be drawn over: the bar shrinks the viewport instead. -->
-    {#if browser.activeTab && permissionRequest}
-      <PermissionBar tabId={browser.activeTab.id} prompt={permissionRequest} />
-    {/if}
-    {#if browser.activeTab && blockedPopup && !permissionRequest}
-      <PopupBar tabId={browser.activeTab.id} popup={blockedPopup} />
-    {/if}
-    {#if browser.activeTab && findState}
-      {#key browser.activeTab.id}
-        <FindBar bind:this={findBar} tabId={browser.activeTab.id} find={findState} />
-      {/key}
-    {/if}
-    <div class="page-row" class:notes-left={right}>
-    <main class="viewport" class:split={browser.splitTabs.length > 1} bind:this={viewport}>
-      {#if browser.splitTabs.length > 1 && browser.state.split}
-        <SplitView tabs={browser.splitTabs} split={browser.state.split} />
-      {:else if showStartPage}
-        <StartPage />
-      {:else if internalPage}
-        <InternalPage page={internalPage} />
-      {:else if browser.activeTab?.interstitial}
-        <HttpsOnlyPage tab={browser.activeTab} />
-      {:else if browser.activeTab?.loadError}
-        <LoadErrorPage tab={browser.activeTab} error={browser.activeTab.loadError} />
-      {:else if browser.activeTab?.reader}
-        <ReaderView tab={browser.activeTab} />
+    <div class="content">
+      <!-- The page view is native and cannot be drawn over: the bar shrinks the viewport instead. -->
+      {#if browser.activeTab && permissionRequest}
+        <PermissionBar tabId={browser.activeTab.id} prompt={permissionRequest} />
       {/if}
-    </main>
-    {#if showNotes && browser.activeTab}
-      <NotesPanel tab={browser.activeTab} onClose={() => (notesOpen = false)} />
-    {/if}
-    {#if showAssistant && browser.activeTab}
-      <AssistantPanel tab={browser.activeTab} onClose={() => (assistantPanel.open = false)} />
-    {/if}
+      {#if browser.activeTab && blockedPopup && !permissionRequest}
+        <PopupBar tabId={browser.activeTab.id} popup={blockedPopup} />
+      {/if}
+      {#if browser.activeTab && findState}
+        {#key browser.activeTab.id}
+          <FindBar bind:this={findBar} tabId={browser.activeTab.id} find={findState} />
+        {/key}
+      {/if}
+      <div class="page-row" class:notes-left={right}>
+      <main class="viewport" class:split={browser.splitTabs.length > 1} bind:this={viewport}>
+        {#if browser.splitTabs.length > 1 && browser.state.split}
+          <SplitView tabs={browser.splitTabs} split={browser.state.split} />
+        {:else if showStartPage}
+          <div class="drawn-page" style:zoom={pageZoom}><StartPage /></div>
+        {:else if internalPage}
+          <div class="drawn-page" style:zoom={pageZoom}><InternalPage page={internalPage} /></div>
+        {:else if browser.activeTab?.interstitial}
+          <HttpsOnlyPage tab={browser.activeTab} />
+        {:else if browser.activeTab?.loadError}
+          <LoadErrorPage tab={browser.activeTab} error={browser.activeTab.loadError} />
+        {:else if browser.activeTab?.reader}
+          <ReaderView tab={browser.activeTab} />
+        {/if}
+      </main>
+      {#if showNotes && browser.activeTab}
+        <NotesPanel tab={browser.activeTab} onClose={() => (notesOpen = false)} />
+      {/if}
+      {#if showAssistant && browser.activeTab}
+        <AssistantPanel tab={browser.activeTab} onClose={() => (assistantPanel.open = false)} />
+      {/if}
+      </div>
     </div>
   </div>
 </div>
@@ -364,80 +309,30 @@
   .shell {
     position: relative;
     display: flex;
+    flex-direction: column;
     height: 100%;
-    padding: var(--gutter) var(--gutter) var(--gutter) 0;
-  }
-  /* Sidebar hidden: the page keeps a gutter on both sides. */
-  .shell.collapsed {
-    padding-left: var(--gutter);
   }
   .shell.tinted {
     background: radial-gradient(120% 80% at 0% 0%, color-mix(in oklab, var(--space-color) 14%, transparent), transparent 60%);
     transition: background var(--motion-base) var(--ease);
   }
-  .shell.right {
-    flex-direction: row-reverse;
-    padding: var(--gutter) 0 var(--gutter) var(--gutter);
-  }
-  .shell.right.collapsed {
-    padding-right: var(--gutter);
-  }
-  .shell.lights {
-    padding-top: 36px;
-  }
-  /* The window bar replaces the top gutter of the page column. */
-  .shell.barred {
-    padding-top: 0;
-  }
-  .window-bar {
+  /* Sidebar and page, below the window bar (which is the top gutter while folded). */
+  .panes {
     display: flex;
-    flex: none;
-    align-items: center;
-    gap: 4px;
-    height: 40px;
-    /* The buttons sit at the window's edge, not at the page's. */
-    margin-right: calc(4px - var(--gutter));
-  }
-  .shell.collapsed .window-bar {
-    margin-left: calc(4px - var(--gutter));
-  }
-  /* Sidebar on the right: its toggle sits on that side, next to the window buttons. */
-  .shell.right .reveal {
-    order: 2;
-  }
-  .shell.right .window-bar :global(.controls) {
-    order: 3;
-  }
-  /* macOS: room for the traffic lights (16px from the left edge, about 52px wide). */
-  .window-bar.mac {
-    padding-left: 72px;
-  }
-  .bar-spacer {
     flex: 1;
+    min-height: 0;
+    padding: 0 var(--gutter) var(--gutter) 0;
   }
-  .reveal {
-    display: grid;
-    place-items: center;
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
-    color: var(--text-muted);
+  /* Sidebar hidden: the page keeps a gutter on both sides. */
+  .panes.collapsed {
+    padding-left: var(--gutter);
   }
-  .reveal:hover {
-    background: var(--surface-hover);
-    color: var(--text);
+  .panes.right {
+    flex-direction: row-reverse;
+    padding: 0 0 var(--gutter) var(--gutter);
   }
-  /* Replaces the top gutter (the column's gap is cancelled): the page starts where it did. */
-  .top-edge {
-    flex: none;
-    height: max(var(--gutter), 8px);
-    margin-bottom: calc(-1 * var(--gutter));
-  }
-  /* Not `.lights`: that is the shell's own modifier class (it made the whole shell 36px tall). */
-  .lights-band {
-    position: absolute;
-    inset: 0 0 auto 0;
-    height: 36px;
+  .panes.right.collapsed {
+    padding-right: var(--gutter);
   }
   .sidebar-frame {
     position: relative;
@@ -456,7 +351,7 @@
     width: 6px;
     background: linear-gradient(to right, color-mix(in oklab, var(--accent) 30%, transparent), transparent);
   }
-  .shell.right .edge {
+  .panes.right .edge {
     background: linear-gradient(to left, color-mix(in oklab, var(--accent) 30%, transparent), transparent);
   }
   .page-row {
@@ -477,6 +372,11 @@
     border-radius: var(--page-radius, var(--radius));
     background: var(--bg-elevated);
     box-shadow: var(--viewport-shadow);
+  }
+  /* A page drawn by the UI, at its own zoom: it still fills the card (percentages are not zoomed). */
+  .drawn-page {
+    width: 100%;
+    height: 100%;
   }
   /* Split view: each pane draws its own card. */
   .viewport.split {

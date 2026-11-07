@@ -2208,3 +2208,49 @@ explicite sur ce qui part, et ne rien garder.
 puis réduit, découpage et partage du budget, prompts, validation des demandes, historique, Markdown assaini,
 `@ia`), Jest mobile (`mobile/src/lib/assistant.test.ts`), e2e `tests/e2e/assistant.spec.ts` contre un faux serveur
 SSE compatible (résumé diffusé, arrêt, fenêtre privée). Coût : facturé par Anthropic sur le compte de l'utilisateur.
+
+## ADR-045 — Barre de fenêtre escamotable, un seul menu « … », barre d'adresse allégée
+
+**Contexte.** Le haut de la barre latérale empilait les boutons de fenêtre, le mode zen, le masquage de la
+barre, le menu « … » de l'application, la navigation, la vue scindée et la barre universelle ; le pied ajoutait
+un second « … » (« Outils ») qui répétait le menu de l'application ; la barre d'adresse montrait au survol
+jusqu'à sept boutons (lecture, traduction, mots de passe, copier, favori, protections, options). Trop de cibles,
+mal rangées : on ne savait plus où cliquer.
+
+**Décision.**
+- **Barre de fenêtre escamotable** (`components/WindowBar.svelte`), au-dessus de la barre latérale et de la page.
+  Au repos, c'est la marge du haut (au moins 8 px, jamais une zone de déplacement : celles-ci avalent les
+  événements souris). La souris qui s'y pose ~90 ms la déplie (40 px) : le mode de la barre latérale au début
+  (un seul choix parmi « complète », « compacte » et « zen » : masquer la barre et le mode zen faisaient doublon,
+  le zen la masque et la fait revenir au bord de la fenêtre ; `Ctrl+S` reste un masquage rapide au clavier),
+  zone de déplacement au milieu, réduire/agrandir/fermer à la fin (Windows/Linux). Elle se replie 300 ms après
+  la sortie du pointeur, sauf focus clavier dedans. La page et la barre latérale descendent pendant qu'elle est
+  dépliée (la vue native ne peut pas être recouverte, ADR-010).
+- **Sortie détectée par main.** Au-dessus de la vue de page ou d'une zone de déplacement, l'interface ne voit
+  plus le pointeur : `window:top-bar` (hauteur, 0 = repliée) fait sonder `screen.getCursorScreenPoint()` toutes
+  les 100 ms par `WindowChrome.watchTopBar`, seulement pendant que la barre est dépliée ; `window:top-bar-left`
+  prévient l'interface une fois le pointeur sorti (après y être passé : un évènement synthétique ne la replie
+  pas). macOS : les feux tricolores ne s'affichent qu'avec la barre (`setWindowButtonVisibility`).
+- **Barre latérale.** Plus de barre de titre : la première ligne est la navigation (précédent, suivant,
+  actualiser, vue scindée, barre universelle). Le menu de l'application (« … ») passe dans le pied, à côté des
+  téléchargements et des paramètres, et s'ouvre vers le haut (sous-menus aussi près du bas de la fenêtre) ; le
+  menu « Outils » disparaît (`toolsMenuGroups` retiré) : ses pages sont toutes dans le menu de l'application.
+  Fenêtre privée : « Navigation privée » est dit dans le pied, à la place des espaces.
+- **Barre d'adresse.** Au survol : le favori et les options de la page, rien d'autre. Copier le lien, mode
+  lecture, traduction et remplissage d'un mot de passe passent dans les options de la page (groupes : copie et
+  zoom, captures, lecture, site) ; protections, autorisations et zoom du site restent derrière le cadenas
+  (« Infos sur le site »). Restent visibles, en place, seulement les états actifs : zoom modifié, lecture en
+  cours, page traduite, protections coupées, enregistrement.
+
+- **Zoom des pages dessinées par l'interface.** Page d'accueil et `browser://…` partagent un niveau de zoom,
+  mémorisé dans `zoom.json` sous la clé `browser://` (jamais un nom d'hôte), privé en mémoire en fenêtre privée ;
+  `TabManager.getState` le donne comme `zoom` de ces onglets, l'interface l'applique en `zoom` CSS à la page
+  seule (`.drawn-page`), jamais à la barre latérale. Les commandes de zoom ne demandent plus une page web.
+- **Glisser-déposer.** Un onglet lâché au milieu de la ligne d'un autre (la moitié centrale ; les quarts du
+  haut et du bas réordonnent toujours) les affiche côte à côte : l'onglet visé est activé, puis
+  `split.open` y ajoute l'onglet glissé (`splitTargetFromBoxes`, `TreeDrag.onSplit`).
+
+**Conséquences.** Les fonctions déplacées gardent leurs raccourcis et leurs commandes (barre universelle, menus).
+Tests e2e : barre de fenêtre (`ux-audit.spec.ts`), menu de l'application vers le haut et dans la fenêtre
+(`ux-audit`, `responsive`), deux boutons au survol (`capture.spec.ts`), copie/lecture/traduction/mots de passe
+par les options de la page (utilitaire `pageOptions` des fixtures).

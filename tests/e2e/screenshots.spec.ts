@@ -542,7 +542,7 @@ test("tour of the main window", async ({ profile }) => {
     }, url("lejournal.fr/navigateurs"));
 
     // Reader view.
-    await chrome.getByRole("button", { name: "Mode lecture", exact: true }).click();
+    await run(chrome, "toggle-reader");
     await expect(chrome.getByTestId("reader-view")).toBeVisible();
     await chrome.mouse.move(WIDTH - 20, HEIGHT - 20);
     await shoot(app, "reader", 800);
@@ -721,7 +721,7 @@ test("private window", async ({ profile }) => {
     // Only the private window stays on screen (shoot() captures the first window).
     await api(chrome, () => browser.window.close());
     await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(1);
-    await priv.waitForSelector(".private-badge");
+    await priv.waitForSelector(".private-hint");
     await resize(app);
     for (const key of ["trajets.fr/lisbonne", "recettes.fr/tarte-tatin"]) await openTab(priv, key);
     await api(priv, () => browser.tabs.create());

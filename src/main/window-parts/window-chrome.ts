@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { BrowserWindow, type Session } from "electron";
+import { BrowserWindow, screen, type Session } from "electron";
 import type { Settings } from "@shared/settings";
 
 export interface WindowChromeOptions {
@@ -16,6 +16,7 @@ export interface WindowChromeOptions {
  */
 export class WindowChrome {
   readonly window: BrowserWindow;
+  private topBarTimer: ReturnType<typeof setInterval> | undefined;
 
   constructor({ isPrivate, background, uiSession }: WindowChromeOptions) {
     const isMac = process.platform === "darwin";
@@ -29,8 +30,9 @@ export class WindowChrome {
       // The theme's own background: no white flash while the UI loads or on resize.
       backgroundColor: background,
       titleBarStyle: "hidden",
-      // macOS keeps its traffic lights; elsewhere the sidebar draws its own window controls.
-      ...(isMac ? { trafficLightPosition: { x: 16, y: 16 } } : { frame: false }),
+      // macOS keeps its traffic lights (centered in the 40px window bar); elsewhere the window bar
+      // draws its own controls (ADR-045).
+      ...(isMac ? { trafficLightPosition: { x: 16, y: 13 } } : { frame: false }),
       webPreferences: {
         preload: join(import.meta.dirname, "../preload/index.cjs"),
         // Never a tab session: nothing installed there (extensions…) reaches the UI (ADR-024).
@@ -41,14 +43,44 @@ export class WindowChrome {
         spellcheck: false,
       },
     });
+    // macOS: the traffic lights show with the chrome's window bar only (ADR-045, `watchTopBar`).
+    if (isMac) this.window.setWindowButtonVisibility(false);
   }
 
-  /** The settings' native effects: background, shadow, and the macOS traffic lights hidden in zen mode. */
+  /** The settings' native effects: background and shadow. */
   applySettings(current: Settings, background: string): void {
     if (this.window.isDestroyed()) return;
     this.window.setBackgroundColor(background);
-    if (process.platform === "darwin") this.window.setWindowButtonVisibility(!current.layout.zenMode);
     this.window.setHasShadow(current.appearance.shadows);
+  }
+
+  /**
+   * The chrome's window bar (ADR-045) unfolded, `height` px tall at the top of the window (0: folded).
+   * The UI sees no pointer events over the page view or a drag region, so the cursor is polled
+   * while the bar shows: `onLeave` runs once it leaves the band (after having been in it: a bar
+   * unfolded from the keyboard or by a synthetic event waits for the pointer), then polling stops.
+   * macOS: the traffic lights show with the bar.
+   */
+  watchTopBar(height: number, onLeave: () => void): void {
+    clearInterval(this.topBarTimer);
+    this.topBarTimer = undefined;
+    if (this.window.isDestroyed()) return;
+    if (process.platform === "darwin") this.window.setWindowButtonVisibility(height > 0);
+    if (height <= 0) return;
+    let seen = false;
+    this.topBarTimer = setInterval(() => {
+      if (this.window.isDestroyed()) return void clearInterval(this.topBarTimer);
+      const point = screen.getCursorScreenPoint();
+      const area = this.window.getContentBounds();
+      const inside =
+        point.x >= area.x && point.x < area.x + area.width && point.y >= area.y - 2 && point.y < area.y + height + 4;
+      if (inside) seen = true;
+      else if (seen) {
+        clearInterval(this.topBarTimer);
+        this.topBarTimer = undefined;
+        onLeave();
+      }
+    }, 100);
   }
 
   /** Maximized or full screen changed: the window controls show "restore" instead of "maximize". */

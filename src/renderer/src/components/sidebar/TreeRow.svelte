@@ -13,12 +13,14 @@
     dragged?: boolean;
     /** Highlighted as the drop target (a tab dropped into this folder). */
     dropInside?: boolean;
+    /** A dragged tab would be shown beside this one (split view). */
+    dropSplit?: boolean;
     children: Snippet;
   }
-  let { depth, folder = false, selected = false, dragged = false, dropInside = false, children, ...rest }: Props = $props();
+  let { depth, folder = false, selected = false, dragged = false, dropInside = false, dropSplit = false, children, ...rest }: Props = $props();
 </script>
 
-<div class={["row", { "folder-row": folder, selected, dragged, "drop-inside": dropInside }]} style:--depth={depth} {...rest}>
+<div class={["row", { "folder-row": folder, selected, dragged, "drop-inside": dropInside, "drop-split": dropSplit }]} style:--depth={depth} {...rest}>
   {@render children()}
 </div>
 
@@ -49,6 +51,10 @@
   .folder-row.drop-inside {
     background: color-mix(in oklab, var(--accent) 16%, transparent);
     box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent-text) 55%, transparent);
+  }
+  .row.drop-split {
+    border-radius: var(--radius);
+    box-shadow: inset 0 0 0 2px var(--accent-text);
   }
   .folder-row :global(.more) {
     opacity: 0;

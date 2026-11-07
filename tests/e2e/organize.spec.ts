@@ -210,6 +210,17 @@ test("a two-finger horizontal swipe on the sidebar changes space once; vertical 
   expect((await state(chrome)).activeSpaceId).toBe(spaces[0].id);
 });
 
+test("a tab dropped on the middle of another one shows both side by side (ADR-045)", async ({ chrome, server }) => {
+  await visit(chrome, server.url("/one"), "Page one");
+  await newTab(chrome, server.url("/two"), "Page two");
+  const one = await tabId(chrome, "Page one");
+  const two = await tabId(chrome, "Page two");
+  await dragTo(chrome, '.row:has(.title:text("Page two"))', { selector: '.row:has(.title:text("Page one"))', yRatio: 0.5 });
+  await expect.poll(async () => [...((await state(chrome)).split?.tabIds ?? [])].sort()).toEqual([one, two].sort());
+  // The tabs did not move: a drop on a row's middle is a split, not a reorder.
+  expect((await state(chrome)).tabs.filter((tab) => !tab.isPinned).map((tab) => tab.title)).toEqual(["Page one", "Page two"]);
+});
+
 test("a swipe with a long momentum tail (macOS) switches space only once, sliding the neighbour in", async ({ chrome }) => {
   await chrome.evaluate(async () => {
     const browser = (globalThis as unknown as Global).browser;

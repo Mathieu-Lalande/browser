@@ -43,28 +43,13 @@
 
   /** Zoom indicator: shown when the page is not at the default zoom. */
   const defaultZoom = $derived(settings.current.appearance.pageZoom);
-  const zoomed = $derived(!!tab && /^https?:|^data:/.test(tab.url) && !tab.interstitial && tab.zoom !== defaultZoom);
+  const zoomed = $derived(!!tab && (/^https?:|^data:/.test(tab.url) || isInternal) && !tab.interstitial && tab.zoom !== defaultZoom);
 
   const showShield = $derived(!!tab && /^https?:/.test(tab.url) && !tab.interstitial);
-  const shieldTitle = $derived(
-    tab?.shieldsEnabled
-      ? `Protections activées : ${tab.blockedCount} élément${tab.blockedCount > 1 ? "s" : ""} bloqué${tab.blockedCount > 1 ? "s" : ""}. Cliquer pour les désactiver sur ce site.`
-      : "Protections désactivées sur ce site. Cliquer pour les réactiver.",
-  );
+  const shieldTitle = "Protections désactivées sur ce site. Cliquer pour les réactiver.";
 
-  /** Web pages get the site info popover and the copy-link button. */
+  /** Web pages get the site info popover. */
   const isWebPage = $derived(!!tab && /^https?:/.test(tab.url) && !tab.interstitial);
-
-  /** "Lien copié" confirmation, shown for a moment after copying. */
-  let copied = $state(false);
-  let copiedTimer: ReturnType<typeof setTimeout> | undefined;
-
-  function copyLink(): void {
-    api.commands.run("copy-url");
-    copied = true;
-    clearTimeout(copiedTimer);
-    copiedTimer = setTimeout(() => (copied = false), 1600);
-  }
 
   function showSiteInfo(event: MouseEvent & { currentTarget: HTMLElement }): void {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -88,24 +73,13 @@
     return () => clearInterval(timer);
   });
 
-  /** Translation (ADR-036): offered when the page's language differs from the target; kept in view while translated. */
+  /** Translation (ADR-036): in view while translating or translated (the offer itself is in the page options). */
   const translation = $derived(tab?.translation ?? null);
-  const showTranslate = $derived(!!translation && (translation.offer || translation.status !== "idle"));
+  const showTranslate = $derived(!!translation && translation.status !== "idle");
   function showTranslatePanel(event: MouseEvent & { currentTarget: HTMLElement }): void {
     const rect = event.currentTarget.getBoundingClientRect();
     api.translate.show({ x: rect.x, y: rect.y, width: rect.width, height: rect.height });
   }
-
-  function showPasswords(event: MouseEvent & { currentTarget: HTMLElement }): void {
-    const rect = event.currentTarget.getBoundingClientRect();
-    api.passwords.showFill({ x: rect.x, y: rect.y, width: rect.width, height: rect.height });
-  }
-
-  // Another page: the confirmation was about the previous one.
-  $effect(() => {
-    void tab?.url;
-    copied = false;
-  });
 
   /** Width of the floating buttons: the URL fades out under them while they show. */
   let actionsWidth = $state(0);
@@ -174,56 +148,23 @@
   }
 </script>
 
-{#snippet readerButton()}
-  <!-- Reader mode (ADR-026): offered when Readability thinks the page is an article; kept in view while on. -->
-  <button
-    type="button"
-    class="star act"
-    class:on={tab?.reader}
-    class:keep={tab?.reader}
-    aria-pressed={!!tab?.reader}
-    aria-label={tab?.reader ? "Quitter le mode lecture" : "Mode lecture"}
-    title={platform.tip(tab?.reader ? "Quitter le mode lecture" : "Mode lecture", "toggle-reader")}
-    onmousedown={(event) => event.preventDefault()}
-    onclick={() => api.commands.run("toggle-reader")}
-  >
-    <Icon name="reader" size={16} />
-  </button>
-{/snippet}
-
-{#snippet shieldButton()}
-  {#if tab}
-    <!-- Shields: a hover action while on, kept in view (struck out) while off on this site. -->
-    <button
-      type="button"
-      class="shield act"
-      class:off={!tab.shieldsEnabled}
-      class:keep={!tab.shieldsEnabled}
-      title={shieldTitle}
-      aria-label={shieldTitle}
-      aria-pressed={tab.shieldsEnabled}
-      onclick={() => tab && api.tabs.toggleShields(tab.id)}
-    >
-      <Icon name={tab.shieldsEnabled ? "shield" : "shield-off"} size={14} />
-      {#if tab.shieldsEnabled && tab.blockedCount > 0}<span class="count">{tab.blockedCount > 99 ? "99+" : tab.blockedCount}</span>{/if}
-    </button>
-  {/if}
-{/snippet}
-
 <div class="omnibox no-drag">
   <!--
-    At rest the URL uses the whole bar: host first, path dimmed. The action buttons float over its
-    end and fade in on hover or keyboard focus (ADR-031), over a fade-out of the URL, which never
-    moves. Buttons showing an active state (reader on, shields off, zoom, recording) stay, in flow.
+    At rest the URL uses the whole bar: host first, path dimmed. Two actions float over its end and
+    fade in on hover or keyboard focus (ADR-031, ADR-045): the favorite star and the page options
+    ("…": copy, zoom, captures, reader, translation, passwords, QR code). Shields and permissions
+    are behind the lock (site info). Active states (zoom, reader on, translated, shields off,
+    recording) stay in view, in flow.
   -->
   <form class="address" class:focused onsubmit={submit} bind:this={form}>
     {#if !open && isWebPage}
-      <!-- The lock opens the site info popover (connection, cookies, permissions, shields, zoom). -->
+      <!-- The lock opens the site info popover (connection, cookies, permissions, shields, zoom): the
+         one place for the site's settings (ADR-045). -->
       <button
         type="button"
         class="status site-info"
         class:secure={isSecure}
-        title="{isSecure ? 'Connexion sécurisée' : 'Connexion non sécurisée'} : infos sur le site"
+        title="{isSecure ? 'Connexion sécurisée' : 'Connexion non sécurisée'} : infos sur le site, protections ({tab?.shieldsEnabled ? `${tab.blockedCount} bloqué${tab.blockedCount > 1 ? 's' : ''}` : 'désactivées'}) et autorisations"
         aria-label="Infos sur le site ({isSecure ? 'connexion sécurisée' : 'connexion non sécurisée'})"
         onmousedown={(event) => event.preventDefault()}
         onclick={showSiteInfo}
@@ -265,50 +206,7 @@
         >
       {/if}
       <div class="actions" bind:offsetWidth={actionsWidth}>
-        {#if (tab?.readerable || tab?.reader) && isWebPage && !focused && !tab.reader}
-          {@render readerButton()}
-        {/if}
-        {#if showTranslate && isWebPage && !focused}
-          <button
-            type=button
-            class="star act"
-            class:on={tab?.translated}
-            class:keep={tab?.translated}
-            aria-pressed={!!tab?.translated}
-            aria-label={tab?.translated ? "Page traduite" : "Traduire la page"}
-            title={platform.tip(tab?.translated ? "Page traduite" : "Traduire la page", "translate-page")}
-            onmousedown={(event) => event.preventDefault()}
-            onclick={showTranslatePanel}
-          >
-            <Icon name="languages" size={16} />
-          </button>
-        {/if}
-        {#if tab?.hasPasswords && isWebPage && !focused}
-          <!-- Saved passwords for this site (ADR-025): choose an account to fill the login form. -->
-          <button
-            type="button"
-            class="star act"
-            aria-label="Remplir un mot de passe enregistré"
-            title="Remplir un mot de passe enregistré"
-            onmousedown={(event) => event.preventDefault()}
-            onclick={showPasswords}
-          >
-            <Icon name="key" size={16} />
-          </button>
-        {/if}
         {#if tab?.url && !focused && !isInternal}
-          <button
-            type="button"
-            class="star copy act"
-            class:done={copied}
-            aria-label={copied ? "Lien copié" : "Copier le lien"}
-            title={copied ? "Lien copié" : platform.tip("Copier le lien", "copy-url")}
-            onclick={copyLink}
-          >
-            {#key copied}
-              <span class="glyph"><Icon name={copied ? "check" : "link"} size={16} /></span>
-            {/key}
-          </button>
           <button
             type="button"
             class="star act"
@@ -320,14 +218,9 @@
           >
             <Icon name="star" size={16} filled={tab.isBookmarked} />
           </button>
-        {/if}
-        {#if tab && showShield && tab.shieldsEnabled}
-          {@render shieldButton()}
-        {/if}
-        {#if tab?.url && !focused && !isInternal}
           <button
             type="button"
-            class="star act more"
+            class="star act"
             aria-label="Options de la page"
             aria-haspopup="dialog"
             title={platform.tip("Options de la page", "page-options")}
@@ -351,10 +244,44 @@
       </button>
     {/if}
     {#if tab?.reader && isWebPage && !focused}
-      {@render readerButton()}
+      <!-- Reader mode on (ADR-026): one click back to the page. It is turned on from the page options. -->
+      <button
+        type="button"
+        class="star on"
+        aria-pressed="true"
+        aria-label="Quitter le mode lecture"
+        title={platform.tip("Quitter le mode lecture", "toggle-reader")}
+        onmousedown={(event) => event.preventDefault()}
+        onclick={() => api.commands.run("toggle-reader")}
+      >
+        <Icon name="reader" size={16} />
+      </button>
     {/if}
-    {#if tab && showShield && !tab.shieldsEnabled}
-      {@render shieldButton()}
+    {#if showTranslate && isWebPage && !focused}
+      <!-- Translating or translated (ADR-036): its popover (original, languages, rules). -->
+      <button
+        type="button"
+        class="star on"
+        aria-label={tab?.translated ? "Page traduite" : "Traduction de la page"}
+        title={platform.tip(tab?.translated ? "Page traduite" : "Traduction de la page", "translate-page")}
+        onmousedown={(event) => event.preventDefault()}
+        onclick={showTranslatePanel}
+      >
+        <Icon name="languages" size={16} />
+      </button>
+    {/if}
+    {#if tab && showShield && !tab.shieldsEnabled && !focused}
+      <!-- Shields off on this site: in view, struck out; one click turns them back on. -->
+      <button
+        type="button"
+        class="star shield-off"
+        title={shieldTitle}
+        aria-label={shieldTitle}
+        aria-pressed="false"
+        onclick={() => tab && api.tabs.toggleShields(tab.id)}
+      >
+        <Icon name="shield-off" size={14} />
+      </button>
     {/if}
     {#if recording}
       <!-- Always visible while the window records a tab: red dot, timer, stop. -->
@@ -374,8 +301,6 @@
       </span>
     {/if}
   </form>
-  <!-- Announced to screen readers; shown as a small note under the address bar (never over the page). -->
-  <div class="copied" class:visible={copied} role="status" aria-live="polite">{copied ? "Lien copié" : ""}</div>
 
   {#if open}
     <SuggestionList {query} {isSearch} {suggestions} {selected} onGo={(target) => go(target ?? draft)} />
@@ -461,8 +386,7 @@
     transition: opacity var(--motion-fast) var(--ease);
   }
   .address:hover .act,
-  .address:focus-within .act,
-  .act.keep {
+  .address:focus-within .act {
     opacity: 1;
   }
   .address:hover .display,
@@ -542,46 +466,6 @@
   .omnibox {
     position: relative;
   }
-  .copy.done {
-    color: var(--accent-text);
-  }
-  .copy .glyph {
-    display: grid;
-  }
-  .copy.done .glyph {
-    animation: check-pop var(--motion-base) var(--ease);
-  }
-  .copied {
-    position: absolute;
-    top: calc(var(--control-height) + 4px);
-    right: 4px;
-    z-index: 2;
-    padding: 3px 8px;
-    border-radius: 6px;
-    background: var(--bg-elevated);
-    box-shadow: 0 0 0 1px var(--border);
-    color: var(--text);
-    font-size: 11px;
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(-3px);
-    transition:
-      opacity var(--motion-fast) var(--ease),
-      transform var(--motion-fast) var(--ease);
-  }
-  .copied.visible {
-    opacity: 1;
-    transform: none;
-  }
-  @keyframes check-pop {
-    from {
-      opacity: 0;
-      transform: scale(0.4) rotate(-20deg);
-    }
-    60% {
-      transform: scale(1.2);
-    }
-  }
   input {
     flex: 1;
     min-width: 0;
@@ -590,26 +474,6 @@
     background: transparent;
     font-size: 13px;
     user-select: text;
-  }
-  .shield {
-    display: flex;
-    flex: none;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
-    min-width: var(--hit-min);
-    height: var(--hit-min);
-    padding: 0 6px;
-    border-radius: var(--radius-sm);
-    color: var(--accent-text);
-    font-size: 11px;
-    font-variant-numeric: tabular-nums;
-  }
-  .shield:hover {
-    background: var(--surface-hover);
-  }
-  .shield.off {
-    color: var(--text-faint);
   }
   input::placeholder {
     color: var(--text-faint);
@@ -645,13 +509,13 @@
   .star.on {
     color: var(--accent-text);
   }
-  /* Narrow sidebar: tighter spacing, and the copy button (Ctrl+Maj+C, palette) leaves the URL room. */
+  .shield-off {
+    color: var(--text-faint);
+  }
+  /* Narrow sidebar: tighter spacing. */
   @container sidebar (max-width: 230px) {
     .address {
       gap: 4px;
-    }
-    .copy:not(.done) {
-      display: none;
     }
   }
 </style>

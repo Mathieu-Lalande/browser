@@ -17,17 +17,40 @@ const changes = new Emitter<string>();
 /** Private sessions' own levels (host → factor), for the window's lifetime. */
 const privateLevels = new WeakMap<Session, Map<string, number>>();
 
+/**
+ * The key of the pages the chrome UI draws (start page, browser://…, ADR-045): zoomed together,
+ * like one site. Never a host name (`:` and `/`), so no site can share it.
+ */
+export const BROWSER_PAGES_ZOOM = "browser://";
+
 /** The zoom factor for `url`, or undefined for pages without a web host (data:, about:…). */
 export function siteZoomFactor(url: string, defaultFactor: number, ses?: Session): number | undefined {
   const host = webHostname(url);
   if (!host) return undefined;
+  return factorOf(host, defaultFactor, ses);
+}
+
+/** The zoom of the pages the chrome UI draws (start page, internal pages). */
+export function browserPagesZoomFactor(defaultFactor: number, ses?: Session): number {
+  return factorOf(BROWSER_PAGES_ZOOM, defaultFactor, ses);
+}
+
+function factorOf(host: string, defaultFactor: number, ses?: Session): number {
   return (ses && privateLevels.get(ses)?.get(host)) ?? profile().zoom.factorFor(host, defaultFactor);
 }
 
 /** Remembers the zoom chosen on `url`'s site; listeners re-apply it to that site's other tabs. */
 export function rememberSiteZoom(url: string, factor: number, defaultFactor: number, ses?: Session): void {
   const host = webHostname(url);
-  if (!host) return;
+  if (host) rememberZoom(host, factor, defaultFactor, ses);
+}
+
+/** Remembers the zoom of the pages the chrome UI draws; listeners get `BROWSER_PAGES_ZOOM`. */
+export function rememberBrowserPagesZoom(factor: number, defaultFactor: number, ses?: Session): void {
+  rememberZoom(BROWSER_PAGES_ZOOM, factor, defaultFactor, ses);
+}
+
+function rememberZoom(host: string, factor: number, defaultFactor: number, ses?: Session): void {
   if (ses && isPrivateSession(ses)) {
     let levels = privateLevels.get(ses);
     if (!levels) privateLevels.set(ses, (levels = new Map()));

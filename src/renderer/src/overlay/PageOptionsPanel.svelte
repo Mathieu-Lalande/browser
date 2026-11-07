@@ -12,8 +12,9 @@
 
   /**
    * Page options popover (ADR-031), hanging below the address bar: copy the link, zoom, screenshots,
-   * recording, reader and mobile versions, the site's boost and info, a QR code of the page. Every
-   * action is a registry command run by main on the active tab (src/shared/commands.ts).
+   * recording, reader, translation and mobile versions, saved passwords, the site's boost and info, a
+   * QR code of the page. The address bar keeps only the star and this "…" (ADR-045). Every action
+   * is a registry command run by main on the active tab (src/shared/commands.ts).
    */
   let { anchor, tabId, onClose }: { anchor?: Bounds; tabId: TabId; onClose: (restoreFocus: boolean) => void } = $props();
 
@@ -70,18 +71,37 @@
     { id: "screenshot-full", icon: "capture-full", label: "Page entière", mode: "handoff" },
     { id: "screenshot-element", icon: "capture-element", label: "Élément…", mode: "handoff" },
   ];
-  const items = $derived<Item[]>([
-    { id: "record-video", icon: "video", label: recording ? "Arrêter l'enregistrement" : "Enregistrer une vidéo", mode: "handoff", hidden: !isWeb },
+  const isHttp = $derived(!!tab && /^https?:/.test(tab.url) && !tab.interstitial);
+  /** Reading the page differently. */
+  const views = $derived<Item[]>([
     {
       id: "toggle-reader",
       icon: "reader",
       label: tab?.reader ? "Quitter le mode lecture" : "Mode lecture",
       hidden: !isWeb || !(tab?.readerable || tab?.reader),
     },
+    // Only where translation is on (ADR-036: off by default) and this page can be translated.
+    {
+      id: "translate-page",
+      icon: "languages",
+      label: tab?.translated ? "Afficher l'original" : "Traduire la page",
+      // Main may answer with the translation popover (privacy notice, setup): it takes this one's place.
+      mode: "handoff",
+      hidden: !isHttp || !(tab?.translation && (tab.translation.offer || tab.translation.status !== "idle" || tab.translated)),
+    },
     { id: "toggle-mobile-site", icon: "smartphone", label: tab?.mobileSite ? "Version pour ordinateur" : "Version mobile", hidden: !isWeb },
-    { id: "open-boosts", icon: "rocket", label: "Boost du site", hidden: !isWeb || browser.isPrivate },
-    { id: "site-info", icon: "info", label: "Infos sur le site", mode: "handoff", hidden: !tab || !/^https?:/.test(tab.url) },
   ]);
+  /** The site itself. */
+  const site = $derived<Item[]>([
+    { id: "open-boosts", icon: "rocket", label: "Boost du site", hidden: !isWeb || browser.isPrivate },
+    { id: "site-info", icon: "info", label: "Infos sur le site et protections", mode: "handoff", hidden: !isHttp },
+  ]);
+
+  /** Saved passwords for this site (ADR-025): the account chooser takes this popover's place. */
+  function fillPassword(): void {
+    // A plain copy: the request's state proxy cannot cross the IPC.
+    if (anchor) api.passwords.showFill({ x: anchor.x, y: anchor.y, width: anchor.width, height: anchor.height });
+  }
 </script>
 
 <svelte:window bind:innerWidth bind:innerHeight />
@@ -139,7 +159,20 @@
         {/if}
       {/if}
 
-      {#each items.filter((item) => !item.hidden) as item (item.id)}
+      {#if isWeb}
+        <MenuItem icon="video" label={recording ? "Arrêter l'enregistrement" : "Enregistrer une vidéo"} keys={platform.shortcut("record-video")} onclick={() => run("record-video", "handoff")} />
+      {/if}
+
+      {#if views.some((item) => !item.hidden)}<div class="separator" role="separator"></div>{/if}
+      {#each views.filter((item) => !item.hidden) as item (item.id)}
+        <MenuItem icon={item.icon} label={item.label} keys={platform.shortcut(item.id)} onclick={() => run(item.id, item.mode)} />
+      {/each}
+
+      <div class="separator" role="separator"></div>
+      {#if tab.hasPasswords && isHttp}
+        <MenuItem icon="key" label="Remplir un mot de passe enregistré" onclick={fillPassword} />
+      {/if}
+      {#each site.filter((item) => !item.hidden) as item (item.id)}
         <MenuItem icon={item.icon} label={item.label} keys={platform.shortcut(item.id)} onclick={() => run(item.id, item.mode)} />
       {/each}
 
@@ -199,6 +232,11 @@
   .label {
     flex: 1;
     min-width: 0;
+  }
+  .separator {
+    height: 1px;
+    margin: var(--space-1) var(--space-2);
+    background: var(--border);
   }
   .sub {
     display: flex;

@@ -251,9 +251,9 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
     accelerator: "CmdOrCtrl+S",
     icon: "sidebar",
   },
-  "zoom-in": { label: "Zoom avant", keywords: ["agrandir", "zoom in", "plus grand"], accelerator: "CmdOrCtrl+=", icon: "zoom-in", needsPage: true },
-  "zoom-out": { label: "Zoom arrière", keywords: ["réduire", "zoom out", "plus petit"], accelerator: "CmdOrCtrl+-", icon: "zoom-out", needsPage: true },
-  "zoom-reset": { label: "Taille réelle", keywords: ["zoom", "réinitialiser", "100 %", "reset"], accelerator: "CmdOrCtrl+0", icon: "zoom-reset", needsPage: true },
+  "zoom-in": { label: "Zoom avant", keywords: ["agrandir", "zoom in", "plus grand"], accelerator: "CmdOrCtrl+=", icon: "zoom-in" },
+  "zoom-out": { label: "Zoom arrière", keywords: ["réduire", "zoom out", "plus petit"], accelerator: "CmdOrCtrl+-", icon: "zoom-out" },
+  "zoom-reset": { label: "Taille réelle", keywords: ["zoom", "réinitialiser", "100 %", "reset"], accelerator: "CmdOrCtrl+0", icon: "zoom-reset" },
   devtools: {
     label: "Outils de développement",
     keywords: ["devtools", "inspecter", "console", "developer"],

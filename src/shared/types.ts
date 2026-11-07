@@ -29,7 +29,7 @@ export interface TabState {
   isBookmarked: boolean;
   /** Saved passwords exist for the page's origin (ADR-025): the address bar shows the key. */
   hasPasswords?: boolean;
-  /** The page looks like an article (Readability's check): the address bar offers reader mode (ADR-026). */
+  /** The page looks like an article (Readability's check): the page options offer reader mode (ADR-026, ADR-045). */
   readerable?: boolean;
   /** Reader mode is on: the chrome UI draws the article in place of the page view. */
   reader?: boolean;
