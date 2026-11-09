@@ -27,6 +27,7 @@ import { CLEAR_SITE_DATA_SCRIPT, mobileSiteInfo } from "../lib/siteInfo";
 import type { MobileSyncStore } from "../lib/sync/adapters";
 import { createMobileSync } from "../lib/sync/platform";
 import { flushDocuments, KEYS, removeDocuments } from "../lib/storage";
+import { clearPrivacyStats } from "../lib/privacyStats";
 import {
   activeTab,
   initialTabsModel,
@@ -455,6 +456,7 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
         httpExceptions.current.clear();
         dispatch({ type: "restore", model: initialTabsModel() });
         await removeDocuments([KEYS.history, KEYS.bookmarks, KEYS.session, KEYS.archive]);
+        await clearPrivacyStats();
       },
       updateSettings(patch) {
         prefs.update(patch);

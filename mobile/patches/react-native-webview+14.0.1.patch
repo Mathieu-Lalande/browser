@@ -1,0 +1,41 @@
+diff --git a/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewClient.java b/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewClient.java
+index 209b855..63ed41f 100644
+--- a/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewClient.java
++++ b/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewClient.java
+@@ -46,6 +46,22 @@ public class RNCWebViewClient extends WebViewClient {
+         basicAuthCredential = credential;
+     }
+ 
++    /**
++     * Browser patch (ADR-051, patch-package): a content blocker installed by the app (Expo module
++     * `content-blocker`, set by reflection) answers sub-resource requests first; null lets them load.
++     */
++    public static volatile @Nullable java.util.function.BiFunction<WebView, WebResourceRequest, WebResourceResponse> requestInterceptor = null;
++
++    @Override
++    public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
++        java.util.function.BiFunction<WebView, WebResourceRequest, WebResourceResponse> interceptor = requestInterceptor;
++        if (interceptor != null) {
++            WebResourceResponse response = interceptor.apply(view, request);
++            if (response != null) return response;
++        }
++        return super.shouldInterceptRequest(view, request);
++    }
++
+     @Override
+     public void onPageFinished(WebView webView, String url) {
+         super.onPageFinished(webView, url);
+diff --git a/node_modules/react-native-webview/apple/RNCWebViewImpl.m b/node_modules/react-native-webview/apple/RNCWebViewImpl.m
+index 3890426..409899d 100644
+--- a/node_modules/react-native-webview/apple/RNCWebViewImpl.m
++++ b/node_modules/react-native-webview/apple/RNCWebViewImpl.m
+@@ -468,6 +468,9 @@ RCTAutoInsetsProtocol>
+     wkWebViewConfig.processPool = [[RNCWKProcessPoolManager sharedManager] sharedProcessPool];
+   }
+   wkWebViewConfig.userContentController = [WKUserContentController new];
++  // Browser patch (ADR-051, patch-package): lets the app's content blocker (Expo module
++  // `content-blocker`) add its WKContentRuleLists before the first load. Nobody listens without it.
++  [[NSNotificationCenter defaultCenter] postNotificationName:@"RNCWebViewDidCreateUserContentController" object:wkWebViewConfig.userContentController];
+ 
+ #if defined(__IPHONE_OS_VERSION_MAX_ALLOWED) && __IPHONE_OS_VERSION_MAX_ALLOWED >= 130000 /* iOS 13 */
+   if (@available(iOS 13.0, *)) {

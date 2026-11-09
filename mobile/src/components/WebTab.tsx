@@ -16,6 +16,7 @@ import { desktopUserAgent, parseReaderMessage, readerScript } from "../lib/reade
 import { TranslateBridge, translateNonce } from "../lib/translate";
 import { AnnotateBridge, annotateNonce, marksFor } from "../lib/annotations";
 import { AutofillBridge, autofillNonce } from "../lib/autofill";
+import { CookieBannerGuard, cosmeticScript, shieldBanners, shieldCss } from "../lib/shields";
 import { useBrowserActions, useEvent } from "../state/BrowserProvider";
 import { LoadError } from "./LoadError";
 import type { WebTabProps } from "./webTabTypes";
@@ -32,6 +33,7 @@ const newColorNonce = () => newThemeColorNonce(getRandomBytes);
 const newTranslateNonce = () => translateNonce(getRandomBytes);
 const newAnnotateNonce = () => annotateNonce(getRandomBytes);
 const newAutofillNonce = () => autofillNonce(getRandomBytes);
+const newBannerNonce = () => captureNonce(getRandomBytes);
 /** The selection menu's extra item (ADR-037). */
 const HIGHLIGHT_MENU = [{ label: "Surligner", key: "highlight" }];
 /** Only these schemes may ever reach the native view (navigation policy: `decideNavigation`). */
@@ -71,6 +73,8 @@ export const WebTab = memo(function WebTab({
   onHighlight,
   onHighlightPress,
   onThemeColor,
+  shield,
+  onCookieBanner,
 }: WebTabProps) {
   const actions = useBrowserActions();
   const ref = useRef<WebViewHandle | null>(null);
@@ -111,10 +115,24 @@ export const WebTab = memo(function WebTab({
   boostHostRef.current = boostHost;
   const boostsRef = useRef(boosts);
   boostsRef.current = boosts;
-  const boostBootstrap = useMemo(() => {
+  // Shield (ADR-051): element hiding at document start (with the boosts), again after each load,
+  // and restyled live when the shield changes; the cookie banner agent after each load.
+  const shieldRef = useRef(shield);
+  shieldRef.current = shield;
+  const bootstrap = useMemo(() => {
     const matching = boostsForHost(boosts, boostHost);
-    return matching.length ? boostScript(matching, boostHost) : undefined;
-  }, [boosts, boostHost]);
+    const css = shieldCss(shield, boostHost);
+    const parts = [css ? cosmeticScript(css) : "", matching.length ? boostScript(matching, boostHost) : ""].filter(Boolean);
+    return parts.length ? parts.join("\n") : undefined;
+  }, [boosts, boostHost, shield]);
+  const appliedShield = useRef(shield);
+  useEffect(() => {
+    if (appliedShield.current === shield) return;
+    appliedShield.current = shield;
+    ref.current?.injectJavaScript(cosmeticScript(shieldCss(shield, boostHostRef.current)));
+  }, [shield]);
+  const bannerGuard = useRef<CookieBannerGuard | null>(null);
+  bannerGuard.current ??= new CookieBannerGuard(newBannerNonce);
   const appliedBoosts = useRef(boosts);
   useEffect(() => {
     if (appliedBoosts.current === boosts) return;
@@ -163,6 +181,7 @@ export const WebTab = memo(function WebTab({
   });
 
   const onLoadStart = useEvent(() => {
+    bannerGuard.current?.loadStarted();
     annotateBridge.current?.loadStarted();
     autofillBridge.current?.loadStarted();
     if (translateBridge.current?.active) onTranslateReset?.(id);
@@ -179,6 +198,10 @@ export const WebTab = memo(function WebTab({
     if (host !== boostHostRef.current) setBoostHost(host);
     const matching = boostsForHost(boostsRef.current, host);
     if (matching.length) ref.current?.injectJavaScript(boostScript(matching, host));
+    const css = shieldCss(shieldRef.current, host);
+    if (css) ref.current?.injectJavaScript(cosmeticScript(css));
+    const banners = shieldBanners(shieldRef.current, host) ? bannerGuard.current?.loadEnded(url) : null;
+    if (banners) ref.current?.injectJavaScript(banners);
     const capture = isPrivate ? null : captureGuard.current?.loadEnded(url);
     if (capture) ref.current?.injectJavaScript(capture);
     const watch = mediaGuard.current?.loadEnded(url);
@@ -256,6 +279,12 @@ export const WebTab = memo(function WebTab({
   });
 
   const onMessage = useEvent((event: { nativeEvent: { data: string; url: string } }) => {
+    // A cookie banner result (ADR-051): this document's nonce, once; only a counter, so any tab.
+    const banner = bannerGuard.current?.parse(event.nativeEvent.data, event.nativeEvent.url, currentUrl.current);
+    if (banner !== undefined) {
+      if (banner) onCookieBanner?.(id, currentUrl.current, banner);
+      return;
+    }
     // Untrusted page input: validated, rate limited, and only for the tab on screen.
     if (!activeRef.current) return;
     const now = Date.now();
@@ -368,7 +397,7 @@ export const WebTab = memo(function WebTab({
         onCustomMenuSelection={onCustomMenu}
         injectedJavaScript={INJECTED}
         injectedJavaScriptForMainFrameOnly
-        injectedJavaScriptBeforeContentLoaded={boostBootstrap}
+        injectedJavaScriptBeforeContentLoaded={bootstrap}
         injectedJavaScriptBeforeContentLoadedForMainFrameOnly
         userAgent={desktopSite ? desktopUserAgent(Platform.OS) : undefined}
         // Security. iOS: each private tab gets its own non-persistent data store. Android's

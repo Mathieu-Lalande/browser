@@ -23,6 +23,8 @@ export const KEYS = {
   annotations: "browser.annotations",
   /** "Lire plus tard" with the offline texts (ADR-047, synced). */
   reading: "browser.reading-list",
+  /** Privacy counters (ADR-051, never synced). */
+  privacyStats: "browser.privacy-stats",
 } as const;
 
 export type StorageKey = (typeof KEYS)[keyof typeof KEYS];

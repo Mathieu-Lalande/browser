@@ -76,6 +76,7 @@ import RotateCw from "lucide-react-native/icons/rotate-cw";
 import Search from "lucide-react-native/icons/search";
 import Share from "lucide-react-native/icons/share";
 import Shield from "lucide-react-native/icons/shield";
+import ShieldOff from "lucide-react-native/icons/shield-off";
 import ShoppingBag from "lucide-react-native/icons/shopping-bag";
 import SlidersHorizontal from "lucide-react-native/icons/sliders-horizontal";
 import Sparkles from "lucide-react-native/icons/sparkles";
@@ -148,6 +149,7 @@ const ui = {
   atSign: AtSign,
   fill: ArrowUpLeft,
   shield: Shield,
+  "shield-off": ShieldOff,
   home: House,
   open: ExternalLink,
   command: Command,

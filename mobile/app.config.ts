@@ -9,6 +9,8 @@ import type { ConfigContext, ExpoConfig } from "expo/config";
  * - EXPO_OWNER: the Expo account or organization that owns the project (optional).
  * - IOS_DEFAULT_BROWSER=1: only once Apple has granted `com.apple.developer.web-browser` to the
  *   bundle id; before that, a provisioning profile with this entitlement cannot be created.
+ * - Content blocker (ADR-051): the local module `modules/content-blocker` is autolinked; its config
+ *   plugin checks at prebuild that the lists are built and react-native-webview is patched.
  */
 export default ({ config }: ConfigContext): ExpoConfig => {
   const projectId = (config.extra?.eas as { projectId?: string } | undefined)?.projectId ?? process.env.EAS_PROJECT_ID;
@@ -18,6 +20,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     name: config.name ?? "Browser",
     slug: config.slug ?? "browser-mobile",
     ...(process.env.EXPO_OWNER ? { owner: process.env.EXPO_OWNER } : {}),
+    plugins: [...(config.plugins ?? []), "./modules/content-blocker/app.plugin.js"],
     updates: projectId ? { url: `https://u.expo.dev/${projectId}`, enabled: true, checkAutomatically: "ON_LOAD", fallbackToCacheTimeout: 0 } : { enabled: false },
     ios: {
       ...config.ios,

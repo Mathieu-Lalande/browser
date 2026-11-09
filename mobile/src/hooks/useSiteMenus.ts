@@ -1,6 +1,8 @@
 import { boostHostOf, type Boost } from "@shared/boosts";
 import type { MenuItem, MenuSpec } from "../components/ActionSheet";
 import { QUICK_FILTERS, ensureSiteBoost, filterOn, fontLabel, nextFont, removeZap, siteBoost, toggleFilter, upsertBoost } from "../lib/boosts";
+import { privacySummary } from "../lib/privacyStats";
+import { SHIELD_UNAVAILABLE_NOTE, shieldOffFor, shieldSiteOf, toggleShieldSite } from "../lib/shields";
 import { connectionLabel, mobileSiteInfo, SITE_DATA_NOTE } from "../lib/siteInfo";
 import type { MobileTab } from "../lib/tabs";
 import { newId, type BrowserActions } from "../state/BrowserProvider";
@@ -15,6 +17,9 @@ export function useSiteMenus({
   haptic,
   setMenu,
   copy,
+  shieldsOff,
+  blocker,
+  nativeBlocking,
 }: {
   tab: MobileTab | null;
   boosts: Boost[];
@@ -22,18 +27,56 @@ export function useSiteMenus({
   haptic: Theme["haptic"];
   setMenu: (menu: MenuSpec) => void;
   copy: (text: string) => void;
+  /** Sites where the shield is off (ADR-051). */
+  shieldsOff: readonly string[];
+  /** The blocker setting. */
+  blocker: boolean;
+  /** Whether requests are blocked natively (compiled app) or only elements hidden (Expo Go). */
+  nativeBlocking: boolean;
 }) {
   /** Site info sheet (tap on the lock): connection, host, copy link, clear the site's data. */
   const siteInfoMenu = useEvent((): MenuSpec | null => {
     const info = tab ? mobileSiteInfo(tab.url) : null;
     if (!tab || !info) return null;
     const url = tab.url;
+    // "Bouclier" (ADR-051): the shield of this site, switched off and on here; the page reloads.
+    const site = shieldSiteOf(info.host);
+    const off = shieldOffFor(info.host, shieldsOff);
+    const counts = site ? privacySummary(site).totals : null;
+    const shieldNote = !blocker
+      ? "Bloqueur de pubs et traqueurs désactivé dans les réglages."
+      : off
+        ? `Bouclier désactivé sur ${site} : publicités, traqueurs et bandeaux cookies ne sont plus bloqués ici.`
+        : [
+            counts && counts.trackers ? `${counts.trackers} traqueur${counts.trackers > 1 ? "s" : ""} bloqué${counts.trackers > 1 ? "s" : ""} sur ce site en 30 jours.` : "",
+            counts && counts.cookieBanners ? `Bandeaux cookies refusés : ${counts.cookieBanners}.` : "",
+            nativeBlocking ? "" : `${SHIELD_UNAVAILABLE_NOTE} ; ici, seuls les éléments publicitaires sont masqués.`,
+          ]
+            .filter(Boolean)
+            .join(" ");
+    const shieldItem: MenuItem[] =
+      blocker && site
+        ? [
+            {
+              key: "shield",
+              label: off ? "Réactiver le bouclier sur ce site" : "Désactiver le bouclier sur ce site",
+              icon: off ? "shield" : "shield-off",
+              onPress: () => {
+                actions.updateMobileSettings({ shieldsOff: toggleShieldSite(shieldsOff, site, !off) });
+                haptic("selection");
+                // Native rules apply from the next load (iOS recompiles the lists first).
+                setTimeout(() => actions.reload(), 300);
+              },
+            },
+          ]
+        : [];
     return {
       title: info.host,
       subtitle: connectionLabel(info),
       siteUrl: url,
-      note: SITE_DATA_NOTE,
+      note: shieldNote ? `${shieldNote}\n\n${SITE_DATA_NOTE}` : SITE_DATA_NOTE,
       items: [
+        ...shieldItem,
         { key: "copy", label: "Copier le lien", icon: "link", onPress: () => copy(url) },
         {
           key: "clear",

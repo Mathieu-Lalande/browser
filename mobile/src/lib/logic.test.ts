@@ -330,8 +330,9 @@ describe("bookmarks", () => {
 
 describe("mobile settings", () => {
   it("sanitizes", () => {
-    expect(sanitizeMobileSettings({ haptics: false, collapseToolbar: "yes", extra: 1 })).toEqual({ haptics: false, collapseToolbar: true });
-    expect(sanitizeMobileSettings(null)).toEqual({ haptics: true, collapseToolbar: true });
+    expect(sanitizeMobileSettings({ haptics: false, collapseToolbar: "yes", extra: 1 })).toEqual({ haptics: false, collapseToolbar: true, contentBlocker: true, shieldsOff: [] });
+    expect(sanitizeMobileSettings(null)).toEqual({ haptics: true, collapseToolbar: true, contentBlocker: true, shieldsOff: [] });
+    expect(sanitizeMobileSettings({ contentBlocker: false, shieldsOff: ["B.com", "bad site", "a.com"] }).shieldsOff).toEqual(["a.com", "b.com"]);
   });
 });
 

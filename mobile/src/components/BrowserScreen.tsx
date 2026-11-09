@@ -23,6 +23,7 @@ import { useAssistant, type AssistantController } from "../hooks/useAssistant";
 import { AssistantSheet } from "./AssistantSheet";
 import { useShareActions } from "../hooks/useShareActions";
 import { useSiteMenus } from "../hooks/useSiteMenus";
+import { useShield } from "../hooks/useShield";
 import { useToolbarCollapse } from "../hooks/useToolbarCollapse";
 import { boostPayload } from "../lib/boosts";
 import type { SheetItem } from "../lib/searchSheet";
@@ -165,7 +166,8 @@ export function BrowserScreen() {
     setOverlay("none");
   });
 
-  const { siteInfoMenu, showSiteInfo, boostMenu } = useSiteMenus({ tab, boosts, actions, haptic, setMenu, copy });
+  const shields = useShield({ mobile, settings, tabs: model.tabs });
+  const { siteInfoMenu, showSiteInfo, boostMenu } = useSiteMenus({ tab, boosts, actions, haptic, setMenu, copy, shieldsOff: mobile.shieldsOff, blocker: mobile.contentBlocker, nativeBlocking: shields.nativeBlocking });
 
   const runCommand = useEvent((id: CommandId) => {
     const current = tab;
@@ -456,6 +458,8 @@ export function BrowserScreen() {
               annotations={annotations}
               onHighlight={onHighlight}
               onHighlightPress={onHighlightPress}
+              shield={shields.shield}
+              onCookieBanner={isPrivateTab(candidate) ? undefined : shields.onCookieBanner}
             />
           ))}
           {showStart && (

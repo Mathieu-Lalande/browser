@@ -198,3 +198,7 @@
   `ExtensionPopup` = `WebContentsView` au-dessus de l'overlay `extension-popup`, menu natif `toolbar-menu.ts`) ; UI
   `lib/extensions.svelte.ts`, `WebStoreBar`, `sidebar/ExtensionBar` ; `settings.extensions.autoUpdate` ; crochet
   `BROWSER_TEST_WEBSTORE_URL`, CRX de test `tests/crx-pack.ts`. Pas de badge ni `onClicked` (Electron), rien en privé.
+- Bloqueur mobile (ADR-051) : conversion pure `src/shared/blocklist/` (WebKit JSON, index Android, cosmétique),
+  `mobile/scripts/build-blocklists.mjs` (postinstall, sorties générées non commitées), module local
+  `mobile/modules/content-blocker` (Swift/Kotlin + plugin), correctif `mobile/patches/` de react-native-webview,
+  `lib/shields.ts` (masquage, bandeaux cookies à nonce, bouclier `mobile.shieldsOff`), `lib/privacyStats.ts`.

@@ -5,7 +5,11 @@ import { memo, useState, type ReactNode } from "react";
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ContentBlocker } from "../../modules/content-blocker";
+import { privacyStatsStore, privacySummary } from "../lib/privacyStats";
+import { SHIELD_UNAVAILABLE_NOTE } from "../lib/shields";
 import { APP_VERSION } from "../lib/version";
+import { useStore } from "../state/store";
 import { useBrowserActions, useBrowserState } from "../state/BrowserProvider";
 import { useTheme } from "../state/theme";
 import { Icon, type IconName } from "./Icon";
@@ -27,6 +31,8 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
   const actions = useBrowserActions();
   const insets = useSafeAreaInsets();
   const { appearance, startPage, behavior } = settings;
+  useStore(privacyStatsStore);
+  const trackers = privacySummary().totals.trackers;
   const [scanning, setScanning] = useState(false);
   const [scanningTheme, setScanningTheme] = useState(false);
   const [themeInput, setThemeInput] = useState("");
@@ -240,11 +246,21 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
             detail="Les adresses http:// sont ouvertes en https:// ; si le site ne le permet pas, vous choisissez."
             status="Toujours activé"
           />
-          <Info
-            icon="shield"
+          <Toggle
             label="Bloqueur de pubs et traqueurs"
-            detail="Bloquera les publicités et les traqueurs sur toutes les pages."
-            status="Bientôt disponible"
+            detail={
+              ContentBlocker
+                ? `EasyList et EasyPrivacy. Désactivable par site : touchez le cadenas, puis « Bouclier ».${trackers ? ` ${trackers} traqueur${trackers > 1 ? "s" : ""} bloqué${trackers > 1 ? "s" : ""} en 30 jours.` : ""}`
+                : `Éléments publicitaires masqués. ${SHIELD_UNAVAILABLE_NOTE}.`
+            }
+            value={mobile.contentBlocker}
+            onChange={(contentBlocker) => actions.updateMobileSettings({ contentBlocker })}
+          />
+          <Toggle
+            label="Refuser les bandeaux cookies"
+            detail="Clique sur « Tout refuser » quand le site le propose, sinon masque le bandeau"
+            value={settings.privacy.cookieBanners}
+            onChange={(cookieBanners) => actions.updateSettings({ privacy: { cookieBanners } })}
           />
           <Action
             icon="clock"

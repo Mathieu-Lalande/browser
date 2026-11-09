@@ -12,11 +12,13 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "check": "tsc --noEmit && jest",
+    "blocklists": "node scripts/build-blocklists.mjs",
     "export:android": "expo export --platform android --output-dir dist/android",
     "export:ios": "expo export --platform ios --output-dir dist/ios",
     "export:web": "expo export --platform web --output-dir dist/web",
     "store:icons": "bash scripts/gen-icons.sh",
-    "store:screenshots": "bash scripts/store-screenshots.sh"
+    "store:screenshots": "bash scripts/store-screenshots.sh",
+    "postinstall": "patch-package && node scripts/build-blocklists.mjs --if-missing"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.4.0",
@@ -55,6 +57,7 @@
     "@types/react": "19.3.0",
     "jest": "30.5.2",
     "jest-expo": "58.0.12",
+    "patch-package": "8.0.0",
     "typescript": "6.0.3"
   },
   "jest": {

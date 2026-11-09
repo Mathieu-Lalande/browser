@@ -6,6 +6,8 @@ import type { ReaderArticle } from "@shared/reader";
 import type { Segment } from "@shared/translate/segments";
 import type { BoostPayload } from "../lib/boosts";
 import type { LinkMenuRequest } from "../lib/linkMenu";
+import type { TabShield } from "../lib/shields";
+import type { BannerResult } from "@shared/cookie-banners";
 
 export interface WebTabProps {
   id: string;
@@ -53,4 +55,8 @@ export interface WebTabProps {
   onHighlight?: (tabId: string, url: string, quote: TextQuote) => void;
   /** A highlight of the page was tapped. */
   onHighlightPress?: (tabId: string, id: string) => void;
+  /** The shield (ADR-051) for this kind of tab: element hiding and cookie banners; keep the object stable. */
+  shield?: TabShield;
+  /** A cookie banner was refused or hidden on `url` (only given for normal tabs: nothing is counted in private). */
+  onCookieBanner?: (tabId: string, url: string, result: BannerResult) => void;
 }

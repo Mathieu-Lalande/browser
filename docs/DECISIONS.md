@@ -506,7 +506,8 @@ versions épinglées), un onglet = une `react-native-webview`.
   le moteur sérialisé pour chaque requête. Le même module servira à isoler les onglets privés
   Android, à effacer les cookies et, plus tard, aux extensions (Safari Web Extensions n'étant pas
   disponibles dans une `WKWebView`, il s'agira d'un sous-ensemble maison). Les paramètres
-  l'annoncent comme « bientôt » ; rien n'est simulé.
+  l'annoncent comme « bientôt » ; rien n'est simulé. *Réalisé par l'ADR-051* (correctif patch-package plutôt
+  que le moteur sérialisé de Ghostery, listes converties à la compilation).
 
 **Conséquences.** Deux moteurs selon la plateforme (inévitable sur iOS), mais une seule logique
 métier testée. Toute fonction utile aux deux doit vivre, pure, dans `src/shared` ; le bureau ne
@@ -2564,3 +2565,63 @@ exige le nonce et l'origine injectée, puis la valeur ne devient une couleur qu'
 **Conséquences.** Le format de `sync.json` gagne `sealed` (ancien état lisible : il n'avait pas de mots de passe).
 Tests : `src/shared/sync/sensitive.test.ts` (fichier sans clair, LWW, pierres tombales, enveloppe altérée),
 Jest `sync.test.ts` (téléphone ↔ téléphone, opt-in, coffre non lu), `readerImages.test.ts`, `siteColor.test.ts`.
+
+## ADR-051 — Bloqueur de pubs et traqueurs sur le téléphone (module natif, listes converties, bouclier par site)
+
+**Contexte.** ADR-016 reportait le bloqueur mobile à une app compilée, faute de natif dans Expo Go :
+`react-native-webview` n'offre ni `WKContentRuleList` (iOS) ni `shouldInterceptRequest` (Android).
+
+**Décision.**
+- **Conversion pure** `src/shared/blocklist/` : sous-ensemble ABP/uBO (ancres `||hôte`, chemins, `@@`,
+  `$third-party`/`$~third-party`, `$domain=`, types de ressource ; `##`/`#@#` génériques ou par domaine).
+  Tout le reste est **ignoré, jamais approché** (expressions régulières, règles non ancrées, `google.*`,
+  `$redirect`, `$csp`, scriptlets, sélecteurs étendus ; sélecteurs avec accolades refusés). Trois sorties :
+  JSON WebKit (`url-filter` dans le sous-ensemble de WebKit, `if-domain`/`unless-domain` jamais mêlés, listes
+  de 50 000 règles, chaque liste suivie de toutes les exceptions puisque `ignore-previous-rules` ne vaut que
+  dans sa liste, une place gardée pour la liste blanche) ; index Android compact (hôte → chemins préfixes,
+  tiers/premier, domaines ; règles typées et jokers écartés, une `WebResourceRequest` ne disant pas son
+  type) ; index cosmétique plafonné (3 000 génériques, 10 000 couples domaine-sélecteur).
+- **Listes** : EasyList, EasyPrivacy et la liste de Peter Lowe, depuis le miroir que le bureau télécharge
+  (`adsAndTrackingLists` de Ghostery). `mobile/scripts/build-blocklists.mjs` (transpile le module partagé avec
+  `typescript`) les convertit au `postinstall` (`--if-missing`) et donc sur EAS ; hors ligne, liste de secours
+  `scripts/blocklists-seed.txt`, jamais d'échec d'installation. Sorties générées, ignorées par git : listes
+  WebKit et index Android dans le module, `src/generated/cosmetic.json`, et le **texte source** de
+  `cookieBannerAgent` (`src/generated/cookie-banner-agent.json`) : Hermes ne garde pas le source des
+  fonctions (`String(fn)` = « [bytecode] »).
+- **Accès aux WebViews : `patch-package`**, choisi contre une sous-classe de vue (composant natif codegen
+  à redéclarer, JS de la bibliothèque à dupliquer) et le swizzling/la recherche de vues (implicite, trop tard
+  pour le premier chargement). Le correctif (`mobile/patches/react-native-webview+14.0.1.patch`) est
+  minimal et **sans dépendance vers notre module** : iOS publie `RNCWebViewDidCreateUserContentController`
+  juste après la création du `WKUserContentController` (avant tout chargement) ; Android ajoute à
+  `RNCWebViewClient` un `requestInterceptor` statique (`BiFunction`) consulté par un nouveau
+  `shouldInterceptRequest`, que le module renseigne par réflexion. Montée de version : patch-package signale
+  un correctif qui ne s'applique plus, et le **plugin de configuration** (`modules/content-blocker/app.plugin.js`,
+  déclaré dans `app.config.ts`) fait échouer `expo prebuild` sans lui et reconstruit les listes absentes.
+- **Module Expo local** `mobile/modules/content-blocker` (autolié). iOS : compilation par
+  `WKContentRuleListStore` (identifiant = empreinte du JSON avec la liste blanche, recherche avant compilation,
+  anciennes listes supprimées), ajout aux contrôleurs connus (table faible) et aux nouveaux ; dernière
+  configuration réappliquée au lancement. Android : index chargé en arrière-plan, requêtes de sous-ressources
+  http(s) bloquées par une réponse vide 204 ; la page d'une requête = dernière requête principale de sa WebView
+  (`getUrl()` interdit hors du fil UI) ; tiers approché sans liste des suffixes publics (`approximateSite`,
+  même code en TS et Kotlin).
+- **Dans la page** (deux plateformes, Expo Go compris) : feuille de masquage injectée au début du document
+  (avec les boosts) et après chaque chargement ; agent des bandeaux cookies d'ADR-046 après chaque chargement,
+  port DOM propre au mobile (masquage par feuille de style), résultat accepté une fois par document (nonce,
+  origine), validé par `sanitizeBannerResult`. Une WebView n'a pas de monde isolé : la page peut voir la feuille
+  et l'agent (et fausser un compteur, rien d'autre).
+- **Bouclier par site** : `mobile.shieldsOff` (domaines, non synchronisé comme `shields.json`), dans la feuille
+  du cadenas, recharge la page ; coupe tout (natif, cosmétique, bandeaux). iOS : règle `ignore-previous-rules`
+  `if-domain` ajoutée à chaque liste, donc recompilation. Interrupteur global `mobile.contentBlocker` ;
+  bandeaux : réglage partagé `privacy.cookieBanners`.
+- **Compteurs** : `privacy-stats.ts` (ADR-046) sur le téléphone (`lib/privacyStats.ts`, AsyncStorage, effacé
+  avec « Effacer toutes les données »). Bandeaux : onglets normaux seulement. Traqueurs : Android seulement
+  (lots `onBlocked` toutes les 1,5 s), sans les pages d'onglets privés ouverts ; **iOS n'en a pas** (WebKit ne
+  signale pas les chargements bloqués).
+- **Expo Go** : module absent (`requireOptionalNativeModule`), masquage et bandeaux seulement, mention
+  « Bloqueur complet disponible dans l'app compilée ».
+
+**Conséquences.** Non testé ici (aucune compilation native possible) : Swift et Kotlin, le correctif appliqué
+à la compilation, la compilation WebKit des 100 000 règles (temps, refus éventuel d'une règle — une liste en
+échec est journalisée et les autres restent), le premier chargement d'une WebView créée avant la fin de la
+compilation (lancement à froid, sans cache) qui passe sans blocage. Testés : conversion et correspondance
+(Vitest), bouclier/agent/nonce/compteurs (Jest), `expo export`, `expo prebuild` (autoliage, plugin).

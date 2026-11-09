@@ -51,8 +51,37 @@ Sur macOS, un balayage horizontal à deux ou trois doigts sur le pavé tactile d
 
 Chaque modification du code se recharge sur le téléphone en direct. Dépannage : `mobile/README.md`.
 
-Limite d'Expo Go : pas de code natif sur mesure, donc **pas de bloqueur de pubs** sur mobile tant
-qu'on n'est pas passé à une version compilée (section 2.3).
+Limite d'Expo Go : pas de code natif sur mesure. Le bloqueur de pubs (ADR-051) n'y fait que masquer
+les éléments publicitaires et refuser les bandeaux cookies ; le blocage des requêtes (traqueurs,
+scripts publicitaires) demande l'app compilée, le « client de développement » ci-dessous.
+
+### Client de développement (bloqueur complet)
+
+Le module natif `mobile/modules/content-blocker` (Swift `WKContentRuleList` sur iOS, Kotlin
+`shouldInterceptRequest` sur Android) n'existe que dans une app compilée. Le client de développement
+est cette app, avec en plus le rechargement à chaud comme Expo Go :
+
+1. `npm install` dans `mobile/` applique le correctif de `react-native-webview` (`patches/`, patch-package)
+   et construit les listes (`scripts/build-blocklists.mjs` : EasyList, EasyPrivacy et la liste de Peter
+   Lowe, convertis par `src/shared/blocklist/`). Hors ligne, une petite liste de secours est utilisée ;
+   `npm run blocklists` reconstruit après coup. Les fichiers produits ne sont jamais commités.
+2. Compiler sur les serveurs d'Expo (ni Mac ni Android Studio nécessaires) :
+   ```powershell
+   cd browser\mobile
+   npx eas-cli build --profile development --platform android   # APK à installer directement
+   npx eas-cli build --profile development --platform ios       # iPhone enregistré (eas device:create)
+   ```
+   (`development-simulator` pour le simulateur iOS ; `preview` pour une version sans serveur de dev.)
+3. Installer l'app obtenue (lien/QR donné par EAS), puis sur le PC `npx expo start --dev-client` et
+   ouvrir le projet depuis l'app.
+4. Tester : Réglages → Confidentialité affiche « Bloqueur de pubs et traqueurs » sans la mention
+   « Bloqueur complet disponible dans l'app compilée ». Ouvrir un site chargé en publicités : les
+   emplacements sont vides ; sur Android, le cadenas → « Bouclier » montre le nombre de traqueurs
+   bloqués (iOS ne fournit pas ce compte). « Désactiver le bouclier sur ce site » recharge la page
+   sans blocage.
+
+Après une mise à jour de `react-native-webview`, `npm install` signale un correctif qui ne s'applique
+plus (et échoue en CI/EAS), et `expo prebuild` refuse de continuer sans lui : refaire le correctif (ADR-051).
 
 ---
 
