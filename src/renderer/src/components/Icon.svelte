@@ -165,6 +165,7 @@
   import FileCode from "@lucide/svelte/icons/file-code";
   import ListChecks from "@lucide/svelte/icons/list-checks";
   import PanelLeftClose from "@lucide/svelte/icons/panel-left-close";
+  import PanelLeftDashed from "@lucide/svelte/icons/panel-left-dashed";
   import PanelRight from "@lucide/svelte/icons/panel-right";
   import CircleHelp from "@lucide/svelte/icons/circle-question-mark";
   import Bug from "@lucide/svelte/icons/bug";
@@ -324,6 +325,7 @@
     "file-code": FileCode,
     "list-checks": ListChecks,
     "panel-left-close": PanelLeftClose,
+    "sidebar-compact": PanelLeftDashed,
     "panel-right": PanelRight,
     help: CircleHelp,
     bug: Bug,

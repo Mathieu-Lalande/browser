@@ -6,13 +6,13 @@
 <script lang="ts">
   import { api } from "../lib/browser.svelte";
   import { platform } from "../lib/platform.svelte";
-  import Segmented from "./ui/Segmented.svelte";
+  import SidebarModeSwitch from "./SidebarModeSwitch.svelte";
   import WindowControls from "./WindowControls.svelte";
 
   /**
    * The window bar (ADR-045), above the sidebar and the page: folded to a thin strip at rest, it
    * unfolds while the pointer rests at the very top of the window. The sidebar's mode at its start
-   * (one labeled choice among Complète, Compacte and Zen; clicking the current Compacte or Zen again
+   * (one icon choice among Complète, Compacte and Zen, named in tooltips and accessible names; clicking the current Compacte or Zen again
    * goes back to Complète), window controls at its end (Windows/Linux;
    * macOS shows its traffic lights with it), a drag area between them. The strip is never a drag
    * region: those swallow mouse events. `mode` "hidden": hidden for now (Ctrl+S), none is current.
@@ -20,16 +20,18 @@
   let { mode, onMode }: { mode: SidebarMode; onMode: (mode: Exclude<SidebarMode, "hidden">) => void } = $props();
 
   type Mode = Exclude<SidebarMode, "hidden">;
-  const modes = $derived<{ value: Mode; label: string; title: string }[]>([
-    { value: "full", label: "Complète", title: "Barre latérale complète : onglets, adresse, espaces" },
+  const modes = $derived<{ value: Mode; label: string; title: string; icon: "sidebar" | "sidebar-compact" | "zen" }[]>([
+    { value: "full", label: "Complète", icon: "sidebar", title: "Barre latérale complète : onglets, adresse, espaces" },
     {
       value: "compact",
       label: "Compacte",
+      icon: "sidebar-compact",
       title: platform.tip("Barre latérale compacte : les icônes des onglets, dépliée au survol. Recliquer : barre complète", "toggle-compact-mode"),
     },
     {
       value: "zen",
       label: "Zen",
+      icon: "zen",
       title: platform.tip("Mode zen : barre masquée, elle revient quand la souris touche le bord. Recliquer : barre complète", "toggle-zen"),
     },
   ]);
@@ -122,7 +124,7 @@
 >
   {#if revealed}
     <div class="start">
-      <Segmented value={mode === "hidden" ? null : mode} options={modes} label="Barre latérale" onchange={choose} />
+      <SidebarModeSwitch value={mode === "hidden" ? null : mode} options={modes} label="Barre latérale" onchange={choose} />
     </div>
     <span class="drag-area drag"></span>
     {#if !platform.isMac}<WindowControls />{/if}
@@ -154,9 +156,6 @@
     display: flex;
     align-items: center;
     animation: appear var(--motion-fast) var(--ease);
-  }
-  .start :global(.segmented button) {
-    padding: 0 4px;
   }
   .drag-area {
     flex: 1;
