@@ -21,6 +21,8 @@ export const KEYS = {
   boosts: "browser.boosts",
   /** Highlights and page notes (ADR-037, synced when opted in). */
   annotations: "browser.annotations",
+  /** "Lire plus tard" with the offline texts (ADR-047, synced). */
+  reading: "browser.reading-list",
 } as const;
 
 export type StorageKey = (typeof KEYS)[keyof typeof KEYS];

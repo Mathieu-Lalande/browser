@@ -6,6 +6,7 @@ import { favoriteLocalId, favoriteRecord, mergeFavorites, sanitizeSyncedFavorite
 import type { History } from "@shared/history";
 import { mergeSettings, type Settings } from "@shared/settings";
 import { MAX_SPACES } from "@shared/spaces";
+import { mergeReadingList, readingRecord, sanitizeSyncedReading, type ReadingItem, type SyncedReading } from "@shared/reading-list";
 import type { CollectionAdapter } from "@shared/sync/engine";
 import {
   SETTINGS_RECORD,
@@ -62,6 +63,8 @@ export interface MobileSyncStore {
   /** Boosts (ADR-029). */
   boosts(): Boost[];
   setBoosts(boosts: Boost[]): void;
+  /** "Lire plus tard" (ADR-047), with the offline texts: synced with everything else. */
+  reading?: { list(): ReadingItem[]; set(next: ReadingItem[]): void };
   /** Highlights and page notes (ADR-037): synced only when `settings.annotations.sync` is on. */
   annotations(): AnnotationsData;
   setAnnotations(next: AnnotationsData): void;
@@ -199,6 +202,16 @@ function annotationsAdapter(store: MobileSyncStore): CollectionAdapter<SyncedAnn
   };
 }
 
+/** The reading list (ADR-047), same records as the desktop. */
+function readingAdapter(reading: NonNullable<MobileSyncStore["reading"]>): CollectionAdapter<SyncedReading> {
+  return {
+    name: "reading",
+    snapshot: () => new Map(reading.list().map((item) => [item.id, readingRecord(item)])),
+    sanitize: (value, id) => sanitizeSyncedReading(value, id),
+    apply: ({ upserts, deletes }) => reading.set(mergeReadingList(reading.list(), upserts, deletes)),
+  };
+}
+
 /** Saved addresses (ADR-041), opt-in (`settings.autofill.syncAddresses`), same records as the desktop. */
 function addressesAdapter(store: MobileSyncStore, autofill: NonNullable<MobileSyncStore["autofill"]>): CollectionAdapter<SyncedAddress> {
   return {
@@ -213,6 +226,7 @@ function addressesAdapter(store: MobileSyncStore, autofill: NonNullable<MobileSy
 export function mobileAdapters(store: MobileSyncStore): CollectionAdapter[] {
   return [
     ...(store.autofill ? [addressesAdapter(store, store.autofill)] : []),
+    ...(store.reading ? [readingAdapter(store.reading)] : []),
     settingsAdapter(store),
     spacesAdapter(store),
     bookmarksAdapter(store),

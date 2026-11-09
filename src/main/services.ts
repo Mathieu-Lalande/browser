@@ -17,6 +17,10 @@ import { newPasswordId, PasswordVaultStore } from "./passwords/vault";
 import { NotificationCenter, type ShownNotification } from "./notifications";
 import { installPrivacy, isTabPage, permissionGranted } from "./privacy";
 import { ReaderService } from "./reader";
+import { extractArticle } from "./reader/page";
+import { ReadingListService } from "./reading/service";
+import { PanelService, clearPanelPartition } from "./panels";
+import type { AutoPipLogEntry } from "./media/auto-pip";
 import type { WindowDirectory } from "./ports";
 import type { Profile } from "./profile";
 import { SessionHardener } from "./session-hardener";
@@ -114,6 +118,8 @@ export interface AppConfig {
     importChromiumDir?: string;
     /** Notifications shown are also recorded in `globalThis.__browserTestNotifications` (ADR-041). */
     notifications?: boolean;
+    /** Automatic picture-in-picture requests are recorded in `globalThis.__browserTestAutoPip` (ADR-047). */
+    autoPip?: boolean;
   };
   /** macOS keychain access group for Touch ID passkeys (signed builds with the entitlement), ADR-041. */
   touchIdKeychainGroup?: string | null;
@@ -149,6 +155,12 @@ export class AppServices {
   readonly crashes: CrashReportService;
   /** DNS over HTTPS (ADR-046). */
   readonly secureDns: SecureDnsService;
+  /** Web panels of the sidebar (ADR-047); each window keeps its live pages (`PanelHost`). */
+  readonly panels: PanelService;
+  /** "Lire plus tard" (ADR-047). */
+  readonly reading: ReadingListService;
+  /** Test hook: automatic picture-in-picture requests (null outside tests). */
+  readonly autoPipLog: ((entry: AutoPipLogEntry) => void) | null;
   /** Installed into each tab session, in this order. */
   readonly sessionServices: readonly SessionService[];
   readonly hardener: SessionHardener;
@@ -178,6 +190,14 @@ export class AppServices {
       windows,
     });
     this.capture = new CaptureService({ windows, downloadsFolder: () => this.downloads.folder() });
+    this.panels = new PanelService({ list: () => config.profile().panels, save: (next) => config.profile().savePanels(next) }, clearPanelPartition);
+    this.reading = new ReadingListService({
+      store: { list: () => config.profile().readingList, save: (next) => config.profile().saveReadingList(next) },
+      extract: extractArticle,
+    });
+    const autoPipLog: AutoPipLogEntry[] | null = config.testHooks?.autoPip ? [] : null;
+    if (autoPipLog) (globalThis as { __browserTestAutoPip?: AutoPipLogEntry[] }).__browserTestAutoPip = autoPipLog;
+    this.autoPipLog = autoPipLog ? (entry) => autoPipLog.push(entry) : null;
     this.sync = new SyncService({
       userData: paths.userData,
       windows,
@@ -190,7 +210,7 @@ export class AppServices {
           stopAutofill();
         };
       },
-      adapters: () => config.syncAdapters({ windows, boosts: this.boosts, autofill: this.autofill }),
+      adapters: () => config.syncAdapters({ windows, boosts: this.boosts, autofill: this.autofill, panels: this.panels, reading: this.reading }),
     });
     this.defaultBrowser = new DefaultBrowserService(config.defaultClient);
     const testSource = config.testHooks?.importChromiumDir;

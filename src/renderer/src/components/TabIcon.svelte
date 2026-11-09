@@ -17,6 +17,7 @@
     import: "import",
     privacy: "shield-check",
     "site-settings": "sliders",
+    "reading-list": "book-marked",
   };
   const internal = $derived(internalPageOf(tab.url));
 </script>

@@ -78,6 +78,8 @@ export interface TabManagerHooks {
   isBookmarked?(url: string): boolean;
   /** Whether the URL is the site of one of the favorites (ADR-022). */
   isFavorite?(url: string): boolean;
+  /** Whether the page is in the reading list (ADR-047). */
+  isInReadingList?(url: string): boolean;
   /** The user right-clicked the tab's page (native context menu, ADR-021). */
   contextMenu?(tabId: TabId, params: Electron.ContextMenuParams): void;
   /** A new document of the tab's page is ready (dom-ready): password form watching, ADR-025. */

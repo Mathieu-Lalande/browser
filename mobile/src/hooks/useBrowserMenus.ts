@@ -38,6 +38,10 @@ export interface BrowserMenusDeps {
   autofillSections: readonly ("address" | "card")[];
   /** Page tools of the page menu. */
   openReader: (tabId: string) => void;
+  /** "Lire plus tard" (ADR-047): null in a private tab. */
+  readLater: ((tabId: string) => void) | null;
+  inReadingList: boolean;
+  openReadingList: () => void;
   /** The assistant sheet (ADR-044); null while the assistant is off. */
   openAssistant: (() => void) | null;
   translated: boolean;
@@ -77,6 +81,19 @@ export function useBrowserMenus(deps: BrowserMenusDeps) {
           onPress: () => deps.autofillMenu(section) ?? undefined,
         })),
         { key: "reader", label: "Mode lecture", icon: "reader", onPress: () => deps.openReader(tab.id) },
+        ...(deps.readLater && /^https?:/i.test(tab.url)
+          ? [
+              {
+                key: "read-later",
+                label: deps.inReadingList ? "Retirer de la liste de lecture" : "Lire plus tard",
+                icon: "bookMarked" as const,
+                onPress: () => {
+                  deps.readLater?.(tab.id);
+                  haptic("success");
+                },
+              },
+            ]
+          : []),
         ...(deps.openAssistant ? [{ key: "assistant", label: "Assistant IA", icon: "sparkles" as const, onPress: deps.openAssistant }] : []),
         {
           key: "translate",
@@ -97,6 +114,7 @@ export function useBrowserMenus(deps: BrowserMenusDeps) {
     items.push(
       { key: "new", label: "Nouvel onglet", icon: "plus", onPress: () => newTab(false) },
       { key: "private", label: "Nouvel onglet privé", icon: "mask", onPress: () => newTab(true) },
+      ...(isPrivate ? [] : [{ key: "reading-list", label: "Liste de lecture", icon: "bookMarked" as const, onPress: deps.openReadingList }]),
       { key: "settings", label: "Paramètres", icon: "settings", onPress: deps.openSettings },
     );
     setMenu({ title: tab?.title || (tab?.url ? displayUrl(tab.url) : "Page d'accueil"), subtitle: tab?.url ? displayUrl(tab.url) : undefined, siteUrl: tab?.url, items });

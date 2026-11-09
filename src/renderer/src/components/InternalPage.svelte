@@ -27,6 +27,7 @@
     welcome: () => import("./welcome/WelcomePage.svelte"),
     privacy: () => import("./privacy/PrivacyDashboard.svelte"),
     "site-settings": () => import("./privacy/SiteSettingsPage.svelte"),
+    "reading-list": () => import("./reading/ReadingListPage.svelte"),
   };
 
   /** Loaded pages, so that coming back to one renders it at once (no {#await} gap). */

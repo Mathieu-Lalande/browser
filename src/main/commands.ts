@@ -110,6 +110,13 @@ const RUNNERS: Record<CommandId, Runner> = {
   "highlight-selection": onActiveTab((c, id) => void c.annotator.highlightSelection(id)),
   "toggle-notes-panel": (c) => c.sendUiCommand("toggle-notes"),
   "toggle-assistant": (c) => c.sendUiCommand("toggle-assistant"),
+  "toggle-web-panel": (c) => c.panels.toggle(),
+  "add-web-panel": (c) => {
+    if (!c.isPrivate) c.sendUiCommand("add-web-panel");
+  },
+  "toggle-reading-list": onActiveTab((c, id) => void appServices().reading.toggleTab(c, id)),
+  "open-reading-list": (c) => c.openInternal("reading-list"),
+  "toggle-auto-pip": () => void updateSettings({ media: { autoPictureInPicture: !settings().media.autoPictureInPicture } }),
   "open-notes": (c) => c.openNotes(),
   "open-boosts": (c) => c.openBoosts(),
   "open-privacy-dashboard": (c) => c.openInternal("privacy"),

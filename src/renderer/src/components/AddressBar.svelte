@@ -218,6 +218,21 @@
           >
             <Icon name="star" size={16} filled={tab.isBookmarked} />
           </button>
+          {#if isWebPage && !browser.isPrivate}
+            <!-- "Lire plus tard" (ADR-047): the page and its reader-mode text, kept for later. -->
+            <button
+              type="button"
+              class="star act"
+              class:on={tab.inReadingList}
+              aria-label={tab.inReadingList ? "Retirer de la liste de lecture" : "Lire plus tard"}
+              aria-pressed={!!tab.inReadingList}
+              title={platform.tip(tab.inReadingList ? "Retirer de la liste de lecture" : "Lire plus tard", "toggle-reading-list")}
+              onmousedown={(event) => event.preventDefault()}
+              onclick={() => void api.reading.toggleTab(tab.id)}
+            >
+              <Icon name="book-marked" size={16} />
+            </button>
+          {/if}
           <button
             type="button"
             class="star act"

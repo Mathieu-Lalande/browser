@@ -183,6 +183,7 @@
   import Bell from "@lucide/svelte/icons/bell";
   import BellOff from "@lucide/svelte/icons/bell-off";
   import SpellCheck from "@lucide/svelte/icons/spell-check";
+  import BookMarked from "@lucide/svelte/icons/book-marked";
 
   type LucideIcon = Component<Record<string, unknown>>;
 
@@ -335,6 +336,7 @@
     send: Send,
     languages: Languages,
     sparkles: Sparkles,
+    "book-marked": BookMarked,
     highlighter: Highlighter,
     "notebook-pen": NotebookPen,
     notebook: Notebook,

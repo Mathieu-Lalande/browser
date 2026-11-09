@@ -169,3 +169,10 @@
   (`privacy-stats.json`, rien en privé), `browser://privacy` ; DoH `src/shared/secure-dns.ts` + `SecureDnsService` ;
   empreinte Standard/Strict (`fingerprint.ts`, limites dans l'ADR) ; `browser://site-settings` (`src/shared/site-settings.ts`,
   `src/main/site-info/site-settings.ts`, JavaScript coupé par CSP ajoutée, son coupé, lecture automatique `autoplayPolicyFor`).
+- Panneaux web, lire plus tard, PiP automatique (ADR-047) : modèles purs `src/shared/panels.ts` (`panels.json`, collection
+  `panels` facultative `settings.panels.sync`), `src/shared/reading-list.ts` (`reading-list.json`, texte du mode lecture en
+  paragraphes, plafonné, collection `reading`), `src/shared/auto-pip.ts` (`settings.media.autoPictureInPicture`) ; main
+  `PanelService` + `PanelHost` par fenêtre (`src/main/panels/`, une partition `persist:panel-<id>` par panneau, vues
+  durcies, jamais en privé), `ReadingListService` (`src/main/reading/`), `AutoPip` (`src/main/media/auto-pip.ts`, monde
+  isolé 1018, crochet `BROWSER_TEST_AUTO_PIP`) ; UI `components/panels/` (`PanelStrip`, `WebPanelFrame`, `PanelAddForm`,
+  `lib/panels.svelte.ts`), `browser://reading-list` (`components/reading/`) ; mobile `lib/readingList.ts`, `ReadingListScreen`.

@@ -59,6 +59,11 @@ Windows, macOS et Linux, avec son application iPhone et Android.
   résumer, points clés, expliquer ou traduire la sélection, comparer des onglets, questions sur la page, `@ia`
   dans la barre universelle ; ce qui est envoyé est toujours indiqué, rien n'est conservé ni synchronisé ; aussi
   sur le téléphone (ADR-044).
+- Panneaux web (ADR-047) : WhatsApp Web, Messenger, Spotify, ChatGPT, Gmail… épinglés dans la barre latérale,
+  ouverts à côté de la page (`Ctrl+Maj+E`), chargés en arrière-plan avec leur nombre de non-lus, chacun dans sa
+  propre session, version mobile au choix ; « Lire plus tard » (`Ctrl+Maj+D`) avec le texte de l'article gardé
+  hors ligne et synchronisé avec le téléphone ; image dans l'image automatique en quittant un onglet vidéo
+  (désactivée par défaut).
 - Notes et surlignages (`Ctrl+Maj+H`) : passages surlignés en quatre couleurs, retrouvés à chaque visite même si la
   page change un peu, notes par passage et par page, panneau « Notes de la page » (`Ctrl+Alt+N`), `browser://notes`
   (recherche, filtres, export Markdown/JSON), `@n` dans la barre universelle, synchro facultative, aussi sur le

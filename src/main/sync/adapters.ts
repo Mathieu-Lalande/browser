@@ -3,6 +3,8 @@ import { annotationRecords, mergeAnnotations, sanitizeSyncedAnnotation, type Syn
 import { boostRecord, mergeBoosts, sanitizeSyncedBoost, type SyncedBoost } from "@shared/boosts";
 import { favoriteLocalId, favoriteRecord, mergeFavorites, sanitizeSyncedFavorite, type SyncedFavorite } from "@shared/favorites";
 import { MAX_SPACES } from "@shared/spaces";
+import { mergePanels, panelRecord, sanitizeSyncedPanel, type SyncedPanel } from "@shared/panels";
+import { mergeReadingList, readingRecord, sanitizeSyncedReading, type SyncedReading } from "@shared/reading-list";
 import type { CollectionAdapter } from "@shared/sync/engine";
 import {
   SETTINGS_RECORD,
@@ -33,6 +35,8 @@ import { spaces } from "../spaces";
 import type { AutofillService } from "../autofill/service";
 import type { BoostService } from "../boosts/service";
 import type { WindowDirectory } from "../ports";
+import type { PanelService } from "../panels/service";
+import type { ReadingListService } from "../reading/service";
 
 /**
  * Desktop side of the synced collections (ADR-019): each adapter reads the profile and applies
@@ -46,6 +50,9 @@ export interface AdapterDeps {
   boosts: Pick<BoostService, "setBoosts">;
   /** Saved addresses (ADR-041, opt-in); cards are never handed to sync. */
   autofill?: Pick<AutofillService, "addresses" | "store" | "replace">;
+  /** Web panels (ADR-047, opt-in) and the reading list (ADR-047). */
+  panels?: Pick<PanelService, "list" | "replace">;
+  reading?: Pick<ReadingListService, "replace">;
   now?: () => number;
 }
 
@@ -165,9 +172,32 @@ function addressesAdapter(autofill: NonNullable<AdapterDeps["autofill"]>): Colle
   };
 }
 
+/** Web panels (ADR-047), opt-in (`settings.panels.sync`): definitions and order, never their pages. */
+function panelsAdapter(panels: NonNullable<AdapterDeps["panels"]>): CollectionAdapter<SyncedPanel> {
+  return {
+    name: "panels",
+    enabled: () => settings().panels.sync,
+    snapshot: () => new Map(panels.list().map((panel, index) => [panel.id, panelRecord(panel, index)])),
+    sanitize: (value, id) => sanitizeSyncedPanel(value, id),
+    apply: ({ upserts, deletes }) => panels.replace(mergePanels(panels.list(), upserts, deletes)),
+  };
+}
+
+/** The reading list (ADR-047), with its offline texts: on with sync. */
+function readingAdapter(reading: NonNullable<AdapterDeps["reading"]>): CollectionAdapter<SyncedReading> {
+  return {
+    name: "reading",
+    snapshot: () => new Map(profile().readingList.map((item) => [item.id, readingRecord(item)])),
+    sanitize: (value, id) => sanitizeSyncedReading(value, id),
+    apply: ({ upserts, deletes }) => reading.replace(mergeReadingList(profile().readingList, upserts, deletes)),
+  };
+}
+
 export function desktopAdapters(deps: AdapterDeps): CollectionAdapter[] {
   const now = deps.now ?? Date.now;
   const adapters: CollectionAdapter<never>[] = [settingsAdapter(), spacesAdapter(), bookmarksAdapter(deps), historyAdapter(now), favoritesAdapter(deps), boostsAdapter(deps), annotationsAdapter()] as CollectionAdapter<never>[];
   if (deps.autofill) adapters.push(addressesAdapter(deps.autofill) as CollectionAdapter<never>);
+  if (deps.panels) adapters.push(panelsAdapter(deps.panels) as CollectionAdapter<never>);
+  if (deps.reading) adapters.push(readingAdapter(deps.reading) as CollectionAdapter<never>);
   return adapters as CollectionAdapter[];
 }

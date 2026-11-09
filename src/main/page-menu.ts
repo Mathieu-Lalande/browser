@@ -158,6 +158,8 @@ function runEntry(id: string, c: BrowserController, tabId: TabId, contents: WebC
     case "page-bookmark":
       if (c.tabs.activeTabId !== tabId) c.tabs.activate(tabId);
       return c.toggleBookmark();
+    case "page-reading":
+      return void appServices().reading.toggleTab(c, tabId);
     case "page-translate":
       return void c.translator.toggle(tabId);
     case "assistant-summarize":
@@ -232,6 +234,7 @@ export function buildPageContextMenu(c: BrowserController, tabId: TabId, params:
     hasPasswords: hasPasswordsFor(contents.getURL()),
     autofill: appServices().autofill.menuSections(c),
     isBookmarked: tab.isBookmarked,
+    inReadingList: c.isPrivate || !/^https?:/i.test(tab.url) ? null : !!tab.inReadingList,
     translated: !!tab.translated,
     assistant: settings().assistant.enabled,
     canAnnotate: annotationUrl(contents.getURL()) !== null,
