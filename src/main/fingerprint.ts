@@ -121,3 +121,28 @@ export function acceptLanguages(normalize: boolean, locale: string): string {
   if (normalize) return COMMON_ACCEPT_LANGUAGES;
   return /^[a-z]{2,3}(-[a-z\d]{2,8})*$/i.test(locale) ? locale : "en-US";
 }
+
+// --- Strict fingerprinting protection (ADR-046) ----------------------------------------------------
+
+/** Whether the languages sent are normalized: asked for, or implied by the strict protection. */
+export const normalizesLanguages = (privacy: { normalizeAcceptLanguage: boolean; fingerprinting: string }) =>
+  privacy.normalizeAcceptLanguage || privacy.fingerprinting === "strict";
+
+/**
+ * High-entropy client hints: sent only to sites that asked for them (`Accept-CH`), they tell the
+ * exact version, OS version, CPU architecture, bitness and device model.
+ */
+const HIGH_ENTROPY_HINTS = /^sec-ch-ua-(full-version|full-version-list|platform-version|arch|bitness|model|wow64|form-factors)$/i;
+
+/** The request headers without high-entropy client hints, and whether any was there (a site asked). */
+export function withoutHighEntropyHints(headers: Record<string, string>): { headers: Record<string, string>; removed: boolean } {
+  const kept = Object.entries(headers).filter(([name]) => !HIGH_ENTROPY_HINTS.test(name));
+  if (kept.length === Object.keys(headers).length) return { headers, removed: false };
+  return { headers: Object.fromEntries(kept), removed: true };
+}
+
+/**
+ * Permissions denied without asking under the strict protection: they expose installed fonts,
+ * screens' layout and MIDI devices, classic fingerprinting surfaces.
+ */
+export const FINGERPRINTING_PERMISSIONS: ReadonlySet<string> = new Set(["local-fonts", "window-management", "midi", "midi-sysex"]);

@@ -158,6 +158,33 @@ function startServer(): Promise<{ server: Server; origin: string; log: ServerLog
         `<title>Shields</title><img src="/ads/banner.svg"><script src="/ads/banner.js"></script>` +
           `<div class="ad-box">ad</div><div class="site-ad">ad</div><p id="content">content</p>`,
       );
+    } else if (path.startsWith("/cmp-onetrust")) {
+      // A OneTrust-like consent banner (ADR-046): the page records which button was clicked.
+      res.end(
+        `<title>CMP OneTrust</title><p>article</p><div id="onetrust-consent-sdk"><div id="onetrust-banner-sdk" style="position:fixed;bottom:0;left:0;right:0;padding:20px;background:#eee">` +
+          `<p>Nous utilisons des cookies.</p>` +
+          `<button id="onetrust-accept-btn-handler" onclick="window.consent='accepted';this.closest('#onetrust-banner-sdk').remove()">Tout accepter</button>` +
+          `<button id="onetrust-reject-all-handler" onclick="window.consent='rejected';this.closest('#onetrust-banner-sdk').remove()">Tout refuser</button>` +
+          `</div></div>`,
+      );
+    } else if (path.startsWith("/cmp-late")) {
+      // A Didomi-like banner that only shows up after a while (a CMP script loading late).
+      res.end(
+        `<title>CMP late</title><p>article</p><script>setTimeout(() => { document.body.insertAdjacentHTML("beforeend", ` +
+          `'<div id="didomi-host"><div id="didomi-notice" style="position:fixed;bottom:0;padding:20px;background:#eee">` +
+          `<button id="didomi-notice-agree-button" onclick="window.consent=\\'accepted\\';document.getElementById(\\'didomi-notice\\').remove()">Accepter</button>` +
+          `<button id="didomi-notice-disagree-button" onclick="window.consent=\\'rejected\\';document.getElementById(\\'didomi-notice\\').remove()">Continuer sans accepter</button>` +
+          `</div></div>'); }, 800);</script>`,
+      );
+    } else if (path.startsWith("/cmp-noreject")) {
+      // A Cookiebot-like dialog without any refusal: hidden, never accepted.
+      res.end(
+        `<title>CMP no reject</title><p>article</p><div id="CybotCookiebotDialog" style="position:fixed;top:0;padding:20px;background:#eee">` +
+          `<button id="CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll" onclick="window.consent='accepted'">Autoriser tous les cookies</button></div>`,
+      );
+    } else if (path.startsWith("/js-check")) {
+      // Whether scripts run on the page (per-site JavaScript switch, ADR-046).
+      res.end(`<title>JS check</title><p id="out">static</p><script>document.title = "JS ran";</script>`);
     } else if (path.startsWith("/permission")) {
       res.end(`<title>Permission</title><p>asks for permissions</p>`);
     } else if (path.startsWith("/popup")) {

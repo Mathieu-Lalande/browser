@@ -132,6 +132,7 @@
   import Repeat from "@lucide/svelte/icons/repeat";
   import ServerOff from "@lucide/svelte/icons/server-off";
   import ShieldAlert from "@lucide/svelte/icons/shield-alert";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
   import Square from "@lucide/svelte/icons/square";
   import Unplug from "@lucide/svelte/icons/unplug";
   import WifiOff from "@lucide/svelte/icons/wifi-off";
@@ -248,6 +249,7 @@
     unplug: Unplug,
     hourglass: Hourglass,
     "shield-alert": ShieldAlert,
+    "shield-check": ShieldCheck,
     repeat: Repeat,
     mask: VenetianMask,
     download: Download,

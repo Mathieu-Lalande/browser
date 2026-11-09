@@ -44,6 +44,8 @@ import type { Settings, SettingsPatch, SettingsSection } from "./settings";
 import type { ClosedLists } from "./recovery";
 import type { ProfileId, ProfileInfo, ProfileInput, ProfilesView } from "./profiles";
 import type { TaskRow } from "./tasks";
+import type { PrivacySummary } from "./privacy-stats";
+import type { SiteListSetting, SiteSettingsEntry } from "./site-settings";
 import type { PrintOptions, PrintPrinter, PrintResult } from "./print";
 import type { BackupMode, BackupSummary } from "./backup";
 import type { KeyPress } from "./accelerators";
@@ -197,6 +199,15 @@ export const Channels = {
   siteInfoSetPermission: "site-info:set-permission",
   siteInfoClearData: "site-info:clear-data",
   siteInfoAllowThirdPartyCookies: "site-info:allow-third-party-cookies",
+  siteInfoSetCookieBanners: "site-info:set-cookie-banners",
+  privacyStatsSummary: "privacy-stats:summary",
+  privacyStatsClear: "privacy-stats:clear",
+  siteSettingsList: "site-settings:list",
+  siteSettingsSetSwitch: "site-settings:set-switch",
+  siteSettingsSetShields: "site-settings:set-shields",
+  siteSettingsResetZoom: "site-settings:reset-zoom",
+  siteSettingsForgetPermission: "site-settings:forget-permission",
+  siteSettingsReset: "site-settings:reset",
   siteDataList: "site-data:list",
   siteDataRemove: "site-data:remove",
   siteDataClearAll: "site-data:clear-all",
@@ -821,6 +832,8 @@ export interface BrowserApi {
     clearData(tabId: TabId): Promise<SiteInfo | null>;
     /** Third-party cookie blocking: makes the tab's site an exception (refused in private windows). */
     allowThirdPartyCookies(tabId: TabId, allow: boolean): Promise<SiteInfo | null>;
+    /** ADR-046: refuses cookie banners on the tab's site, or leaves them alone (refused in private windows). */
+    setCookieBanners(tabId: TabId, enabled: boolean): Promise<SiteInfo | null>;
   };
   /** Page options popover (ADR-031), hanging from `anchor` (the address bar). Chrome UI only. */
   pageOptions: {
@@ -895,6 +908,22 @@ export interface BrowserApi {
     /** Picks a file and summarizes it. */
     inspect(): Promise<{ ok: true; summary: BackupSummary } | { ok: false; message: string }>;
     apply(mode: BackupMode, passphrase: string | null): Promise<{ ok: true } | { ok: false; message: string }>;
+  };
+  /** ADR-046: `browser://privacy`, aggregated counters of the last 30 days (never a private window's). */
+  privacyStats: {
+    /** For one site (registrable domain), or every site with null. */
+    summary(site: string | null): Promise<PrivacySummary>;
+    /** Forgets one site's counters, or all of them (refused in a private window: null). */
+    clear(site: string | null): Promise<PrivacySummary | null>;
+  };
+  /** ADR-046: `browser://site-settings`, the profile's per-site decisions (changes refused in a private window: null). */
+  siteSettings: {
+    list(): Promise<SiteSettingsEntry[]>;
+    setSwitch(site: string, key: SiteListSetting, on: boolean): Promise<SiteSettingsEntry[] | null>;
+    setShields(host: string, enabled: boolean): Promise<SiteSettingsEntry[] | null>;
+    resetZoom(host: string): Promise<SiteSettingsEntry[] | null>;
+    forgetPermission(origin: string, kind: PermissionKind, topOrigin: string): Promise<SiteSettingsEntry[] | null>;
+    reset(site: string): Promise<SiteSettingsEntry[] | null>;
   };
   siteData: {
     list(): Promise<SiteDataEntry[] | null>;

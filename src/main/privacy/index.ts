@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { app, session, type Session, type WebContents } from "electron";
 import type { PermissionKind, PermissionPrompt } from "@shared/types";
-import { chromeVersion, normalizeClientHints } from "../fingerprint";
+import { FINGERPRINTING_PERMISSIONS, chromeVersion, normalizeClientHints, withoutHighEntropyHints } from "../fingerprint";
 import { DRM_PERMISSION } from "../drm";
 import { ContentBlocker } from "./blocker";
 import { TabCosmetics } from "./cosmetics";
@@ -13,8 +13,12 @@ import { PermissionStore } from "./permission-store";
 import { PermissionPrompts, permissionKinds } from "./permissions";
 import { ShieldsAllowList } from "./shields";
 import { settings } from "../settings";
-import { stripsCookies, withoutHeaders } from "../site-info/domains";
+import { siteOf, stripsCookies, withoutHeaders } from "../site-info/domains";
 import { Emitter } from "@shared/emitter";
+import type { PrivacyCounter, PrivacySummary } from "@shared/privacy-stats";
+import { siteListed, type SitePermissionDecision } from "@shared/site-settings";
+import { TabCookieBanners } from "./cookie-banners";
+import { PrivacyStatsStore } from "./stats";
 
 /** What a tab wants to hear about from the privacy layer. */
 export interface TabPrivacyHooks {
@@ -22,6 +26,8 @@ export interface TabPrivacyHooks {
   blocked(): void;
   /** The permission prompt to show for the tab changed. */
   permissionChanged(prompt: PermissionPrompt | null): void;
+  /** The tab's new page belongs to a site the user mutes (ADR-046). */
+  mutedBySite?(): void;
 }
 
 interface PrivacyState {
@@ -29,6 +35,8 @@ interface PrivacyState {
   blocker: ContentBlocker;
   https: HttpsOnly;
   prompts: PermissionPrompts;
+  /** The privacy dashboard's counters (ADR-046). */
+  stats: PrivacyStatsStore;
 }
 
 /**
@@ -74,11 +82,13 @@ function privacyState(): PrivacyState {
     blocker: new ContentBlocker(join(dir, "adblock", "engine.bin"), fetchList, app.isPackaged ? undefined : process.env.BROWSER_TEST_FILTERS),
     https: new HttpsOnly(),
     prompts: promptsWith(new PermissionStore(join(dir, "permissions.json"))),
+    stats: new PrivacyStatsStore(join(dir, "privacy-stats.json")),
   };
   privacy = state;
   state.blocker.start();
   app.once("will-quit", () => {
     state.blocker.stop();
+    state.stats.flush();
     // Shields toggles and remembered permissions saved just before quitting reach the disk too.
     flushJsonWriters();
   });
@@ -99,6 +109,31 @@ function promptsOf(ses: Session): PermissionPrompts {
 function shieldsOn(ses: Session | undefined, host: string): boolean {
   const own = ses ? ephemeral.get(ses)?.shields.get(host) : undefined;
   return own ?? privacy?.shields.isEnabled(host) ?? true;
+}
+
+/**
+ * Counts one event for the privacy dashboard (ADR-046), on the page's site: never for a private
+ * window's session (nothing it does is recorded), never with the URL itself.
+ */
+function record(ses: Session, counter: PrivacyCounter, pageUrl: string, tracker?: string): void {
+  if (ephemeral.has(ses) || !privacy) return;
+  privacy.stats.record({ counter, site: siteOf(pageUrl), tracker });
+}
+
+/** Whether the strict fingerprinting protection is on (ADR-046). */
+const strictFingerprinting = () => settings().privacy.fingerprinting === "strict";
+
+/**
+ * A policy that turns scripts off in a document (`browser://site-settings`, ADR-046). Several CSP
+ * headers add up (each one can only restrict), so the page's own policy is kept as it is.
+ */
+const NO_SCRIPT_POLICY = "script-src 'none'";
+
+/** Whether JavaScript is off for a tab's document response: its site (main frame) or its page's site (frames). */
+function scriptsBlocked(url: string, pageUrl: string, resourceType: string): boolean {
+  if (resourceType !== "mainFrame" && resourceType !== "subFrame") return false;
+  const list = settings().privacy.javascriptBlockedSites;
+  return list.length > 0 && siteListed(list, siteOf(resourceType === "mainFrame" ? url : pageUrl));
 }
 
 /** The Chrome this Electron is built on: client hints announce Google Chrome of that version (ADR-040). */
@@ -137,6 +172,7 @@ export function installPrivacy(ses: Session, alwaysAllowed: ReadonlySet<string>,
     if (details.resourceType === "mainFrame") {
       const upgraded = state.https.upgrade(tab.contents.id, details.url);
       tab.documentUrl = upgraded ?? details.url;
+      if (upgraded) record(ses, "httpsUpgrades", upgraded);
       return callback(upgraded ? { redirectURL: upgraded } : {});
     }
     const pageUrl = tab.documentUrl || tab.contents.getURL();
@@ -145,6 +181,7 @@ export function installPrivacy(ses: Session, alwaysAllowed: ReadonlySet<string>,
     const verdict = state.blocker.match(details.url, details.resourceType, pageUrl);
     if (!verdict) return callback({});
     tab.hooks.blocked();
+    record(ses, "trackers", pageUrl, siteOf(details.url));
     callback(verdict.redirectUrl ? { redirectURL: verdict.redirectUrl } : { cancel: true });
   });
 
@@ -160,14 +197,43 @@ export function installPrivacy(ses: Session, alwaysAllowed: ReadonlySet<string>,
     // Global Privacy Control: a legally meaningful "do not sell/share" signal in several jurisdictions.
     // Client hints (Sec-CH-UA*) are made consistent with the reduced user agent (ADR-014).
     let headers: Record<string, string> = { ...normalizeClientHints(details.requestHeaders, CHROME), "Sec-GPC": "1" };
-    if (stripsCookies(details.url, pageOf(tab), details.resourceType, settings().privacy)) headers = withoutHeaders(headers, ["cookie"]);
+    const pageUrl = pageOf(tab);
+    if (stripsCookies(details.url, pageUrl, details.resourceType, settings().privacy)) {
+      const stripped = withoutHeaders(headers, ["cookie"]);
+      if (Object.keys(stripped).length < Object.keys(headers).length) record(ses, "thirdPartyCookies", pageUrl);
+      headers = stripped;
+    }
+    // Strict fingerprinting protection: no high-entropy client hint ever leaves; a document that
+    // received some was asked for them (`Accept-CH`), counted as one attempt.
+    if (strictFingerprinting()) {
+      const reduced = withoutHighEntropyHints(headers);
+      if (reduced.removed && (details.resourceType === "mainFrame" || details.resourceType === "subFrame")) {
+        record(ses, "fingerprinting", details.resourceType === "mainFrame" ? details.url : pageUrl);
+      }
+      headers = reduced.headers;
+    }
     callback({ requestHeaders: headers });
   });
 
   ses.webRequest.onHeadersReceived((details, callback) => {
     const tab = details.webContentsId === undefined ? undefined : tabs.get(details.webContentsId);
-    if (!tab || !details.responseHeaders || !stripsCookies(details.url, pageOf(tab), details.resourceType, settings().privacy)) return callback({});
-    callback({ responseHeaders: withoutHeaders(details.responseHeaders, ["set-cookie"]) });
+    if (!tab || !details.responseHeaders) return callback({});
+    const pageUrl = pageOf(tab);
+    let headers = details.responseHeaders;
+    let changed = false;
+    if (stripsCookies(details.url, pageUrl, details.resourceType, settings().privacy)) {
+      const stripped = withoutHeaders(headers, ["set-cookie"]);
+      if (Object.keys(stripped).length < Object.keys(headers).length) {
+        record(ses, "thirdPartyCookies", pageUrl);
+        headers = stripped;
+        changed = true;
+      }
+    }
+    if (scriptsBlocked(details.url, pageUrl, details.resourceType)) {
+      headers = { ...headers, "Content-Security-Policy": [...(headers["Content-Security-Policy"] ?? []), NO_SCRIPT_POLICY] };
+      changed = true;
+    }
+    callback(changed ? { responseHeaders: headers } : {});
   });
 
   ses.setPermissionRequestHandler((contents, permission, callback, details) => {
@@ -176,6 +242,11 @@ export function installPrivacy(ses: Session, alwaysAllowed: ReadonlySet<string>,
     if (permission === DRM_PERMISSION) return callback(settings().privacy.protectedContent);
     const kinds = permissionKinds(permission, "mediaTypes" in details ? (details.mediaTypes ?? []) : []);
     if (!kinds || !tabs.has(contents.id)) return callback(false);
+    // Strict fingerprinting protection: fonts, screens and MIDI devices are refused without a prompt.
+    if (strictFingerprinting() && kinds.some((kind) => FINGERPRINTING_PERMISSIONS.has(kind))) {
+      record(ses, "fingerprinting", contents.getURL());
+      return callback(false);
+    }
     // Decisions are keyed by (requesting origin, top-level origin): an embedded frame allowed
     // inside one site is not allowed inside every site embedding it (ADR-018).
     prompts.request(contents.id, details.requestingUrl || contents.getURL(), kinds, callback, contents.getURL());
@@ -185,6 +256,7 @@ export function installPrivacy(ses: Session, alwaysAllowed: ReadonlySet<string>,
     if (permission === DRM_PERMISSION) return settings().privacy.protectedContent;
     if (!contents || !tabs.has(contents.id)) return false;
     const kinds = permissionKinds(permission, details.mediaType ? [details.mediaType] : []);
+    if (kinds && strictFingerprinting() && kinds.some((kind) => FINGERPRINTING_PERMISSIONS.has(kind))) return false;
     return kinds !== null && prompts.check(requestingOrigin, kinds, contents.getURL());
   });
 }
@@ -205,20 +277,33 @@ export function attachTabPrivacy(contents: WebContents, hooks: TabPrivacyHooks):
   contents.on("did-start-navigation", (details) => {
     if (details.isMainFrame && !details.isSameDocument) prompts.denyAll(id);
   });
-  contents.on("did-navigate", () => privacy?.https.clear(id));
+  contents.on("did-navigate", (_event, url) => {
+    privacy?.https.clear(id);
+    // Sites the user mutes (ADR-046): their pages start muted, the tab shows it.
+    if (siteListed(settings().privacy.mutedSites, siteOf(url))) tabs.get(id)?.hooks.mutedBySite?.();
+  });
   // Back to the committed page once loading settles (a main-frame request may not have committed: download, 204…).
   contents.on("did-stop-loading", () => {
     const tab = tabs.get(id);
     if (tab) tab.documentUrl = contents.getURL();
   });
+  const ses = contents.session;
   if (privacy) {
     // Element hiding, driven from main (ADR-006); listens to the tab's events for its lifetime.
-    const ses = contents.session;
     new TabCosmetics(contents, privacy.blocker, (url) => {
       const host = webHostname(url);
       return !!host && shieldsOn(ses, host);
     });
   }
+  // Cookie banners refused (ADR-046): on by default, except on the sites the user excluded and where the shields are off.
+  new TabCookieBanners(contents, {
+    enabled: (url) => {
+      const { cookieBanners, cookieBannerExceptions } = settings().privacy;
+      const host = webHostname(url);
+      return cookieBanners && !!host && shieldsOn(ses, host) && !siteListed(cookieBannerExceptions, siteOf(url));
+    },
+    handled: (url) => record(ses, "cookieBanners", url),
+  });
   contents.once("destroyed", () => {
     tabs.delete(id);
     prompts.denyAll(id);
@@ -305,6 +390,38 @@ export function permissionGranted(contents: WebContents, origin: string, kind: P
 /** Forgets one decision: the site (or the frame embedded in it) will ask again. */
 export function forgetSitePermission(ses: Session, origin: string, kind: PermissionKind, topOrigin: string): void {
   void promptsOf(ses).store.forget(origin, kind, topOrigin);
+}
+
+// --- Privacy dashboard and site settings (ADR-046) ---------------------------------------------------
+
+/** The dashboard's figures over the last 30 days, for one site or all of them. */
+export function privacySummary(site?: string | null): PrivacySummary {
+  return privacyState().stats.summary(site);
+}
+
+/** Forgets the dashboard's counters (one site's, or all). */
+export function clearPrivacyStats(site?: string | null): void {
+  privacyState().stats.clear(site);
+}
+
+/** Every permission decision of the profile (remembered or until quit), for `browser://site-settings`. */
+export function profilePermissionDecisions(): SitePermissionDecision[] {
+  return privacyState().prompts.store.allEntries();
+}
+
+/** Forgets one of the profile's permission decisions. */
+export function forgetProfilePermission(origin: string, kind: PermissionKind, topOrigin: string): Promise<void> {
+  return privacyState().prompts.store.forget(origin, kind, topOrigin);
+}
+
+/** Hosts where the profile's shields are off. */
+export function shieldsDisabledHosts(): string[] {
+  return privacyState().shields.disabledHosts();
+}
+
+/** Turns the profile's shields on or off for a host. */
+export function setHostShields(host: string, enabled: boolean): Promise<void> {
+  return privacyState().shields.setEnabled(host, enabled);
 }
 
 export function respondPermission(contentsId: number, promptId: string, allow: boolean, remember: boolean): void {

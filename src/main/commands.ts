@@ -112,6 +112,8 @@ const RUNNERS: Record<CommandId, Runner> = {
   "toggle-assistant": (c) => c.sendUiCommand("toggle-assistant"),
   "open-notes": (c) => c.openNotes(),
   "open-boosts": (c) => c.openBoosts(),
+  "open-privacy-dashboard": (c) => c.openInternal("privacy"),
+  "open-site-settings": (c) => c.openInternal("site-settings"),
   "zap-elements": onActiveTab((c, id) => appServices().boosts.startZap(c, id)),
   // Shows the settings, where the update status is.
   "check-updates": (c) => {

@@ -49,6 +49,13 @@ export const TAB_WEB_PREFERENCES: WebPreferences = {
   plugins: true,
 };
 
+/** Chromium's autoplay policy for the "Lecture automatique" setting (ADR-046); new tabs take it. */
+export function autoplayPolicyFor(policy: "allow" | "block-sound" | "block-all"): WebPreferences["autoplayPolicy"] {
+  if (policy === "block-sound") return "user-gesture-required";
+  if (policy === "block-all") return "document-user-activation-required";
+  return "no-user-gesture-required";
+}
+
 /** What `createWindow` receives: the page Chromium created for `window.open` (missing from the typings). */
 export type PopupOptions = BrowserWindowConstructorOptions & { webContents?: WebContents };
 

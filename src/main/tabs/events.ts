@@ -107,6 +107,13 @@ export class TabEvents {
         tab.state.permissionRequest = prompt;
         deps.emit();
       },
+      // A site the user mutes (ADR-046): muted like the tab's own button would, unmuted the same way.
+      mutedBySite: () => {
+        if (contents.isDestroyed() || contents.isAudioMuted()) return;
+        contents.setAudioMuted(true);
+        tab.state.isMuted = true;
+        deps.emit();
+      },
     });
   }
 

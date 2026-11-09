@@ -1,0 +1,147 @@
+<script lang="ts">
+  import { PERMISSION_LABELS } from "@shared/site-info";
+  import type { SiteListSetting, SiteSettingsEntry } from "@shared/site-settings";
+  import Icon from "../Icon.svelte";
+  import Button from "../ui/Button.svelte";
+  import ConfirmButton from "../ui/ConfirmButton.svelte";
+  import Toggle from "../ui/Toggle.svelte";
+
+  /** One site of `browser://site-settings` (ADR-046): its switches, then each remembered decision. */
+  let {
+    entry,
+    readonly,
+    thirdPartyBlocking,
+    onswitch,
+    onshields,
+    onzoom,
+    onforget,
+    onreset,
+  }: {
+    entry: SiteSettingsEntry;
+    readonly: boolean;
+    /** "Bloquer les cookies tiers" is on: the exception switch means something. */
+    thirdPartyBlocking: boolean;
+    onswitch: (key: SiteListSetting, on: boolean) => void;
+    onshields: (host: string) => void;
+    onzoom: (host: string) => void;
+    onforget: (permission: SiteSettingsEntry["permissions"][number]) => void;
+    onreset: () => void;
+  } = $props();
+
+  const permissionOrigin = (origin: string) => origin.replace(/^https?:\/\//, "");
+</script>
+
+<article class="site" data-site={entry.site} aria-label={entry.site}>
+  <header>
+    <Icon name="globe" size={16} />
+    <h3>{entry.site}</h3>
+    {#if !readonly}
+      <ConfirmButton question="Oublier tous les réglages de {entry.site} ?" confirmLabel="Réinitialiser" onconfirm={onreset}>
+        <Icon name="reset" size={14} /> Réinitialiser
+      </ConfirmButton>
+    {/if}
+  </header>
+
+  <ul class="lines">
+    <li>
+      <Icon name="code" size={14} />
+      <span class="label">JavaScript</span>
+      <Toggle label="JavaScript sur {entry.site}" checked={!entry.javascript} onchange={(on) => !readonly && onswitch("javascript", !on)} />
+    </li>
+    <li>
+      <Icon name="volume-off" size={14} />
+      <span class="label">Couper le son</span>
+      <Toggle label="Couper le son sur {entry.site}" checked={entry.muted} onchange={(on) => !readonly && onswitch("muted", on)} />
+    </li>
+    <li>
+      <Icon name="cookie" size={14} />
+      <span class="label">Refuser les bandeaux cookies</span>
+      <Toggle label="Refuser les bandeaux cookies sur {entry.site}" checked={!entry.cookieBanners} onchange={(on) => !readonly && onswitch("cookieBanners", !on)} />
+    </li>
+    {#if thirdPartyBlocking || entry.thirdPartyCookies}
+      <li>
+        <Icon name="globe-off" size={14} />
+        <span class="label">Autoriser les cookies tiers</span>
+        <Toggle label="Autoriser les cookies tiers sur {entry.site}" checked={entry.thirdPartyCookies} onchange={(on) => !readonly && onswitch("thirdPartyCookies", on)} />
+      </li>
+    {/if}
+    {#each entry.shieldsOff as host (host)}
+      <li>
+        <Icon name="shield-off" size={14} />
+        <span class="label">Protections désactivées <span class="detail">{host}</span></span>
+        {#if !readonly}<Button size="sm" variant="quiet" onclick={() => onshields(host)}>Réactiver</Button>{/if}
+      </li>
+    {/each}
+    {#each entry.zoom as zoom (zoom.host)}
+      <li>
+        <Icon name="zoom-in" size={14} />
+        <span class="label">Zoom {zoom.zoom}&#8239;% <span class="detail">{zoom.host}</span></span>
+        {#if !readonly}<Button size="sm" variant="quiet" onclick={() => onzoom(zoom.host)}>Par défaut</Button>{/if}
+      </li>
+    {/each}
+    {#each entry.permissions as permission (`${permission.origin} ${permission.topOrigin} ${permission.kind}`)}
+      <li>
+        <Icon name={permission.decision === "allow" ? "check" : "close"} size={14} />
+        <span class="label">
+          {PERMISSION_LABELS[permission.kind]} : {permission.decision === "allow" ? "autorisé" : "bloqué"}
+          {#if permission.origin !== permission.topOrigin}<span class="detail">{permissionOrigin(permission.origin)}</span>{/if}
+        </span>
+        {#if !readonly}<Button size="sm" variant="quiet" onclick={() => onforget(permission)}>Oublier</Button>{/if}
+      </li>
+    {/each}
+  </ul>
+</article>
+
+<style>
+  .site {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+  }
+  header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--text-muted);
+  }
+  h3 {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    color: var(--text);
+    font-size: var(--text-md);
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .lines {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--hit-min);
+    color: var(--text-muted);
+  }
+  .label {
+    flex: 1;
+    min-width: 0;
+    color: var(--text);
+    font-size: var(--text-sm);
+  }
+  .detail {
+    margin-left: var(--space-1);
+    color: var(--text-faint);
+    font-size: var(--text-xs);
+  }
+</style>

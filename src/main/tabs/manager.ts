@@ -8,7 +8,8 @@ import { InPageVisits } from "../activation";
 import { onShieldsChange, shieldsEnabledFor } from "../privacy";
 import type { SleepCandidate } from "../sleep";
 import type { SessionTab, SessionTabList } from "../storage/session";
-import { TAB_WEB_PREFERENCES, type PopupOptions } from "../security";
+import { TAB_WEB_PREFERENCES, autoplayPolicyFor, type PopupOptions } from "../security";
+import { settings } from "../settings";
 import { BROWSER_PAGES_ZOOM, onSiteZoomChange } from "../zoom";
 import { sameFactor } from "../zoom/levels";
 import { TabEvents } from "./events";
@@ -740,7 +741,12 @@ export class TabManager {
 
   private createView(): WebContentsView {
     const view = new WebContentsView({
-      webPreferences: { ...(this.session ? { session: this.session } : {}), ...TAB_WEB_PREFERENCES },
+      webPreferences: {
+        ...(this.session ? { session: this.session } : {}),
+        ...TAB_WEB_PREFERENCES,
+        // Set when the page is created: a change of the setting applies to the next tabs (ADR-046).
+        autoplayPolicy: autoplayPolicyFor(settings().privacy.autoplay),
+      },
     });
     view.setBorderRadius(this.options.pageRadius);
     view.setBackgroundColor("#ffffff");

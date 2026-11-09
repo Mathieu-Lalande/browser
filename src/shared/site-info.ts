@@ -49,6 +49,8 @@ export interface SiteInfo {
   isPrivate: boolean;
   /** "Bloquer les cookies tiers" is on, and whether this site is an exception to it. */
   thirdPartyCookies: { blocking: boolean; allowedHere: boolean };
+  /** Cookie banners refused (ADR-046): the setting, and whether this site is not an exception to it. */
+  cookieBanners: { enabled: boolean; here: boolean };
 }
 
 /** One registrable domain with cookies, in the settings' site data list. */

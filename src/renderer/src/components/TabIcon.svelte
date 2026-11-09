@@ -15,6 +15,8 @@
     welcome: "sparkle",
     history: "history",
     import: "import",
+    privacy: "shield-check",
+    "site-settings": "sliders",
   };
   const internal = $derived(internalPageOf(tab.url));
 </script>

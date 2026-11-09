@@ -719,7 +719,20 @@
             <li><strong>Autorisations</strong> (caméra, micro, notifications…) demandées site par site, révocables dans les infos sur le site.</li>
             <li><strong>Moins d'empreinte</strong> : Global Privacy Control, identité de navigateur sans trace d'Electron, langue envoyée aux sites uniformisable (Paramètres, Confidentialité).</li>
             <li><strong>Cookies tiers</strong> bloquables, données d'un site effaçables (commande « Effacer les données du site », ou Paramètres, Données des sites).</li>
+            <li><strong>Bandeaux cookies refusés</strong> d'office sur les plateformes de consentement courantes (OneTrust, Didomi, Cookiebot, Quantcast, Usercentrics, Axeptio, Sirdata, CookieYes, iubenda, Complianz, Google, Klaro, Osano, TrustArc, Termly) : « Tout refuser » ou « Continuer sans accepter », sinon le bandeau est masqué. Jamais « Accepter ». Désactivable par site (infos sur le site).</li>
+            <li><strong>DNS sécurisé</strong> (DNS over HTTPS) : automatique, Cloudflare, Quad9, NextDNS ou un serveur à vous (Paramètres, Confidentialité). Il vaut pour tout le navigateur ; un filtrage DNS d'entreprise ou parental ne s'applique alors plus.</li>
+            <li><strong>Empreinte</strong> : niveau Standard (identité de Chrome réduite) ou Strict (langue uniformisée, pas d'indices client détaillés, polices, écrans et appareils MIDI refusés sans demander). Le dessin canvas/WebGL n'est pas brouillé : un navigateur sans script injecté dans les pages ne peut pas le faire.</li>
           </ul>
+          <h3>Tableau de bord et paramètres des sites</h3>
+          <p>
+            <code>browser://privacy</code> (menu « … », Bibliothèque, ou les infos sur le site) montre ce que les protections ont fait
+            ces 30 derniers jours : traqueurs et pubs bloqués, bandeaux refusés, connexions passées en HTTPS, cookies tiers bloqués,
+            pistages par empreinte contrés, sites et traqueurs les plus fréquents. Seuls des totaux par jour et par site sont gardés,
+            sur l'appareil ; les fenêtres privées ne comptent pas.
+            <code>browser://site-settings</code> rassemble les décisions prises site par site (autorisations, zoom, protections,
+            JavaScript, son coupé, bandeaux cookies, exceptions aux cookies tiers), avec une recherche et une remise à zéro par site,
+            et les comportements par défaut (lecture automatique : autoriser, sans le son, bloquer).
+          </p>
           <h3>Fenêtres privées</h3>
           <p>
             <kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>N</kbd> (<kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>N</kbd>) : chaque fenêtre privée a sa

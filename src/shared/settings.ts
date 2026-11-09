@@ -6,6 +6,7 @@ import { normalizeLanguage, sanitizeLanguageList } from "./translate/languages";
 import { normalizeServerUrl, type DeepLPlan, type TranslateProviderChoice } from "./translate/providers";
 import { sanitizeSiteKeys } from "./translate/rules";
 import { ASSISTANT_MODELS, DEFAULT_ASSISTANT_MODEL, type AssistantModelId } from "./assistant/models";
+import { SECURE_DNS_CHOICES, normalizeDohTemplate, normalizeNextDnsId, type SecureDnsChoice } from "./secure-dns";
 import { DEFAULT_SEARCH_ENGINE, SEARCH_ENGINES, type SearchEngine } from "./url";
 
 /** User preferences, persisted as `settings.json` and applied live in every window. */
@@ -89,6 +90,11 @@ export interface BehaviorSettings {
   defaultBrowserPromptDismissed: boolean;
 }
 
+/** Fingerprinting protection (ADR-046). */
+export type FingerprintingLevel = "standard" | "strict";
+/** "block-sound": media may only autoplay muted; "block-all": nothing plays before the user interacts. */
+export type AutoplayPolicy = "allow" | "block-sound" | "block-all";
+
 export interface PrivacySettings {
   /** Send the most common `Accept-Language` ("en-US,en") instead of the browser's own languages (ADR-014). */
   normalizeAcceptLanguage: boolean;
@@ -104,6 +110,24 @@ export interface PrivacySettings {
    * pages are refused the DRM key system (and the desktop app does not wait for the CDM at startup).
    */
   protectedContent: boolean;
+  /** Cookie banners are refused automatically (ADR-046), except on `cookieBannerExceptions`. */
+  cookieBanners: boolean;
+  /** Sites (registrable domains) where cookie banners are left alone. */
+  cookieBannerExceptions: string[];
+  /** DNS over HTTPS (ADR-046): Chromium's choice, a preset provider or a custom template. */
+  secureDns: SecureDnsChoice;
+  /** `https://…` DoH template used when `secureDns` is "custom" ("" until typed). */
+  secureDnsCustomUrl: string;
+  /** NextDNS configuration id (optional: without it, NextDNS resolves without filtering). */
+  secureDnsNextDnsId: string;
+  /** "strict" also denies fingerprinting-prone APIs and high-entropy client hints (ADR-046). */
+  fingerprinting: FingerprintingLevel;
+  /** Sites where JavaScript is off (a `script-src 'none'` policy added to their documents). */
+  javascriptBlockedSites: string[];
+  /** Sites whose tabs are muted as soon as they show them. */
+  mutedSites: string[];
+  /** Default autoplay policy of new tabs (ADR-046). */
+  autoplay: AutoplayPolicy;
 }
 
 export interface DownloadSettings {
@@ -300,7 +324,21 @@ export const DEFAULT_SETTINGS: Settings = {
   search: { engine: DEFAULT_SEARCH_ENGINE.id },
   startPage: { widgets: defaultWidgets(), greetingName: "", background: "theme", backgroundImage: "" },
   behavior: { restoreSession: true, newTabPosition: "end", closeTabActivates: "next", sleepTabsAfter: "30m", archiveTabsAfter: "7d", defaultBrowserPromptDismissed: false },
-  privacy: { normalizeAcceptLanguage: false, blockThirdPartyCookies: false, thirdPartyCookieExceptions: [], protectedContent: true },
+  privacy: {
+    normalizeAcceptLanguage: false,
+    blockThirdPartyCookies: false,
+    thirdPartyCookieExceptions: [],
+    protectedContent: true,
+    cookieBanners: true,
+    cookieBannerExceptions: [],
+    secureDns: "automatic",
+    secureDnsCustomUrl: "",
+    secureDnsNextDnsId: "",
+    fingerprinting: "standard",
+    javascriptBlockedSites: [],
+    mutedSites: [],
+    autoplay: "allow",
+  },
   downloads: { folder: "", askWhere: false },
   reader: { font: "serif", size: 19, width: "medium", theme: "auto" },
   updates: { autoDownload: true, channel: "stable" },
@@ -442,7 +480,21 @@ const schema: Schema = {
     archiveTabsAfter: oneOf("never", "12h", "24h", "7d", "30d"),
     defaultBrowserPromptDismissed: bool,
   },
-  privacy: { normalizeAcceptLanguage: bool, blockThirdPartyCookies: bool, thirdPartyCookieExceptions: sanitizeSiteList, protectedContent: bool },
+  privacy: {
+    normalizeAcceptLanguage: bool,
+    blockThirdPartyCookies: bool,
+    thirdPartyCookieExceptions: sanitizeSiteList,
+    protectedContent: bool,
+    cookieBanners: bool,
+    cookieBannerExceptions: sanitizeSiteList,
+    secureDns: oneOf(...SECURE_DNS_CHOICES),
+    secureDnsCustomUrl: (value) => (value === "" ? "" : (normalizeDohTemplate(value) ?? undefined)),
+    secureDnsNextDnsId: (value) => (value === "" ? "" : (normalizeNextDnsId(value) ?? undefined)),
+    fingerprinting: oneOf("standard", "strict"),
+    javascriptBlockedSites: sanitizeSiteList,
+    mutedSites: sanitizeSiteList,
+    autoplay: oneOf("allow", "block-sound", "block-all"),
+  },
   downloads: { folder: folderPath, askWhere: bool },
   reader: {
     font: oneOf("serif", "sans"),

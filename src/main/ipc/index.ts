@@ -13,7 +13,7 @@ import { historyHandlers, settingsHandlers, weatherHandlers } from "./profile";
 import { defaultBrowserHandlers, drmHandlers, importHandlers } from "./import";
 import { registerHandlers, type ChannelName, type Entry } from "./registry";
 import { startSyncBroadcast, syncHandlers, themeHandlers, updateHandlers } from "./services";
-import { extensionHandlers, siteInfoHandlers } from "./site";
+import { extensionHandlers, privacyPageHandlers, siteInfoHandlers } from "./site";
 import { tabHandlers } from "./tabs";
 import { translateHandlers } from "./translate";
 import { assistantHandlers } from "./assistant";
@@ -61,6 +61,7 @@ const handlers = {
   ...weatherHandlers,
   ...downloadHandlers,
   ...siteInfoHandlers,
+  ...privacyPageHandlers,
   ...extensionHandlers,
   ...passwordHandlers,
   ...autofillHandlers,

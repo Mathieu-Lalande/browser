@@ -10,11 +10,15 @@ import {
   listSiteData,
   removeSiteData,
   resetSitePermission,
+  setCookieBannersFor,
   setSitePermissionFor,
   siteInfoFor,
 } from "../site-info";
+import { forgetSitePermissionDecision, listSiteSettings, resetSite, resetSiteZoom, setSiteShields, setSiteSwitch } from "../site-info/site-settings";
+import { clearPrivacyStats, privacySummary } from "../privacy";
+import { isSiteListSetting } from "@shared/site-settings";
 import { MAX_URL_LENGTH } from "./limits";
-import { bool, bounds, defineHandlers, handle, handleUi, maxStr, on, str } from "./registry";
+import { bool, bounds, defineHandlers, handle, handleUi, maxStr, nullable, on, str } from "./registry";
 
 /**
  * Site info popover (ADR-021): the UI names a tab of its own window; main reads its URL and
@@ -31,10 +35,32 @@ export const siteInfoHandlers = defineHandlers({
   ),
   [Channels.siteInfoClearData]: handle([str], (c, tabId) => clearTabSiteData(c, tabId)),
   [Channels.siteInfoAllowThirdPartyCookies]: handle([str, bool], (c, tabId, allow) => allowThirdPartyCookies(c, tabId, allow)),
+  [Channels.siteInfoSetCookieBanners]: handle([str, bool], (c, tabId, enabled) => setCookieBannersFor(c, tabId, enabled)),
   // The profile's site data: never listed nor cleared from a private window.
   [Channels.siteDataList]: handle([], (c) => (c.isPrivate ? null : listSiteData())),
   [Channels.siteDataRemove]: handle([isSiteName], (c, site) => (c.isPrivate ? null : removeSiteData(site))),
   [Channels.siteDataClearAll]: handle([], (c) => (c.isPrivate ? null : clearAllSiteData())),
+});
+
+/**
+ * ADR-046: the privacy dashboard and `browser://site-settings`. Both show the profile's data; a
+ * private window may look, not change (its own decisions live in memory and go with it).
+ */
+export const privacyPageHandlers = defineHandlers({
+  [Channels.privacyStatsSummary]: handle([nullable(isSiteName)], (_c, site) => privacySummary(site)),
+  [Channels.privacyStatsClear]: handle([nullable(isSiteName)], (c, site) => {
+    if (c.isPrivate) return null;
+    clearPrivacyStats(site);
+    return privacySummary(null);
+  }),
+  [Channels.siteSettingsList]: handle([], () => listSiteSettings()),
+  [Channels.siteSettingsSetSwitch]: handle([isSiteName, isSiteListSetting, bool], (c, site, key, value) => (c.isPrivate ? null : setSiteSwitch(site, key, value))),
+  [Channels.siteSettingsSetShields]: handle([isSiteName, bool], (c, host, enabled) => (c.isPrivate ? null : setSiteShields(host, enabled))),
+  [Channels.siteSettingsResetZoom]: handle([isSiteName], (c, host) => (c.isPrivate ? null : resetSiteZoom(host))),
+  [Channels.siteSettingsForgetPermission]: handle([maxStr(MAX_URL_LENGTH), isPermissionKind, maxStr(MAX_URL_LENGTH)], (c, origin, kind, topOrigin) =>
+    c.isPrivate ? null : forgetSitePermissionDecision(origin, kind, topOrigin),
+  ),
+  [Channels.siteSettingsReset]: handle([isSiteName], (c, site) => (c.isPrivate ? null : resetSite(site))),
 });
 
 const privateRefusal = { ok: false, message: "Les extensions se gèrent depuis une fenêtre normale." } as const;

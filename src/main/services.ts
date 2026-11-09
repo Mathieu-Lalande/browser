@@ -20,6 +20,8 @@ import { ReaderService } from "./reader";
 import type { WindowDirectory } from "./ports";
 import type { Profile } from "./profile";
 import { SessionHardener } from "./session-hardener";
+import { SecureDnsService } from "./secure-dns";
+import type { HostResolverConfig } from "@shared/secure-dns";
 import { SpellcheckService } from "./spellcheck";
 import { PasskeyService } from "./webauthn";
 import { setAppServices } from "./app-services-ref";
@@ -99,6 +101,8 @@ export interface AppConfig {
   processes: Pick<TaskManagerDeps, "metrics" | "allContents">;
   /** Crashpad and the build's crash endpoint (ADR-043). */
   crashReports: Pick<CrashReportDeps, "reporter" | "dumpsDir" | "endpoint" | "version">;
+  /** `app.configureHostResolver`: secure DNS (ADR-046). */
+  configureHostResolver(config: HostResolverConfig): void;
   /** Test hooks honored by an unpackaged app only (ADR-018). */
   testHooks?: {
     /** ADR-042: files used instead of the print and backup dialogs. */
@@ -143,6 +147,8 @@ export class AppServices {
   readonly passkeys: PasskeyService;
   /** Crash reports (ADR-043). */
   readonly crashes: CrashReportService;
+  /** DNS over HTTPS (ADR-046). */
+  readonly secureDns: SecureDnsService;
   /** Installed into each tab session, in this order. */
   readonly sessionServices: readonly SessionService[];
   readonly hardener: SessionHardener;
@@ -242,6 +248,12 @@ export class AppServices {
       settings: () => config.settings(),
       onSettingsChanged: (listener) => config.onSettingsChanged(listener),
     });
+    this.secureDns = new SecureDnsService({
+      configure: (resolver) => config.configureHostResolver(resolver),
+      settings: () => config.settings(),
+      onSettingsChanged: (listener) => config.onSettingsChanged(listener),
+    });
+    this.secureDns.start();
     // Downloads: tab pages only, no automatic opening, dangerous types confirmed first (ADR-013); a
     // private session's ones never reach the history (ADR-014). Extensions: ADR-024.
     this.sessionServices = [privacyService, this.downloads, this.extensions, certificateService, this.spellcheck, this.passkeys];

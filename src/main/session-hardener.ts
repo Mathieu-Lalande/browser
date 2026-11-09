@@ -1,6 +1,6 @@
 import type { Session } from "electron";
 import type { Settings } from "@shared/settings";
-import { acceptLanguages, reduceUserAgent } from "./fingerprint";
+import { acceptLanguages, normalizesLanguages, reduceUserAgent } from "./fingerprint";
 import type { SessionOptions, SessionService } from "./services";
 
 /** What SessionHardener needs from the app. */
@@ -50,16 +50,16 @@ export class SessionHardener {
 
   /** User agent and `Accept-Language` of a session, following the "normalize languages" setting. */
   private applyIdentity(ses: Session, userAgent: string): void {
-    ses.setUserAgent(userAgent, acceptLanguages(this.deps.settings().privacy.normalizeAcceptLanguage, this.deps.locale()));
+    ses.setUserAgent(userAgent, acceptLanguages(normalizesLanguages(this.deps.settings().privacy), this.deps.locale()));
   }
 
   private followLanguages(): void {
     if (this.languagesFollowSettings) return;
     this.languagesFollowSettings = true;
-    let normalize = this.deps.settings().privacy.normalizeAcceptLanguage;
+    let normalize = normalizesLanguages(this.deps.settings().privacy);
     this.deps.onSettingsChanged((current) => {
-      if (current.privacy.normalizeAcceptLanguage === normalize) return;
-      normalize = current.privacy.normalizeAcceptLanguage;
+      if (normalizesLanguages(current.privacy) === normalize) return;
+      normalize = normalizesLanguages(current.privacy);
       for (const [known, agent] of this.hardened) this.applyIdentity(known, agent);
     });
   }

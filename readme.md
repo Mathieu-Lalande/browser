@@ -86,6 +86,9 @@ Windows, macOS et Linux, avec son application iPhone et Android.
 - Boucliers : bloqueur de pubs et traqueurs (EasyList/uBlock via Ghostery), HTTPS uniquement, bloqueur de
   fenêtres surgissantes, Global Privacy Control, invite de permissions par site, user agent sans trace
   d'Electron, `Accept-Language` uniformisable, cookies tiers bloquables (ADR-006 à 008, 014, 021).
+- Bandeaux cookies refusés automatiquement (règles des CMP courantes, jamais « Accepter », masqués à défaut),
+  tableau de bord `browser://privacy` (30 jours, totaux locaux), DNS sécurisé (DoH), protection Stricte contre
+  l'empreinte, `browser://site-settings` (autorisations, JavaScript et son par site, lecture automatique) (ADR-046).
 - Fenêtres privées (`Ctrl+Maj+N`, `⇧⌘N`) : session en mémoire propre à la fenêtre, effacée à la fermeture (ADR-014).
 - Gestionnaire de mots de passe (coffre `safeStorage`, remplissage à la demande, origine exacte, export CSV,
   `browser://passwords`), jamais d'invite en fenêtre privée (ADR-025).

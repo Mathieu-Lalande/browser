@@ -163,3 +163,9 @@
   (menu de l'application, pied de la barre latérale, ouvert vers le haut) ; barre d'adresse : favori + options de la page
   au survol, le reste dans les options de la page ou derrière le cadenas ; zoom propre des pages dessinées par l'interface
   (clé `browser://` de `zoom.json`, `.drawn-page`) ; onglet lâché au milieu d'un autre = vue scindée (`splitTargetFromBoxes`).
+- Confidentialité visible (ADR-046) : règles de CMP en données pures `src/shared/cookie-banners/` (agent autonome
+  `cookieBannerAgent` envoyé en texte, monde isolé 1020, jamais « Accepter », fixture par CMP), `TabCookieBanners`
+  (`src/main/privacy/cookie-banners.ts`) ; compteurs agrégés `src/shared/privacy-stats.ts` + `PrivacyStatsStore`
+  (`privacy-stats.json`, rien en privé), `browser://privacy` ; DoH `src/shared/secure-dns.ts` + `SecureDnsService` ;
+  empreinte Standard/Strict (`fingerprint.ts`, limites dans l'ADR) ; `browser://site-settings` (`src/shared/site-settings.ts`,
+  `src/main/site-info/site-settings.ts`, JavaScript coupé par CSP ajoutée, son coupé, lecture automatique `autoplayPolicyFor`).

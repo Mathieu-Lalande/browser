@@ -153,6 +153,7 @@ if (!app.requestSingleInstanceLock()) {
       openWindow: (saved) => new BrowserController(saved),
       session: () => BrowserController.sessionSnapshot(),
       processes: { metrics: () => app.getAppMetrics(), allContents: () => webContents.getAllWebContents() },
+      configureHostResolver: (resolver) => app.configureHostResolver(resolver),
       testHooks: app.isPackaged
         ? {}
         : {

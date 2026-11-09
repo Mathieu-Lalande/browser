@@ -84,6 +84,21 @@ export class PermissionStore {
     return [...entries.values()];
   }
 
+  /** Every decision, per (requesting origin, top-level origin, kind): those kept until quit win (ADR-046). */
+  allEntries(): { origin: string; topOrigin: string; kind: PermissionKind; decision: PermissionDecision }[] {
+    const entries = new Map<string, { origin: string; topOrigin: string; kind: PermissionKind; decision: PermissionDecision }>();
+    for (const source of [this.session, this.saved]) {
+      for (const [key, kinds] of source) {
+        const [origin, topOrigin = origin] = key.split(" ");
+        for (const [kind, decision] of kinds) {
+          const id = `${key} ${kind}`;
+          if (!entries.has(id)) entries.set(id, { origin, topOrigin, kind, decision });
+        }
+      }
+    }
+    return [...entries.values()];
+  }
+
   /** Forgets a decision (kept until quit and remembered): the site will ask again. */
   forget(origin: string, kind: PermissionKind, topOrigin?: string): Promise<void> {
     const key = permissionKey(origin, topOrigin);

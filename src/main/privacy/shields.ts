@@ -26,6 +26,11 @@ export class ShieldsAllowList {
     return this.writer.save({ disabledHosts: [...this.hosts].sort() });
   }
 
+  /** Hosts where the protections are off, sorted. */
+  disabledHosts(): string[] {
+    return [...this.hosts].sort();
+  }
+
   onChange(listener: () => void): () => void {
     return this.changes.on(listener);
   }

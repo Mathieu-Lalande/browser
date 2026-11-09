@@ -2254,3 +2254,72 @@ mal rangées : on ne savait plus où cliquer.
 Tests e2e : barre de fenêtre (`ux-audit.spec.ts`), menu de l'application vers le haut et dans la fenêtre
 (`ux-audit`, `responsive`), deux boutons au survol (`capture.spec.ts`), copie/lecture/traduction/mots de passe
 par les options de la page (utilitaire `pageOptions` des fixtures).
+
+## ADR-046 — Bandeaux cookies, tableau de bord de confidentialité, DNS sécurisé, empreinte, paramètres des sites
+
+**Contexte.** Les protections existaient (bloqueur, HTTPS uniquement, cookies tiers, GPC) mais restaient
+invisibles, les bandeaux de consentement occupaient chaque nouvelle page, le DNS partait en clair, et les
+décisions par site étaient éparpillées (popover, `permissions.json`, `zoom.json`, `shields.json`, réglages).
+
+**Décision.**
+- **Bandeaux cookies refusés** (activé par défaut, `privacy.cookieBanners`, exceptions par site
+  `privacy.cookieBannerExceptions`, interrupteur dans les infos sur le site). Règles en données pures
+  (`src/shared/cookie-banners/rules.ts`), dans l'esprit de Consent-O-Matic / « I still don't care about cookies »
+  en mode refus, pour OneTrust, Didomi, InMobi (Quantcast), Cookiebot, TrustArc, Usercentrics (racine fantôme
+  ouverte, `hôte >>> sélecteur`), Axeptio, Sirdata, CookieYes, iubenda, Complianz, Google Funding Choices, Klaro,
+  Osano, Termly. Chaque règle : détection, bandeau visible, stratégies de refus essayées dans l'ordre (« Tout
+  refuser », « Continuer sans accepter », ou paramètres puis « Enregistrer » sans rien cocher), sélecteurs à
+  masquer à défaut. L'agent (`cookieBannerAgent`, autonome : main envoie son texte source) relit le libellé de
+  chaque bouton avant de cliquer et refuse tout ce qui ressemble à « Accepter » ; un libellé de refus peut être
+  exigé (`requireReject`, CMP aux classes obfusquées). Il tourne dans le monde isolé **1020** (1018-1019 laissés à
+  l'ADR-047) au `dom-ready`, surveille ensuite la page par `MutationObserver` 10 s au plus (bandeau tardif), puis
+  renvoie `{ cmp, outcome }` (validé par main). Masquage : feuille `insertCSS` d'origine utilisateur posée par
+  main (invisible pour la page), défilement débloqué. Cadre principal seulement ; ni quand les protections du
+  site sont coupées. Tests : une fixture HTML par CMP (DOM minimal `fixture-dom.ts`, Vitest sans DOM), e2e sur
+  trois pages (refus, bandeau tardif, masquage) et l'interrupteur par site.
+- **Tableau de bord `browser://privacy`** (Bibliothèque du menu « … », infos sur le site, Paramètres). Compteurs
+  agrégés par jour, par site (domaine enregistrable) et par domaine bloqué : traqueurs/pubs bloqués, bandeaux
+  refusés ou masqués, passages en HTTPS, cookies tiers retirés (requête ou réponse qui en portait), tentatives
+  d'empreinte contrées (mode Strict). Jamais d'URL ni d'horodatage plus fin que le jour ; 30 jours ; plafonds
+  par jour (300 sites, 300 traqueurs). `PrivacyStatsStore` (`privacy-stats.json`, écritures groupées 5 s, vidé
+  à la fermeture) ; rien n'est compté pour une session éphémère (fenêtre privée). Le « temps gagné » est une
+  estimation affichée comme telle.
+- **DNS sécurisé** (`privacy.secureDns` : Désactivé / Automatique (défaut, celui de Chromium) / Cloudflare /
+  Quad9 / NextDNS (identifiant facultatif) / Personnalisé). `hostResolverConfig` (pur) → `SecureDnsService` →
+  `app.configureHostResolver` au démarrage et à chaque changement. Modèle validé : `https:` seulement, sans
+  identifiants ni fragment, `{?dns}` seul gabarit admis ; un modèle invalide retombe sur Automatique (jamais
+  « pas de DNS »). Limites : un seul résolveur pour toute l'app (fenêtres privées comprises) ; en Automatique,
+  DoH seulement si le DNS du système le propose ; le DNS d'entreprise / contrôle parental est contourné en mode
+  sécurisé ; les connexions déjà ouvertes et le cache ne changent pas tout de suite ; les requêtes que Chromium
+  ne résout pas lui-même (proxy système, extensions natives) suivent le système.
+- **Protection contre l'empreinte** (`privacy.fingerprinting`). *Standard* (défaut) = l'existant : agent
+  utilisateur réduit, marques Chrome cohérentes (ADR-040), WebRTC sans adresses locales, GPC. *Strict* ajoute :
+  `Accept-Language` uniformisé ; aucun indice client à forte entropie (version complète, version d'OS,
+  architecture, bitness, modèle, WOW64, form-factors) même demandé par `Accept-CH` (compté une fois par
+  document qui en demandait) ; `local-fonts`, `window-management` et MIDI refusés sans invite (comptés).
+  **Ce qui n'est pas protégé, honnêtement** : canvas, WebGL (dont `WEBGL_debug_renderer_info`), AudioContext,
+  `navigator.hardwareConcurrency`/`deviceMemory`, résolution d'écran, polices détectées par mesure, batterie,
+  `navigator.userAgentData.getHighEntropyValues()` côté script. Les brouiller demande un script dans le monde
+  principal *avant* ceux de la page, donc un preload ou CDP par onglet (`Page.addScriptToEvaluateOnNewDocument`) :
+  refusé par le modèle de sécurité (ADR-003 : jamais de preload dans les pages ; un script injecté au `dom-ready`
+  arrive trop tard et serait lui-même détectable). Capteurs, HID, série et USB étaient déjà refusés (aucune
+  invite ne les propose). Pas de WebRTC `disable_non_proxied_udp` : il casse les visioconférences sans proxy.
+- **Paramètres des sites `browser://site-settings`**. Tout ce qui est décidé par site, regroupé par domaine
+  enregistrable (`buildSiteSettings`, pur) : autorisations (dont notifications) du profil, zoom, protections
+  coupées, et les listes de sites des réglages — JavaScript coupé (`javascriptBlockedSites`), son coupé
+  (`mutedSites`), bandeaux laissés (`cookieBannerExceptions`), cookies tiers autorisés
+  (`thirdPartyCookieExceptions`). Recherche, ajout d'un site, oubli d'une décision, « Réinitialiser » par site.
+  JavaScript coupé = un en-tête `Content-Security-Policy: script-src 'none'` *ajouté* aux réponses des documents
+  du site (cadre principal) et des cadres de ses pages (les CSP s'additionnent : la politique du site reste) —
+  pas de `webPreferences.javascript` (fixé à la création de la vue et pour tous les sites de l'onglet). Son
+  coupé : l'onglet est rendu muet quand il arrive sur le site, comme par son bouton. Section « Par défaut » :
+  lecture automatique (`privacy.autoplay` : autoriser / sans le son = `user-gesture-required` / bloquer =
+  `document-user-activation-required`), appliquée aux nouveaux onglets (`autoplayPolicy` se fixe à la création ;
+  défaut « autoriser », le comportement d'avant) ; refus des bandeaux. Fenêtre privée : la page se lit, ne
+  modifie rien (ses propres décisions vivent en mémoire avec elle).
+
+**Conséquences.** Nouvelles pages internes `privacy` et `site-settings` (les noms internes admettent `-`),
+commandes `open-privacy-dashboard` / `open-site-settings` (Bibliothèque), canaux `privacy-stats:*`,
+`site-settings:*`, `site-info:set-cookie-banners`. Les règles de CMP vieillissent : les sélecteurs sont des
+données, une fixture par CMP documente le balisage visé. Tests : unitaires (agent et règles, compteurs, DoH,
+modèle des paramètres des sites, service DNS), e2e `privacy-pages.spec.ts`.

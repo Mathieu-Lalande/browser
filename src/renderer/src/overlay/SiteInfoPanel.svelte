@@ -10,6 +10,7 @@
   import SiteDataSection from "./site-info/SiteDataSection.svelte";
   import SiteInfoHeader from "./site-info/SiteInfoHeader.svelte";
   import TabControlsSection from "./site-info/TabControlsSection.svelte";
+  import SitePrivacySection from "./site-info/SitePrivacySection.svelte";
 
   /**
    * Site info popover (ADR-021), hanging below the address bar's lock: connection and certificate,
@@ -69,6 +70,7 @@
       <ConnectionSection certificate={info.certificate} {secure} />
       <SiteDataSection {info} {tabId} onUpdate={(next) => (info = next)} />
       {#if tab}<TabControlsSection {tab} defaultZoom={info.defaultZoom} />{/if}
+      <SitePrivacySection {info} {tabId} onUpdate={(next) => (info = next)} {onClose} />
       <SiteBoostSection {tabId} {onClose} />
       {#if info.isPrivate}
         <p class="kit-hint private"><Icon name="mask" size={12} /> Fenêtre privée : ces réglages ne valent que pour elle, rien n'est enregistré.</p>

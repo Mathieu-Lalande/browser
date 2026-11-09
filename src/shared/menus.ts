@@ -154,6 +154,8 @@ export const LIBRARY_MORE: readonly CommandId[] = [
   "open-notes",
   "open-archive",
   "open-boosts",
+  "open-privacy-dashboard",
+  "open-site-settings",
   "import-data",
 ];
 

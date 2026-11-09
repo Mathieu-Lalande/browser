@@ -6,6 +6,7 @@ import { forgetSitePermission, setSitePermission, sitePermissions } from "../pri
 import { settings, updateSettings } from "../settings";
 import { spaces } from "../spaces";
 import type { BrowserController } from "../window";
+import { siteListPatch } from "@shared/site-settings";
 import { certificateFor } from "./certificates";
 import { registrableDomain } from "./domains";
 
@@ -78,7 +79,15 @@ export async function siteInfoFor(c: BrowserController, tabId: TabId): Promise<S
     defaultZoom: appearance.pageZoom,
     isPrivate: c.isPrivate,
     thirdPartyCookies: { blocking: privacy.blockThirdPartyCookies, allowedHere: privacy.thirdPartyCookieExceptions.includes(site) },
+    cookieBanners: { enabled: privacy.cookieBanners, here: !privacy.cookieBannerExceptions.includes(site) },
   };
+}
+
+/** Refuses cookie banners on the tab's site, or leaves them alone (ADR-046; a settings change: never from a private window). */
+export function setCookieBannersFor(c: BrowserController, tabId: TabId, enabled: boolean): Promise<SiteInfo | null> {
+  const found = tabSite(c, tabId);
+  if (found && !c.isPrivate) updateSettings({ privacy: siteListPatch(settings().privacy, "cookieBanners", found.site, !enabled) });
+  return siteInfoFor(c, tabId);
 }
 
 /** Forgets a permission decision taken on the tab's site (by the site, or a frame embedded in it). */

@@ -330,6 +330,19 @@ const api: BrowserApi = {
     setPermission: (tabId, origin, kind, allow) => ipcRenderer.invoke(Channels.siteInfoSetPermission, tabId, origin, kind, allow),
     clearData: (tabId) => ipcRenderer.invoke(Channels.siteInfoClearData, tabId),
     allowThirdPartyCookies: (tabId, allow) => ipcRenderer.invoke(Channels.siteInfoAllowThirdPartyCookies, tabId, allow),
+    setCookieBanners: (tabId, enabled) => ipcRenderer.invoke(Channels.siteInfoSetCookieBanners, tabId, enabled),
+  },
+  privacyStats: {
+    summary: (site) => ipcRenderer.invoke(Channels.privacyStatsSummary, site),
+    clear: (site) => ipcRenderer.invoke(Channels.privacyStatsClear, site),
+  },
+  siteSettings: {
+    list: () => ipcRenderer.invoke(Channels.siteSettingsList),
+    setSwitch: (site, key, on) => ipcRenderer.invoke(Channels.siteSettingsSetSwitch, site, key, on),
+    setShields: (host, enabled) => ipcRenderer.invoke(Channels.siteSettingsSetShields, host, enabled),
+    resetZoom: (host) => ipcRenderer.invoke(Channels.siteSettingsResetZoom, host),
+    forgetPermission: (origin, kind, topOrigin) => ipcRenderer.invoke(Channels.siteSettingsForgetPermission, origin, kind, topOrigin),
+    reset: (site) => ipcRenderer.invoke(Channels.siteSettingsReset, site),
   },
   recovery: {
     restore: (indexes) => ipcRenderer.invoke(Channels.recoveryRestore, indexes),

@@ -67,6 +67,8 @@ export type CommandId =
   | "toggle-assistant"
   | "open-notes"
   | "open-boosts"
+  | "open-privacy-dashboard"
+  | "open-site-settings"
   | "zap-elements"
   | "check-updates"
   | "install-update"
@@ -172,6 +174,8 @@ export type CommandIcon =
   | "credit-card"
   | "library"
   | "sparkles"
+  | "shield-check"
+  | "sliders"
   | "sparkle";
 
 /** What a command's label and availability may depend on. */
@@ -488,6 +492,16 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
     keywords: ["notes", "annotations", "surlignages", "exporter", "markdown", "highlights"],
     icon: "notebook",
   },
+  "open-privacy-dashboard": {
+    label: "Tableau de bord de confidentialité",
+    keywords: ["confidentialité", "privacy", "traqueurs", "trackers", "publicités", "bloqués", "statistiques", "cookies", "bandeaux", "protections"],
+    icon: "shield-check",
+  },
+  "open-site-settings": {
+    label: "Paramètres des sites",
+    keywords: ["sites", "autorisations", "permissions", "javascript", "son", "muet", "lecture automatique", "zoom", "exceptions", "cookies"],
+    icon: "sliders",
+  },
   "open-boosts": {
     label: "Boosts",
     keywords: ["boosts", "personnaliser", "css", "style", "site", "thème du site", "arc"],
@@ -762,6 +776,8 @@ export const COMMAND_GROUPS: readonly { label: string; ids: readonly CommandId[]
       "highlight-selection",
       "open-notes",
       "open-boosts",
+      "open-privacy-dashboard",
+      "open-site-settings",
       "zap-elements",
       "page-options",
       "screenshot-visible",
