@@ -1,4 +1,4 @@
-import { t } from "@shared/i18n";
+import { t, getLocale } from "@shared/i18n";
 import { BaseWindow, WebContentsView, type Session, type WebContents } from "electron";
 import { Channels } from "@shared/ipc";
 import { MINI_PAGE_RADIUS, MINI_SIZE, miniLayout, miniShortcut, type MiniAction, type MiniState } from "@shared/mini";
@@ -182,6 +182,7 @@ export class MiniWindow {
       alwaysOnTop: !this.window.isDestroyed() && this.window.isAlwaysOnTop(),
       settings: this.host.settings(),
       mode: this.host.mode(),
+      locale: getLocale(),
     };
   }
 

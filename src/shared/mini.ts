@@ -1,3 +1,4 @@
+import type { Locale } from "./i18n";
 import type { Settings } from "./settings";
 import type { ResolvedMode } from "./theme";
 import type { Bounds } from "./types";
@@ -31,6 +32,8 @@ export interface MiniState {
   /** The theme of the browser UIs. */
   settings: Settings;
   mode: ResolvedMode;
+  /** The UI language (ADR-052). */
+  locale: Locale;
 }
 
 /** Where the bar and the page go in a window of `width` × `height` (content size). */

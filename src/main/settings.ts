@@ -1,6 +1,7 @@
 import { nativeTheme } from "electron";
 import { mergeSettings, resetSettings, sameSettings, type Settings, type SettingsSection } from "@shared/settings";
 import { derivePalette, type ResolvedMode } from "@shared/theme";
+import { applyUiLanguage } from "./locale";
 import { profile } from "./profile";
 import { Emitter } from "@shared/emitter";
 
@@ -25,6 +26,8 @@ function commit(next: Settings): Settings {
   if (sameSettings(next, settings())) return next;
   profile().saveSettings(next);
   applyNativeTheme(next);
+  // Before the listeners: what they rebuild (menus, windows) is in the new language.
+  applyUiLanguage(next);
   changes.emit(next);
   return next;
 }

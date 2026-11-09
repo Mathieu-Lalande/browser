@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { locale } from "./lib/i18n.svelte";
   import { internalPageOf } from "@shared/internal";
   import { accentVariables } from "@shared/theme";
   import { siteAccent } from "@shared/site-color";
@@ -39,7 +40,8 @@
   let revealed = $state(false);
   let sidebar = $state<Sidebar>();
   let sidebarFrame = $state<HTMLElement>();
-  let viewport: HTMLElement;
+  /** State: the element is created again when the UI language changes (ADR-052). */
+  let viewport = $state<HTMLElement>();
   let hideTimer: ReturnType<typeof setTimeout> | undefined;
 
   const layout = $derived(settings.current.layout);
@@ -179,11 +181,13 @@
   $effect(() => {
     // At most one bounds update per frame: while the sidebar slides, the page follows it frame by
     // frame instead of receiving a burst of IPC messages (or jumping once at the end).
+    const element = viewport;
+    if (!element) return;
     let frame = 0;
     let last = "";
     const send = () => {
       frame = 0;
-      const rect = viewport.getBoundingClientRect();
+      const rect = element.getBoundingClientRect();
       const bounds = { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
       const key = JSON.stringify(bounds);
       if (key === last) return;
@@ -194,7 +198,7 @@
       if (!frame) frame = requestAnimationFrame(send);
     };
     const observer = new ResizeObserver(report);
-    observer.observe(viewport);
+    observer.observe(element);
     window.addEventListener("resize", report);
     send();
     return () => {
@@ -238,6 +242,8 @@
   });
 </script>
 
+<!-- The UI language (ADR-052): everything re-renders in the new one. -->
+{#key locale.current}
 <!-- The space color overrides the accent for everything inside the shell (theme layer: `--space-color`). -->
 <div
   class="shell"
@@ -323,6 +329,7 @@
     </div>
   </div>
 </div>
+{/key}
 
 <style>
   .shell {

@@ -377,7 +377,8 @@ export function launch(profile: string, env: Record<string, string> = {}, extraA
     // `--disable-component-update`: no Widevine download per test profile, no startup wait (ADR-040).
     args: ["--no-sandbox", "--disable-gpu", "--disable-component-update", "--host-resolver-rules=MAP insecure.test 127.0.0.1,MAP *.test 127.0.0.1", ".", ...(extraArgs.length ? ["--", ...extraArgs] : [])],
     // `BROWSER_TEST_SKIP_WELCOME`: a fresh profile would open on browser://welcome (ADR-043); the
-    // onboarding test turns it back on with an empty value.
+    // onboarding test turns it back on with an empty value. `BROWSER_TEST_LOCALE`: the suite runs
+    // in French whatever the machine's language (ADR-052); the i18n spec switches to English.
     env: {
       ...process.env,
       NO_PROXY: `${process.env.NO_PROXY ?? ""},.test,insecure.test`,
@@ -385,6 +386,7 @@ export function launch(profile: string, env: Record<string, string> = {}, extraA
       BROWSER_PROFILE_DIR: profile,
       BROWSER_TEST_FILTERS: TEST_FILTERS,
       BROWSER_TEST_SKIP_WELCOME: "1",
+      BROWSER_TEST_LOCALE: "fr",
       ...env,
     },
   });

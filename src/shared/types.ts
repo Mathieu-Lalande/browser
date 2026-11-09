@@ -1,3 +1,4 @@
+import type { Locale } from "./i18n";
 import type { PanelsState } from "./panels";
 import type { EnergyState } from "./energy";
 import type { RecoverySummary } from "./recovery";
@@ -162,6 +163,8 @@ export interface BrowserState extends TabsState {
   energy?: EnergyState;
   /** Windows 11 Mica shows behind this window (ADR-048): the UI's backgrounds let it through. */
   mica?: boolean;
+  /** The UI language (ADR-052): the UIs re-render in it when it changes. */
+  locale?: Locale;
 }
 
 /** Tabs and folders of a space not on screen (see `BrowserState.peeks`). */

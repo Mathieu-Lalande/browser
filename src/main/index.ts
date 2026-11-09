@@ -1,3 +1,5 @@
+import { onLocaleChange } from "@shared/i18n";
+import { applyUiLanguage } from "./locale";
 import { spawn } from "node:child_process";
 import { statSync } from "node:fs";
 import { homedir } from "node:os";
@@ -147,6 +149,8 @@ if (!app.requestSingleInstanceLock()) {
   void app.whenReady().then(async () => {
     // The profile comes first: session hardening reads the settings (Accept-Language).
     const { previousSession, settings } = openProfile();
+    // The UI language (ADR-052) before anything shows text.
+    applyUiLanguage(settings);
     // Unclean shutdown detection (ADR-042): the marker goes on a clean quit only.
     const marker = new CrashMarker(app.getPath("userData"));
     const unclean = marker.begin();
@@ -273,6 +277,14 @@ if (!app.requestSingleInstanceLock()) {
     spaces.init(previousSession?.spaces);
     desktop.updateTasks();
     spaces.onChange(() => desktop.updateTasks());
+    // A new UI language (ADR-052): Jump List, thumbnail buttons and every window's UIs follow.
+    onLocaleChange(() => {
+      desktop.updateTasks();
+      for (const controller of BrowserController.all()) {
+        controller.refreshState();
+        desktop.attach(desktopWindow(controller));
+      }
+    });
     // After a crash nothing reopens by itself: the start page offers the session (ADR-042).
     const saved = previousSession?.windows ?? [];
     const plan = startupPlan({ unclean, restoreSession: settings.behavior.restoreSession, savedWindows: saved.length });

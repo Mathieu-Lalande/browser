@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { LANGUAGE_SETTINGS, t, type LanguageSetting } from "@shared/i18n";
   import { ACCENT_PRESETS, LIMITS, PAGE_ZOOM_LEVELS, type BackgroundStyle, type Density, type SettingsPatch, type ThemeMode, type UiFont } from "@shared/settings";
   import { FONT_STACKS, backdrop } from "@shared/theme";
   import { platform } from "../../lib/platform.svelte";
@@ -31,6 +31,9 @@
     { value: "mono", label: "Mono" },
   ];
 
+  /** The language choices, each in its own language (ADR-052). */
+  const LANGUAGES: { value: LanguageSetting; label: string }[] = LANGUAGE_SETTINGS.map((value) => ({ value, label: t(`language.${value}`) }));
+
   const s = $derived(settings.current);
   const update = (patch: SettingsPatch) => settings.update(patch);
 
@@ -44,6 +47,14 @@
   );
 </script>
 
+<Row anchor="language" label={t("language.label")} hint={t("language.hint")} keywords={t("language.keywords")}>
+  <Segmented
+    label={t("language.label")}
+    value={s.appearance.language}
+    options={LANGUAGES}
+    onchange={(language) => update({ appearance: { language } })}
+  />
+</Row>
 <Row anchor="theme" label={t("appearanceSection.mode")} hint={t("appearanceSection.lightDarkFollowingSystem")} keywords={t("appearanceSection.themeLightDarkSystem")} stacked>
 <div class="modes" role="radiogroup" aria-label={t("appearanceSection.theme")}>
   {#each MODES as mode (mode.value)}

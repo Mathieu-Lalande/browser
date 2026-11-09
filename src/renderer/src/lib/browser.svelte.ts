@@ -1,4 +1,5 @@
 import type { BrowserState, SpaceInfo, TabState } from "@shared/types";
+import { locale } from "./i18n.svelte";
 
 /** Reactive mirror of the main-process browser state for this window. */
 class BrowserStore {
@@ -21,9 +22,14 @@ class BrowserStore {
   readonly ready: Promise<void>;
 
   constructor() {
-    window.browser.onState((next) => (this.state = next));
+    window.browser.onState((next) => {
+      // The language first (ADR-052): the re-render it causes reads the new state too.
+      locale.set(next.locale);
+      this.state = next;
+    });
     this.ready = window.browser.getState().then(
       (initial) => {
+        locale.set(initial?.locale);
         if (initial) this.state = initial;
       },
       () => {},

@@ -55,6 +55,7 @@ const entry = (section: SectionKey, row: string | null, label: MessageKey): Sett
 });
 
 export const SETTINGS_INDEX: readonly SettingEntry[] = [
+  entry("appearance", "language", "settingsIndex.appearance.language"),
   entry("appearance", "theme", "settingsIndex.appearance.theme"),
   entry("appearance", "accent", "settingsIndex.appearance.accent"),
   entry("appearance", "secondary", "settingsIndex.appearance.secondary"),

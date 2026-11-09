@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { locale } from "../lib/i18n.svelte";
   import { isPopover, type OverlayBackdrop, type OverlayRequest } from "@shared/types";
   import { api, browser } from "../lib/browser.svelte";
   import { settings } from "../lib/settings.svelte";
@@ -95,6 +96,8 @@
   }
 </script>
 
+<!-- The UI language (ADR-052): everything re-renders in the new one. -->
+{#key locale.current}
 {#if current}
   {#if backdrop}
     <div class="backdrop" aria-hidden="true">
@@ -164,6 +167,7 @@
     </div>
   {/key}
 {/if}
+{/key}
 
 <style>
   /* The overlay page must not hide the page below: no body background (global.css sets one). */

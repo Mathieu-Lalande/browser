@@ -1,3 +1,4 @@
+import { getLocale } from "@shared/i18n";
 import { app, BrowserWindow, nativeTheme, session, type Session, type WebContents, type WebContentsView } from "electron";
 import { internalPageOf, internalUrl, type InternalPage } from "@shared/internal";
 import { Channels } from "@shared/ipc";
@@ -322,7 +323,13 @@ export class BrowserController {
       // ADR-048: the window bar's indicator and motion; Mica behind the UI on Windows 11.
       energy: appServices().energy.state,
       mica: this.frame.micaApplied,
+      locale: getLocale(),
     };
+  }
+
+  /** Sends the current state again (the UI language changed, ADR-052). */
+  refreshState(): void {
+    this.bridge.pushState(this.getState());
   }
 
   /** Shows `browser://archive` (ADR-022). */

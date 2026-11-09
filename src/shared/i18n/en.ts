@@ -4138,4 +4138,10 @@ export const en: Record<MessageKey, string> = {
 
   // mobile.tabCard
   "mobile.tabCard.startPage": "Start page",
+  // language
+  "language.keywords": "language langue english french français interface",
+
+  // settingsIndex.appearance
+  "settingsIndex.appearance.language": "Language",
+  "settingsIndex.appearance.languageKeywords": "language, english, french, interface",
 };

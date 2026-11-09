@@ -51,7 +51,8 @@ describe("catalogs", () => {
   it("English messages are translated (no French leftovers)", () => {
     const french = /[àâçéèêëîïôûùœ]|\b(le|les|des|une|vous|votre|onglet|fenêtre|paramètres)\b/i;
     const allowed = new Set<MessageKey>(["language.fr"]);
-    const leftovers = keys.filter((key) => !allowed.has(key) && french.test(CATALOGS.en[key].replace(/\{[^}]*\}/g, "")));
+    // Search keywords list both languages on purpose.
+    const leftovers = keys.filter((key) => !allowed.has(key) && !/keywords$/i.test(key) && french.test(CATALOGS.en[key].replace(/\{[^}]*\}/g, "")));
     expect(leftovers).toEqual([]);
   });
 });

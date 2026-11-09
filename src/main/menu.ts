@@ -1,4 +1,4 @@
-import { t } from "@shared/i18n";
+import { onLocaleChange, t } from "@shared/i18n";
 import { Menu, app, type MenuItemConstructorOptions } from "electron";
 import { commandMenuItems } from "./commands";
 import { onSettingsChanged, settings } from "./settings";
@@ -10,6 +10,11 @@ let builtShortcuts: string | null = null;
 
 onSettingsChanged((current) => {
   if (builtShortcuts !== null && JSON.stringify(current.shortcuts) !== builtShortcuts) installMenu();
+});
+
+// The menu is in the UI language (ADR-052): rebuilt when it changes.
+onLocaleChange(() => {
+  if (builtShortcuts !== null) installMenu();
 });
 
 /** Whether the menu shows "Redémarrer pour mettre à jour" (ADR-030): rebuilt when that changes. */

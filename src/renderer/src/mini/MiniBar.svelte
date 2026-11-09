@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { locale } from "../lib/i18n.svelte";
   import { t as tr, t } from "@shared/i18n";
   import type { MiniAction } from "@shared/mini";
   import Icon from "../components/Icon.svelte";
@@ -25,6 +26,8 @@
   }
 </script>
 
+<!-- The UI language (ADR-052): everything re-renders in the new one. -->
+{#key locale.current}
 <header class="mini-bar" data-testid="mini-bar">
   <div class="site drag" title={bar?.url ?? ""}>
     <span class="lock" class:secure={bar?.secure}><Icon name={bar?.secure ? "lock" : "globe"} size={14} /></span>
@@ -46,6 +49,7 @@
     <IconButton icon="close" size="sm" label={t("miniBar.close")} title={t("miniBar.closeShortcut", { shortcut: key("W") })} onclick={() => act("close")} />
   </div>
 </header>
+{/key}
 
 <style>
   :global(html.mini),

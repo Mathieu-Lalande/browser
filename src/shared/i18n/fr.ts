@@ -4139,6 +4139,12 @@ export const fr = {
 
   // mobile.tabCard
   "mobile.tabCard.startPage": "Page d'accueil",
+  // language
+  "language.keywords": "langue language français anglais english traduction interface",
+
+  // settingsIndex.appearance
+  "settingsIndex.appearance.language": "Langue",
+  "settingsIndex.appearance.languageKeywords": "langue, français, anglais, interface",
 } as const;
 
 export type MessageKey = keyof typeof fr;

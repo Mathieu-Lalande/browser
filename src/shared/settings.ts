@@ -1,4 +1,4 @@
-import { t } from "./i18n";
+import { t, LANGUAGE_SETTINGS, type LanguageSetting } from "./i18n";
 import { isReservedAnywhere, needsModifier, normalizeAccelerator, parseAccelerator } from "./accelerators";
 import { isCommandId, type ShortcutOverrides } from "./commands";
 import { sanitizeSiteList } from "./site-info";
@@ -49,6 +49,8 @@ export interface AppearanceSettings {
   dynamicTheme: boolean;
   /** Windows 11: Mica shows through the chrome's backgrounds (ADR-048); no effect elsewhere. */
   mica: boolean;
+  /** UI language (ADR-052): "auto" follows the system's preferred languages. */
+  language: LanguageSetting;
 }
 
 export interface LayoutSettings {
@@ -348,6 +350,7 @@ export const DEFAULT_SETTINGS: Settings = {
     pageZoom: 100,
     dynamicTheme: false,
     mica: true,
+    language: "auto",
   },
   layout: {
     sidebarPosition: "left",
@@ -506,6 +509,7 @@ const schema: Schema = {
     pageZoom: oneOfNumbers(PAGE_ZOOM_LEVELS),
     dynamicTheme: bool,
     mica: bool,
+    language: oneOf(...LANGUAGE_SETTINGS),
   },
   layout: {
     sidebarPosition: oneOf("left", "right"),
