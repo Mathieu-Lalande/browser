@@ -31,7 +31,7 @@ const attachedBounds = (app: ElectronApplication) =>
 test("the gear opens the settings in a tab, and the accent color applies live", async ({ chrome, server }) => {
   // From a page (an empty start-page tab would be reused instead).
   await visit(chrome, server.url("/page"), "Page page");
-  await chrome.getByRole("button", { name: "Paramètres" }).click();
+  await chrome.getByRole("button", { name: "Paramètres", exact: true }).click();
   await expect(chrome.getByRole("heading", { name: "Paramètres", level: 1 })).toBeVisible();
   await expect(chrome.locator(".tab.active .title")).toHaveText("Paramètres");
   await expect(chrome.locator(".tabs [role=tab]")).toHaveCount(2);
@@ -44,7 +44,7 @@ test("the gear opens the settings in a tab, and the accent color applies live", 
 
   // Opening the settings again reuses their tab.
   await chrome.locator(".tabs [role=tab]").first().click();
-  await chrome.getByRole("button", { name: "Paramètres" }).click();
+  await chrome.getByRole("button", { name: "Paramètres", exact: true }).click();
   await expect(chrome.locator(".tabs [role=tab]")).toHaveCount(2);
   await expect(chrome.locator(".tab.active .title")).toHaveText("Paramètres");
 });
@@ -100,7 +100,7 @@ test("the chosen search engine is used for typed queries",async ({ app, chrome }
     // Keep the test offline: answer search requests locally.
     session.defaultSession.protocol.handle("https", () => new Response("<title>Search</title>", { headers: { "content-type": "text/html" } }));
   });
-  await chrome.getByRole("button", { name: "Paramètres" }).click();
+  await chrome.getByRole("button", { name: "Paramètres", exact: true }).click();
   await chrome.getByRole("radio", { name: /Google/ }).click();
   await expect(chrome.getByRole("radio", { name: /Google/ })).toHaveAttribute("aria-checked", "true");
 
@@ -175,7 +175,7 @@ test("zen mode hides the sidebar, which reappears from the window edge", async (
 });
 
 test("the sidebar can move to the right and be resized by dragging its edge", async ({ chrome }) => {
-  await chrome.getByRole("button", { name: "Paramètres" }).click();
+  await chrome.getByRole("button", { name: "Paramètres", exact: true }).click();
   await chrome.getByRole("radio", { name: "Droite" }).click();
   const sidebar = chrome.locator(".sidebar");
   await expect.poll(async () => (await sidebar.boundingBox())!.x).toBeGreaterThan(600);
@@ -192,7 +192,7 @@ test("the sidebar can move to the right and be resized by dragging its edge", as
 });
 
 test("the side navigation brings each section to the top, the last ones included", async ({ chrome }) => {
-  await chrome.getByRole("button", { name: "Paramètres" }).first().click();
+  await chrome.getByRole("button", { name: "Paramètres", exact: true }).first().click();
   const nav = chrome.getByRole("navigation", { name: "Sections des paramètres" });
   await expect(nav).toBeVisible();
   // Where the section's top lands in the scrolling column, once the smooth scroll has settled.

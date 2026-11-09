@@ -91,7 +91,7 @@ test("new tab, settings and downloads reuse the empty start-page tab", async ({ 
   await chrome.getByRole("button", { name: "Nouvel onglet" }).click();
   await chrome.getByRole("button", { name: "Nouvel onglet" }).click();
   await expect(tabs).toHaveCount(1);
-  await chrome.getByRole("button", { name: "Paramètres" }).click();
+  await chrome.getByRole("button", { name: "Paramètres", exact: true }).click();
   await expect(chrome.locator(".settings")).toBeVisible();
   await expect(tabs).toHaveCount(1);
   // The settings tab is not empty any more: a new tab is a new one.
@@ -103,7 +103,7 @@ test("new tab, settings and downloads reuse the empty start-page tab", async ({ 
 });
 
 test("settings rows keep readable labels at medium and small sizes", async ({ app, chrome }) => {
-  await chrome.getByRole("button", { name: "Paramètres" }).click();
+  await chrome.getByRole("button", { name: "Paramètres", exact: true }).click();
   for (const [width, height] of [
     [1024, 700],
     [640, 420],
@@ -304,7 +304,7 @@ test("at rest, the URL uses the whole address bar and its host is never clipped"
 
 test("the theme gallery is a full-width grid, several cards per line", async ({ app, chrome }) => {
   await setWindowSize(app, 1280, 800);
-  await chrome.getByRole("button", { name: "Paramètres" }).click();
+  await chrome.getByRole("button", { name: "Paramètres", exact: true }).click();
   const gallery = chrome.getByRole("group", { name: "Galerie de thèmes" });
   await expect(gallery).toBeVisible();
   const tops = await gallery
@@ -317,7 +317,7 @@ test("the theme gallery is a full-width grid, several cards per line", async ({ 
 });
 
 test("the settings search keeps only the matching rows", async ({ chrome }) => {
-  await chrome.getByRole("button", { name: "Paramètres" }).click();
+  await chrome.getByRole("button", { name: "Paramètres", exact: true }).click();
   const search = chrome.getByRole("searchbox", { name: "Rechercher un réglage" });
   await search.fill("zen");
   await expect(chrome.locator(".settings .row:visible .label")).toHaveText(["Mode zen"]);
