@@ -1108,7 +1108,7 @@ pas de sessions en mémoire, une partie des API `chrome.*` (scripts de contenu, 
 **Suites possibles.** Boutons d'action et popups (`action`/`browser_action`) dans la barre latérale,
 via le calque overlay ; mise à jour d'une extension installée (aujourd'hui : la retirer puis la
 réinstaller, un nom déjà installé est refusé) ; installation depuis le Chrome Web Store ; extensions
-en navigation privée si Electron l'autorise un jour.
+en navigation privée si Electron l'autorise un jour. Boutons, fenêtres, Web Store et mises à jour : ADR-049.
 
 ## ADR-025 — Gestionnaire de mots de passe
 
@@ -2378,6 +2378,80 @@ dépendre du réseau au moment de la lire. Une vidéo quittée par un changement
 (panneau ajouté depuis une page locale, zone de page réduite, compteur, bascule ; page ajoutée avec son texte hors
 ligne ; image dans l'image à la sortie et au retour, site qui la refuse). Un panneau chargé coûte un processus de
 rendu par fenêtre tant qu'elle est ouverte.
+
+## ADR-049 — Chrome Web Store, boutons d'extension, extensions en navigation privée
+
+**Contexte.** ADR-024 n'installait que des dossiers, `.zip` et `.crx` choisis à la main, sans mise à jour ni
+interface d'extension. Les utilisateurs trouvent leurs extensions sur le Chrome Web Store et s'attendent à leurs
+boutons de barre d'outils (bloqueurs, gestionnaires de mots de passe…).
+
+**Décision.**
+- **Installation depuis le Web Store.** Sur une page `chromewebstore.google.com/detail/<slug>/<id>` (ou l'ancienne
+  `chrome.google.com/webstore/detail/…`, reconnues par `webStoreIdFromUrl`, `src/shared/webstore.ts`), le chrome
+  propose « Ajouter à Browser » deux fois : un bouton dans la barre d'adresse et une barre au-dessus de la page
+  (`WebStoreBar.svelte`), qui **réduit la zone de page** comme la barre de permission. La page du store n'est
+  jamais modifiée (aucun script injecté) ; la barre n'est pas dans le calque overlay, qui prend le focus et sert
+  aux popovers brefs. Jamais en fenêtre privée.
+- **Téléchargement par main** (`WebStoreClient`, `src/main/extensions/webstore.ts`) via le service de mise à jour
+  de Google, comme Chrome : `https://clients2.google.com/service/update2/crx?response=redirect&prodversion=<majeur
+  de Chromium>&acceptformat=crx2,crx3&x=id%3D<id>%26uc`, par la session en mémoire `browser-assets` sans cookies
+  (`credentials: "omit"`) : Google ne reçoit pas les cookies de navigation. 100 Mo au plus.
+- **Vérification CRX3** (`src/main/extensions/crx.ts`) : en-tête protobuf lu à la main, `crx_id` des données
+  signées égal à l'id demandé, une clé publique du paquet dont l'empreinte donne cet id (règle de Chrome :
+  SHA-256 de la clé DER, 16 premiers octets, chiffres hexadécimaux 0–f → lettres a–p), et **toutes** les preuves
+  RSA/ECDSA présentes valides sur « CRX3 SignedData\0 » + longueur + données signées + ZIP. Sinon refus, message
+  en français. CRX2 refusé pour le store (un fichier `.crx` choisi à la main reste accepté sans vérification,
+  ADR-024). La clé du développeur est écrite dans le `manifest.json` (`key`), comme Chrome : Electron donne alors
+  à l'extension son id du store (`chrome-extension://<id>/` stable, `externally_connectable`…).
+- **Confirmation des autorisations** : main garde le paquet vérifié et décompressé sous un id aléatoire
+  (`ExtensionReviews`) ; le calque overlay affiche « Ajouter « X » ? » (`ExtensionInstallPanel.svelte`, popover
+  `extension-install`) avec la liste lisible des avertissements de Chrome traduits (`permissionLabels`,
+  `src/shared/extensions.ts` : accès aux sites d'abord, hôtes des `host_permissions`, des permissions MV2 et des
+  `content_scripts`, puis `tabs`, `history`, `bookmarks`, `cookies`… ; les permissions sans avertissement comme
+  `storage` n'apparaissent pas, les permissions facultatives non plus). Échap, clic extérieur ou un autre popover
+  = refus ; sans réponse après 10 min, refus.
+- **Mises à jour** : « Mettre à jour les extensions » (`browser://extensions`) demande au même service les
+  dernières versions (XML `gupdate`, `parseUpdateCheck`, l'adresse `codebase` est ignorée : le téléchargement
+  passe toujours par l'adresse fixe puis la vérification). Une version plus récente est décompressée dans un
+  nouveau dossier, l'ancienne est déchargée de toutes les sessions, la nouvelle chargée (retour à l'ancienne si
+  Chromium la refuse), puis l'ancien dossier supprimé. Une mise à jour qui **ajoute des autorisations** montre
+  seulement les nouvelles (« Mettre à jour « X » ? ») ; la vérification quotidienne automatique
+  (`settings.extensions.autoUpdate`, activée par défaut, minuterie horaire, dernière vérification dans
+  `extension-updates.json`) ne l'applique pas et le signale sur la page. Rien n'est demandé au réseau tant
+  qu'aucune extension ne vient du store.
+- **Boutons d'extension** : `action` (MV3), `browser_action` / `page_action` (MV2) lus dans le manifeste
+  (`manifestAction` : titre, icône en `data:`, page de fenêtre) ; une rangée sous la barre d'adresse
+  (`components/sidebar/ExtensionBar.svelte`) montre les extensions activées épinglées (6 au plus, épinglées par
+  défaut), puis la pièce de puzzle dont le **menu natif** (`toolbar-menu.ts`) les liste toutes (ouvrir, épingler,
+  gérer) ; clic droit sur un bouton : désépingler. Rien en fenêtre privée.
+- **Fenêtres d'extension** (`default_popup`) : une `WebContentsView` (`ExtensionPopup`, `src/main/extensions/popup.ts`)
+  dans la session des onglets affichés (où l'extension est chargée), sandbox, sans préchargement, qui charge
+  `chrome-extension://<id>/<popup>` sous le bouton, au-dessus du calque overlay (popover transparent
+  `extension-popup` qui attrape les clics extérieurs, comme l'aperçu des liens, ADR-027). Elle se ferme par
+  Échap, clic extérieur, `window.close()` ou un autre popover ; ses liens deviennent des onglets, elle ne navigue
+  pas hors de son extension. Taille : celle du contenu, entre 25×25 et 800×600 comme Chrome, mesurée dans un
+  monde isolé (1021) au chargement puis toutes les 400 ms tant qu'elle est ouverte — l'événement
+  `preferred-size-changed` d'Electron n'arrive pas pour une `WebContentsView`.
+- **Navigation privée** : réexaminé avec Electron 44, `loadExtension` refuse toujours les sessions en mémoire
+  (« Loading extensions into in-memory sessions is not supported »), et une fenêtre privée doit rester en mémoire
+  (ADR-014). L'option « Autoriser en navigation privée » est gardée (prête si Electron l'autorise) et la page
+  explique pourquoi elle est sans effet ; la confirmation d'installation le dit aussi.
+
+**Limites (Electron 44).** Electron n'implémente pas `chrome.action` : pas de **badge** (texte, couleur), ni de
+titre ou d'icône changés par l'extension, ni de `chrome.action.onClicked` — un bouton sans `default_popup` est
+affiché grisé, son clic ne peut pas atteindre l'extension (aucune API pour émettre l'événement). Les implémenter
+demanderait un préchargement dans les sessions des onglets (comme `electron-chrome-extensions`), contraire à
+ADR-003 (aucun préchargement pour les pages web). Les autres API manquantes d'ADR-024 restent manquantes ; les
+thèmes et applications du store ne sont pas pris en charge (manifeste refusé ou sans effet).
+
+**Tests.** Unitaires : `src/shared/webstore.test.ts` (pages du store, adresses de téléchargement et de
+vérification, XML, ordre des versions, avertissements d'autorisations, boutons MV3/MV2),
+`src/main/extensions/crx.test.ts` (id d'une clé, paquet valide, id falsifié, clé étrangère, signature cassée,
+CRX2, client avec `fetch` simulé). E2E `tests/e2e/webstore.spec.ts` : faux store local (crochet de développement
+`BROWSER_TEST_WEBSTORE_URL`, ignoré une fois empaqueté : page `/detail/…` et `/service/update2/crx` qui redirige
+vers un CRX3 signé par une clé de test, `tests/crx-pack.ts`) — installation après la boîte des autorisations,
+bouton dans la barre latérale, fenêtre ouverte à la taille de son contenu puis fermée par un clic extérieur,
+mise à jour qui ne montre que la nouvelle autorisation.
 
 ## ADR-048 — Mini-fenêtre pour les liens externes, économiseur d'énergie, intégration à Windows et macOS
 

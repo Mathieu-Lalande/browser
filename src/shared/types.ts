@@ -253,7 +253,10 @@ export type OverlayKind =
   | "print-preview"
   /** Tab hover preview (ADR-038): passive, never focused, its view only as large as the card. */
   | "tab-preview"
-  | "tab-overview";
+  | "tab-overview"
+  /** Extensions (ADR-049): the permission review before a Web Store install, and the click catcher around a popup. */
+  | "extension-install"
+  | "extension-popup";
 
 export interface OverlayRequest {
   kind: OverlayKind;
@@ -275,6 +278,8 @@ export interface OverlayRequest {
   preview?: TabPreview;
   /** Print preview (ADR-042): the page's title and the dialog's geometry. */
   print?: PrintPreviewInfo;
+  /** Extension review (ADR-049): the pending install or update main keeps. */
+  reviewId?: string;
   /** The overlay view covers only this part of the window (default: all of it). */
   region?: Bounds;
 }

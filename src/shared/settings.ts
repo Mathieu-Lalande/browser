@@ -260,6 +260,12 @@ export interface PanelSettings {
   sync: boolean;
 }
 
+/** Browser extensions (ADR-049). */
+export interface ExtensionSettings {
+  /** Check the Chrome Web Store once a day and update the extensions installed from it. */
+  autoUpdate: boolean;
+}
+
 export interface DiagnosticsSettings {
   /** Opt-in: send crash reports (minidumps) to the build's crash endpoint. */
   crashReports: boolean;
@@ -286,6 +292,7 @@ export interface Settings {
   diagnostics: DiagnosticsSettings;
   media: MediaSettings;
   panels: PanelSettings;
+  extensions: ExtensionSettings;
   /**
    * Keyboard shortcuts chosen by the user (desktop, ADR-028): only the commands that differ from
    * the registry. A patch replaces the whole map.
@@ -401,6 +408,7 @@ export const DEFAULT_SETTINGS: Settings = {
   diagnostics: { crashReports: false },
   media: { autoPictureInPicture: false },
   panels: { sync: false },
+  extensions: { autoUpdate: true },
   shortcuts: {},
 };
 
@@ -574,6 +582,7 @@ const schema: Schema = {
   diagnostics: { crashReports: bool },
   media: { autoPictureInPicture: bool },
   panels: { sync: bool },
+  extensions: { autoUpdate: bool },
 };
 
 /**

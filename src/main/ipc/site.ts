@@ -1,7 +1,22 @@
 import { isExtensionId } from "@shared/extensions";
 import { Channels } from "@shared/ipc";
 import { isSiteName } from "@shared/site-info";
-import { installFromFile, installFromFolder, listExtensions, removeExtension, setExtensionEnabled, setExtensionPrivateAllowed } from "../extensions";
+import {
+  answerExtensionReview,
+  extensionReview,
+  installFromFile,
+  installFromFolder,
+  installFromWebStore,
+  listExtensions,
+  openExtensionPopup,
+  removeExtension,
+  setExtensionEnabled,
+  setExtensionPinned,
+  setExtensionPrivateAllowed,
+  showExtensionsMenu,
+  updateExtensions,
+  webStoreTestOrigin,
+} from "../extensions";
 import {
   allowThirdPartyCookies,
   clearAllSiteData,
@@ -80,4 +95,13 @@ export const extensionHandlers = defineHandlers({
     c.isPrivate ? undefined : setExtensionPrivateAllowed(extensionId, allowed),
   ),
   [Channels.extensionsRemove]: handle([isExtensionId], (c, extensionId) => (c.isPrivate ? undefined : removeExtension(extensionId))),
+  // ADR-049: Chrome Web Store, updates, toolbar buttons and popups (no extension runs in a private window).
+  [Channels.extensionsSetPinned]: handle([isExtensionId, bool], (c, extensionId, pinned) => (c.isPrivate ? undefined : setExtensionPinned(extensionId, pinned))),
+  [Channels.extensionsInstallFromStore]: handle([isExtensionId], (c, webStoreId) => (c.isPrivate ? privateRefusal : installFromWebStore(c, webStoreId))),
+  [Channels.extensionsCheckUpdates]: handle([], (c) => (c.isPrivate ? privateRefusal : updateExtensions(c))),
+  [Channels.extensionsStoreOrigin]: handleUi([], () => webStoreTestOrigin()),
+  [Channels.extensionsReview]: handleUi([maxStr(64)], (reviewId) => extensionReview(reviewId)),
+  [Channels.extensionsAnswerReview]: on([maxStr(64), bool], (_c, reviewId, accepted) => answerExtensionReview(reviewId, accepted)),
+  [Channels.extensionsOpenPopup]: on([isExtensionId, bounds], (c, extensionId, anchor) => openExtensionPopup(c, extensionId, anchor), { privateRefused: true }),
+  [Channels.extensionsMenu]: on([nullable(isExtensionId), bounds], (c, extensionId, anchor) => showExtensionsMenu(c, extensionId, anchor), { privateRefused: true }),
 });

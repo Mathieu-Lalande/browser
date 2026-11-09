@@ -12,6 +12,7 @@ import type { DownloadViewer } from "./downloads/list";
 import { favoriteFavicon, favoriteTiles, setArchiveNotifier, setFavoritesRefresh } from "./organize";
 import { Overlay } from "./overlay";
 import { LinkPeek } from "./peek";
+import { ExtensionPopup } from "./extensions/popup";
 import { TabPreviews } from "./tab-preview";
 import { AutoPip, MediaHub } from "./media";
 import { PanelHost } from "./panels";
@@ -112,6 +113,8 @@ export class BrowserController {
   readonly overlay: Overlay;
   /** The link previewed in a floating card above the page, if any (ADR-027). */
   readonly peek: LinkPeek;
+  /** The open extension popup, below its toolbar button (ADR-049). */
+  readonly extensionPopup: ExtensionPopup;
   /** Pinch zoom pacing and the two-finger swipe back/forward on pages (ADR-033). */
   readonly gestures: PageGestures = new PageGestures(this);
   /** Tabs playing media, for the sidebar's mini-player (ADR-035). */
@@ -209,10 +212,17 @@ export class BrowserController {
       },
       dismissed: () => {
         this.peek.close();
+        this.extensionPopup.close();
         appServices().print.close(this);
       },
     });
     this.peek = new LinkPeek(this);
+    this.extensionPopup = new ExtensionPopup({
+      window: this.window,
+      overlay: this.overlay,
+      session: () => this.tabSession,
+      openTab: (url) => this.tabs.create(url, { activate: true }),
+    });
     this.previews = new TabPreviews(this);
     this.panels = new PanelHost({
       window: this.window,
@@ -273,6 +283,7 @@ export class BrowserController {
     windows.remove(chromeId);
     if (outcome === "forget") BrowserController.saveSession();
     this.media.destroy();
+    this.extensionPopup.close();
     this.previews.destroy();
     this.panels.destroy();
     try {

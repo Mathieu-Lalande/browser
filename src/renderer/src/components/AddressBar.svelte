@@ -8,6 +8,7 @@
   import { platform } from "../lib/platform.svelte";
   import { settings } from "../lib/settings.svelte";
   import Icon from "./Icon.svelte";
+  import { extensionsUi } from "../lib/extensions.svelte";
   import SuggestionList from "./address/SuggestionList.svelte";
 
   const MAX_SUGGESTIONS = 6;
@@ -256,6 +257,20 @@
         onclick={() => api.commands.run("zoom-reset")}
       >
         {tab.zoom}&#8239;%
+      </button>
+    {/if}
+    {#if extensionsUi.storeCandidate && !focused}
+      <!-- A Chrome Web Store extension page (ADR-049): install it here (the store bar offers the same). -->
+      <button
+        type="button"
+        class="star on"
+        aria-label="Ajouter à Browser"
+        title="Ajouter cette extension à Browser"
+        disabled={extensionsUi.installing !== null}
+        onmousedown={(event) => event.preventDefault()}
+        onclick={() => extensionsUi.storeCandidate && extensionsUi.installFromStore(extensionsUi.storeCandidate)}
+      >
+        <Icon name="extension" size={16} />
       </button>
     {/if}
     {#if tab?.reader && isWebPage && !focused}

@@ -724,13 +724,21 @@
               alt="Page browser://extensions avec trois extensions installées depuis un dossier" />
           </figure>
           <p>
+            Ouvrez une extension sur le <strong>Chrome Web Store</strong> : « Ajouter à Browser » apparaît dans la
+            barre d'adresse et au-dessus de la page. Le navigateur télécharge l'extension auprès de Google, vérifie sa
+            signature, puis vous montre ce qu'elle pourra faire avant de l'installer. Les extensions du store se
+            mettent à jour chaque jour (option sur la page) ou avec « Mettre à jour les extensions ».
+          </p>
+          <p>
             Commande « Extensions » (<code>browser://extensions</code>, aussi depuis Paramètres, Comportement) :
-            ajoutez un <strong>dossier non empaqueté</strong> ou un fichier <strong>.zip / .crx</strong>. Activez,
-            désactivez ou retirez-les depuis la même page.
+            ajoutez aussi un <strong>dossier non empaqueté</strong> ou un fichier <strong>.zip / .crx</strong>. Activez,
+            désactivez, épinglez ou retirez-les depuis la même page. Les boutons des extensions s'affichent sous la
+            barre d'adresse ; la pièce de puzzle les liste toutes, un clic ouvre la fenêtre de l'extension.
           </p>
           <p class="muted">
-            Support partiel, celui d'Electron : scripts de contenu et une partie des API <code>chrome.*</code>, sans
-            bouton d'action ni fenêtre surgissante d'extension, et jamais en fenêtre privée.
+            Support partiel, celui d'Electron : scripts de contenu, fenêtres d'extension et une partie des API
+            <code>chrome.*</code> ; pas de badge sur les boutons, pas de clic transmis à une extension sans fenêtre, et
+            jamais en fenêtre privée (Electron ne charge pas d'extension dans une session gardée en mémoire).
           </p>
         </section>
 

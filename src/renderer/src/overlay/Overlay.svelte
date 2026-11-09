@@ -29,6 +29,7 @@
     translate: () => import("./TranslatePanel.svelte"),
     annotation: () => import("./AnnotationPanel.svelte"),
     "print-preview": () => import("./PrintPreviewPanel.svelte"),
+    "extension-install": () => import("./ExtensionInstallPanel.svelte"),
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const lazy = $state<Record<string, Component<any>>>({});
@@ -40,6 +41,7 @@
   const TranslatePanel = $derived(lazy.translate);
   const AnnotationPanel = $derived(lazy.annotation);
   const PrintPreviewPanel = $derived(lazy["print-preview"]);
+  const ExtensionInstallPanel = $derived(lazy["extension-install"]);
 
   // Follow theme changes made while the overlay stays loaded.
   $effect(() => applyTheme(settings.current, settings.mode, browser.isPrivate, { energySaver: browser.state.energy?.active, mica: browser.state.mica }));
@@ -112,7 +114,7 @@
     <div
       class="scrim"
       class:page-swipe={current.request.kind === "page-swipe"}
-      class:clear={isPopover(current.request.kind) && current.request.kind !== "link-peek"}
+      class:clear={isPopover(current.request.kind) && current.request.kind !== "link-peek" && current.request.kind !== "extension-install"}
       class:passive={current.request.kind === "tab-preview"}
       onmousedown={(event) => event.target === event.currentTarget && close(true)}
     >
@@ -148,6 +150,10 @@
         <AutofillPanel kind="save" anchor={current.request.anchor} captureId={current.request.captureId} onClose={close} />
       {:else if current.request.kind === "autofill-fill"}
         <AutofillPanel kind="fill" anchor={current.request.anchor} tabId={current.request.tabId} onClose={close} />
+      {:else if current.request.kind === "extension-install" && current.request.reviewId && ExtensionInstallPanel}
+        <ExtensionInstallPanel reviewId={current.request.reviewId} onClose={close} />
+      {:else if current.request.kind === "extension-popup"}
+        <!-- An extension popup (ADR-049) is a native view above this layer: here, only the click catcher. -->
       {:else if current.request.kind === "password-fill"}
         <PasswordPanel kind="fill" anchor={current.request.anchor} tabId={current.request.tabId} onClose={close} />
       {/if}

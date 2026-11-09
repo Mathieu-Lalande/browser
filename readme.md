@@ -90,6 +90,7 @@ Windows, macOS et Linux, avec son application iPhone et Android.
 - Galerie de 8 thèmes et thèmes partageables (code `browser-theme:v1:…`, fichier `.browsertheme`, QR code) (ADR-030).
 - Boosts par site : filtres de couleur, police, éléments masqués, CSS, script optionnel (`browser://boosts`) (ADR-029).
 - Extensions Chrome non empaquetées, `.zip` ou `.crx` (`browser://extensions`, support partiel) (ADR-024).
+- Installation depuis le Chrome Web Store (« Ajouter à Browser », signature CRX3 vérifiée, autorisations affichées avant), mises à jour quotidiennes, boutons et fenêtres d'extension dans la barre latérale (ADR-049).
 
 **Protéger**
 - Recherche privée par défaut (DuckDuckGo), modèle de sécurité strict : pages sans preload ni Node, interface

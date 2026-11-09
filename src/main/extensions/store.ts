@@ -1,4 +1,4 @@
-import { isExtensionId, type ExtensionInfo } from "@shared/extensions";
+import { isExtensionId, type ExtensionAction, type ExtensionInfo } from "@shared/extensions";
 import { maxStr } from "../ipc/validators";
 
 /** `extensions.json` (ADR-024): the installed extensions and their switches. */
@@ -17,7 +17,19 @@ export interface ExtensionRecord {
   description: string;
   manifestVersion: 2 | 3;
   icon: string | null;
+  /** Shown in the sidebar's extension row (ADR-049; default on). */
+  pinned: boolean;
+  /** Installed from the Chrome Web Store (ADR-049): updated from there. */
+  webStoreId?: string;
 }
+
+/** What an installed extension's manifest says beyond the record (read again at each launch). */
+export interface ExtensionDetails {
+  action: ExtensionAction | null;
+  permissions: string[];
+}
+
+const NO_DETAILS: ExtensionDetails = { action: null, permissions: [] };
 
 const MAX_EXTENSIONS = 100;
 const MAX_ICON_LENGTH = 96 * 1024;
@@ -40,6 +52,8 @@ function parseRecord(value: unknown): ExtensionRecord | null {
     description: maxStr(1000)(r.description) ? r.description : "",
     manifestVersion: r.manifestVersion,
     icon,
+    pinned: r.pinned !== false,
+    ...(isExtensionId(r.webStoreId) ? { webStoreId: r.webStoreId } : {}),
   };
 }
 
@@ -84,13 +98,19 @@ export class ExtensionStore {
   }
 
   /** Changes switches of an installed extension; false when unknown or unchanged. */
-  update(id: string, patch: Partial<Pick<ExtensionRecord, "enabled" | "allowPrivate">>): boolean {
+  update(id: string, patch: Partial<Pick<ExtensionRecord, "enabled" | "allowPrivate" | "pinned">>): boolean {
     const record = this.get(id);
     if (!record) return false;
     const next = { ...record, ...patch };
-    if (next.enabled === record.enabled && next.allowPrivate === record.allowPrivate) return false;
+    if (next.enabled === record.enabled && next.allowPrivate === record.allowPrivate && next.pinned === record.pinned) return false;
     this.records = this.records.map((known) => (known.id === id ? next : known));
     return true;
+  }
+
+  /** An updated extension (ADR-049): same id, new folder, version and manifest details. */
+  replace(record: ExtensionRecord): void {
+    if (!this.get(record.id)) throw new Error("Unknown extension");
+    this.records = this.records.map((known) => (known.id === record.id ? { ...record } : known));
   }
 
   remove(id: string): ExtensionRecord | undefined {
@@ -104,8 +124,23 @@ export class ExtensionStore {
   }
 }
 
-/** What the UI sees (no filesystem path). */
-export function toInfo(record: ExtensionRecord, error?: string): ExtensionInfo {
-  const { id, name, version, description, manifestVersion, icon, enabled, allowPrivate, managed } = record;
-  return { id, name, version, description, manifestVersion, icon, enabled, allowPrivate, managed, ...(error ? { error } : {}) };
+/** What the UI sees (no filesystem path). `details`: the toolbar button and permission warnings read from the manifest. */
+export function toInfo(record: ExtensionRecord, details: ExtensionDetails = NO_DETAILS, error?: string): ExtensionInfo {
+  const { id, name, version, description, manifestVersion, icon, enabled, allowPrivate, managed, pinned, webStoreId } = record;
+  return {
+    id,
+    name,
+    version,
+    description,
+    manifestVersion,
+    icon,
+    enabled,
+    allowPrivate,
+    managed,
+    pinned,
+    action: details.action,
+    permissions: details.permissions,
+    ...(webStoreId ? { webStoreId } : {}),
+    ...(error ? { error } : {}),
+  };
 }

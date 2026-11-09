@@ -14,6 +14,7 @@
   import MiniPlayer from "./media/MiniPlayer.svelte";
   import PanelStrip from "./panels/PanelStrip.svelte";
   import NavButtons from "./sidebar/NavButtons.svelte";
+  import ExtensionBar from "./sidebar/ExtensionBar.svelte";
   import SelectionBar from "./sidebar/SelectionBar.svelte";
   import SidebarFooter from "./sidebar/SidebarFooter.svelte";
   import SpaceHeader from "./sidebar/SpaceHeader.svelte";
@@ -144,6 +145,7 @@
 <aside class="sidebar" bind:this={sidebarElement} oncontextmenu={onSidebarContextMenu}>
   <NavButtons />
   <AddressBar bind:this={addressBar} />
+  <ExtensionBar />
 
   <div class="favorites-area" bind:this={drag.favorites}>
     <FavoritesGrid dropping={drag.overFavorites} dragActive={drag.canFavorite} />

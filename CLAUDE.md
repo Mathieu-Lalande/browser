@@ -192,3 +192,9 @@
   durcies, jamais en privé), `ReadingListService` (`src/main/reading/`), `AutoPip` (`src/main/media/auto-pip.ts`, monde
   isolé 1018, crochet `BROWSER_TEST_AUTO_PIP`) ; UI `components/panels/` (`PanelStrip`, `WebPanelFrame`, `PanelAddForm`,
   `lib/panels.svelte.ts`), `browser://reading-list` (`components/reading/`) ; mobile `lib/readingList.ts`, `ReadingListScreen`.
+- Chrome Web Store et boutons d'extension (ADR-049) : pur `src/shared/webstore.ts` (pages du store, URL du service de mise à
+  jour, XML) et `permissionLabels`/`manifestAction` (`src/shared/extensions.ts`) ; main `src/main/extensions/` (`crx.ts` vérifie
+  CRX3 + id, `WebStoreClient` par la session `browser-assets`, `ExtensionReviews` → popover overlay `extension-install`,
+  `ExtensionPopup` = `WebContentsView` au-dessus de l'overlay `extension-popup`, menu natif `toolbar-menu.ts`) ; UI
+  `lib/extensions.svelte.ts`, `WebStoreBar`, `sidebar/ExtensionBar` ; `settings.extensions.autoUpdate` ; crochet
+  `BROWSER_TEST_WEBSTORE_URL`, CRX de test `tests/crx-pack.ts`. Pas de badge ni `onClicked` (Electron), rien en privé.
