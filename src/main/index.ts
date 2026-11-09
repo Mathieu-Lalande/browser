@@ -164,6 +164,7 @@ if (!app.requestSingleInstanceLock()) {
             backupImportPath: testHook("BROWSER_TEST_BACKUP_IMPORT"),
             notifications: process.env.BROWSER_TEST_NOTIFICATIONS === "1",
             autoPip: process.env.BROWSER_TEST_AUTO_PIP === "1",
+            webStoreOrigin: testHook("BROWSER_TEST_WEBSTORE_URL"),
           },
       crashReports: {
         reporter: crashReporter,
@@ -221,6 +222,8 @@ if (!app.requestSingleInstanceLock()) {
     app.on("will-quit", () => services.sync.stop());
     // Auto-updates (ADR-030): packaged builds only, first check a little after startup.
     void startUpdates();
+    // Extensions installed from the Chrome Web Store (ADR-049): checked once a day.
+    services.extensions.startAutoUpdates();
 
     app.on("activate", () => {
       if (BrowserController.count() === 0) new BrowserController();

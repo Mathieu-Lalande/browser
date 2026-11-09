@@ -3,6 +3,7 @@
   import Card from "../ui/Card.svelte";
   import type { ExtensionInfo, ExtensionInstallResult } from "@shared/extensions";
   import { api, browser } from "../../lib/browser.svelte";
+  import { settings } from "../../lib/settings.svelte";
   import Icon from "../Icon.svelte";
   import ConfirmButton from "../ui/ConfirmButton.svelte";
   import Toggle from "../ui/Toggle.svelte";
@@ -12,9 +13,10 @@
   import Page from "../ui/Page.svelte";
 
   /**
-   * `browser://extensions` (ADR-024): installed extensions, to switch on/off, allow in private
-   * windows or remove; installing asks main for a folder or a .zip/.crx through a file dialog.
-   * A private window only lists them.
+   * `browser://extensions` (ADR-024, ADR-049): installed extensions, to switch on/off, pin in the
+   * sidebar, allow in private windows or remove; installing asks main for a folder or a .zip/.crx
+   * through a file dialog, or comes from a Chrome Web Store page ("Ajouter à Browser"), whose
+   * extensions are updated from here or daily. A private window only lists them.
    */
 
   let extensions = $state<ExtensionInfo[]>([]);
@@ -50,21 +52,41 @@
     notice = result.ok ? { kind: "success", text: `« ${result.extension.name} » est installée.` } : { kind: "error", text: result.message };
     void refresh();
   }
+
+  const fromStore = $derived(extensions.some((extension) => extension.webStoreId));
+
+  async function checkUpdates(): Promise<void> {
+    busy = true;
+    notice = null;
+    const result = await api.extensions.checkUpdates().catch(() => ({ ok: false, message: "La vérification des mises à jour a échoué." }));
+    busy = false;
+    notice = { kind: result.ok ? "success" : "error", text: result.message };
+    void refresh();
+  }
+
+  const sourceOf = (extension: ExtensionInfo) =>
+    extension.webStoreId ? "Chrome Web Store" : extension.managed ? "installée depuis un fichier" : "dossier non empaqueté";
 </script>
 
 {#snippet subtitle()}
   {#if browser.isPrivate}
     Les extensions se gèrent depuis une fenêtre normale. Elles ne s'appliquent pas aux fenêtres privées.
   {:else}
-    Extensions Chrome (Manifest V2 ou V3) appliquées aux pages de tous vos espaces. Le navigateur prend en charge une partie des API
-    d'extension : les scripts de contenu et la plupart des extensions simples fonctionnent, les boutons de barre d'outils ne sont pas
-    encore affichés.
+    Extensions Chrome (Manifest V2 ou V3) appliquées aux pages de tous vos espaces. Pour en ajouter une, ouvrez sa page sur le
+    Chrome Web Store puis « Ajouter à Browser ». Le navigateur prend en charge une partie des API d'extension : les scripts de
+    contenu, les fenêtres des boutons d'extension et la plupart des extensions simples fonctionnent ; les badges et les clics sans
+    fenêtre ne sont pas transmis.
   {/if}
 {/snippet}
 
 <Page icon="extension" title="Extensions" {subtitle} testid="extensions-page">
   {#snippet actions()}
     {#if !browser.isPrivate}
+      {#if fromStore}
+        <Button icon="download" disabled={busy} onclick={checkUpdates} title="Installer les nouvelles versions publiées sur le Chrome Web Store">
+          Mettre à jour les extensions
+        </Button>
+      {/if}
       <Button icon="folder-open" disabled={busy} onclick={() => install("folder")} title="Extension non empaquetée (dossier contenant manifest.json)">
         Charger un dossier
       </Button>
@@ -97,8 +119,11 @@
               <span class="title">{extension.name} <span class="version">{extension.version}</span></span>
               {#if extension.description}<span class="detail">{extension.description}</span>{/if}
               <span class="detail">
-                Manifest V{extension.manifestVersion} · {extension.managed ? "installée depuis un fichier" : "dossier non empaqueté"}
+                Manifest V{extension.manifestVersion} · {sourceOf(extension)}
               </span>
+              {#if extension.permissions.length}
+                <span class="detail" title={extension.permissions.join("\n")}>Autorisations : {extension.permissions.join(" · ")}</span>
+              {/if}
               {#if extension.error}
                 <span class="error"><Icon name="warning" size={12} /> {extension.error}</span>
               {/if}
@@ -111,12 +136,27 @@
                   />
                   <span class="private-label">
                     Autoriser en navigation privée
-                    <span class="hint">Sans effet pour l'instant : Electron ne charge pas d'extension dans les sessions en mémoire des fenêtres privées.</span>
+                    <span class="hint">
+                      Enregistré, mais sans effet aujourd'hui : une fenêtre privée garde tout en mémoire pour ne rien laisser sur le disque,
+                      et le moteur (Electron) ne sait pas charger d'extension dans ce type de session. Aucune extension ne voit donc vos
+                      pages privées.
+                    </span>
                   </span>
                 </span>
               {/if}
             </span>
             {#if !browser.isPrivate}
+              {#if extension.action}
+                <IconButton
+                  size="row"
+                  icon="pin"
+                  iconSize={14}
+                  pressed={extension.pinned}
+                  label={extension.pinned ? `Désépingler ${extension.name}` : `Épingler ${extension.name}`}
+                  title={extension.pinned ? "Retirer son bouton de la barre latérale" : "Afficher son bouton dans la barre latérale"}
+                  onclick={() => api.extensions.setPinned(extension.id, !extension.pinned)}
+                />
+              {/if}
               <Toggle
                 label={`${extension.enabled ? "Désactiver" : "Activer"} ${extension.name}`}
                 checked={extension.enabled}
@@ -129,11 +169,23 @@
           </ListRow>
         {/each}
       </Card>
+      {#if fromStore && !browser.isPrivate}
+        <label class="auto-update">
+          <Toggle
+            label="Mettre à jour automatiquement les extensions du Chrome Web Store"
+            checked={settings.current.extensions.autoUpdate}
+            onchange={(autoUpdate) => settings.update({ extensions: { autoUpdate } })}
+          />
+          <span>Vérifier chaque jour les nouvelles versions sur le Chrome Web Store (une version qui demande de nouvelles autorisations attend votre accord).</span>
+        </label>
+      {/if}
     {:else if loaded}
       <EmptyState
         icon="extension"
         title="Aucune extension installée"
-        hint={browser.isPrivate ? undefined : "Chargez le dossier d'une extension (contenant manifest.json) ou installez une archive .zip ou .crx."}
+        hint={browser.isPrivate
+          ? undefined
+          : "Ouvrez une extension sur le Chrome Web Store puis « Ajouter à Browser », chargez le dossier d'une extension (contenant manifest.json) ou installez une archive .zip ou .crx."}
       />
     {/if}
 </Page>
@@ -212,5 +264,12 @@
   }
   .hint {
     color: var(--text-faint);
+  }
+  .auto-update {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    color: var(--text-muted);
+    font-size: var(--text-xs);
   }
 </style>

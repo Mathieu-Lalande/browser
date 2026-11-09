@@ -7,7 +7,7 @@ import type { DefaultBrowserStatus } from "./default-browser";
 import type { WidevineStatus } from "./drm";
 import type { HistoryClearRange, HistoryCursor, HistoryPage } from "./history";
 import type { ImportItem, ImportProgress, ImportSource, ImportSummary, PasswordImportSummary } from "./import/types";
-import type { ExtensionInfo, ExtensionInstallResult } from "./extensions";
+import type { ExtensionInfo, ExtensionInstallResult, ExtensionReview, ExtensionUpdateResult } from "./extensions";
 import type { FolderId, FolderInput } from "./folders";
 import type {
   AddressInput,
@@ -235,6 +235,14 @@ export const Channels = {
   extensionsSetPrivateAllowed: "extensions:set-private-allowed",
   extensionsRemove: "extensions:remove",
   extensionsChanged: "extensions:changed",
+  extensionsSetPinned: "extensions:set-pinned",
+  extensionsInstallFromStore: "extensions:install-from-store",
+  extensionsCheckUpdates: "extensions:check-updates",
+  extensionsStoreOrigin: "extensions:store-origin",
+  extensionsReview: "extensions:review",
+  extensionsAnswerReview: "extensions:answer-review",
+  extensionsOpenPopup: "extensions:open-popup",
+  extensionsMenu: "extensions:menu",
   passwordsStatus: "passwords:status",
   passwordsList: "passwords:list",
   passwordsNeverList: "passwords:never-list",
@@ -435,6 +443,24 @@ export interface BrowserApi {
     setPrivateAllowed(id: string, allowed: boolean): Promise<void>;
     remove(id: string): Promise<void>;
     onChanged(listener: () => void): () => void;
+    /** ADR-049: the extension's button in the sidebar's extension row (else in the puzzle menu only). */
+    setPinned(id: string, pinned: boolean): Promise<void>;
+    /**
+     * "Ajouter à Browser" on a Chrome Web Store page: main downloads and verifies the package, then
+     * the overlay shows its permissions; resolves once installed, refused (message) or declined (null).
+     */
+    installFromStore(webStoreId: string): Promise<ExtensionInstallResult>;
+    /** "Mettre à jour les extensions": the store's latest versions, installed in place. */
+    checkUpdates(): Promise<ExtensionUpdateResult>;
+    /** A local fake store recognized besides Google's (dev-only test hook), or null. */
+    storeOrigin(): Promise<string | null>;
+    /** The overlay's permission review: what is about to be installed (null: gone). */
+    review(reviewId: string): Promise<ExtensionReview | null>;
+    answerReview(reviewId: string, accepted: boolean): void;
+    /** Opens an extension's popup below its toolbar button (`anchor`, window coordinates). */
+    openPopup(id: string, anchor: Bounds): void;
+    /** Native menu: the puzzle button's (`id` null) or an extension button's. */
+    menu(id: string | null, anchor: Bounds): void;
   };
   /**
    * Password manager (ADR-025). Lists carry no password: one reaches the UI only through `reveal`,

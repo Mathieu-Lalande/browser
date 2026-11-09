@@ -12,6 +12,7 @@ const record = (overrides: Partial<ExtensionRecord> = {}): ExtensionRecord => ({
   description: "",
   manifestVersion: 3,
   icon: null,
+  pinned: true,
   ...overrides,
 });
 
@@ -49,7 +50,7 @@ describe("ExtensionStore", () => {
   });
 
   it("never exposes the path to the UI", () => {
-    const info = toInfo(record(), "Erreur");
+    const info = toInfo(record(), undefined, "Erreur");
     expect(info).not.toHaveProperty("path");
     expect(info.error).toBe("Erreur");
     expect(toInfo(record())).not.toHaveProperty("error");

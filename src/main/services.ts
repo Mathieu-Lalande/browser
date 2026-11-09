@@ -10,6 +10,7 @@ import { BoostService } from "./boosts/service";
 import { CaptureService } from "./capture/service";
 import { DownloadService } from "./downloads/service";
 import { ExtensionService } from "./extensions/service";
+import { createWebStoreClient } from "./extensions/webstore";
 import { DefaultBrowserService, type DefaultClientPort } from "./default-browser/service";
 import { ImportService } from "./import/service";
 import { browserLocations, detectSources, type BrowserLocation, type LocationEnv } from "./import/sources";
@@ -120,6 +121,8 @@ export interface AppConfig {
     notifications?: boolean;
     /** Automatic picture-in-picture requests are recorded in `globalThis.__browserTestAutoPip` (ADR-047). */
     autoPip?: boolean;
+    /** A local fake Chrome Web Store (ADR-049): its origin serves the store pages and `/service/update2/crx`. */
+    webStoreOrigin?: string;
   };
   /** macOS keychain access group for Touch ID passkeys (signed builds with the entitlement), ADR-041. */
   touchIdKeychainGroup?: string | null;
@@ -175,7 +178,10 @@ export class AppServices {
       defaultFolder: paths.downloads,
       quarantineDir: join(paths.userData, "Unconfirmed downloads"),
     });
-    this.extensions = new ExtensionService(paths.userData);
+    this.extensions = new ExtensionService(paths.userData, {
+      webStore: createWebStoreClient(config.testHooks?.webStoreOrigin ?? null),
+      autoUpdate: () => config.settings().extensions.autoUpdate,
+    });
     this.passwords = new PasswordVaultStore({ profileDir: paths.userData, plainKeychain: config.testHooks?.plainKeychain });
     this.autofill = new AutofillService({
       profileDir: paths.userData,

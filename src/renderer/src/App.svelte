@@ -17,6 +17,8 @@
   import { animateAccent, faviconColor, type AccentVars } from "./lib/dynamic-accent";
   import PermissionBar from "./components/PermissionBar.svelte";
   import PopupBar from "./components/PopupBar.svelte";
+  import WebStoreBar from "./components/WebStoreBar.svelte";
+  import { extensionsUi } from "./lib/extensions.svelte";
   import Sidebar from "./components/Sidebar.svelte";
   import CompactRail from "./components/CompactRail.svelte";
   import SidebarResizer from "./components/SidebarResizer.svelte";
@@ -52,6 +54,8 @@
   const showStartPage = $derived(!browser.activeTab?.url);
   const permissionRequest = $derived(browser.activeTab?.permissionRequest ?? null);
   const blockedPopup = $derived(browser.activeTab?.blockedPopup ?? null);
+  // Extensions (ADR-049): the toolbar row, the store bar and the address bar button follow the list.
+  extensionsUi.start();
   /** The active space's accent (null: the theme's own accent). */
   const spaceColor = $derived(browser.activeSpace?.color ?? null);
   const internalPage = $derived(internalPageOf(browser.activeTab?.url ?? ""));
@@ -276,6 +280,9 @@
       {/if}
       {#if browser.activeTab && blockedPopup && !permissionRequest}
         <PopupBar tabId={browser.activeTab.id} popup={blockedPopup} />
+      {/if}
+      {#if extensionsUi.pageStoreId && !permissionRequest}
+        <WebStoreBar webStoreId={extensionsUi.pageStoreId} />
       {/if}
       {#if browser.activeTab && findState}
         {#key browser.activeTab.id}

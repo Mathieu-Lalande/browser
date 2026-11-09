@@ -1,17 +1,36 @@
 import { randomBytes } from "node:crypto";
-import { existsSync, readFileSync, rmSync, statSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { extname, join, resolve, sep } from "node:path";
 import { dialog, type BaseWindow, type OpenDialogOptions, type Session } from "electron";
 import { Emitter } from "@shared/emitter";
-import { isSafeRelativePath, validateManifest, type ExtensionInfo, type ExtensionInstallResult } from "@shared/extensions";
+import {
+  isSafeRelativePath,
+  manifestAction,
+  permissionLabels,
+  validateManifest,
+  type ExtensionInfo,
+  type ExtensionInstallResult,
+  type ExtensionReview,
+  type ExtensionUpdateResult,
+  type ManifestAction,
+  type ManifestSummary,
+} from "@shared/extensions";
+import { compareVersions } from "@shared/webstore";
 import type { SessionOptions, SessionService } from "../services";
 import { JsonFile } from "../storage/json-file";
-import { EXTENSIONS_VERSION, ExtensionStore, toInfo, type ExtensionRecord } from "./store";
+import type { VerifiedCrx } from "./crx";
+import { ExtensionReviews } from "./reviews";
+import { EXTENSIONS_VERSION, ExtensionStore, toInfo, type ExtensionDetails, type ExtensionRecord } from "./store";
 import { UnpackError, unpackExtension } from "./unpack";
+import type { WebStoreClient } from "./webstore";
 
 const MAX_PACKED_SIZE = 100 * 1024 * 1024;
 const MAX_ICON_SIZE = 64 * 1024;
 const ICON_TYPES: Record<string, string> = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp" };
+
+const DAY_MS = 24 * 60 * 60_000;
+const UPDATE_TICK_MS = 60 * 60_000;
+const FIRST_UPDATE_DELAY_MS = 2 * 60_000;
 
 /** Marks an extension being loaded into a session (Electron's id not known yet). */
 const PENDING = "";
@@ -21,6 +40,24 @@ interface SessionState {
   /** Our extension id → Electron's id in this session (or PENDING). */
   loaded: Map<string, string>;
 }
+
+/** Asks the user to confirm a Web Store install or update (the overlay's permission review, ADR-049). */
+export type ExtensionReviewer = (review: ExtensionReview) => Promise<boolean>;
+
+export interface ExtensionServiceOptions {
+  /** Chrome Web Store client (ADR-049); absent: store installs and updates are unavailable. */
+  webStore?: WebStoreClient;
+  /** "Mettre à jour automatiquement" (`settings.extensions.autoUpdate`). */
+  autoUpdate?: () => boolean;
+}
+
+/** A folder's manifest, once validated, with what the toolbar and the review need. */
+interface Inspected {
+  manifest: ManifestSummary;
+  details: ExtensionDetails;
+}
+
+type Failure = { ok: false; message: string };
 
 const shouldLoad = (record: ExtensionRecord | undefined, session: SessionState) =>
   !!record && record.enabled && (!session.ephemeral || record.allowPrivate);
@@ -47,6 +84,36 @@ function readIcon(root: string, path: string | null): string | null {
   }
 }
 
+/** The parsed manifest of a folder, its default locale's messages and its action, or undefined. */
+function readFolder(root: string): { raw: Record<string, unknown>; messages: Record<string, unknown> | null; action: ManifestAction | null } | undefined {
+  const raw = readJson(join(root, "manifest.json"));
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return undefined;
+  const manifest = raw as Record<string, unknown>;
+  const locale = manifest.default_locale;
+  const messages = typeof locale === "string" && isSafeRelativePath(locale) ? readJson(join(root, "_locales", locale, "messages.json")) : undefined;
+  const localized = typeof messages === "object" && messages !== null ? (messages as Record<string, unknown>) : null;
+  return { raw: manifest, messages: localized, action: manifestAction(manifest, localized) };
+}
+
+/** Validates a folder's manifest; its toolbar button and permission warnings come along. */
+function inspect(root: string): Inspected | Failure {
+  if (!existsSync(join(root, "manifest.json"))) return { ok: false, message: "Ce dossier ne contient pas de fichier manifest.json." };
+  const folder = readFolder(root);
+  if (!folder) return { ok: false, message: "Le fichier manifest.json de l'extension est illisible." };
+  const check = validateManifest(folder.raw, folder.messages);
+  if (!check.ok) return check;
+  const { action } = folder;
+  return {
+    manifest: check.manifest,
+    details: {
+      action: action && { title: action.title ?? "", icon: readIcon(root, action.iconPath), hasPopup: !!action.popup && existsSync(join(root, action.popup)) },
+      permissions: permissionLabels(folder.raw),
+    },
+  };
+}
+
+const isFailure = (value: Inspected | Failure): value is Failure => "message" in value;
+
 /** Chrome-style id: 32 letters a–p (random: ours, not Electron's path-derived one). */
 const newId = () => [...randomBytes(16)].map((byte) => String.fromCharCode(97 + (byte >> 4), 97 + (byte & 15))).join("");
 
@@ -58,21 +125,36 @@ async function pick(window: BaseWindow | null, options: OpenDialogOptions): Prom
 }
 
 /**
- * Browser extensions (ADR-024), through Electron's own `session.extensions`. A session service:
- * every tab session (default space, isolated spaces, private windows) gets them when it is
+ * Browser extensions (ADR-024, ADR-049), through Electron's own `session.extensions`. A session
+ * service: every tab session (default space, isolated spaces, private windows) gets them when it is
  * hardened; the browser UI lives in its own in-memory session (`ui-session.ts`) and never gets any.
  * A private window's session only gets extensions allowed there — and Electron refuses in-memory
- * sessions for now, so in practice none (see the ADR).
+ * sessions, so in practice none (see the ADRs). Store installs and updates: `WebStoreClient`.
  */
 export class ExtensionService implements SessionService {
   private readonly sessions = new Map<Session, SessionState>();
   /** Last load error per extension (French), shown on `browser://extensions`. */
   private readonly errors = new Map<string, string>();
+  /** Toolbar button and permission warnings per extension, read from the manifests. */
+  private readonly details = new Map<string, ExtensionDetails>();
   private readonly changes = new Emitter();
   private state: { store: ExtensionStore; file: JsonFile<ExtensionRecord[]>; dir: string } | null = null;
+  /** Permission confirmations waiting for the overlay (ADR-049). */
+  readonly reviews = new ExtensionReviews();
+  private updating: Promise<ExtensionUpdateResult> | null = null;
+  private lastCheck: JsonFile<number> | null = null;
+  private updateTimer: ReturnType<typeof setTimeout> | null = null;
 
   /** `profileDir`: where `extensions.json` and the unpacked extensions (`extensions/`) live. */
-  constructor(private readonly profileDir: string) {}
+  constructor(
+    private readonly profileDir: string,
+    private readonly options: ExtensionServiceOptions = {},
+  ) {}
+
+  /** The local fake store's origin (dev-only test hook), recognized by the UI besides Google's. */
+  get webStoreTestOrigin(): string | null {
+    return this.options.webStore?.testOrigin ?? null;
+  }
 
   /** The list or an extension's state changed (windows re-list it). */
   onChanged(listener: () => void): () => void {
@@ -102,8 +184,25 @@ export class ExtensionService implements SessionService {
     this.sessions.delete(ses);
   }
 
+  dispose(): void {
+    if (this.updateTimer) clearTimeout(this.updateTimer);
+    this.updateTimer = null;
+  }
+
   list(): ExtensionInfo[] {
-    return this.opened().store.list().map((record) => toInfo(record, this.errors.get(record.id)));
+    return this.opened().store.list().map((record) => this.infoOf(record));
+  }
+
+  /**
+   * The `chrome-extension://` URL of an extension's popup page in `ses`, if it is loaded there and
+   * declares one (ADR-049). Electron's id comes from the folder, or from the manifest's `key`.
+   */
+  popupUrl(ses: Session, id: string): string | null {
+    const electronId = this.sessions.get(ses)?.loaded.get(id);
+    const record = this.opened().store.get(id);
+    if (!electronId || !record) return null;
+    const popup = readFolder(record.path)?.action?.popup;
+    return popup ? `chrome-extension://${electronId}/${popup.split("/").map(encodeURIComponent).join("/")}` : null;
   }
 
   /** "Charger un dossier" : an unpacked extension, used in place (never copied nor deleted). */
@@ -141,12 +240,74 @@ export class ExtensionService implements SessionService {
     return result;
   }
 
+  /**
+   * "Ajouter à Browser" on a Chrome Web Store page (ADR-049): downloads the package through the
+   * update service, checks its CRX3 signature and id, shows its permissions (`review`) and installs
+   * it. Null: the user said no.
+   */
+  async installFromWebStore(webStoreId: string, review: ExtensionReviewer): Promise<ExtensionInstallResult> {
+    const webStore = this.options.webStore;
+    if (!webStore) return failure("L'installation depuis le Chrome Web Store n'est pas disponible.");
+    if (this.opened().store.list().some((record) => record.webStoreId === webStoreId)) return failure("Cette extension est déjà installée.");
+    let crx: VerifiedCrx;
+    try {
+      crx = await webStore.download(webStoreId);
+    } catch (error) {
+      return failure(error instanceof UnpackError ? error.message : "Le téléchargement de l'extension a échoué.");
+    }
+    const id = newId();
+    const target = join(this.opened().dir, id);
+    const unpacked = this.unpackStorePackage(crx, target);
+    if (isFailure(unpacked)) return unpacked;
+    const { manifest, details } = unpacked;
+    const duplicate = this.duplicateOf(target, manifest.name);
+    let result: ExtensionInstallResult = duplicate ? failure(duplicate) : null;
+    if (!duplicate) {
+      const icon = readIcon(target, manifest.iconPath);
+      const accepted = await review({ name: manifest.name, version: manifest.version, icon, permissions: details.permissions, update: false });
+      if (accepted) result = await this.installFolder(target, id, true, webStoreId);
+    }
+    if (!result?.ok) rmSync(target, { recursive: true, force: true });
+    return result;
+  }
+
+  /**
+   * "Mettre à jour les extensions" (ADR-049): asks the store for the latest versions of the
+   * extensions installed from it and updates them in place. `review`: shown when an update asks for
+   * new permissions; without one (daily check), such an update waits for the user.
+   */
+  checkUpdates(review?: ExtensionReviewer): Promise<ExtensionUpdateResult> {
+    this.updating ??= this.runUpdates(review).finally(() => (this.updating = null));
+    return this.updating;
+  }
+
+  /** The daily automatic check (when `autoUpdate` allows it): a little after startup, then hourly ticks. */
+  startAutoUpdates(): void {
+    const tick = () => {
+      if (!this.options.autoUpdate?.() || !this.opened().store.list().some((record) => record.webStoreId)) return;
+      if (Date.now() - (this.lastCheckFile().load() ?? 0) >= DAY_MS) void this.checkUpdates();
+    };
+    const schedule = (delay: number) => {
+      this.updateTimer = setTimeout(() => {
+        tick();
+        schedule(UPDATE_TICK_MS);
+      }, delay);
+      this.updateTimer.unref?.();
+    };
+    schedule(FIRST_UPDATE_DELAY_MS);
+  }
+
   setEnabled(id: string, enabled: boolean): Promise<void> {
     return this.change(id, { enabled });
   }
 
   setPrivateAllowed(id: string, allowPrivate: boolean): Promise<void> {
     return this.change(id, { allowPrivate });
+  }
+
+  /** Pinned: a button in the sidebar's extension row; else only in the puzzle menu (ADR-049). */
+  setPinned(id: string, pinned: boolean): Promise<void> {
+    return this.change(id, { pinned });
   }
 
   /** Unloads and forgets an extension; a folder the browser unpacked is deleted, a user's folder never. */
@@ -156,6 +317,7 @@ export class ExtensionService implements SessionService {
     if (!record) return;
     await this.apply(id);
     this.errors.delete(id);
+    this.details.delete(id);
     this.save();
     if (record.managed && resolve(record.path).startsWith(resolve(dir) + sep)) rmSync(record.path, { recursive: true, force: true });
     this.notify();
@@ -181,7 +343,28 @@ export class ExtensionService implements SessionService {
     file.save(store.toJSON());
   }
 
-  private async change(id: string, patch: { enabled?: boolean; allowPrivate?: boolean }): Promise<void> {
+  private lastCheckFile(): JsonFile<number> {
+    this.lastCheck ??= new JsonFile<number>({
+      path: join(this.profileDir, "extension-updates.json"),
+      version: 1,
+      parse: (data) => (typeof data === "number" && Number.isFinite(data) ? data : null),
+    });
+    return this.lastCheck;
+  }
+
+  private infoOf(record: ExtensionRecord): ExtensionInfo {
+    let details = this.details.get(record.id);
+    if (!details) {
+      const inspected = inspect(record.path);
+      details = isFailure(inspected) ? { action: null, permissions: [] } : inspected.details;
+      this.details.set(record.id, details);
+    }
+    // The button falls back on the extension's own name and icon.
+    const action = details.action && { ...details.action, title: details.action.title || record.name, icon: details.action.icon ?? record.icon };
+    return toInfo(record, { ...details, action }, this.errors.get(record.id));
+  }
+
+  private async change(id: string, patch: { enabled?: boolean; allowPrivate?: boolean; pinned?: boolean }): Promise<void> {
     if (!this.opened().store.update(id, patch)) return;
     this.save();
     await this.apply(id);
@@ -222,6 +405,10 @@ export class ExtensionService implements SessionService {
     }
   }
 
+  private unloadEverywhere(id: string): void {
+    for (const [ses, session] of this.sessions) this.unloadFrom(ses, session, id);
+  }
+
   /** Brings every session in line with an extension's switches; resolves to the first load error. */
   private async apply(id: string): Promise<string | null> {
     const record = this.opened().store.get(id);
@@ -238,23 +425,23 @@ export class ExtensionService implements SessionService {
     return error;
   }
 
-  /** Validates the folder's manifest, records the extension and loads it everywhere it belongs. */
-  private async installFolder(root: string, id: string, managed: boolean): Promise<ExtensionInstallResult> {
+  /** Why an extension at `root` named `name` cannot be added, if it cannot. */
+  private duplicateOf(root: string, name: string): string | null {
     const { store } = this.opened();
-    if (!existsSync(join(root, "manifest.json"))) return failure("Ce dossier ne contient pas de fichier manifest.json.");
-    const raw = readJson(join(root, "manifest.json"));
-    if (raw === undefined) return failure("Le fichier manifest.json de l'extension est illisible.");
-    const locale = typeof raw === "object" && raw !== null ? (raw as Record<string, unknown>).default_locale : undefined;
-    const messages =
-      typeof locale === "string" && isSafeRelativePath(locale) ? readJson(join(root, "_locales", locale, "messages.json")) : undefined;
-    const check = validateManifest(raw, typeof messages === "object" && messages !== null ? (messages as Record<string, unknown>) : null);
-    if (!check.ok) return check;
-    const { manifest } = check;
-    if (store.byPath(root)) return failure("Cette extension est déjà installée.");
-    if (store.list().some((record) => record.name === manifest.name)) {
-      return failure(`Une extension nommée « ${manifest.name} » est déjà installée : retirez-la d'abord pour la remplacer.`);
+    if (store.byPath(root)) return "Cette extension est déjà installée.";
+    if (store.list().some((record) => record.name === name)) {
+      return `Une extension nommée « ${name} » est déjà installée : retirez-la d'abord pour la remplacer.`;
     }
-    if (store.full) return failure("Trop d'extensions installées.");
+    return store.full ? "Trop d'extensions installées." : null;
+  }
+
+  /** Validates the folder's manifest, records the extension and loads it everywhere it belongs. */
+  private async installFolder(root: string, id: string, managed: boolean, webStoreId?: string): Promise<ExtensionInstallResult> {
+    const inspected = inspect(root);
+    if (isFailure(inspected)) return inspected;
+    const { manifest, details } = inspected;
+    const duplicate = this.duplicateOf(root, manifest.name);
+    if (duplicate) return failure(duplicate);
     const record: ExtensionRecord = {
       id,
       path: root,
@@ -266,18 +453,132 @@ export class ExtensionService implements SessionService {
       description: manifest.description,
       manifestVersion: manifest.manifestVersion,
       icon: readIcon(root, manifest.iconPath),
+      pinned: true,
+      ...(webStoreId ? { webStoreId } : {}),
     };
+    const { store } = this.opened();
     store.add(record);
+    this.details.set(id, details);
     const error = await this.apply(id);
     if (error) {
       // Chromium refused it (unsupported key, missing script…): nothing is kept.
       store.remove(id);
+      this.details.delete(id);
       await this.apply(id);
       this.errors.delete(id);
       return failure(error);
     }
     this.save();
     this.notify();
-    return { ok: true, extension: toInfo(record) };
+    return { ok: true, extension: this.infoOf(record) };
   }
+
+  /**
+   * Writes a verified store package into `target` and validates it. The developer key goes into the
+   * manifest (as Chrome does), so Electron gives the extension its store id.
+   */
+  private unpackStorePackage(crx: VerifiedCrx, target: string): Inspected | Failure {
+    try {
+      unpackExtension(crx.zip, target);
+      const manifestPath = join(target, "manifest.json");
+      const raw = readJson(manifestPath);
+      if (typeof raw === "object" && raw !== null && !Array.isArray(raw) && !("key" in raw)) {
+        writeFileSync(manifestPath, JSON.stringify({ ...raw, key: crx.publicKey.toString("base64") }, null, 2));
+      }
+    } catch (error) {
+      rmSync(target, { recursive: true, force: true });
+      return { ok: false, message: error instanceof UnpackError ? error.message : "Impossible de décompresser l'extension." };
+    }
+    const inspected = inspect(target);
+    if (isFailure(inspected)) rmSync(target, { recursive: true, force: true });
+    return inspected;
+  }
+
+  private async runUpdates(review?: ExtensionReviewer): Promise<ExtensionUpdateResult> {
+    const webStore = this.options.webStore;
+    const candidates = this.opened().store.list().filter((record) => record.webStoreId);
+    if (!webStore || !candidates.length) return { ok: true, message: "Aucune extension installée depuis le Chrome Web Store." };
+    let latest: Map<string, string>;
+    try {
+      latest = await webStore.latestVersions(candidates.map((record) => ({ id: record.webStoreId!, version: record.version })));
+    } catch (error) {
+      return { ok: false, message: error instanceof UnpackError ? error.message : "Impossible de joindre le Chrome Web Store." };
+    }
+    this.lastCheckFile().save(Date.now());
+    const updated: string[] = [];
+    const problems: string[] = [];
+    for (const record of candidates) {
+      const version = latest.get(record.webStoreId!);
+      if (!version || compareVersions(version, record.version) <= 0) continue;
+      const outcome = await this.updateOne(record.id, review);
+      if (outcome === true) updated.push(`« ${record.name} » ${this.opened().store.get(record.id)?.version ?? version}`);
+      else if (outcome) problems.push(`« ${record.name} » : ${outcome}`);
+    }
+    this.notify();
+    if (!updated.length && !problems.length) return { ok: true, message: "Toutes les extensions sont à jour." };
+    const parts = [...(updated.length ? [`Mise à jour : ${updated.join(", ")}.`] : []), ...problems];
+    return { ok: !problems.length, message: parts.join(" ") };
+  }
+
+  /** Updates one store extension in place: true when done, else a French reason (null: declined or nothing newer). */
+  private async updateOne(id: string, review?: ExtensionReviewer): Promise<true | string | null> {
+    const { store, dir } = this.opened();
+    const old = store.get(id);
+    if (!old?.webStoreId || !this.options.webStore) return null;
+    let crx: VerifiedCrx;
+    try {
+      crx = await this.options.webStore.download(old.webStoreId);
+    } catch (error) {
+      return error instanceof UnpackError ? error.message : "téléchargement impossible.";
+    }
+    const target = join(dir, `${id}-${randomBytes(4).toString("hex")}`);
+    const unpacked = this.unpackStorePackage(crx, target);
+    if (isFailure(unpacked)) return unpacked.message;
+    const discard = (reason: string | null) => {
+      rmSync(target, { recursive: true, force: true });
+      return reason;
+    };
+    const { manifest, details } = unpacked;
+    if (compareVersions(manifest.version, old.version) <= 0) return discard(null);
+    const known = new Set(this.details.get(id)?.permissions ?? inspectPermissions(old.path));
+    const added = details.permissions.filter((label) => !known.has(label));
+    if (added.length) {
+      if (!review) {
+        const message = "la nouvelle version demande des autorisations supplémentaires : lancez « Mettre à jour les extensions » pour les accepter.";
+        this.errors.set(id, `Mise à jour en attente : ${message}`);
+        return discard(message);
+      }
+      const icon = readIcon(target, manifest.iconPath);
+      if (!(await review({ name: manifest.name, version: manifest.version, icon, permissions: added, update: true }))) return discard(null);
+    }
+    const next: ExtensionRecord = {
+      ...old,
+      path: target,
+      name: manifest.name,
+      version: manifest.version,
+      description: manifest.description,
+      manifestVersion: manifest.manifestVersion,
+      icon: readIcon(target, manifest.iconPath),
+    };
+    // The old version leaves every session, the new one takes its place.
+    this.unloadEverywhere(id);
+    store.replace(next);
+    this.details.set(id, details);
+    const error = await this.apply(id);
+    if (error) {
+      this.unloadEverywhere(id);
+      store.replace(old);
+      this.details.delete(id);
+      await this.apply(id);
+      return discard(error);
+    }
+    this.save();
+    if (old.managed && resolve(old.path).startsWith(resolve(dir) + sep)) rmSync(old.path, { recursive: true, force: true });
+    return true;
+  }
+}
+
+function inspectPermissions(root: string): string[] {
+  const inspected = inspect(root);
+  return isFailure(inspected) ? [] : inspected.details.permissions;
 }
