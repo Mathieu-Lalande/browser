@@ -149,6 +149,8 @@ export interface ExtensionReview {
   permissions: string[];
   /** An update of an installed extension asking for more permissions. */
   update: boolean;
+  /** Where it comes from: the store (signature checked) or a package dropped on the page. */
+  source?: "store" | "file";
 }
 
 /** Outcome of "Mettre à jour les extensions" (French message for the page). */
@@ -257,3 +259,75 @@ export function permissionLabels(raw: unknown): string[] {
   if (labels.has(ALL_SITES_LABEL)) for (const label of labels) if (label.startsWith("Lire et modifier vos données sur ")) labels.delete(label);
   return [...labels];
 }
+
+/**
+ * The sites an extension can reach (ADR-049, "Détails"): every host it names (host permissions,
+ * MV2 hosts in `permissions`, content script matches), "Tous les sites" for a catch-all pattern.
+ */
+export function manifestHosts(raw: unknown): string[] {
+  if (typeof raw !== "object" || raw === null) return [];
+  const manifest = raw as Record<string, unknown>;
+  const patterns = [...strings(manifest.permissions), ...strings(manifest.host_permissions)];
+  if (Array.isArray(manifest.content_scripts)) {
+    for (const script of manifest.content_scripts) {
+      if (typeof script === "object" && script !== null) patterns.push(...strings((script as Record<string, unknown>).matches));
+    }
+  }
+  if (patterns.some((pattern) => ALL_SITES.has(pattern))) return ["Tous les sites"];
+  return [...new Set(patterns.map(patternHost).filter((host): host is string => !!host))].sort();
+}
+
+/** The API permissions a manifest names (`storage`, `tabs`…), host patterns left out. */
+export function manifestApiPermissions(raw: unknown): string[] {
+  if (typeof raw !== "object" || raw === null) return [];
+  return strings((raw as Record<string, unknown>).permissions).filter((permission) => !permission.includes("/") && !ALL_SITES.has(permission));
+}
+
+/** The extension's options page (`options_ui.page`, else `options_page`), a safe relative path, or null. */
+export function manifestOptionsPage(raw: unknown): string | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const manifest = raw as Record<string, unknown>;
+  const ui = manifest.options_ui;
+  const embedded = typeof ui === "object" && ui !== null ? (ui as Record<string, unknown>).page : undefined;
+  const page = typeof embedded === "string" ? embedded : manifest.options_page;
+  if (typeof page !== "string") return null;
+  const path = cleanPath(page.split(/[?#]/)[0]);
+  return path && isSafeRelativePath(path) ? path : null;
+}
+
+/** What "Détails" shows on `browser://extensions` (read from the folder when asked). */
+export interface ExtensionDetailsInfo {
+  id: string;
+  /** Sites it can read and change ("Tous les sites" for every one). */
+  hosts: string[];
+  /** Its API permissions as the manifest names them (`storage`, `tabs`…). */
+  apiPermissions: string[];
+  /** Size of its folder on disk, bytes. */
+  size: number;
+  /** It declares an options page ("Ouvrir les options"). */
+  hasOptions: boolean;
+  /** Store extensions: the last time new versions were looked for (epoch ms), or null. */
+  lastUpdateCheck: number | null;
+  /** Its folder, for an unpacked extension the user picked (null when the browser unpacked it). */
+  folder: string | null;
+}
+
+/** A size in French units ("1,2 Mo"). */
+export function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} o`;
+  const units = ["Ko", "Mo", "Go"];
+  let value = bytes / 1024;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit++;
+  }
+  return `${value.toLocaleString("fr-FR", { maximumFractionDigits: value < 10 ? 1 : 0 })} ${units[unit]}`;
+}
+
+/** A package dropped on `browser://extensions`: a .crx/.zip file's bytes, or a folder's files (copied into the profile). */
+export type DroppedExtension = { kind: "file"; name: string; data: Uint8Array } | { kind: "folder"; files: { path: string; data: Uint8Array }[] };
+
+/** Limits of a dropped package (the same as a picked file: 100 Mo). */
+export const MAX_DROPPED_SIZE = 100 * 1024 * 1024;
+export const MAX_DROPPED_FILES = 50_000;

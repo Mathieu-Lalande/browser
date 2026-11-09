@@ -196,5 +196,8 @@
   jour, XML) et `permissionLabels`/`manifestAction` (`src/shared/extensions.ts`) ; main `src/main/extensions/` (`crx.ts` vérifie
   CRX3 + id, `WebStoreClient` par la session `browser-assets`, `ExtensionReviews` → popover overlay `extension-install`,
   `ExtensionPopup` = `WebContentsView` au-dessus de l'overlay `extension-popup`, menu natif `toolbar-menu.ts`) ; UI
-  `lib/extensions.svelte.ts`, `WebStoreBar`, `sidebar/ExtensionBar` ; `settings.extensions.autoUpdate` ; crochet
+  `lib/extensions.svelte.ts`, `WebStoreBar` (échecs seulement), `sidebar/ExtensionBar` ; bouton « Ajouter à Browser » dans la page
+  du store (agent texte `@shared/webstore-page`, monde isolé 1022, `WebStorePages` `store-page.ts`, clic par console à secret),
+  progression `StoreInstall`, popover `extension-installed`, `browser://extensions` (`ExtensionRow`, Détails, options en onglet
+  `extensionPage`, dépôt de .crx/.zip/dossier en octets `lib/extension-drop.ts`), limites `ZIP_LIMITS` (`unpack.ts`) ; `settings.extensions.autoUpdate` ; crochet
   `BROWSER_TEST_WEBSTORE_URL`, CRX de test `tests/crx-pack.ts`. Pas de badge ni `onClicked` (Electron), rien en privé.

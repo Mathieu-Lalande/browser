@@ -1,26 +1,21 @@
 import type { ExtensionInfo } from "@shared/extensions";
+import type { Bounds } from "@shared/types";
 import { webStoreIdFromUrl } from "@shared/webstore";
+import { STORE_PHASE_LABELS, type StoreInstall } from "@shared/webstore-page";
 import { api, browser } from "./browser.svelte";
-
-/** What the last store install said, shown by the store bar of the tab it was started from. */
-export interface StoreNotice {
-  webStoreId: string;
-  kind: "error" | "success";
-  text: string;
-}
 
 /**
  * The chrome UI's view of the extensions (ADR-049): the list (live), the toolbar buttons of the
- * sidebar row, and the Chrome Web Store page on screen with its "Ajouter à Browser" flow, shared by
- * the address bar button and the store bar. Started by its first user.
+ * sidebar row, the store installs main runs (téléchargement → vérification → installation, or
+ * the last failure) and the Chrome Web Store page on screen with its "Ajouter à Browser" flow,
+ * shared by the address bar button, the store bar and our button inside the store page. Started
+ * by its first user.
  */
 class ExtensionsUi {
   list = $state<ExtensionInfo[]>([]);
+  installs = $state<StoreInstall[]>([]);
   /** A local fake store's origin (dev-only test hook), or null. */
   storeOrigin = $state<string | null>(null);
-  /** Store id being downloaded / reviewed. */
-  installing = $state<string | null>(null);
-  notice = $state<StoreNotice | null>(null);
   private started = false;
   private request = 0;
 
@@ -36,33 +31,46 @@ class ExtensionsUi {
     return id && !this.list.some((extension) => extension.webStoreId === id) ? id : null;
   });
 
+  /** The install of the page's extension, in progress or failed. */
+  readonly pageInstall = $derived(this.installs.find((install) => install.webStoreId === this.pageStoreId) ?? null);
+
   start(): void {
     if (this.started) return;
     this.started = true;
     void this.refresh();
     api.extensions.onChanged(() => void this.refresh());
+    api.extensions.onInstalled((id) => void this.confirm(id));
     void api.extensions.storeOrigin().then((origin) => (this.storeOrigin = origin), () => null);
   }
 
   async refresh(): Promise<void> {
     const id = ++this.request;
-    const list = await api.extensions.list().catch(() => null);
-    if (list && id === this.request) this.list = list;
+    const [list, installs] = await Promise.all([api.extensions.list().catch(() => null), api.extensions.storeInstalls().catch(() => null)]);
+    if (id !== this.request) return;
+    if (list) this.list = list;
+    if (installs) this.installs = installs;
   }
 
-  /** "Ajouter à Browser": main downloads, verifies and asks; the outcome becomes the notice. */
-  async installFromStore(webStoreId: string): Promise<void> {
-    if (this.installing) return;
-    this.installing = webStoreId;
-    this.notice = null;
-    const result = await api.extensions.installFromStore(webStoreId).catch(() => ({ ok: false as const, message: "L'installation a échoué." }));
-    this.installing = null;
-    if (result) {
-      this.notice = result.ok
-        ? { webStoreId, kind: "success", text: `« ${result.extension.name} » est installée.` }
-        : { webStoreId, kind: "error", text: result.message };
-    }
-    void this.refresh();
+  /** "Ajouter à Browser" (or "Réessayer"): main downloads, verifies and asks; progress and failures come back as `installs`. */
+  installFromStore(webStoreId: string): void {
+    void api.extensions.installFromStore(webStoreId).catch(() => null);
+  }
+
+  /** What a store install shows ("Vérification…"), or null when there is none in progress. */
+  phaseLabel(install: StoreInstall | null): string | null {
+    return install && install.phase !== "error" ? STORE_PHASE_LABELS[install.phase] : null;
+  }
+
+  /** After an install from this window: the confirmation hangs from the extension bar (its puzzle button). */
+  private async confirm(id: string): Promise<void> {
+    await this.refresh();
+    // Let the extension bar appear if this was the first extension.
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    const anchor = document.querySelector<HTMLElement>("[data-extensions-anchor]") ?? document.querySelector<HTMLElement>(".address-bar, form");
+    if (!anchor) return;
+    const rect = anchor.getBoundingClientRect();
+    const bounds: Bounds = { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+    api.extensions.showInstalled(id, bounds);
   }
 }
 

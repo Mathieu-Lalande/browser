@@ -35,7 +35,18 @@ export function webStoreIdFromUrl(url: string, testOrigin: string | null = null)
   return id ?? null;
 }
 
-const formatX = (parts: string) => `x=${encodeURIComponent(parts)}`;
+/** Any page of the store (search, categories, detail pages: the store navigates in-app between them). */
+export function isWebStorePage(url: string, testOrigin: string | null = null): boolean {
+  try {
+    const { origin, pathname } = new URL(url);
+    if (origin === "https://chromewebstore.google.com" || (testOrigin && origin === testOrigin)) return true;
+    return origin === "https://chrome.google.com" && pathname.startsWith("/webstore");
+  } catch {
+    return false;
+  }
+}
+
+const formatX =(parts: string) => `x=${encodeURIComponent(parts)}`;
 
 /** The CRX download: answered by a redirect to the package of the latest version. */
 export function crxDownloadUrl(id: string, chromeMajor: number, endpoint: string = WEBSTORE_UPDATE_URL): string {

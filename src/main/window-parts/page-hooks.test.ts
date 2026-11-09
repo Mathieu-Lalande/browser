@@ -10,6 +10,7 @@ function setup(isPrivate: boolean) {
     media: { report: vi.fn() },
     translator: { pageReady: vi.fn(async () => {}), stateOf: vi.fn(() => null) },
     annotator: { pageReady: vi.fn(), clicked: vi.fn() },
+    storePages: { pageReady: vi.fn(), clicked: vi.fn() },
   } satisfies PageFeatures;
   const deps = {
     base: { isBookmarked: (url: string) => url === "https://saved.example/" },

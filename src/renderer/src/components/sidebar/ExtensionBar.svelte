@@ -35,7 +35,7 @@
   }
 </script>
 
-{#if !browser.isPrivate && extensionsUi.withAction.length}
+{#if !browser.isPrivate && extensionsUi.list.some((extension) => extension.enabled)}
   <div class="extension-bar" role="toolbar" aria-label="Extensions" data-testid="extension-bar">
     {#each visible as extension (extension.id)}
       <IconButton
@@ -63,6 +63,7 @@
       label="Extensions"
       title={hidden ? `Extensions (${hidden} non affichée${hidden > 1 ? "s" : ""})` : "Extensions : ouvrir, épingler, gérer"}
       aria-haspopup="menu"
+      data-extensions-anchor
       onclick={(event) => menu(null, event)}
       oncontextmenu={(event) => menu(null, event)}
     />

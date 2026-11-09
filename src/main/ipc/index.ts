@@ -37,6 +37,7 @@ type EventChannel = (typeof Channels)[
   | "recordingControl"
   | "archiveChanged"
   | "extensionsChanged"
+  | "extensionsInstalled"
   | "passwordsChanged"
   | "autofillChanged"
   | "boostsChanged"

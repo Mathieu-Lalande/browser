@@ -1,10 +1,17 @@
 import { randomBytes } from "node:crypto";
-import { existsSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { extname, join, resolve, sep } from "node:path";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync, type Dirent } from "node:fs";
+import { dirname, extname, join, resolve, sep } from "node:path";
 import { dialog, type BaseWindow, type OpenDialogOptions, type Session } from "electron";
 import { Emitter } from "@shared/emitter";
 import {
   isSafeRelativePath,
+  manifestApiPermissions,
+  manifestHosts,
+  manifestOptionsPage,
+  MAX_DROPPED_FILES,
+  MAX_DROPPED_SIZE,
+  type DroppedExtension,
+  type ExtensionDetailsInfo,
   manifestAction,
   permissionLabels,
   validateManifest,
@@ -16,6 +23,7 @@ import {
   type ManifestSummary,
 } from "@shared/extensions";
 import { compareVersions } from "@shared/webstore";
+import { storeButtonState, type StoreButtonState, type StoreInstall } from "@shared/webstore-page";
 import type { SessionOptions, SessionService } from "../services";
 import { JsonFile } from "../storage/json-file";
 import type { VerifiedCrx } from "./crx";
@@ -144,6 +152,8 @@ export class ExtensionService implements SessionService {
   private updating: Promise<ExtensionUpdateResult> | null = null;
   private lastCheck: JsonFile<number> | null = null;
   private updateTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Store installs in progress or failed, by store id (ADR-049). */
+  private readonly storeProgress = new Map<string, StoreInstall>();
 
   /** `profileDir`: where `extensions.json` and the unpacked extensions (`extensions/`) live. */
   constructor(
@@ -249,9 +259,44 @@ export class ExtensionService implements SessionService {
     const webStore = this.options.webStore;
     if (!webStore) return failure("L'installation depuis le Chrome Web Store n'est pas disponible.");
     if (this.opened().store.list().some((record) => record.webStoreId === webStoreId)) return failure("Cette extension est déjà installée.");
+    const current = this.storeProgress.get(webStoreId);
+    if (current && current.phase !== "error") return null;
+    const result = await this.runStoreInstall(webStoreId, webStore, review).catch((): ExtensionInstallResult => failure("L'installation de l'extension a échoué."));
+    if (result && !result.ok) this.setProgress({ webStoreId, phase: "error", message: result.message });
+    else this.setProgress(webStoreId);
+    return result;
+  }
+
+  /** Store installs in progress, and the last failure of each (ADR-049). */
+  storeInstalls(): StoreInstall[] {
+    return [...this.storeProgress.values()];
+  }
+
+  /** What the button of an extension's store page shows. */
+  storeButton(webStoreId: string): StoreButtonState {
+    const installed = this.opened().store.list().some((record) => record.webStoreId === webStoreId);
+    return storeButtonState(webStoreId, installed, this.storeProgress.get(webStoreId));
+  }
+
+  /** The installed extension that came from `webStoreId`, if any. */
+  byWebStoreId(webStoreId: string): ExtensionInfo | null {
+    const record = this.opened().store.list().find((entry) => entry.webStoreId === webStoreId);
+    return record ? this.infoOf(record) : null;
+  }
+
+  private setProgress(webStoreId: string, next?: StoreInstall): void;
+  private setProgress(next: StoreInstall): void;
+  private setProgress(value: string | StoreInstall): void {
+    if (typeof value === "string") this.storeProgress.delete(value);
+    else this.storeProgress.set(value.webStoreId, value);
+    this.notify();
+  }
+
+  private async runStoreInstall(webStoreId: string, webStore: WebStoreClient, review: ExtensionReviewer): Promise<ExtensionInstallResult> {
+    this.setProgress({ webStoreId, phase: "download" });
     let crx: VerifiedCrx;
     try {
-      crx = await webStore.download(webStoreId);
+      crx = await webStore.download(webStoreId, () => this.setProgress({ webStoreId, phase: "verify" }));
     } catch (error) {
       return failure(error instanceof UnpackError ? error.message : "Le téléchargement de l'extension a échoué.");
     }
@@ -264,11 +309,68 @@ export class ExtensionService implements SessionService {
     let result: ExtensionInstallResult = duplicate ? failure(duplicate) : null;
     if (!duplicate) {
       const icon = readIcon(target, manifest.iconPath);
-      const accepted = await review({ name: manifest.name, version: manifest.version, icon, permissions: details.permissions, update: false });
-      if (accepted) result = await this.installFolder(target, id, true, webStoreId);
+      this.setProgress({ webStoreId, phase: "review" });
+      const accepted = await review({ name: manifest.name, version: manifest.version, icon, permissions: details.permissions, update: false, source: "store" });
+      if (accepted) {
+        this.setProgress({ webStoreId, phase: "install" });
+        result = await this.installFolder(target, id, true, webStoreId);
+      }
     }
     if (!result?.ok) rmSync(target, { recursive: true, force: true });
     return result;
+  }
+
+  /**
+   * A package dropped on `browser://extensions` (a .crx/.zip file or a folder's files): unpacked
+   * into the profile, then installed after the same permission review as the store (ADR-049).
+   */
+  async installDropped(dropped: DroppedExtension, review: ExtensionReviewer): Promise<ExtensionInstallResult> {
+    const id = newId();
+    const target = join(this.opened().dir, id);
+    const discard = (result: ExtensionInstallResult) => {
+      rmSync(target, { recursive: true, force: true });
+      return result;
+    };
+    try {
+      if (dropped.kind === "file") unpackExtension(Buffer.from(dropped.data), target);
+      else writeDroppedFolder(dropped.files, target);
+    } catch (error) {
+      return discard(failure(error instanceof UnpackError ? error.message : "Impossible de décompresser l'extension."));
+    }
+    const inspected = inspect(target);
+    if (isFailure(inspected)) return discard(inspected);
+    const { manifest, details } = inspected;
+    const duplicate = this.duplicateOf(target, manifest.name);
+    if (duplicate) return discard(failure(duplicate));
+    const icon = readIcon(target, manifest.iconPath);
+    if (!(await review({ name: manifest.name, version: manifest.version, icon, permissions: details.permissions, update: false, source: "file" }))) return discard(null);
+    const result = await this.installFolder(target, id, true);
+    if (!result?.ok) return discard(result);
+    return result;
+  }
+
+  /** "Détails" of `browser://extensions`: sites, permissions, size, options, last update check. */
+  detailsOf(id: string): ExtensionDetailsInfo | null {
+    const record = this.opened().store.get(id);
+    if (!record) return null;
+    const raw = readFolder(record.path)?.raw ?? {};
+    return {
+      id,
+      hosts: manifestHosts(raw),
+      apiPermissions: manifestApiPermissions(raw),
+      size: folderSize(record.path),
+      hasOptions: !!optionsPageOf(record.path),
+      lastUpdateCheck: record.webStoreId ? (this.lastCheckFile().load() ?? null) : null,
+      folder: record.managed ? null : record.path,
+    };
+  }
+
+  /** The `chrome-extension://` URL of an extension's options page in `ses` (where it is loaded), or null. */
+  optionsUrl(ses: Session, id: string): string | null {
+    const electronId = this.sessions.get(ses)?.loaded.get(id);
+    const record = this.opened().store.get(id);
+    const page = record && optionsPageOf(record.path);
+    return electronId && page ? `chrome-extension://${electronId}/${page.split("/").map(encodeURIComponent).join("/")}` : null;
   }
 
   /**
@@ -453,7 +555,8 @@ export class ExtensionService implements SessionService {
       description: manifest.description,
       manifestVersion: manifest.manifestVersion,
       icon: readIcon(root, manifest.iconPath),
-      pinned: true,
+      // Chrome-like: a new button waits in the puzzle menu; the install confirmation offers to pin it.
+      pinned: false,
       ...(webStoreId ? { webStoreId } : {}),
     };
     const { store } = this.opened();
@@ -575,6 +678,60 @@ export class ExtensionService implements SessionService {
     this.save();
     if (old.managed && resolve(old.path).startsWith(resolve(dir) + sep)) rmSync(old.path, { recursive: true, force: true });
     return true;
+  }
+}
+
+function optionsPageOf(root: string): string | null {
+  const page = manifestOptionsPage(readFolder(root)?.raw);
+  return page && existsSync(join(root, page)) ? page : null;
+}
+
+/** Bytes under a folder (links not followed; bounded walk). */
+function folderSize(root: string): number {
+  let total = 0;
+  let seen = 0;
+  const walk = (dir: string) => {
+    let entries: Dirent[];
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (++seen > 100_000) return;
+      const path = join(dir, entry.name);
+      if (entry.isDirectory()) walk(path);
+      else if (entry.isFile()) {
+        try {
+          total += statSync(path).size;
+        } catch {
+          // Gone meanwhile.
+        }
+      }
+    }
+  };
+  walk(root);
+  return total;
+}
+
+/** A dropped folder's files written into `target`, every path checked and the sizes bounded. */
+function writeDroppedFolder(files: readonly { path: string; data: Uint8Array }[], target: string): void {
+  if (files.length > MAX_DROPPED_FILES) throw new UnpackError("Ce dossier contient trop de fichiers pour une extension.");
+  let total = 0;
+  // A folder dropped as itself: its files are `<name>/…`; one dropped as its content: `…`.
+  const top = files[0]?.path.split("/")[0];
+  const prefix = !files.some((file) => file.path === "manifest.json") && top && files.every((file) => file.path.startsWith(`${top}/`)) ? `${top}/` : "";
+  if (!files.some((file) => file.path === `${prefix}manifest.json`)) throw new UnpackError("Ce dossier ne contient pas de fichier manifest.json.");
+  const root = resolve(target);
+  for (const file of files) {
+    const path = file.path.slice(prefix.length);
+    if (!isSafeRelativePath(path)) throw new UnpackError(`Chemin refusé « ${path.slice(0, 80)} ».`);
+    total += file.data.length;
+    if (total > MAX_DROPPED_SIZE) throw new UnpackError("Ce dossier est trop volumineux pour une extension.");
+    const destination = resolve(join(root, path));
+    if (!destination.startsWith(root + sep)) throw new UnpackError("Le dossier contient un chemin refusé.");
+    mkdirSync(dirname(destination), { recursive: true });
+    writeFileSync(destination, file.data);
   }
 }
 

@@ -75,6 +75,15 @@ interface TabHooks {
 
 /** Schemes handed to the OS (mail and phone apps), after a user gesture only. */
 const isExternalUrl = (url: string) => /^(mailto|tel):/i.test(url);
+const sameOrigin = (a: string, b: string): boolean => {
+  try {
+    const [left, right] = [new URL(a), new URL(b)];
+    // Not `origin`: it is "null" for a non-web scheme such as chrome-extension:.
+    return left.protocol === right.protocol && !!left.host && left.host === right.host;
+  } catch {
+    return false;
+  }
+};
 const isGoogleAuthenticationUrl = (url: string): boolean => {
   try {
     const parsed = new URL(url);
@@ -162,6 +171,8 @@ export function hardenWebContents(contents: WebContents, hooks: TabHooks): void 
     if (isNavigableUrl(url)) return;
     // A local file the OS handed over (ADR-039) may link to its neighbours, never a web page to a file.
     if (isLocalFileUrl(url) && isLocalFileUrl(contents.getURL())) return;
+    // An extension's options page (opened by main, ADR-049) may move within its own extension.
+    if (url.startsWith("chrome-extension://") && sameOrigin(url, contents.getURL())) return;
     event.preventDefault();
     if (isExternalUrl(url) && tab.activation.consumeExternal(Date.now())) openExternal(url);
   });

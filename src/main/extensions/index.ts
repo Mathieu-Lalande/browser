@@ -1,5 +1,6 @@
-import type { BaseWindow } from "electron";
-import type { ExtensionInfo, ExtensionInstallResult, ExtensionReview, ExtensionUpdateResult } from "@shared/extensions";
+import { dialog, type BaseWindow } from "electron";
+import type { DroppedExtension, ExtensionDetailsInfo, ExtensionInfo, ExtensionInstallResult, ExtensionReview, ExtensionUpdateResult } from "@shared/extensions";
+import type { StoreInstall } from "@shared/webstore-page";
 import type { Bounds } from "@shared/types";
 import { appServices } from "../app-services-ref";
 import type { Overlay } from "../overlay";
@@ -17,6 +18,10 @@ export interface ExtensionWindow {
   readonly extensionPopup: ExtensionPopup;
   readonly tabSession: Electron.Session;
   openExtensions(): void;
+  /** Opens an extension page main built (its options) in a new tab of the window. */
+  openExtensionPage(url: string): void;
+  /** An extension was installed from this window: its chrome UI shows the confirmation. */
+  extensionInstalled(id: string): void;
 }
 
 export const listExtensions = (): ExtensionInfo[] => extensions().list();
@@ -34,10 +39,52 @@ export const answerExtensionReview = (reviewId: string, accepted: boolean): void
 const reviewIn = (c: ExtensionWindow) => (review: ExtensionReview) =>
   extensions().reviews.ask(review, (reviewId) => c.overlay.open({ kind: "extension-install", reviewId }));
 
-export const installFromWebStore = (c: ExtensionWindow, webStoreId: string): Promise<ExtensionInstallResult> =>
-  extensions().installFromWebStore(webStoreId, reviewIn(c));
+/** A successful install: the window it was started from shows the confirmation (its chrome UI anchors it). */
+const announce =
+  (c: ExtensionWindow) =>
+  (result: ExtensionInstallResult): ExtensionInstallResult => {
+    if (result?.ok) c.extensionInstalled(result.extension.id);
+    return result;
+  };
 
-export const updateExtensions = (c: ExtensionWindow): Promise<ExtensionUpdateResult> => extensions().checkUpdates(reviewIn(c));
+export const installFromWebStore =(c: ExtensionWindow, webStoreId: string): Promise<ExtensionInstallResult> =>
+  extensions().installFromWebStore(webStoreId, reviewIn(c)).then(announce(c));
+
+export const storeInstalls = (): StoreInstall[] => extensions().storeInstalls();
+export const extensionDetails = (id: string): ExtensionDetailsInfo | null => extensions().detailsOf(id);
+
+/** A package dropped on `browser://extensions`: installed after the permission review. */
+export const installDroppedExtension = (c: ExtensionWindow, dropped: DroppedExtension): Promise<ExtensionInstallResult> =>
+  extensions().installDropped(dropped, reviewIn(c)).then(announce(c));
+
+/** "Ouvrir les options": the extension's options page in a new tab (where the extension is loaded). */
+export function openExtensionOptions(c: ExtensionWindow, id: string): boolean {
+  const url = extensions().optionsUrl(c.tabSession, id);
+  if (url) c.openExtensionPage(url);
+  return !!url;
+}
+
+/** "Supprimer de Browser" on a store page: a native confirmation, as Chrome asks, then removal. */
+export async function removeFromStorePage(c: ExtensionWindow, webStoreId: string): Promise<void> {
+  const extension = extensions().byWebStoreId(webStoreId);
+  if (!extension) return;
+  const { response } = await dialog.showMessageBox(c.window, {
+    type: "question",
+    buttons: ["Supprimer", "Annuler"],
+    defaultId: 1,
+    cancelId: 1,
+    message: `Supprimer « ${extension.name} » ?`,
+    detail: "L'extension et ses données seront retirées de Browser.",
+  });
+  if (response === 0) await extensions().remove(extension.id);
+}
+
+/** The confirmation after an install, hanging from the window's extension bar (`anchor`). */
+export function showInstalledExtension(c: ExtensionWindow, id: string, anchor: Bounds): void {
+  if (listExtensions().some((extension) => extension.id === id)) c.overlay.open({ kind: "extension-installed", extensionId: id, anchor });
+}
+
+export const updateExtensions =(c: ExtensionWindow): Promise<ExtensionUpdateResult> => extensions().checkUpdates(reviewIn(c));
 
 /** Opens an extension's popup below its toolbar button, in the session of the window's pages. */
 export function openExtensionPopup(c: ExtensionWindow, id: string, anchor: Bounds): void {

@@ -40,7 +40,7 @@ export class WebStoreClient {
   }
 
   /** The latest package of `id`, signature and id checked. Throws `UnpackError` (French message). */
-  async download(id: string): Promise<VerifiedCrx> {
+  async download(id: string, onVerify?: () => void): Promise<VerifiedCrx> {
     let response: Response;
     try {
       response = await this.options.fetch(crxDownloadUrl(id, this.options.chromeMajor, this.endpoint), { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS) });
@@ -52,6 +52,7 @@ export class WebStoreClient {
     if (Number(response.headers.get("content-length") ?? 0) > MAX_CRX_SIZE) throw new UnpackError("Cette extension est trop volumineuse.");
     const data = Buffer.from(await response.arrayBuffer());
     if (data.length > MAX_CRX_SIZE) throw new UnpackError("Cette extension est trop volumineuse.");
+    onVerify?.();
     return verifyCrx(data, id);
   }
 

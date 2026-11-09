@@ -3,15 +3,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { crc32, deflateRawSync } from "node:zlib";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { UnpackError, crxToZip, readZip, unpackExtension } from "./unpack";
+import { readdirSync } from "node:fs";
+import { UnpackError, ZIP_LIMITS, crxToZip, readZip, unpackExtension } from "./unpack";
 
 /** Minimal ZIP writer (stored or deflated entries), enough to build test archives. */
-function zip(files: Record<string, string>, deflate = true): Buffer {
+function zip(files: Record<string, string | Buffer>, deflate = true): Buffer {
   const locals: Buffer[] = [];
   const centrals: Buffer[] = [];
   let offset = 0;
   for (const [name, text] of Object.entries(files)) {
-    const data = Buffer.from(text);
+    const data = typeof text === "string" ? Buffer.from(text) : text;
     const body = deflate ? deflateRawSync(data) : data;
     const nameBytes = Buffer.from(name);
     const local = Buffer.alloc(30);
@@ -131,5 +132,54 @@ describe("unpackExtension", () => {
 
   it("refuses an archive without a manifest", () => {
     expect(() => unpackExtension(zip({ "readme.txt": "hi" }), join(dir, "ext"))).toThrow(/manifest\.json/);
+  });
+});
+
+describe("archive limits", () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "unpack-"));
+  });
+  afterEach(() => rmSync(dir, { recursive: true, force: true }));
+
+  it("unpacks an extension with thousands of small files (Wappalyzer ships ~6 000 icons)", () => {
+    const files: Record<string, string> = { "manifest.json": MANIFEST };
+    for (let i = 0; i < 6500; i++) files[`images/icons/tech-${i}.svg`] = `<svg id="${i}"/>`;
+    const target = join(dir, "ext");
+    unpackExtension(crx3(zip(files)), target);
+    expect(readdirSync(join(target, "images/icons"))).toHaveLength(6500);
+    expect(readFileSync(join(target, "images/icons/tech-6499.svg"), "utf8")).toBe('<svg id="6499"/>');
+  });
+
+  // A real store package, when one is at hand (no network in CI): e.g. Wappalyzer's, downloaded from
+  // clients2.google.com/service/update2/crx?response=redirect&prodversion=140&acceptformat=crx3&x=id%3Dgppongmhjkpfnbhagpmjfkannfbllamg%26uc
+  it.skipIf(!process.env.BROWSER_TEST_CRX)("unpacks a real store package (BROWSER_TEST_CRX=<file.crx>)", () => {
+    const target = join(dir, "real");
+    unpackExtension(readFileSync(process.env.BROWSER_TEST_CRX!), target);
+    expect(existsSync(join(target, "manifest.json"))).toBe(true);
+  });
+
+  it("refuses more files than the limit, with the count", () => {
+    const archive = zip({ "manifest.json": MANIFEST });
+    // The end of central directory claims more entries than allowed: refused before reading any.
+    archive.writeUInt16LE(ZIP_LIMITS.entries + 1, archive.length - 12);
+    expect(() => readZip(archive)).toThrow(/trop de fichiers \(50.001, 50.000 au plus\)/);
+  });
+
+  it("refuses a zip bomb from its declared sizes, before inflating", () => {
+    const bomb = Buffer.alloc(8 * 1024 * 1024);
+    expect(() => readZip(zip({ "manifest.json": MANIFEST, "bomb.bin": bomb }))).toThrow(/anormalement compressé/);
+    // A file declared larger than the per-file cap.
+    const big = zip({ "manifest.json": MANIFEST, "big.bin": "x" }, false);
+    const central = big.indexOf(Buffer.from("big.bin"), big.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02]))) - 46;
+    big.writeUInt32LE(ZIP_LIMITS.entrySize + 1, central + 24);
+    expect(() => readZip(big)).toThrow(/fichier trop volumineux : « big\.bin »/);
+  });
+
+  it("refuses a lying size: inflation stops at the declared size", () => {
+    const archive = zip({ "manifest.json": MANIFEST, "a.txt": "a".repeat(5000) });
+    const central = archive.indexOf(Buffer.from("a.txt"), archive.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02]))) - 46;
+    archive.writeUInt32LE(10, central + 24);
+    expect(() => readZip(archive)).toThrow(/« a\.txt »/);
   });
 });
