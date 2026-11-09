@@ -2,6 +2,7 @@ import type { WebContents } from "electron";
 import type { TabId } from "@shared/types";
 import type { PageAnnotator } from "../annotations";
 import type { BoostService } from "../boosts/service";
+import type { WebStorePages } from "../extensions/store-page";
 import type { MediaHub } from "../media";
 import type { PageGestures } from "../page-swipe";
 import type { LinkPeek } from "../peek";
@@ -16,6 +17,7 @@ export interface PageFeatures {
   readonly media: Pick<MediaHub, "report">;
   readonly translator: Pick<PageTranslator, "pageReady" | "stateOf">;
   readonly annotator: Pick<PageAnnotator, "pageReady" | "clicked">;
+  readonly storePages: Pick<WebStorePages, "pageReady" | "clicked">;
 }
 
 export interface PageHooksDeps {
@@ -63,6 +65,8 @@ export class PageHooks {
       translation: (tabId) => features.translator.stateOf(tabId),
       annotatePage: (tabId, contents) => features.annotator.pageReady(tabId, contents),
       annotationClick: (tabId, click) => features.annotator.clicked(tabId, click),
+      storePage: (contents) => features.storePages.pageReady(contents),
+      storeAction: (contents, click) => features.storePages.clicked(contents, click),
     };
   }
 }

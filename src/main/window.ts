@@ -13,6 +13,8 @@ import { favoriteFavicon, favoriteTiles, setArchiveNotifier, setFavoritesRefresh
 import { Overlay } from "./overlay";
 import { LinkPeek } from "./peek";
 import { ExtensionPopup } from "./extensions/popup";
+import { WebStorePages } from "./extensions/store-page";
+import { installFromWebStore, removeFromStorePage } from "./extensions";
 import { TabPreviews } from "./tab-preview";
 import { AutoPip, MediaHub } from "./media";
 import { PanelHost } from "./panels";
@@ -125,6 +127,13 @@ export class BrowserController {
   readonly assistant: PageAssistant = new PageAssistant(this);
   /** Highlights and notes of this window's pages (ADR-037). */
   readonly annotator: PageAnnotator = new PageAnnotator(this, { all: () => BrowserController.all() });
+  /** Our "Ajouter à Browser" button on the Chrome Web Store pages of this window (ADR-049). */
+  readonly storePages: WebStorePages = new WebStorePages({
+    testOrigin: () => appServices().extensions.webStoreTestOrigin,
+    stateOf: (webStoreId) => appServices().extensions.storeButton(webStoreId),
+    install: (webStoreId) => void installFromWebStore(this, webStoreId),
+    remove: (webStoreId) => void removeFromStorePage(this, webStoreId),
+  });
   /** Tab hover preview cards and their thumbnails (ADR-038). */
   readonly previews: TabPreviews;
   /** The web panels' live pages beside the page (ADR-047); none in a private window. */
@@ -324,6 +333,16 @@ export class BrowserController {
   /** Shows `browser://extensions` (ADR-024). */
   openExtensions(): void {
     this.openInternal("extensions");
+  }
+
+  /** An extension page main built (its options, ADR-049), in a new tab. */
+  openExtensionPage(url: string): void {
+    this.tabs.create(url, { activate: true, extensionPage: true });
+  }
+
+  /** An extension was installed from this window: the chrome UI anchors the confirmation (ADR-049). */
+  extensionInstalled(id: string): void {
+    this.bridge.toChrome(Channels.extensionsInstalled, id);
   }
 
   /** Shows `browser://boosts` (ADR-029). */
@@ -548,7 +567,11 @@ export class BrowserController {
     });
     // Extensions installed, switched or removed: `browser://extensions` re-lists them (ADR-024).
     services.extensions.onChanged(() => {
-      for (const controller of windows.all()) controller.send(Channels.extensionsChanged);
+      for (const controller of windows.all()) {
+        controller.send(Channels.extensionsChanged);
+        // Store pages show the new state on their own button (ADR-049).
+        controller.storePages.refresh();
+      }
     });
     // Passwords saved, edited or removed: the address bar's key and `browser://passwords` follow (ADR-025).
     services.passwords.onChanged(() => {

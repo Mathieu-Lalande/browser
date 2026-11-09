@@ -13,8 +13,23 @@ import { isSafeRelativePath } from "@shared/extensions";
 
 export class UnpackError extends Error {}
 
-const MAX_ENTRIES = 5000;
-const MAX_TOTAL_SIZE = 200 * 1024 * 1024;
+/**
+ * Limits of a packed extension. Real extensions ship many small files (Wappalyzer: thousands of
+ * icons), so the count is generous; zip bombs are stopped by the total and per-file sizes and by
+ * the compression ratio, all checked from the central directory before anything is inflated, and
+ * again while inflating (`maxOutputLength`).
+ */
+export const ZIP_LIMITS = {
+  entries: 50_000,
+  totalSize: 1024 * 1024 * 1024,
+  entrySize: 256 * 1024 * 1024,
+  /** Uncompressed / compressed, for entries large enough to matter (text compresses ~10:1, zeros ~1000:1). */
+  ratio: 200,
+  ratioFrom: 1024 * 1024,
+} as const;
+
+const MIB = 1024 * 1024;
+const count = (value: number) => value.toLocaleString("fr-FR");
 
 /** The ZIP inside a `.crx` (CRX2 or CRX3); a buffer that already is a ZIP is returned as is. */
 export function crxToZip(data: Buffer): Buffer {
@@ -42,52 +57,88 @@ function endOfCentralDirectory(zip: Buffer): number {
   throw new UnpackError("L'archive est illisible (fin de répertoire ZIP introuvable).");
 }
 
-/** Every file of a ZIP (directories skipped), checked and decompressed. */
-export function readZip(zip: Buffer): ZipEntry[] {
-  const fail = (detail: string): never => {
-    throw new UnpackError(`L'archive est illisible : ${detail}.`);
-  };
+interface CentralEntry {
+  path: string;
+  method: number;
+  crc: number;
+  compressedSize: number;
+  size: number;
+  localOffset: number;
+}
+
+const fail = (detail: string): never => {
+  throw new UnpackError(`L'archive est illisible : ${detail}.`);
+};
+
+/** The files listed by the central directory (directories skipped), every limit checked, nothing inflated. */
+function centralDirectory(zip: Buffer): CentralEntry[] {
   const eocd = endOfCentralDirectory(zip);
-  const count = zip.readUInt16LE(eocd + 10);
+  const total = zip.readUInt16LE(eocd + 10);
   let at = zip.readUInt32LE(eocd + 16);
-  if (count > MAX_ENTRIES) fail("trop de fichiers");
-  const entries: ZipEntry[] = [];
-  let total = 0;
-  for (let i = 0; i < count; i++) {
+  if (total === 0xffff || at === 0xffffffff) fail("format ZIP64 non pris en charge");
+  if (total > ZIP_LIMITS.entries) {
+    throw new UnpackError(`L'archive contient trop de fichiers (${count(total)}, ${count(ZIP_LIMITS.entries)} au plus).`);
+  }
+  const entries: CentralEntry[] = [];
+  let size = 0;
+  for (let i = 0; i < total; i++) {
     if (at + 46 > zip.length || zip.readUInt32LE(at) !== 0x02014b50) fail("répertoire ZIP corrompu");
     const flags = zip.readUInt16LE(at + 8);
-    const method = zip.readUInt16LE(at + 10);
-    const crc = zip.readUInt32LE(at + 16);
-    const compressedSize = zip.readUInt32LE(at + 20);
-    const size = zip.readUInt32LE(at + 24);
     const nameLength = zip.readUInt16LE(at + 28);
-    const next = at + 46 + nameLength + zip.readUInt16LE(at + 30) + zip.readUInt16LE(at + 32);
-    const localOffset = zip.readUInt32LE(at + 42);
-    const name = zip.toString("utf8", at + 46, at + 46 + nameLength).replace(/^\.\//, "");
-    at = next;
-    if (name.endsWith("/")) continue;
-    if (flags & 1) fail("fichiers chiffrés");
-    if (compressedSize === 0xffffffff || size === 0xffffffff || localOffset === 0xffffffff) fail("format ZIP64 non pris en charge");
-    if (!isSafeRelativePath(name)) fail(`chemin refusé « ${name.slice(0, 80)} »`);
-    total += size;
-    if (total > MAX_TOTAL_SIZE) fail("contenu trop volumineux");
-    if (localOffset + 30 > zip.length || zip.readUInt32LE(localOffset) !== 0x04034b50) fail("entrée ZIP corrompue");
-    const dataStart = localOffset + 30 + zip.readUInt16LE(localOffset + 26) + zip.readUInt16LE(localOffset + 28);
-    const raw = zip.subarray(dataStart, dataStart + compressedSize);
-    if (raw.length !== compressedSize) fail("archive tronquée");
-    let data: Buffer;
-    if (method === 0) data = Buffer.from(raw);
-    else if (method === 8) {
-      try {
-        data = inflateRawSync(raw, { maxOutputLength: Math.max(size, 1) });
-      } catch {
-        return fail("données compressées invalides");
-      }
-    } else return fail(`méthode de compression ${method} non prise en charge`);
-    if (data.length !== size || crc32(data) !== crc) fail(`contrôle d'intégrité échoué pour « ${name.slice(0, 80)} »`);
-    entries.push({ path: name, data });
+    const entry: CentralEntry = {
+      path: zip.toString("utf8", at + 46, at + 46 + nameLength).replace(/^\.\//, ""),
+      method: zip.readUInt16LE(at + 10),
+      crc: zip.readUInt32LE(at + 16),
+      compressedSize: zip.readUInt32LE(at + 20),
+      size: zip.readUInt32LE(at + 24),
+      localOffset: zip.readUInt32LE(at + 42),
+    };
+    at += 46 + nameLength + zip.readUInt16LE(at + 30) + zip.readUInt16LE(at + 32);
+    if (entry.path.endsWith("/")) continue;
+    const name = `« ${entry.path.slice(0, 80)} »`;
+    if (flags & 1) fail(`fichier chiffré ${name}`);
+    if (entry.compressedSize === 0xffffffff || entry.size === 0xffffffff || entry.localOffset === 0xffffffff) fail("format ZIP64 non pris en charge");
+    if (!isSafeRelativePath(entry.path)) fail(`chemin refusé ${name}`);
+    if (entry.method !== 0 && entry.method !== 8) fail(`méthode de compression ${entry.method} non prise en charge pour ${name}`);
+    if (entry.size > ZIP_LIMITS.entrySize) {
+      throw new UnpackError(`L'archive contient un fichier trop volumineux : ${name} (${Math.round(entry.size / MIB)} Mo, ${ZIP_LIMITS.entrySize / MIB} Mo au plus).`);
+    }
+    if (entry.method === 8 && entry.size >= ZIP_LIMITS.ratioFrom && entry.size > entry.compressedSize * ZIP_LIMITS.ratio) {
+      throw new UnpackError(`L'archive est refusée : le fichier ${name} est anormalement compressé (archive piégée ?).`);
+    }
+    size += entry.size;
+    if (size > ZIP_LIMITS.totalSize) {
+      throw new UnpackError(`L'archive est trop volumineuse une fois décompressée (plus de ${ZIP_LIMITS.totalSize / MIB / 1024} Go).`);
+    }
+    entries.push(entry);
   }
   return entries;
+}
+
+/** One file's data, inflated and checked against its CRC. */
+function inflateEntry(zip: Buffer, entry: CentralEntry): Buffer {
+  const name = `« ${entry.path.slice(0, 80)} »`;
+  const { localOffset } = entry;
+  if (localOffset + 30 > zip.length || zip.readUInt32LE(localOffset) !== 0x04034b50) fail(`entrée ZIP corrompue ${name}`);
+  const dataStart = localOffset + 30 + zip.readUInt16LE(localOffset + 26) + zip.readUInt16LE(localOffset + 28);
+  const raw = zip.subarray(dataStart, dataStart + entry.compressedSize);
+  if (raw.length !== entry.compressedSize) fail("archive tronquée");
+  let data: Buffer;
+  if (entry.method === 0) data = Buffer.from(raw);
+  else {
+    try {
+      data = inflateRawSync(raw, { maxOutputLength: Math.max(entry.size, 1) });
+    } catch {
+      return fail(`données compressées invalides pour ${name}`);
+    }
+  }
+  if (data.length !== entry.size || crc32(data) !== entry.crc) fail(`contrôle d'intégrité échoué pour ${name}`);
+  return data;
+}
+
+/** Every file of a ZIP (directories skipped), checked and decompressed. */
+export function readZip(zip: Buffer): ZipEntry[] {
+  return centralDirectory(zip).map((entry) => ({ path: entry.path, data: inflateEntry(zip, entry) }));
 }
 
 /**
@@ -95,22 +146,25 @@ export function readZip(zip: Buffer): ZipEntry[] {
  * whose files all sit in one top-level folder (common for downloaded sources) is unpacked from it.
  */
 export function unpackExtension(file: Buffer, target: string): void {
-  let entries = readZip(crxToZip(file));
+  const zip = crxToZip(file);
+  const entries = centralDirectory(zip);
+  let prefix = "";
   if (!entries.some((entry) => entry.path === "manifest.json")) {
     const top = entries[0]?.path.split("/")[0];
-    const prefix = `${top}/`;
-    if (top && entries.every((entry) => entry.path.startsWith(prefix)) && entries.some((entry) => entry.path === `${prefix}manifest.json`)) {
-      entries = entries.map((entry) => ({ path: entry.path.slice(prefix.length), data: entry.data }));
+    if (top && entries.every((entry) => entry.path.startsWith(`${top}/`)) && entries.some((entry) => entry.path === `${top}/manifest.json`)) {
+      prefix = `${top}/`;
     } else {
       throw new UnpackError("L'archive ne contient pas de fichier manifest.json.");
     }
   }
   const root = resolve(target);
   mkdirSync(root, { recursive: true });
+  // One file in memory at a time: a large extension never sits whole in memory once inflated.
   for (const entry of entries) {
-    const destination = resolve(join(root, entry.path));
+    const destination = resolve(join(root, entry.path.slice(prefix.length)));
     if (!destination.startsWith(root + sep)) throw new UnpackError("L'archive contient un chemin refusé.");
+    const data = inflateEntry(zip, entry);
     mkdirSync(dirname(destination), { recursive: true });
-    writeFileSync(destination, entry.data);
+    writeFileSync(destination, data);
   }
 }

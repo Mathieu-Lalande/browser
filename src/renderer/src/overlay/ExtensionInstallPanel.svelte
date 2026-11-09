@@ -55,7 +55,7 @@
       </span>
       <div>
         <h2>{title}</h2>
-        <p class="meta">Version {review.version} · Chrome Web Store, signature vérifiée</p>
+        <p class="meta">Version {review.version} · {review.source === "file" ? "fichier déposé, sans signature vérifiée" : "Chrome Web Store, signature vérifiée"}</p>
       </div>
     </header>
     {#if review.permissions.length}

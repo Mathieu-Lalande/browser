@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { manifestAction, permissionLabels } from "./extensions";
-import { compareVersions, crxDownloadUrl, parseUpdateCheck, updateCheckUrl, webStoreIdFromUrl } from "./webstore";
+import { formatSize, manifestAction, manifestApiPermissions, manifestHosts, manifestOptionsPage, permissionLabels } from "./extensions";
+import { compareVersions, crxDownloadUrl, parseUpdateCheck, updateCheckUrl, isWebStorePage, webStoreIdFromUrl } from "./webstore";
 
 const ID = "cjpalhdlnbpafiamejdnhcphjbkeiagm";
 
@@ -81,5 +81,33 @@ describe("permission warnings", () => {
     expect(manifestAction({ browser_action: { default_icon: "icon.png" } })).toEqual({ title: null, iconPath: "icon.png", popup: null });
     expect(manifestAction({ action: { default_popup: "../escape.html" } })?.popup).toBeNull();
     expect(manifestAction({ name: "none" })).toBeNull();
+  });
+});
+
+describe("store pages and extension details", () => {
+  it("recognizes every store page, detail or not", () => {
+    expect(isWebStorePage("https://chromewebstore.google.com/category/extensions")).toBe(true);
+    expect(isWebStorePage("https://chrome.google.com/webstore/detail/x")).toBe(true);
+    expect(isWebStorePage("https://chrome.google.com/")).toBe(false);
+    expect(isWebStorePage("http://127.0.0.1:9/detail/x", "http://127.0.0.1:9")).toBe(true);
+    expect(isWebStorePage("not a url")).toBe(false);
+  });
+
+  it("lists hosts, API permissions and the options page", () => {
+    const manifest = {
+      permissions: ["storage", "tabs", "https://a.example/*"],
+      host_permissions: ["*://*.b.example/*"],
+      content_scripts: [{ matches: ["https://c.example/*"] }],
+      options_ui: { page: "./options.html?x=1" },
+      options_page: "legacy.html",
+    };
+    expect(manifestHosts(manifest)).toEqual(["a.example", "b.example", "c.example"]);
+    expect(manifestHosts({ host_permissions: ["<all_urls>"] })).toEqual(["Tous les sites"]);
+    expect(manifestApiPermissions(manifest)).toEqual(["storage", "tabs"]);
+    expect(manifestOptionsPage(manifest)).toBe("options.html");
+    expect(manifestOptionsPage({ options_page: "legacy.html" })).toBe("legacy.html");
+    expect(manifestOptionsPage({ options_page: "../escape.html" })).toBeNull();
+    expect(formatSize(512)).toBe("512 o");
+    expect(formatSize(1536 * 1024)).toBe("1,5 Mo");
   });
 });

@@ -30,6 +30,7 @@
     annotation: () => import("./AnnotationPanel.svelte"),
     "print-preview": () => import("./PrintPreviewPanel.svelte"),
     "extension-install": () => import("./ExtensionInstallPanel.svelte"),
+    "extension-installed": () => import("./ExtensionInstalledPanel.svelte"),
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const lazy = $state<Record<string, Component<any>>>({});
@@ -42,6 +43,7 @@
   const AnnotationPanel = $derived(lazy.annotation);
   const PrintPreviewPanel = $derived(lazy["print-preview"]);
   const ExtensionInstallPanel = $derived(lazy["extension-install"]);
+  const ExtensionInstalledPanel = $derived(lazy["extension-installed"]);
 
   // Follow theme changes made while the overlay stays loaded.
   $effect(() => applyTheme(settings.current, settings.mode, browser.isPrivate, { energySaver: browser.state.energy?.active, mica: browser.state.mica }));
@@ -152,6 +154,8 @@
         <AutofillPanel kind="fill" anchor={current.request.anchor} tabId={current.request.tabId} onClose={close} />
       {:else if current.request.kind === "extension-install" && current.request.reviewId && ExtensionInstallPanel}
         <ExtensionInstallPanel reviewId={current.request.reviewId} onClose={close} />
+      {:else if current.request.kind === "extension-installed" && current.request.extensionId && ExtensionInstalledPanel}
+        <ExtensionInstalledPanel extensionId={current.request.extensionId} anchor={current.request.anchor} onClose={close} />
       {:else if current.request.kind === "extension-popup"}
         <!-- An extension popup (ADR-049) is a native view above this layer: here, only the click catcher. -->
       {:else if current.request.kind === "password-fill"}

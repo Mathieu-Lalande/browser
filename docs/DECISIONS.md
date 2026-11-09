@@ -2489,6 +2489,38 @@ boutons de barre d'outils (bloqueurs, gestionnaires de mots de passe…).
   (ADR-014). L'option « Autoriser en navigation privée » est gardée (prête si Electron l'autorise) et la page
   explique pourquoi elle est sans effet ; la confirmation d'installation le dit aussi.
 
+**Révision — store « natif », archives réelles, gestion (novembre 2026).**
+- **Limites d'archive** (`unpack.ts`, `ZIP_LIMITS`) : 5 000 fichiers refusaient de vraies extensions (Wappalyzer
+  livre des milliers d'icônes). Désormais 50 000 fichiers, 1 Go décompressé au total, 256 Mo par fichier, et un
+  taux de compression au-delà de 200:1 (fichiers de plus de 1 Mo) refusé comme archive piégée — tout vérifié sur le
+  répertoire central avant d'inflater quoi que ce soit, puis par `maxOutputLength` ; les fichiers sont décompressés et
+  écrits un par un. Messages précis (« trop de fichiers (50 001, 50 000 au plus) », fichier et taille en cause).
+- **Bouton dans la page du store** : la décision « la page du store n'est jamais modifiée » est levée. Le store grise
+  « Ajouter à Chrome » et affiche « Passez à Chrome » pour tout navigateur qui n'est pas Chrome (il lit
+  `navigator.userAgentData`, dont les marques ne peuvent pas être changées sans débogueur : limite d'ADR-040, pas de
+  `webContents.debugger` ici). `WebStorePages` (`src/main/extensions/store-page.ts`, par fenêtre, jamais en privé)
+  envoie à chaque page du store (`isWebStorePage`, `dom-ready`) un agent en texte ES2018 (`WEBSTORE_AGENT_SOURCE`,
+  `@shared/webstore-page`) dans le monde isolé **1022** : il trouve le bouton du store par rôle et texte
+  (« Ajouter à Chrome », « Add to Chrome », « Supprimer de Chrome »…, `WEBSTORE_DOM_SOURCE`, jamais par classe), le
+  masque, place juste après le nôtre (« Ajouter à Browser », « Supprimer de Browser », progression, « Réessayer » +
+  message) dans une racine fantôme **fermée** (sans `innerHTML` : le store impose Trusted Types), masque le bandeau,
+  et suit les re-rendus et la navigation interne (MutationObserver, `did-navigate-in-page` → nouvel état). Un clic
+  **de confiance** (`isTrusted`) est rapporté par `console.debug` préfixé d'un secret par lancement ; main n'agit que
+  si l'URL de l'onglet est la fiche de cette extension, puis lance l'installation vérifiée habituelle (CRX3 + boîte des
+  autorisations) ; « Supprimer de Browser » demande une confirmation native. Le bouton de la barre d'adresse reste ;
+  `WebStoreBar` ne sert plus qu'aux échecs (« Réessayer »).
+- **Progression** : `ExtensionService` tient `StoreInstall` par extension du store (téléchargement → vérification →
+  attente de l'accord → installation, ou dernier échec), lu par l'interface (`extensions:store-installs`) et la page.
+  Après une installation lancée depuis une fenêtre, un popover overlay `extension-installed` s'accroche à la pièce de
+  puzzle et propose « Épingler » : une nouvelle extension n'est plus épinglée d'office (comme Chrome).
+- **`browser://extensions`** : recherche, cartes (`ExtensionRow`, lien vers la fiche du store ou source locale),
+  « Détails » à la demande (`extensions:details` : sites, autorisations, taille du dossier, dernière vérification des
+  mises à jour, « Ouvrir les options » = `options_ui.page`/`options_page` dans un onglet via
+  `TabManager.create(…, { extensionPage })`, navigation limitée à la même extension), dernière vérification sous
+  l'option de mise à jour automatique. Glisser-déposer d'un `.crx`/`.zip` ou d'un dossier : l'interface lit les
+  **octets** (jamais un chemin, `lib/extension-drop.ts`), main les décompresse dans le profil (mêmes limites) et
+  montre la même boîte des autorisations (« fichier déposé, sans signature vérifiée »).
+
 **Limites (Electron 44).** Electron n'implémente pas `chrome.action` : pas de **badge** (texte, couleur), ni de
 titre ou d'icône changés par l'extension, ni de `chrome.action.onClicked` — un bouton sans `default_popup` est
 affiché grisé, son clic ne peut pas atteindre l'extension (aucune API pour émettre l'événement). Les implémenter
@@ -2499,10 +2531,14 @@ thèmes et applications du store ne sont pas pris en charge (manifeste refusé o
 **Tests.** Unitaires : `src/shared/webstore.test.ts` (pages du store, adresses de téléchargement et de
 vérification, XML, ordre des versions, avertissements d'autorisations, boutons MV3/MV2),
 `src/main/extensions/crx.test.ts` (id d'une clé, paquet valide, id falsifié, clé étrangère, signature cassée,
-CRX2, client avec `fetch` simulé). E2E `tests/e2e/webstore.spec.ts` : faux store local (crochet de développement
+CRX2, client avec `fetch` simulé), `unpack.test.ts` (6 500 fichiers, limites, bombe, taille mensongère ; un vrai CRX
+avec `BROWSER_TEST_CRX=<fichier>`), `src/renderer/src/lib/webstore-page.test.ts` (happy-dom : recherche du bouton et
+du bandeau sur des fiches enregistrées `tests/fixtures/webstore/detail-{fr,en}.html`, agent, clic non fiable ignoré). E2E `tests/e2e/webstore.spec.ts` : faux store local (crochet de développement
 `BROWSER_TEST_WEBSTORE_URL`, ignoré une fois empaqueté : page `/detail/…` et `/service/update2/crx` qui redirige
-vers un CRX3 signé par une clé de test, `tests/crx-pack.ts`) — installation après la boîte des autorisations,
-bouton dans la barre latérale, fenêtre ouverte à la taille de son contenu puis fermée par un clic extérieur,
+vers un CRX3 signé par une clé de test, `tests/crx-pack.ts` ; fiche = la fixture française) — notre bouton remplace le grisé,
+échec 500 puis « Réessayer », progression dans la page et la barre d'adresse, installation après la boîte des autorisations,
+confirmation « Épingler »,
+bouton dans la barre latérale, « Détails », options ouvertes dans un onglet, fenêtre ouverte à la taille de son contenu puis fermée par un clic extérieur,
 mise à jour qui ne montre que la nouvelle autorisation.
 
 ## ADR-050 — Mots de passe synchronisés, notes, images du lecteur et thème dynamique sur le téléphone

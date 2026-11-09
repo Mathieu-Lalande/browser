@@ -8,7 +8,8 @@ import type { MiniAction, MiniState } from "./mini";
 import type { WidevineStatus } from "./drm";
 import type { HistoryClearRange, HistoryCursor, HistoryPage } from "./history";
 import type { ImportItem, ImportProgress, ImportSource, ImportSummary, PasswordImportSummary } from "./import/types";
-import type { ExtensionInfo, ExtensionInstallResult, ExtensionReview, ExtensionUpdateResult } from "./extensions";
+import type { DroppedExtension, ExtensionDetailsInfo, ExtensionInfo, ExtensionInstallResult, ExtensionReview, ExtensionUpdateResult } from "./extensions";
+import type { StoreInstall } from "./webstore-page";
 import type { FolderId, FolderInput } from "./folders";
 import type {
   AddressInput,
@@ -246,6 +247,12 @@ export const Channels = {
   extensionsAnswerReview: "extensions:answer-review",
   extensionsOpenPopup: "extensions:open-popup",
   extensionsMenu: "extensions:menu",
+  extensionsStoreInstalls: "extensions:store-installs",
+  extensionsDetails: "extensions:details",
+  extensionsOpenOptions: "extensions:open-options",
+  extensionsInstallDropped: "extensions:install-dropped",
+  extensionsInstalled: "extensions:installed",
+  extensionsShowInstalled: "extensions:show-installed",
   passwordsStatus: "passwords:status",
   passwordsList: "passwords:list",
   passwordsNeverList: "passwords:never-list",
@@ -464,6 +471,18 @@ export interface BrowserApi {
     openPopup(id: string, anchor: Bounds): void;
     /** Native menu: the puzzle button's (`id` null) or an extension button's. */
     menu(id: string | null, anchor: Bounds): void;
+    /** Store installs in progress (téléchargement → vérification → installation) and the last failures. */
+    storeInstalls(): Promise<StoreInstall[]>;
+    /** "Détails" of `browser://extensions` (null: gone). */
+    details(id: string): Promise<ExtensionDetailsInfo | null>;
+    /** "Ouvrir les options": the extension's options page in a new tab; false when it has none here. */
+    openOptions(id: string): Promise<boolean>;
+    /** A package dropped on `browser://extensions` (bytes, never a path): installed after the permission review. */
+    installDropped(dropped: DroppedExtension): Promise<ExtensionInstallResult>;
+    /** An extension was just installed from this window (its id): the chrome UI shows the confirmation. */
+    onInstalled(listener: (id: string) => void): () => void;
+    /** The confirmation popover after an install, hanging from `anchor` (the extension bar). */
+    showInstalled(id: string, anchor: Bounds): void;
   };
   /**
    * Password manager (ADR-025). Lists carry no password: one reaches the UI only through `reveal`,

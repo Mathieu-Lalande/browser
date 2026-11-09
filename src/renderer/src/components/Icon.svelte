@@ -140,6 +140,7 @@
   import Archive from "@lucide/svelte/icons/archive";
   import ArchiveRestore from "@lucide/svelte/icons/archive-restore";
   import ChevronRight from "@lucide/svelte/icons/chevron-right";
+  import LoaderCircle from "@lucide/svelte/icons/loader-circle";
   import Puzzle from "@lucide/svelte/icons/puzzle";
   import FileArchive from "@lucide/svelte/icons/file-archive";
   import FolderOpen from "@lucide/svelte/icons/folder-open";
@@ -213,6 +214,7 @@
     lock: Lock,
     globe: Globe,
     warning: TriangleAlert,
+    loader: LoaderCircle,
     sparkle: Sparkle,
     star: Star,
     clock: Clock,

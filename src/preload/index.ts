@@ -80,6 +80,12 @@ const api: BrowserApi = {
     answerReview: (reviewId, accepted) => send(Channels.extensionsAnswerReview, reviewId, accepted),
     openPopup: (id, anchor) => send(Channels.extensionsOpenPopup, id, anchor),
     menu: (id, anchor) => send(Channels.extensionsMenu, id, anchor),
+    storeInstalls: () => ipcRenderer.invoke(Channels.extensionsStoreInstalls),
+    details: (id) => ipcRenderer.invoke(Channels.extensionsDetails, id),
+    openOptions: (id) => ipcRenderer.invoke(Channels.extensionsOpenOptions, id),
+    installDropped: (dropped) => ipcRenderer.invoke(Channels.extensionsInstallDropped, dropped),
+    onInstalled: (listener) => subscribe<string>(Channels.extensionsInstalled, listener),
+    showInstalled: (id, anchor) => send(Channels.extensionsShowInstalled, id, anchor),
   },
   boosts: {
     list: () => ipcRenderer.invoke(Channels.boostsList),

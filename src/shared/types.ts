@@ -256,7 +256,9 @@ export type OverlayKind =
   | "tab-overview"
   /** Extensions (ADR-049): the permission review before a Web Store install, and the click catcher around a popup. */
   | "extension-install"
-  | "extension-popup";
+  | "extension-popup"
+  /** The confirmation after an extension install, hanging from the extension bar (offers to pin it). */
+  | "extension-installed";
 
 export interface OverlayRequest {
   kind: OverlayKind;
@@ -280,6 +282,8 @@ export interface OverlayRequest {
   print?: PrintPreviewInfo;
   /** Extension review (ADR-049): the pending install or update main keeps. */
   reviewId?: string;
+  /** Extension installed (ADR-049): the one the confirmation is about. */
+  extensionId?: string;
   /** The overlay view covers only this part of the window (default: all of it). */
   region?: Bounds;
 }

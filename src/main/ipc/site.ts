@@ -1,8 +1,13 @@
-import { isExtensionId } from "@shared/extensions";
+import { isExtensionId, MAX_DROPPED_FILES, MAX_DROPPED_SIZE, type DroppedExtension } from "@shared/extensions";
 import { Channels } from "@shared/ipc";
 import { isSiteName } from "@shared/site-info";
 import {
   answerExtensionReview,
+  extensionDetails,
+  installDroppedExtension,
+  openExtensionOptions,
+  showInstalledExtension,
+  storeInstalls,
   extensionReview,
   installFromFile,
   installFromFolder,
@@ -33,7 +38,7 @@ import { forgetSitePermissionDecision, listSiteSettings, resetSite, resetSiteZoo
 import { clearPrivacyStats, privacySummary } from "../privacy";
 import { isSiteListSetting } from "@shared/site-settings";
 import { MAX_URL_LENGTH } from "./limits";
-import { bool, bounds, defineHandlers, handle, handleUi, maxStr, nullable, on, str } from "./registry";
+import { bool, bounds, custom, defineHandlers, handle, handleUi, maxStr, nullable, on, str } from "./registry";
 
 /**
  * Site info popover (ADR-021): the UI names a tab of its own window; main reads its URL and
@@ -78,6 +83,20 @@ export const privacyPageHandlers = defineHandlers({
   [Channels.siteSettingsReset]: handle([isSiteName], (c, site) => (c.isPrivate ? null : resetSite(site))),
 });
 
+const bytes = (value: unknown): value is Uint8Array => value instanceof Uint8Array && value.length <= MAX_DROPPED_SIZE;
+
+/** A dropped package: bytes only (never a path), bounded like a picked file. */
+function isDroppedExtension(value: unknown): boolean {
+  if (typeof value !== "object" || value === null) return false;
+  const dropped = value as Record<string, unknown>;
+  if (dropped.kind === "file") return maxStr(260)(dropped.name) && bytes(dropped.data);
+  if (dropped.kind !== "folder" || !Array.isArray(dropped.files) || dropped.files.length > MAX_DROPPED_FILES) return false;
+  return dropped.files.every((file: unknown) => {
+    const entry = file as Record<string, unknown> | null;
+    return typeof entry === "object" && entry !== null && maxStr(1024)(entry.path) && bytes(entry.data);
+  });
+}
+const droppedExtension = custom<DroppedExtension>(isDroppedExtension);
 const privateRefusal = { ok: false, message: "Les extensions se gèrent depuis une fenêtre normale." } as const;
 
 /**
@@ -104,4 +123,9 @@ export const extensionHandlers = defineHandlers({
   [Channels.extensionsAnswerReview]: on([maxStr(64), bool], (_c, reviewId, accepted) => answerExtensionReview(reviewId, accepted)),
   [Channels.extensionsOpenPopup]: on([isExtensionId, bounds], (c, extensionId, anchor) => openExtensionPopup(c, extensionId, anchor), { privateRefused: true }),
   [Channels.extensionsMenu]: on([nullable(isExtensionId), bounds], (c, extensionId, anchor) => showExtensionsMenu(c, extensionId, anchor), { privateRefused: true }),
+  [Channels.extensionsStoreInstalls]: handleUi([], () => storeInstalls()),
+  [Channels.extensionsDetails]: handleUi([isExtensionId], (extensionId) => extensionDetails(extensionId)),
+  [Channels.extensionsOpenOptions]: handle([isExtensionId], (c, extensionId) => !c.isPrivate && openExtensionOptions(c, extensionId)),
+  [Channels.extensionsInstallDropped]: handle([droppedExtension], (c, dropped) => (c.isPrivate ? privateRefusal : installDroppedExtension(c, dropped))),
+  [Channels.extensionsShowInstalled]: on([isExtensionId, bounds], (c, extensionId, anchor) => showInstalledExtension(c, extensionId, anchor), { privateRefused: true }),
 });

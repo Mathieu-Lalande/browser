@@ -10,6 +10,7 @@ import { PageFind } from "../find";
 import { hardenWebContents, type PopupOptions } from "../security";
 import { parsePageWheel } from "../page-swipe-script";
 import { parseAnnotatorMessage } from "../annotations/page";
+import { parseStorePageMessage } from "../extensions/store-page";
 import { showsWebPage, withoutHash, type Tab, type TabManagerHooks } from "./model";
 import type { TabLayout } from "./layout";
 import type { TabLifecycle } from "./lifecycle";
@@ -132,7 +133,9 @@ export class TabEvents {
       const sample = parsePageWheel(details.message);
       if (sample) return hooks.pageWheel?.(tab.id, sample);
       const click = parseAnnotatorMessage(details.message);
-      if (click) hooks.annotationClick?.(tab.id, click);
+      if (click) return hooks.annotationClick?.(tab.id, click);
+      const store = parseStorePageMessage(details.message);
+      if (store) hooks.storeAction?.(contents, store);
     });
     on("dom-ready", () => {
       hooks.boostPage?.(contents);
@@ -141,6 +144,7 @@ export class TabEvents {
       hooks.notifyPage?.(tab.id, contents);
       hooks.translatePage?.(tab.id, contents);
       hooks.annotatePage?.(tab.id, contents);
+      hooks.storePage?.(contents);
     });
     // Ctrl+wheel and pinch: same steps as the zoom commands, remembered per site, paced by the window.
     on("zoom-changed", (_event, direction) => {

@@ -156,13 +156,13 @@ export class TabManager {
     if (zoomChanged) for (const tab of this.store.all) this.actions.applyZoom(tab);
   }
 
-  /** `localFile`: `input` is a `file://` URL main checked (ADR-039), loaded as it is. */
-  create(input = "", options: { activate?: boolean; index?: number; folderId?: FolderId | null; localFile?: boolean } = {}): TabId {
+  /** `localFile`: `input` is a `file://` URL main checked (ADR-039); `extensionPage`: an extension page main built (options, ADR-049). Loaded as they are. */
+  create(input = "", options: { activate?: boolean; index?: number; folderId?: FolderId | null; localFile?: boolean; extensionPage?: boolean } = {}): TabId {
     const folderId = options.folderId && this.folders.has(options.folderId) ? options.folderId : undefined;
     const tab = this.insert({ url: "", title: START_TITLE, favicon: null, pinned: false, folderId }, options.index ?? this.store.newTabIndex(this.options.newTabPosition));
     if (folderId) this.folders.reorder();
     if (options.activate ?? true) this.activate(tab.id);
-    this.navigate(tab.id, input, { localFile: options.localFile });
+    this.navigate(tab.id, input, { localFile: options.localFile, extensionPage: options.extensionPage });
     this.emit();
     return tab.id;
   }
@@ -368,10 +368,11 @@ export class TabManager {
    * Loads what the user typed (or an internal page). Local file URLs may come from the address bar
    * or from an OS file association; page-initiated file navigation remains blocked by hardening.
    */
-  navigate(id: TabId, input: string, _options: { localFile?: boolean } = {}): void {
+  navigate(id: TabId, input: string, _options: { localFile?: boolean; extensionPage?: boolean } = {}): void {
     const tab = this.store.find(id);
     if (!tab) return;
-    const url = _options.localFile && isLocalFileUrl(input) ? input : normalizeInput(input, this.options.searchEngine);
+    const trusted = (_options.localFile && isLocalFileUrl(input)) || (_options.extensionPage && input.startsWith("chrome-extension://"));
+    const url = trusted ? input : normalizeInput(input, this.options.searchEngine);
     const wasWebPage = showsWebPage(tab.state.url);
     tab.state.url = url;
     tab.state.interstitial = null;

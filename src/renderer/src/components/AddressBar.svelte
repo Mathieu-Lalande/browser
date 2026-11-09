@@ -260,17 +260,21 @@
       </button>
     {/if}
     {#if extensionsUi.storeCandidate && !focused}
-      <!-- A Chrome Web Store extension page (ADR-049): install it here (the store bar offers the same). -->
+      <!-- A Chrome Web Store extension page (ADR-049): install it here too (our button in the page does the same). -->
+      {@const install = extensionsUi.pageInstall}
+      {@const phase = extensionsUi.phaseLabel(install)}
       <button
         type="button"
         class="star on"
-        aria-label="Ajouter à Browser"
-        title="Ajouter cette extension à Browser"
-        disabled={extensionsUi.installing !== null}
+        class:busy={!!phase}
+        aria-label={phase ?? (install?.phase === "error" ? "Réessayer d'ajouter à Browser" : "Ajouter à Browser")}
+        title={phase ?? (install?.phase === "error" ? `${install.message} Cliquer pour réessayer.` : "Ajouter cette extension à Browser")}
+        data-store-phase={install?.phase ?? "idle"}
+        disabled={!!phase}
         onmousedown={(event) => event.preventDefault()}
         onclick={() => extensionsUi.storeCandidate && extensionsUi.installFromStore(extensionsUi.storeCandidate)}
       >
-        <Icon name="extension" size={16} />
+        <Icon name={phase ? "loader" : install?.phase === "error" ? "warning" : "extension"} size={16} />
       </button>
     {/if}
     {#if tab?.reader && isWebPage && !focused}
@@ -538,6 +542,14 @@
   }
   .star.on {
     color: var(--accent-text);
+  }
+  .star.busy :global(svg) {
+    animation: spin calc(var(--motion-base) * 4) linear infinite;
+  }
+  @keyframes spin {
+    to {
+      transform: rotate(1turn);
+    }
   }
   .shield-off {
     color: var(--text-faint);

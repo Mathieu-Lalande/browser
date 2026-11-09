@@ -8,6 +8,7 @@ import type { InPageVisits } from "../activation";
 import type { PageFind } from "../find";
 import type { PageWheelSample } from "../page-swipe-script";
 import type { MarkClick } from "../annotations/page";
+import type { StorePageAction } from "@shared/webstore-page";
 
 export const START_TITLE = "Page d'accueil";
 
@@ -106,6 +107,10 @@ export interface TabManagerHooks {
   annotatePage?(tabId: TabId, contents: WebContents): void;
   /** A highlight of the page was clicked (reported by the annotator's isolated world, ADR-037). */
   annotationClick?(tabId: TabId, click: MarkClick): void;
+  /** A new document is ready (dom-ready): a Chrome Web Store page gets our install button (ADR-049). */
+  storePage?(contents: WebContents): void;
+  /** Our button on a Chrome Web Store page was clicked (reported by its isolated world, ADR-049). */
+  storeAction?(contents: WebContents, click: StorePageAction): void;
   /** The page started or stopped playing media: the window's media hub follows it (ADR-035). */
   media?(tabId: TabId, contents: WebContents, playing: boolean): void;
 }
