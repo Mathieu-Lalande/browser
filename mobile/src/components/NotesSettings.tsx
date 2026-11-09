@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { memo, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { annotatedPages, HIGHLIGHT_SWATCHES, removeHighlight } from "@shared/annotations/model";
@@ -24,19 +25,19 @@ export const NotesSettings = memo(function NotesSettings({ onOpen }: { onOpen: (
   return (
     <View>
       <Text style={[styles.intro, { color: colors.textMuted }]}>
-        Sélectionnez du texte dans une page puis « Surligner ». Touchez un passage surligné pour changer sa couleur, y ajouter une note ou le supprimer ; « Note de la page » est dans le menu de la page.
+        {t("mobile.notesSettings.selectTextPageThen")}
       </Text>
       <View style={[styles.row, border]}>
         <View style={styles.text}>
-          <Text style={[styles.title, { color: colors.text }]}>Synchroniser les notes</Text>
-          <Text style={[styles.detail, { color: colors.textMuted }]}>Chiffrées comme le reste ; jamais celles des onglets privés.</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t("mobile.notesSettings.syncNotes")}</Text>
+          <Text style={[styles.detail, { color: colors.textMuted }]}>{t("mobile.notesSettings.encryptedLikeEverythingElse")}</Text>
         </View>
         <Switch
           value={settings.annotations.sync}
           onValueChange={(sync) => actions.updateSettings({ annotations: { sync } })}
           trackColor={{ true: colors.accent, false: colors.surfaceActive }}
           thumbColor="#ffffff"
-          accessibilityLabel="Synchroniser les notes et surlignages"
+          accessibilityLabel={t("mobile.notesSettings.syncNotesHighlights")}
         />
       </View>
       {annotations.highlights.length + annotations.notes.length > 0 && (
@@ -45,9 +46,9 @@ export const NotesSettings = memo(function NotesSettings({ onOpen }: { onOpen: (
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Rechercher dans les notes"
+            placeholder={t("mobile.notesSettings.searchNotes")}
             placeholderTextColor={colors.textMuted}
-            accessibilityLabel="Rechercher dans les notes"
+            accessibilityLabel={t("mobile.notesSettings.searchNotes")}
             style={[styles.input, { color: colors.text }]}
             autoCorrect={false}
             autoCapitalize="none"
@@ -56,7 +57,7 @@ export const NotesSettings = memo(function NotesSettings({ onOpen }: { onOpen: (
       )}
       {pages.map((page) => (
         <View key={page.url} style={[styles.page, border]}>
-          <Pressable onPress={() => onOpen(page.url)} accessibilityRole="link" accessibilityLabel={`Ouvrir ${page.title || displayUrl(page.url)}`}>
+          <Pressable onPress={() => onOpen(page.url)} accessibilityRole="link" accessibilityLabel={t("mobile.notesSettings.open", { p: page.title || displayUrl(page.url) })}>
             <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
               {page.title || displayUrl(page.url)}
             </Text>
@@ -74,7 +75,7 @@ export const NotesSettings = memo(function NotesSettings({ onOpen }: { onOpen: (
               </View>
               <IconButton
                 icon="trash"
-                label="Supprimer le surlignage"
+                label={t("mobile.notesSettings.deleteHighlight")}
                 size={18}
                 color={colors.danger}
                 onPress={() => actions.setAnnotations((data) => removeHighlight(data, highlight.id))}
@@ -86,7 +87,7 @@ export const NotesSettings = memo(function NotesSettings({ onOpen }: { onOpen: (
       {pages.length === 0 && (
         <View style={[styles.row, border]}>
           <Icon name="highlighter" size={20} color={colors.textMuted} />
-          <Text style={[styles.detail, styles.text, { color: colors.textMuted }]}>{query ? "Aucun résultat." : "Aucune note pour l'instant."}</Text>
+          <Text style={[styles.detail, styles.text, { color: colors.textMuted }]}>{query ? t("mobile.notesSettings.noResults") : t("mobile.notesSettings.noNotesYet")}</Text>
         </View>
       )}
     </View>

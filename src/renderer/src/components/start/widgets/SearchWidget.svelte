@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import Icon from "../../Icon.svelte";
   import { openHere, type WidgetProps } from "../types";
 
@@ -19,7 +20,7 @@
 
 <form class="search" onsubmit={submit}>
   <Icon name="search" size={20} />
-  <input bind:this={input} bind:value={query} placeholder="Rechercher sur le web ou saisir une adresse" spellcheck="false" />
+  <input bind:this={input} bind:value={query} placeholder={t("searchWidget.searchWebEnterAddress")} spellcheck="false" />
 </form>
 
 <style>

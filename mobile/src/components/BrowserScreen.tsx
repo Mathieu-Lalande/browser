@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { getCommand, type CommandId } from "@shared/commands";
 import { cycleSpace, FALLBACK_SPACE_ICON } from "@shared/spaces";
 import type { SpaceInfo } from "@shared/types";
@@ -205,7 +206,7 @@ export function BrowserScreen() {
         const confirm = getCommand("clear-history").confirm;
         if (confirm)
           Alert.alert(confirm.title, confirm.detail, [
-            { text: "Annuler", style: "cancel" },
+            { text: t("mobile.browserScreen.cancel"), style: "cancel" },
             { text: confirm.action, style: "destructive", onPress: () => actions.clearHistory() },
           ]);
         break;

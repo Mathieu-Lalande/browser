@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { randomBytes } from "node:crypto";
 import { readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -76,14 +77,14 @@ export class BackupService {
 
   /** Writes the backup where the user chooses. With `passphrase`, the passwords come along, sealed. */
   async export(window: BaseWindow, passphrase: string | null): Promise<BackupResult> {
-    if (passphrase !== null && passphrase.length < MIN_PASSPHRASE) return { ok: false, message: `La phrase secrète doit faire au moins ${MIN_PASSPHRASE} caractères.` };
+    if (passphrase !== null && passphrase.length < MIN_PASSPHRASE) return { ok: false, message: t("backupService.passphraseMustLeastCharacters", { MIN_PASSPHRASE }) };
     const now = Date.now();
     let path = this.deps.testExportPath;
     if (!path) {
       const result = await dialog.showSaveDialog(window, {
-        title: "Exporter le profil",
+        title: t("backupService.exportProfile"),
         defaultPath: join(this.deps.downloadsFolder(), backupFileName(this.deps.profileName(), now)),
-        filters: [{ name: "Sauvegarde Browser", extensions: [BACKUP_EXTENSION] }],
+        filters: [{ name: t("backupService.browserBackup"), extensions: [BACKUP_EXTENSION] }],
       });
       if (result.canceled || !result.filePath) return { ok: false, message: "" };
       path = result.filePath;
@@ -98,7 +99,7 @@ export class BackupService {
       writeFileSync(path, text, { mode: 0o600 });
       return { ok: true };
     } catch {
-      return { ok: false, message: "Le fichier n'a pas pu être écrit." };
+      return { ok: false, message: t("backupService.fileCouldntWritten") };
     }
   }
 
@@ -107,33 +108,33 @@ export class BackupService {
     let path = this.deps.testImportPath;
     if (!path) {
       const result = await dialog.showOpenDialog(window, {
-        title: "Importer une sauvegarde",
+        title: t("backupService.importBackup"),
         properties: ["openFile"],
-        filters: [{ name: "Sauvegarde Browser", extensions: [BACKUP_EXTENSION] }],
+        filters: [{ name: t("backupService.browserBackup"), extensions: [BACKUP_EXTENSION] }],
       });
       if (result.canceled || !result.filePaths[0]) return { ok: false, message: "" };
       path = result.filePaths[0];
     }
     try {
-      if (statSync(path).size > MAX_BACKUP_BYTES) return { ok: false, message: "Ce fichier est trop volumineux." };
+      if (statSync(path).size > MAX_BACKUP_BYTES) return { ok: false, message: t("backupService.fileTooLarge") };
       this.pending = decodeBackup(readFileSync(path, "utf8"));
     } catch {
       this.pending = null;
     }
-    if (!this.pending) return { ok: false, message: "Ce fichier n'est pas une sauvegarde de Browser." };
+    if (!this.pending) return { ok: false, message: t("backupService.fileIsntBrowserBackup") };
     return { ok: true, summary: summarizeBackup(this.pending) };
   }
 
   /** Applies the inspected backup. Passwords need the passphrase (checked before anything changes). */
   apply(mode: BackupMode, passphrase: string | null): BackupResult {
     const file = this.pending;
-    if (!file) return { ok: false, message: "Choisissez d'abord un fichier." };
+    if (!file) return { ok: false, message: t("backupService.chooseFileFirst") };
     let vault: PasswordVault | null = null;
     if (file.passwords && passphrase) {
       try {
         vault = sanitizeVault(JSON.parse(openSecret(file.passwords, passphrase)));
       } catch (error) {
-        return { ok: false, message: error instanceof WrongPassphraseError ? "Phrase secrète incorrecte." : "Les mots de passe sont illisibles." };
+        return { ok: false, message: error instanceof WrongPassphraseError ? t("backupService.wrongPassphrase") : t("backupService.passwordsAreUnreadable") };
       }
     }
     this.pending = null;

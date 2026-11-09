@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { cookieCount, filterSites, type SiteDataEntry } from "@shared/site-info";
   import { api, browser } from "../../lib/browser.svelte";
   import { settings } from "../../lib/settings.svelte";
@@ -46,23 +47,23 @@
 
 <Row
   anchor="third-party-cookies"
-  label="Bloquer les cookies tiers"
-  hint="Les cookies ne sont ni envoyés ni enregistrés pour les requêtes vers d'autres sites que celui affiché (pisteurs, publicités). Peut empêcher certaines connexions ou contenus intégrés : ajoutez une exception depuis les infos du site (cadenas)."
+  label={t("siteDataSection.blockThirdPartyCookies")}
+  hint={t("siteDataSection.cookiesAreNeitherSent")}
 >
   <Toggle
-    label="Bloquer les cookies tiers"
+    label={t("siteDataSection.blockThirdPartyCookies")}
     checked={privacy.blockThirdPartyCookies}
     onchange={(blockThirdPartyCookies) => settings.update({ privacy: { blockThirdPartyCookies } })}
   />
 </Row>
 
 {#if privacy.thirdPartyCookieExceptions.length}
-  <Row label="Exceptions" hint="Sites où les cookies tiers restent autorisés." stacked>
-    <ul class="list compact" aria-label="Exceptions aux cookies tiers">
+  <Row label={t("siteDataSection.exceptions")} hint={t("siteDataSection.sitesWhereThirdParty")} stacked>
+    <ul class="list compact" aria-label={t("siteDataSection.thirdPartyCookieExceptions")}>
       {#each privacy.thirdPartyCookieExceptions as site (site)}
         <li>
           <span class="site">{site}</span>
-          <button class="remove" aria-label="Retirer l'exception pour {site}" title="Retirer l'exception" onclick={() => removeException(site)}>
+          <button class="remove" aria-label={t("siteDataSection.removeException", { site })} title={t("siteDataSection.removeException2")} onclick={() => removeException(site)}>
             <Icon name="close" size={12} />
           </button>
         </li>
@@ -72,39 +73,39 @@
 {/if}
 
 {#if browser.isPrivate}
-  <Row label="Cookies et données des sites" hint="Indisponible en navigation privée : cette fenêtre ne garde rien, et ne touche pas aux données du profil.">
+  <Row label={t("siteDataSection.cookiesSiteData")} hint={t("siteDataSection.unavailablePrivateBrowsingWindow")}>
     <span></span>
   </Row>
 {:else}
   <Row
-    label="Cookies et données des sites"
-    hint={sites?.length ? `${sites.length} site${sites.length > 1 ? "s" : ""}, ${cookieCount(total)} (espaces isolés compris).` : loaded ? "Aucun site n'a enregistré de cookies." : "Chargement…"}
+    label={t("siteDataSection.cookiesSiteData")}
+    hint={sites?.length ? t("siteDataSection.sitesIsolatedSpacesIncluded", { sitesCount: sites.length, p2: cookieCount(total) }) : loaded ? t("siteDataSection.noSiteHasSaved") : t("siteDataSection.loading")}
     stacked={!!sites?.length}
   >
-    {#if cleared && !sites?.length}<span class="done"><Icon name="check" size={12} /> Données effacées</span>{/if}
+    {#if cleared && !sites?.length}<span class="done"><Icon name="check" size={12} /> {t("siteDataSection.dataCleared")}</span>{/if}
     {#if sites?.length}
       <div class="sites">
       <div class="tools">
         <label class="search">
           <Icon name="search" size={12} />
-          <input type="search" placeholder="Rechercher un site" aria-label="Rechercher un site" bind:value={query} spellcheck="false" />
+          <input type="search" placeholder={t("siteDataSection.searchSite")} aria-label={t("siteDataSection.searchSite")} bind:value={query} spellcheck="false" />
         </label>
-        <ConfirmButton variant="outlined" question="Tous les sites ?" confirmLabel="Tout effacer" onconfirm={clearAll}>
-          <Icon name="trash" size={12} /> Tout effacer
+        <ConfirmButton variant="outlined" question={t("siteDataSection.allSites")} confirmLabel={t("siteDataSection.clearAll")} onconfirm={clearAll}>
+          <Icon name="trash" size={12} /> {t("siteDataSection.clearAll")}
         </ConfirmButton>
       </div>
-      <ul class="list" aria-label="Sites avec des cookies">
+      <ul class="list" aria-label={t("siteDataSection.sitesCookies")}>
         {#each shown as entry (entry.site)}
           <li>
             <Icon name="cookie" size={14} />
             <span class="site">{entry.site}</span>
             <span class="count">{cookieCount(entry.cookies)}</span>
-            <button class="remove" aria-label="Effacer les données de {entry.site}" title="Effacer les cookies et données de ce site" onclick={() => remove(entry.site)}>
+            <button class="remove" aria-label={t("siteDataSection.clearData", { site: entry.site })} title={t("siteDataSection.clearCookiesDataSite")} onclick={() => remove(entry.site)}>
               <Icon name="trash" size={12} />
             </button>
           </li>
         {:else}
-          <li class="none">Aucun site ne correspond.</li>
+          <li class="none">{t("siteDataSection.noSiteMatches")}</li>
         {/each}
       </ul>
       </div>

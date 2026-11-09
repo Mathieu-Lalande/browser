@@ -1,3 +1,4 @@
+import { t as tr } from "@shared/i18n";
 import { providerLabel, TranslationError } from "@shared/translate/providers";
 import { targetLanguage } from "@shared/translate/languages";
 import type { Segment } from "@shared/translate/segments";
@@ -47,7 +48,7 @@ export function usePageTranslation(openSettings: () => void) {
   const translatorNow = async (): Promise<Translator> => {
     const t = settings.translate;
     const config = providerConfig(t, t.provider === "none" ? "" : await translateKeys.get(t.provider));
-    if (!config) throw new TranslationError("config", "Choisissez un service de traduction dans Paramètres → Traduction.");
+    if (!config) throw new TranslationError("config", tr("mobile.usePageTranslation.chooseTranslationServiceSettings"));
     const signature = JSON.stringify(config);
     if (translator.current?.signature !== signature) translator.current = { signature, value: translatorFor(config) };
     return translator.current.value;
@@ -61,20 +62,20 @@ export function usePageTranslation(openSettings: () => void) {
       await translatorNow();
     } catch (error) {
       Alert.alert("Traduction indisponible", error instanceof Error ? error.message : "", [
-        { text: "Annuler", style: "cancel" },
-        { text: "Paramètres", onPress: openSettings },
+        { text: tr("mobile.usePageTranslation.cancel"), style: "cancel" },
+        { text: tr("mobile.usePageTranslation.settings"), onPress: openSettings },
       ]);
       return;
     }
     const needsConsent = isPrivate ? !privateConsent.current : !t.acknowledged;
     if (!needsConsent || t.provider === "none") return send(tabId, "translate");
     Alert.alert(
-      "Traduire la page ?",
+      tr("mobile.usePageTranslation.translatePage"),
       `Le texte de cette page sera envoyé à ${providerLabel(t.provider)} pour être traduit.${isPrivate ? " Onglet privé : confirmation demandée à chaque session, rien n'est enregistré." : ""}`,
       [
-        { text: "Annuler", style: "cancel" },
+        { text: tr("mobile.usePageTranslation.cancel"), style: "cancel" },
         {
-          text: "Traduire",
+          text: tr("mobile.usePageTranslation.translate"),
           onPress: () => {
             if (isPrivate) privateConsent.current = true;
             else actions.updateSettings({ translate: { acknowledged: true } });
@@ -100,7 +101,7 @@ export function usePageTranslation(openSettings: () => void) {
     } catch (error) {
       if (!failed.current.has(tabId)) {
         failed.current.add(tabId);
-        Alert.alert("Traduction interrompue", error instanceof Error ? error.message : "La traduction a échoué.");
+        Alert.alert("Traduction interrompue", error instanceof Error ? error.message : tr("mobile.usePageTranslation.translationFailed"));
       }
       throw error;
     }

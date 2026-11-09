@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { PANEL_SUGGESTIONS, panelUrlFromInput, samePanelUrl } from "@shared/panels";
   import { browser } from "../../lib/browser.svelte";
   import { panelsUi } from "../../lib/panels.svelte";
@@ -32,30 +33,30 @@
   function submit(event: SubmitEvent): void {
     event.preventDefault();
     const url = panelUrlFromInput(draft);
-    if (!url) message = "Saisissez l'adresse d'un site web, par exemple web.whatsapp.com.";
+    if (!url) message = t("panelAddForm.enterWebsiteAddressExample");
     else void add(url);
   }
 </script>
 
-<aside class="add-panel" aria-label="Ajouter un panneau web" data-testid="panel-add">
+<aside class="add-panel" aria-label={t("panelAddForm.addWebPanel")} data-testid="panel-add">
   <header>
     <Icon name="panel-right" size={16} />
-    <h2>Ajouter un panneau web</h2>
-    <IconButton size="sm" icon="close" iconSize={14} label="Annuler" onclick={() => (panelsUi.adding = false)} />
+    <h2>{t("panelAddForm.addWebPanel")}</h2>
+    <IconButton size="sm" icon="close" iconSize={14} label={t("panelAddForm.cancel")} onclick={() => (panelsUi.adding = false)} />
   </header>
-  <p class="hint">Le site s'ouvre à côté de la page et reste chargé en arrière-plan, avec sa propre session.</p>
+  <p class="hint">{t("panelAddForm.siteOpensNextPage")}</p>
   <form onsubmit={submit}>
-    <input bind:this={field} class="ui-field" bind:value={draft} placeholder="web.whatsapp.com" aria-label="Adresse du panneau" spellcheck="false" />
-    <Button type="submit" variant="primary" disabled={busy || !draft.trim()}>Ajouter</Button>
+    <input bind:this={field} class="ui-field" bind:value={draft} placeholder="web.whatsapp.com" aria-label={t("panelAddForm.panelAddress")} spellcheck="false" />
+    <Button type="submit" variant="primary" disabled={busy || !draft.trim()}>{t("panelAddForm.add")}</Button>
   </form>
   <!-- Outside the form: the checkbox is a button, which would submit it. -->
-  <Checkbox checked={mobile} onchange={(value) => (mobile = value)}>Version mobile (mise en page étroite)</Checkbox>
+  <Checkbox checked={mobile} onchange={(value) => (mobile = value)}>{t("panelAddForm.mobileSiteNarrowLayout")}</Checkbox>
   {#if current}
-    <Button variant="quiet" icon="plus" disabled={busy} onclick={() => add(current.url, current.title)}>Ajouter la page actuelle</Button>
+    <Button variant="quiet" icon="plus" disabled={busy} onclick={() => add(current.url, current.title)}>{t("panelAddForm.addCurrentPage")}</Button>
   {/if}
   {#if message}<p class="message" role="alert"><Icon name="warning" size={13} /> {message}</p>{/if}
   {#if suggestions.length}
-    <h3>Suggestions</h3>
+    <h3>{t("panelAddForm.suggestions")}</h3>
     <ul class="suggestions">
       {#each suggestions as item (item.url)}
         <li><button type="button" class="suggestion" disabled={busy} onclick={() => add(item.url, item.title, item.mobile)}>{item.title}</button></li>

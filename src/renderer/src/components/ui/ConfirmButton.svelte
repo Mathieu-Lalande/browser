@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { Snippet } from "svelte";
 
   /**
@@ -45,7 +46,7 @@
     onkeydown={(event) => event.key === "Escape" && (event.preventDefault(), event.stopPropagation(), close(true))}
   >
     <span class="question">{question}</span>
-    <button class="cancel" bind:this={cancel} onclick={() => close(true)}>Annuler</button>
+    <button class="cancel" bind:this={cancel} onclick={() => close(true)}>{t("confirmButton.cancel")}</button>
     <button class="danger" onclick={() => (close(false), onconfirm())}>{confirmLabel}</button>
   </span>
 {:else}

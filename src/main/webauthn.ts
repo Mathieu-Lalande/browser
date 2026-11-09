@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { app, BrowserWindow, dialog, type Session } from "electron";
 import { webauthnChoices } from "@shared/webauthn";
 import type { SessionService } from "./services";
@@ -19,7 +20,7 @@ export class PasskeyService implements SessionService {
     const group = this.options.touchIdKeychainGroup;
     if (this.options.platform !== "darwin" || !group) return false;
     try {
-      app.configureWebAuthn({ touchID: { keychainAccessGroup: group, promptReason: "vous connecter à $1" } });
+      app.configureWebAuthn({ touchID: { keychainAccessGroup: group, promptReason: t("webauthn.sign1") } });
       return true;
     } catch {
       return false;
@@ -35,9 +36,9 @@ export class PasskeyService implements SessionService {
       const owner = BrowserWindow.getFocusedWindow();
       const options = {
         type: "question" as const,
-        title: "Clés d'accès",
-        message: `Choisissez le compte à utiliser sur ${details.relyingPartyId}`,
-        buttons: [...choices.map((choice) => choice.label), "Annuler"],
+        title: t("webauthn.passkeys"),
+        message: t("webauthn.chooseAccountUse", { relyingPartyId: details.relyingPartyId }),
+        buttons: [...choices.map((choice) => choice.label), t("webauthn.cancel")],
         cancelId: choices.length,
         defaultId: 0,
         noLink: true,

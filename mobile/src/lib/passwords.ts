@@ -1,3 +1,4 @@
+import { t as tr } from "@shared/i18n";
 import { mergeSyncedPasswords, type SyncedPassword } from "@shared/passwords-sync";
 import {
   EMPTY_VAULT,
@@ -58,7 +59,7 @@ export async function readChunks(store: SecretStore, prefix: string): Promise<un
 }
 
 /** Writes a JSON document in chunks (see `readChunks`); `tooLarge`: the French error when it does not fit. */
-export async function writeChunks(store: SecretStore, prefix: string, value: unknown, options?: object, tooLarge = "Trop de données enregistrées."): Promise<void> {
+export async function writeChunks(store: SecretStore, prefix: string, value: unknown, options?: object, tooLarge = tr("mobile.libPasswords.tooMuchDataSaved")): Promise<void> {
   const json = JSON.stringify(value);
   const count = Math.ceil(json.length / CHUNK_SIZE);
   if (count > MAX_CHUNKS) throw new Error(tooLarge);
@@ -77,7 +78,7 @@ export async function loadVault(store: SecretStore): Promise<PasswordVault> {
 }
 
 export const saveVault = (store: SecretStore, vault: PasswordVault, options?: object): Promise<void> =>
-  writeChunks(store, "passwords", vault, options, "Trop de mots de passe enregistrés.");
+  writeChunks(store, "passwords", vault, options, tr("mobile.libPasswords.tooManyPasswordsSaved"));
 
 /** In-memory vault with its secure-store persistence; listeners hear every change. */
 export class PasswordStore {

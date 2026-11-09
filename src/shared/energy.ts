@@ -4,15 +4,17 @@
  * media is not polled and the browser UIs stop animating.
  */
 
+import { t } from "./i18n";
+
 export type EnergySaverMode = "off" | "battery" | "always";
 
 export const ENERGY_SAVER_MODES: readonly EnergySaverMode[] = ["off", "battery", "always"];
 
 /** Choices of "Économiseur d'énergie", in order, with their French labels. */
 export const ENERGY_SAVER_OPTIONS: readonly { value: EnergySaverMode; label: string }[] = [
-  { value: "off", label: "Désactivé" },
-  { value: "battery", label: "Sur batterie" },
-  { value: "always", label: "Toujours" },
+  { value: "off", get label() { return t("energy.off") } },
+  { value: "battery", get label() { return t("energy.battery") } },
+  { value: "always", get label() { return t("energy.always") } },
 ];
 
 /** Whether the saver is on, and why (the window bar's indicator says it). */
@@ -67,5 +69,5 @@ export function energyPolicy(state: EnergyState): EnergyPolicy {
 /** The window bar's tooltip, or null when the saver is off. */
 export function energyTooltip(state: EnergyState): string | null {
   if (!state.active) return null;
-  return state.reason === "battery" ? "Économiseur d'énergie actif : l'ordinateur est sur batterie" : "Économiseur d'énergie toujours actif";
+  return state.reason === "battery" ? t("energy.energySaverComputerBattery") : t("energy.energySaverAlways");
 }

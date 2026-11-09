@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { isFavoriteTab, type Favorite } from "@shared/favorites";
 import { topSites } from "@shared/search";
 import {
@@ -107,14 +108,14 @@ const SearchWidget = memo(function SearchWidget({ actions }: ViewProps<"search">
   return (
     <Tap
       accessibilityRole="search"
-      accessibilityLabel="Rechercher ou saisir une adresse"
+      accessibilityLabel={t("mobile.startWidgets.searchEnterAddress")}
       onPress={actions.onSearch}
       pressScale={0.97}
       style={[styles.search, { backgroundColor: colors.bgElevated, borderColor: colors.border, shadowColor: "#000" }]}
       testID="start-search"
     >
       <Icon name="search" size={20} color={colors.textMuted} />
-      <Text style={[styles.searchText, { color: colors.textMuted }]}>Rechercher ou saisir une adresse</Text>
+      <Text style={[styles.searchText, { color: colors.textMuted }]}>{t("mobile.startWidgets.searchEnterAddress")}</Text>
     </Tap>
   );
 });
@@ -159,8 +160,8 @@ const TopSitesWidget = memo(function TopSitesWidget({ widget, actions, width }: 
   }, [history, widget.options]);
   return (
     <View style={styles.section}>
-      <Title>Sites fréquents</Title>
-      {sites.length ? <SiteTiles sites={sites} width={width} actions={actions} /> : <Empty>Les sites que vous visitez souvent apparaîtront ici.</Empty>}
+      <Title>{t("mobile.startWidgets.topSites")}</Title>
+      {sites.length ? <SiteTiles sites={sites} width={width} actions={actions} /> : <Empty>{t("mobile.startWidgets.sitesYouVisitOften")}</Empty>}
     </View>
   );
 });
@@ -175,15 +176,15 @@ const FavoritesWidget = memo(function FavoritesWidget({ widget, actions, width }
     <View style={styles.section}>
       {grid.length > 0 && (
         <FavoritesRow
-          title="Grille des favoris"
+          title={t("mobile.startWidgets.favoritesGrid")}
           favorites={grid}
           isOpen={(url) => model.tabs.some((tab) => tab.spaceId === model.activeSpaceId && isFavoriteTab(url, tab.url))}
           onOpen={actions.onOpenFavorite}
           onLongPress={actions.onFavoriteMenu}
         />
       )}
-      <Title>Favoris</Title>
-      {recent.length ? <SiteTiles sites={recent} width={width} actions={actions} /> : <Empty>Ajoutez des favoris depuis le menu d'une page.</Empty>}
+      <Title>{t("mobile.startWidgets.favorites")}</Title>
+      {recent.length ? <SiteTiles sites={recent} width={width} actions={actions} /> : <Empty>{t("mobile.startWidgets.addFavoritesFromPages")}</Empty>}
     </View>
   );
 });
@@ -194,9 +195,9 @@ const DevicesWidget = memo(function DevicesWidget({ widget, actions }: ViewProps
   const devices = (sync?.devices ?? []).filter((device) => device.tabs.length > 0);
   return (
     <View style={styles.section}>
-      <Title>Autres appareils</Title>
+      <Title>{t("mobile.startWidgets.otherDevices")}</Title>
       {devices.length === 0 && (
-        <Empty>{sync?.configured ? "Aucun onglet ouvert sur vos autres appareils." : "Activez la synchronisation pour retrouver ici vos autres onglets."}</Empty>
+        <Empty>{sync?.configured ? t("mobile.startWidgets.noTabsOpenOther") : t("mobile.startWidgets.turnSyncFindOther")}</Empty>
       )}
       {devices.map((device) => (
         <View key={device.id} style={styles.device}>
@@ -227,7 +228,7 @@ const NotesWidget = memo(function NotesWidget({ widget, actions }: ViewProps<"no
   useEffect(() => setText(widget.options.text), [widget.options.text]);
   return (
     <View style={styles.section}>
-      <Title>Notes</Title>
+      <Title>{t("mobile.startWidgets.notes")}</Title>
       <TextInput
         value={text}
         onChangeText={(value) => {
@@ -236,10 +237,10 @@ const NotesWidget = memo(function NotesWidget({ widget, actions }: ViewProps<"no
         }}
         multiline
         maxLength={LIMITS.notes}
-        placeholder={isPrivate ? "Non conservées en navigation privée…" : "Une idée, une adresse, une liste…"}
+        placeholder={isPrivate ? t("mobile.startWidgets.notKeptPrivateBrowsing") : t("mobile.startWidgets.ideaAddressList")}
         placeholderTextColor={colors.textFaint}
         keyboardAppearance={dark ? "dark" : "light"}
-        accessibilityLabel="Notes rapides"
+        accessibilityLabel={t("mobile.startWidgets.quickNotes")}
         style={[styles.notes, { color: colors.text, backgroundColor: colors.surface }]}
         testID="start-notes"
       />
@@ -255,7 +256,7 @@ const TodoWidget = memo(function TodoWidget({ widget, actions }: ViewProps<"todo
   const save = (next: typeof items) => actions.setOptions(widget.id, { items: next });
   return (
     <View style={styles.section}>
-      <Title>À faire</Title>
+      <Title>{t("mobile.startWidgets.do")}</Title>
       <TextInput
         value={draft}
         onChangeText={setDraft}
@@ -264,12 +265,12 @@ const TodoWidget = memo(function TodoWidget({ widget, actions }: ViewProps<"todo
           setDraft("");
         }}
         maxLength={LIMITS.todoText}
-        placeholder="Ajouter une tâche"
+        placeholder={t("mobile.startWidgets.addTask")}
         placeholderTextColor={colors.textFaint}
         keyboardAppearance={dark ? "dark" : "light"}
         returnKeyType="done"
         submitBehavior="submit"
-        accessibilityLabel="Nouvelle tâche"
+        accessibilityLabel={t("mobile.startWidgets.newTask")}
         style={[styles.field, { color: colors.text, backgroundColor: colors.surface }]}
       />
       {shown.map((item) => (
@@ -288,14 +289,14 @@ const TodoWidget = memo(function TodoWidget({ widget, actions }: ViewProps<"todo
               {item.text}
             </Text>
           </Tap>
-          <Tap accessibilityRole="button" accessibilityLabel={`Supprimer ${item.text}`} onPress={() => save(removeTodo(items, item.id))} style={styles.remove}>
+          <Tap accessibilityRole="button" accessibilityLabel={t("mobile.startWidgets.delete", { text: item.text })} onPress={() => save(removeTodo(items, item.id))} style={styles.remove}>
             <Icon name="close" size={14} color={colors.textFaint} />
           </Tap>
         </View>
       ))}
       {items.some((item) => item.done) && (
         <Tap accessibilityRole="button" onPress={() => save(clearDoneTodos(items))}>
-          <Text style={[styles.link, { color: colors.textMuted }]}>Effacer les tâches terminées</Text>
+          <Text style={[styles.link, { color: colors.textMuted }]}>{t("mobile.startWidgets.clearCompletedTasks")}</Text>
         </Tap>
       )}
     </View>
@@ -328,19 +329,19 @@ const WeatherWidget = memo(function WeatherWidget({ widget, actions }: ViewProps
   if (!place) {
     return (
       <View style={styles.section}>
-        <Title>Météo</Title>
+        <Title>{t("mobile.startWidgets.weather")}</Title>
         <TextInput
           value={query}
           onChangeText={setQuery}
           onSubmitEditing={() => void weather.places(query).then(setResults)}
-          placeholder="Ville"
+          placeholder={t("mobile.startWidgets.city")}
           placeholderTextColor={colors.textFaint}
           keyboardAppearance={dark ? "dark" : "light"}
           returnKeyType="search"
-          accessibilityLabel="Ville de la météo"
+          accessibilityLabel={t("mobile.startWidgets.weatherCity")}
           style={[styles.field, { color: colors.text, backgroundColor: colors.surface }]}
         />
-        {results?.length === 0 && <Empty>Aucune ville trouvée (ou pas de connexion).</Empty>}
+        {results?.length === 0 && <Empty>{t("mobile.startWidgets.noCityFoundNo")}</Empty>}
         {results?.map((result, index) => (
           <Tap key={index} accessibilityRole="button" onPress={() => actions.setOptions(widget.id, { place: result })} style={styles.row}>
             <Icon name="map-pin" size={14} color={colors.textMuted} />
@@ -349,7 +350,7 @@ const WeatherWidget = memo(function WeatherWidget({ widget, actions }: ViewProps
             </Text>
           </Tap>
         ))}
-        {!results && <Empty>Prévisions d'Open-Meteo, sans clé ni cookie.</Empty>}
+        {!results && <Empty>{t("mobile.startWidgets.forecastsFromOpenMeteo")}</Empty>}
       </View>
     );
   }
@@ -361,7 +362,7 @@ const WeatherWidget = memo(function WeatherWidget({ widget, actions }: ViewProps
         <View>
           {forecast && <Text style={[styles.temp, { color: colors.text }]}>{formatTemperature(forecast.temperature, widget.options.unit)}</Text>}
           <Text style={[styles.rowText, { color: colors.textMuted }]} numberOfLines={1}>
-            {place.name} · {condition?.label ?? (failed ? "Météo indisponible" : "Chargement…")}
+            {place.name} · {condition?.label ?? (failed ? t("mobile.startWidgets.weatherUnavailable") : "Chargement…")}
           </Text>
         </View>
       </View>

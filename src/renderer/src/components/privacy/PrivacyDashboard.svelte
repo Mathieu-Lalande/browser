@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { PRIVACY_COUNTERS, PRIVACY_COUNTER_LABELS, formatSaved, type PrivacyCounter, type PrivacySummary } from "@shared/privacy-stats";
   import { api, browser } from "../../lib/browser.svelte";
   import type { IconName } from "../Icon.svelte";
@@ -57,17 +58,17 @@
 
 <Page
   icon="shield-check"
-  title={site ? `Confidentialité : ${site}` : "Confidentialité"}
-  subtitle="Ce que les protections ont fait ces 30 derniers jours. Seuls des totaux par jour et par site sont gardés, sur cet appareil : jamais l'adresse des pages ni des requêtes. Les fenêtres privées ne sont pas comptées."
+  title={site ? t("privacyDashboard.privacy", { site }) : t("privacyDashboard.privacy2")}
+  subtitle={t("privacyDashboard.whatProtectionsDidOver")}
   testid="privacy-page"
 >
   {#snippet actions()}
-    {#if site}<Button icon="back" variant="quiet" onclick={() => (site = null)}>Tous les sites</Button>{/if}
-    <Button icon="sliders" onclick={() => api.commands.run("open-site-settings")}>Paramètres des sites</Button>
+    {#if site}<Button icon="back" variant="quiet" onclick={() => (site = null)}>{t("privacyDashboard.allSites")}</Button>{/if}
+    <Button icon="sliders" onclick={() => api.commands.run("open-site-settings")}>{t("privacyDashboard.siteSettings")}</Button>
   {/snippet}
 
   {#if summary}
-    <section class="tiles" aria-label="Totaux sur 30 jours">
+    <section class="tiles" aria-label={t("privacyDashboard.totalsOver30Days")}>
       {#each PRIVACY_COUNTERS as counter (counter)}
         <div class="tile" data-counter={counter}>
           <Icon name={ICONS[counter]} size={16} />
@@ -78,14 +79,14 @@
       <div class="tile">
         <Icon name="clock" size={16} />
         <span class="value">{formatSaved(summary.savedMs)}</span>
-        <span class="label">Temps gagné (estimation)</span>
+        <span class="label">{t("privacyDashboard.timeSavedEstimate")}</span>
       </div>
     </section>
 
     {#if hasData}
       <section class="section">
-        <h2 class="heading">Traqueurs bloqués par jour</h2>
-        <div class="chart" role="img" aria-label="Traqueurs bloqués chaque jour des 30 derniers jours">
+        <h2 class="heading">{t("privacyDashboard.trackersBlockedPerDay")}</h2>
+        <div class="chart" role="img" aria-label={t("privacyDashboard.trackersBlockedEachDay")}>
           {#each summary.daily as day (day.day)}
             <span class="bar" style:height="{(day.counts.trackers / peak) * 100}%" title="{dayLabel(day.day)} : {number.format(day.counts.trackers)}"></span>
           {/each}
@@ -95,7 +96,7 @@
       <div class="columns">
         {#if !site}
           <section class="section" aria-labelledby="top-sites">
-            <h2 class="heading" id="top-sites">Sites les plus protégés</h2>
+            <h2 class="heading" id="top-sites">{t("privacyDashboard.mostProtectedSites")}</h2>
             <Card>
               {#each summary.topSites as entry (entry.name)}
                 <ListRow dense>
@@ -106,7 +107,7 @@
             </Card>
           </section>
           <section class="section" aria-labelledby="top-trackers">
-            <h2 class="heading" id="top-trackers">Traqueurs les plus bloqués</h2>
+            <h2 class="heading" id="top-trackers">{t("privacyDashboard.mostBlockedTrackers")}</h2>
             <Card>
               {#each summary.topTrackers as entry (entry.name)}
                 <ListRow dense>
@@ -119,15 +120,15 @@
         {/if}
       </div>
     {:else}
-      <EmptyState icon="shield-check" title="Rien à signaler pour l'instant" hint="Les traqueurs bloqués, bandeaux refusés et connexions sécurisées s'afficheront ici au fil de la navigation." />
+      <EmptyState icon="shield-check" title={t("privacyDashboard.nothingReportYet")} hint={t("privacyDashboard.blockedTrackersRefusedBanners")} />
     {/if}
 
     {#if browser.isPrivate}
-      <p class="hint"><Icon name="mask" size={12} /> Fenêtre privée : rien de ce qu'elle fait n'est compté.</p>
+      <p class="hint"><Icon name="mask" size={12} /> {t("privacyDashboard.privateWindowNothingDoes")}</p>
     {:else if hasData}
       <div class="footer">
-        <ConfirmButton question={site ? `Effacer les statistiques de ${site} ?` : "Effacer toutes les statistiques ?"} confirmLabel="Effacer" onconfirm={clear}>
-          <Icon name="trash" size={14} /> Effacer les statistiques
+        <ConfirmButton question={site ? t("privacyDashboard.clearStatistics", { site }) : t("privacyDashboard.clearAllStatistics")} confirmLabel={t("privacyDashboard.clear")} onconfirm={clear}>
+          <Icon name="trash" size={14} /> {t("privacyDashboard.clearStatistics2")}
         </ConfirmButton>
       </div>
     {/if}

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import Card from "../ui/Card.svelte";
   import type { Snippet } from "svelte";
   import Icon, { type IconName } from "../Icon.svelte";
@@ -36,12 +37,12 @@
     </div>
     {#if onReset}
       <ConfirmButton
-        question="Réglages par défaut ?"
-        confirmLabel="Réinitialiser"
-        title="Revenir aux réglages par défaut de cette section"
+        question={t("section.defaultSettings")}
+        confirmLabel={t("section.reset")}
+        title={t("section.goBackSectionsDefault")}
         onconfirm={onReset}
       >
-        <Icon name="reset" size={12} /> Réinitialiser
+        <Icon name="reset" size={12} /> {t("section.reset")}
       </ConfirmButton>
     {/if}
   </header>

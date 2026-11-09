@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { Suggestion } from "@shared/omnibox/types";
   import Favicon from "../../components/Favicon.svelte";
   import Icon from "../../components/Icon.svelte";
@@ -52,10 +53,10 @@
     {/if}
   </span>
   {#if item.section === "bookmarks"}
-    <span class="badge" title="Favori"><Icon name="star" size={12} filled /></span>
+    <span class="badge" title={t("resultRow.bookmark")}><Icon name="star" size={12} filled /></span>
   {/if}
   {#if item.shortcut?.length}
-    <span class="keys" aria-label="Raccourci">
+    <span class="keys" aria-label={t("resultRow.shortcut")}>
       {#each item.shortcut as key, index (index)}<kbd>{key}</kbd>{/each}
     </span>
   {:else if selected}

@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import { isReservedAnywhere, needsModifier, normalizeAccelerator, parseAccelerator } from "./accelerators";
 import { isCommandId, type ShortcutOverrides } from "./commands";
 import { sanitizeSiteList } from "./site-info";
@@ -322,13 +323,13 @@ export const PAGE_ZOOM_LEVELS = [67, 75, 80, 90, 100, 110, 125, 150, 175] as con
 
 /** Accent pairs offered as swatches (the second color feeds gradients). */
 export const ACCENT_PRESETS: readonly { name: string; accent: string; accent2: string }[] = [
-  { name: "Lavande", accent: "#8b7bff", accent2: "#d77bff" },
-  { name: "Océan", accent: "#3b82f6", accent2: "#22d3ee" },
-  { name: "Menthe", accent: "#10b981", accent2: "#a3e635" },
-  { name: "Soleil", accent: "#f59e0b", accent2: "#f43f5e" },
-  { name: "Corail", accent: "#ff6b6b", accent2: "#ffa94d" },
-  { name: "Rose", accent: "#ec4899", accent2: "#8b5cf6" },
-  { name: "Ardoise", accent: "#64748b", accent2: "#94a3b8" },
+  { get name() { return t("settings.lavender") }, accent: "#8b7bff", accent2: "#d77bff" },
+  { get name() { return t("settings.ocean") }, accent: "#3b82f6", accent2: "#22d3ee" },
+  { get name() { return t("settings.mint") }, accent: "#10b981", accent2: "#a3e635" },
+  { get name() { return t("settings.sun") }, accent: "#f59e0b", accent2: "#f43f5e" },
+  { get name() { return t("settings.coral") }, accent: "#ff6b6b", accent2: "#ffa94d" },
+  { get name() { return t("settings.pink") }, accent: "#ec4899", accent2: "#8b5cf6" },
+  { get name() { return t("settings.slate") }, accent: "#64748b", accent2: "#94a3b8" },
   { name: "Graphite", accent: "#a1a1aa", accent2: "#52525b" },
 ];
 
@@ -701,11 +702,11 @@ const ARCHIVE_DELAYS_MS: Record<TabArchiveDelay, number | null> = {
 
 /** Choices of "Archiver les onglets inactifs après", in order, with their French labels. */
 export const ARCHIVE_DELAY_OPTIONS: readonly { value: TabArchiveDelay; label: string }[] = [
-  { value: "never", label: "Jamais" },
+  { value: "never", get label() { return t("settings.never") } },
   { value: "12h", label: "12 h" },
   { value: "24h", label: "24 h" },
-  { value: "7d", label: "7 jours" },
-  { value: "30d", label: "30 jours" },
+  { value: "7d", get label() { return t("settings.n7Days") } },
+  { value: "30d", get label() { return t("settings.n30Days") } },
 ];
 
 /** Idle time before a tab is archived, in ms; null when tabs are never archived. */

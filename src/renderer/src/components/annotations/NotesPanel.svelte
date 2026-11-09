@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { COLOR_LABELS, HIGHLIGHT_SWATCHES, type HighlightColor, type TabAnnotations } from "@shared/annotations/model";
   import type { TabState } from "@shared/types";
   import { api } from "../../lib/browser.svelte";
@@ -40,46 +41,46 @@
   }
 
   async function highlight(color: HighlightColor): Promise<void> {
-    const result = await api.annotations.highlight(tab.id, color).catch(() => ({ ok: false as const, message: "Le surlignage a échoué." }));
+    const result = await api.annotations.highlight(tab.id, color).catch(() => ({ ok: false as const, message: t("notesPanel.highlightingFailed") }));
     message = result.ok ? null : result.message;
   }
 </script>
 
-<aside class="notes" aria-label="Notes de la page" data-testid="notes-panel">
+<aside class="notes" aria-label={t("notesPanel.pageNotes")} data-testid="notes-panel">
   <header>
     <Icon name="notebook-pen" size={16} />
-    <h2>Notes de la page</h2>
-    <IconButton size="sm" icon="close" iconSize={14} label="Fermer les notes" command="toggle-notes-panel" onclick={onClose} />
+    <h2>{t("notesPanel.pageNotes")}</h2>
+    <IconButton size="sm" icon="close" iconSize={14} label={t("notesPanel.closeNotes")} command="toggle-notes-panel" onclick={onClose} />
   </header>
   {#if info}
     {#if info.notice}<p class="hint"><Icon name="mask" size={13} /> {info.notice}</p>{/if}
     <label class="field">
-      <span class="label">Note</span>
-      <textarea id="page-note" class="ui-field" rows="4" bind:value={note} placeholder="Une note sur cette page…" onblur={saveNote}></textarea>
+      <span class="label">{t("notesPanel.note")}</span>
+      <textarea id="page-note" class="ui-field" rows="4" bind:value={note} placeholder={t("notesPanel.noteAboutPage")} onblur={saveNote}></textarea>
     </label>
     <div class="make">
-      <span class="label">Surligner la sélection</span>
-      <HighlightColors label="Surligner la sélection en" onpick={highlight} />
+      <span class="label">{t("notesPanel.highlightSelection")}</span>
+      <HighlightColors label={t("notesPanel.highlightSelection2")} onpick={highlight} />
     </div>
     {#if message}<p class="hint" role="status">{message}</p>{/if}
-    <span class="label">{info.highlights.length ? `${info.highlights.length} surlignage${info.highlights.length > 1 ? "s" : ""}` : "Aucun surlignage"}</span>
+    <span class="label">{info.highlights.length ? `${info.highlights.length} surlignage${info.highlights.length > 1 ? "s" : ""}` : t("notesPanel.noHighlights")}</span>
     <ul>
       {#each info.highlights as item (item.id)}
         {@const missing = info.missing.includes(item.id)}
         <li style:--swatch={HIGHLIGHT_SWATCHES[item.color].ink}>
-          <button class="quote" class:missing disabled={missing} title={missing ? "Introuvable sur la page" : `Aller au passage (${COLOR_LABELS[item.color]})`} onclick={() => api.annotations.jump(tab.id, item.id)}>
+          <button class="quote" class:missing disabled={missing} title={missing ? t("notesPanel.notFoundPage") : t("notesPanel.goPassage", { p: COLOR_LABELS[item.color] })} onclick={() => api.annotations.jump(tab.id, item.id)}>
             <span class="text">{item.exact}</span>
             {#if item.note}<span class="sub">{item.note}</span>{/if}
-            {#if missing}<span class="sub">Introuvable sur la page</span>{/if}
+            {#if missing}<span class="sub">{t("notesPanel.notFoundPage")}</span>{/if}
           </button>
-          <IconButton size="row" icon="trash" iconSize={13} label="Supprimer le surlignage" onclick={() => api.annotations.remove(item.id)} />
+          <IconButton size="row" icon="trash" iconSize={13} label={t("notesPanel.deleteHighlight")} onclick={() => api.annotations.remove(item.id)} />
         </li>
       {/each}
     </ul>
   {:else}
-    <p class="hint">Les notes sont disponibles sur les pages web.</p>
+    <p class="hint">{t("notesPanel.notesAreAvailableWeb")}</p>
   {/if}
-  <button class="all" onclick={() => api.commands.run("open-notes")}><Icon name="notebook" size={14} /> Toutes les notes</button>
+  <button class="all" onclick={() => api.commands.run("open-notes")}><Icon name="notebook" size={14} /> {t("notesPanel.allNotes")}</button>
 </aside>
 
 <style>

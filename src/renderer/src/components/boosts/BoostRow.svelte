@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { BOOST_FONTS, filtersActive, type Boost } from "@shared/boosts";
   import { api, browser } from "../../lib/browser.svelte";
   import Icon from "../Icon.svelte";
@@ -22,10 +23,10 @@
     const parts: string[] = [];
     if (filtersActive(boost.filters)) parts.push("filtres");
     if (boost.font) parts.push(BOOST_FONTS[boost.font].label.toLowerCase());
-    if (boost.zaps.length) parts.push(`${boost.zaps.length} élément${boost.zaps.length > 1 ? "s" : ""} masqué${boost.zaps.length > 1 ? "s" : ""}`);
+    if (boost.zaps.length) parts.push(t("boostRow.hiddenElements", { zapsCount: boost.zaps.length }));
     if (boost.css.trim()) parts.push("CSS");
     if (boost.script.enabled) parts.push("JavaScript");
-    return parts.join(" · ") || "Aucune modification";
+    return parts.join(" · ") || t("boostRow.noChanges");
   });
 </script>
 
@@ -36,17 +37,17 @@
     <span class="detail">{boost.match} · {summary}</span>
     {#if boost.script.pending}
       <span class="pending" data-testid="boost-script-pending">
-        <Icon name="warning" size={12} /> Script reçu d'un autre appareil — Activer ?
+        <Icon name="warning" size={12} /> {t("boostRow.scriptReceivedFromAnother")}
         {#if !browser.isPrivate}
-          <Button variant="quiet" size="sm" onclick={confirmScript} aria-label={`Activer le script de ${boost.name}`}>Activer</Button>
+          <Button variant="quiet" size="sm" onclick={confirmScript} aria-label={t("boostRow.turnScript", { name: boost.name })}>{t("boostRow.turn")}</Button>
         {/if}
       </span>
     {/if}
   </span>
   {#if !browser.isPrivate}
-    <Toggle label={`${boost.enabled ? "Désactiver" : "Activer"} ${boost.name}`} checked={boost.enabled} onchange={toggle} />
-    <Button variant="quiet" size="sm" onclick={() => onedit(boost)} aria-label={`Modifier ${boost.name}`}><Icon name="pencil" size={12} /> Modifier</Button>
-    <ConfirmButton question="Supprimer ce boost ?" confirmLabel="Supprimer" title={`Supprimer ${boost.name}`} onconfirm={() => api.boosts.remove(boost.id)}>
+    <Toggle label={`${boost.enabled ? t("boostRow.turnOff") : t("boostRow.turn")} ${boost.name}`} checked={boost.enabled} onchange={toggle} />
+    <Button variant="quiet" size="sm" onclick={() => onedit(boost)} aria-label={t("boostRow.edit", { name: boost.name })}><Icon name="pencil" size={12} /> {t("boostRow.edit2")}</Button>
+    <ConfirmButton question={t("boostRow.deleteBoost")} confirmLabel={t("boostRow.delete")} title={t("boostRow.delete2", { name: boost.name })} onconfirm={() => api.boosts.remove(boost.id)}>
       <Icon name="trash" size={12} />
     </ConfirmButton>
   {/if}

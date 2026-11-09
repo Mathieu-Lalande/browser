@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { LIMITS, type SettingsPatch, type SidebarPosition } from "@shared/settings";
   import { platform } from "../../lib/platform.svelte";
   import { settings } from "../../lib/settings.svelte";
@@ -13,20 +14,20 @@
   const update = (patch: SettingsPatch) => settings.update(patch);
 </script>
 
-<Row anchor="sidebar-position" label="Position de la barre latérale">
+<Row anchor="sidebar-position" label={t("layoutSection.sidebarPosition")}>
   <Segmented
-    label="Position de la barre latérale"
+    label={t("layoutSection.sidebarPosition")}
     value={s.layout.sidebarPosition}
     options={[
-      { value: "left" as SidebarPosition, label: "Gauche" },
-      { value: "right" as SidebarPosition, label: "Droite" },
+      { value: "left" as SidebarPosition, label: t("layoutSection.left") },
+      { value: "right" as SidebarPosition, label: t("layoutSection.right") },
     ]}
     onchange={(sidebarPosition) => update({ layout: { sidebarPosition } })}
   />
 </Row>
-<Row anchor="sidebar-width" label="Largeur de la barre latérale" hint="Se règle aussi en faisant glisser son bord.">
+<Row anchor="sidebar-width" label={t("layoutSection.sidebarWidth")} hint={t("layoutSection.canAlsoAdjustedDragging")}>
   <Slider
-    label="Largeur de la barre latérale"
+    label={t("layoutSection.sidebarWidth")}
     value={s.layout.sidebarWidth}
     min={LIMITS.sidebarWidth.min}
     max={LIMITS.sidebarWidth.max}
@@ -34,9 +35,9 @@
     onchange={(sidebarWidth) => update({ layout: { sidebarWidth } })}
   />
 </Row>
-<Row anchor="gutter" label="Marge autour de la page" hint="0 pour une page bord à bord.">
+<Row anchor="gutter" label={t("layoutSection.marginAroundPage")} hint={t("layoutSection.n0EdgeEdgePage")}>
   <Slider
-    label="Marge autour de la page"
+    label={t("layoutSection.marginAroundPage")}
     value={s.layout.gutter}
     min={LIMITS.gutter.min}
     max={LIMITS.gutter.max}
@@ -45,18 +46,18 @@
 </Row>
 <Row
   anchor="zen"
-  label="Mode zen"
-  hint="Masque la barre latérale et affiche la page bord à bord. Survolez le bord de la fenêtre pour la faire apparaître. Raccourci : {platform.shortcut('toggle-zen')}."
+  label={t("layoutSection.zenMode")}
+  hint={t("layoutSection.hidesSidebarShowsPage", { p: platform.shortcut('toggle-zen') })}
 >
-  <Toggle label="Mode zen" checked={s.layout.zenMode} onchange={(zenMode) => update({ layout: { zenMode } })} />
+  <Toggle label={t("layoutSection.zenMode")} checked={s.layout.zenMode} onchange={(zenMode) => update({ layout: { zenMode } })} />
 </Row>
 <Row
   anchor="tab-preview"
-  label="Aperçu des onglets au survol"
-  hint="Survoler un onglet, un favori ou une icône du rail affiche une carte : miniature, titre, site, son et veille."
+  label={t("layoutSection.tabPreviewHover")}
+  hint={t("layoutSection.hoveringTabFavoriteRail")}
 >
   <Toggle
-    label="Aperçu des onglets au survol"
+    label={t("layoutSection.tabPreviewHover")}
     checked={s.layout.tabHoverPreview}
     onchange={(tabHoverPreview) => update({ layout: { tabHoverPreview } })}
   />

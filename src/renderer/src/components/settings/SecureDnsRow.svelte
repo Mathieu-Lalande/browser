@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { DOH_PROVIDERS, normalizeDohTemplate, normalizeNextDnsId, type SecureDnsChoice } from "@shared/secure-dns";
   import { settings } from "../../lib/settings.svelte";
   import Row from "../ui/Row.svelte";
@@ -7,12 +8,12 @@
 
   const p = $derived(settings.current.privacy);
   const CHOICES: { value: SecureDnsChoice; label: string }[] = [
-    { value: "automatic", label: "Automatique (selon le fournisseur d'accès)" },
-    { value: "off", label: "Désactivé (DNS du système)" },
+    { value: "automatic", label: t("secureDnsRow.automaticFromInternetProvider") },
+    { value: "off", label: t("secureDnsRow.offSystemDns") },
     { value: "cloudflare", label: DOH_PROVIDERS.cloudflare.label },
     { value: "quad9", label: DOH_PROVIDERS.quad9.label },
     { value: "nextdns", label: DOH_PROVIDERS.nextdns.label },
-    { value: "custom", label: "Personnalisé…" },
+    { value: "custom", label: t("secureDnsRow.custom") },
   ];
 
   let customDraft = $state<string | null>(null);
@@ -38,14 +39,14 @@
 
   const hint = $derived(
     p.secureDns === "custom" && customInvalid
-      ? "Adresse invalide : un modèle https:// (RFC 8484), par exemple https://dns.exemple.fr/dns-query."
+      ? t("secureDnsRow.invalidAddressHttpsTemplate")
       : p.secureDns === "custom" && !normalizeDohTemplate(p.secureDnsCustomUrl)
-        ? "Tant qu'aucune adresse valide n'est saisie, le mode automatique s'applique."
-        : "Chiffre les requêtes DNS vers le fournisseur choisi, pour tout le navigateur. Les entreprises et contrôles parentaux qui filtrent le DNS du système ne s'appliquent plus.",
+        ? t("secureDnsRow.longNoValidAddress")
+        : t("secureDnsRow.encryptsDnsRequestsChosen"),
   );
 </script>
 
-<Row anchor="secure-dns" label="DNS sécurisé" {hint} id="secure-dns" stacked>
+<Row anchor="secure-dns" label={t("secureDnsRow.secureDns")} {hint} id="secure-dns" stacked>
   <div class="fields">
     <select
       id="secure-dns"
@@ -61,7 +62,7 @@
       <input
         class="ui-field"
         class:invalid={customInvalid}
-        aria-label="Adresse du serveur DNS over HTTPS"
+        aria-label={t("secureDnsRow.dnsOverHttpsServer")}
         aria-invalid={customInvalid}
         placeholder="https://dns.exemple.fr/dns-query"
         value={customValue}
@@ -72,9 +73,9 @@
       <input
         class="ui-field"
         class:invalid={nextDnsInvalid}
-        aria-label="Identifiant de configuration NextDNS (facultatif)"
+        aria-label={t("secureDnsRow.nextdnsConfigurationIdOptional")}
         aria-invalid={nextDnsInvalid}
-        placeholder="Identifiant (facultatif)"
+        placeholder={t("secureDnsRow.idOptional")}
         value={nextDnsValue}
         oninput={(event) => (nextDnsDraft = event.currentTarget.value)}
         onchange={saveNextDns}

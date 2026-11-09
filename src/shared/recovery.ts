@@ -4,6 +4,8 @@
  */
 
 /** One window of a session the card offers to bring back. */
+import { t } from "./i18n";
+
 export interface RecoveryWindow {
   /** Index in the saved session's window list (what `recovery.restore` takes). */
   index: number;
@@ -43,7 +45,7 @@ interface WindowLike {
   spaces: readonly { tabs: readonly { url: string; title: string }[] }[];
 }
 
-const tabLabel = (tab: { url: string; title: string }) => tab.title || tab.url || "Nouvel onglet";
+const tabLabel = (tab: { url: string; title: string }) => tab.title || tab.url || t("recovery.newTab");
 
 /** The card's content for a saved session (null when it holds no tab). */
 export function summarizeSession(session: { windows: readonly WindowLike[] } | null): RecoverySummary | null {

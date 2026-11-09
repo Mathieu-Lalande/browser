@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { DEFAULT_SETTINGS, LIMITS } from "@shared/settings";
   import { settings } from "../lib/settings.svelte";
 
@@ -64,12 +65,12 @@
   class:dragging
   role="separator"
   aria-orientation="vertical"
-  aria-label="Largeur de la barre latérale"
+  aria-label={t("sidebarResizer.sidebarWidth")}
   aria-valuemin={LIMITS.sidebarWidth.min}
   aria-valuemax={LIMITS.sidebarWidth.max}
   aria-valuenow={Math.min(settings.current.layout.sidebarWidth, windowWidth * 0.45) | 0}
   tabindex="0"
-  title="Glisser pour redimensionner · double-clic pour la largeur par défaut"
+  title={t("sidebarResizer.dragResizeDoubleClick")}
   onpointerdown={onPointerDown}
   onpointermove={onPointerMove}
   onpointerup={onPointerUp}

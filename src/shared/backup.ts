@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import { xchacha20poly1305 } from "@noble/ciphers/chacha.js";
 import { scrypt } from "@noble/hashes/scrypt.js";
 import { fromBase64Url, randomBytesChecked, toBase64Url, utf8Decode, utf8Encode, type RandomBytes } from "./sync/bytes";
@@ -78,7 +79,7 @@ export function sealSecret(plaintext: string, passphrase: string, rng: RandomByt
 
 export class WrongPassphraseError extends Error {
   constructor() {
-    super("Phrase secrète incorrecte");
+    super(t("backup.wrongPassphrase"));
   }
 }
 

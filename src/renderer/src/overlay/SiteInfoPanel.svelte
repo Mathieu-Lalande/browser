@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { SiteInfo } from "@shared/site-info";
   import type { Bounds, TabId } from "@shared/types";
   import { api, browser } from "../lib/browser.svelte";
@@ -57,7 +58,7 @@
   use:dismiss={{ onDismiss: () => onClose(true) }}
   class="panel kit"
   role="dialog"
-  aria-label="Infos sur le site"
+  aria-label={t("siteInfoPanel.siteInfo")}
   tabindex="-1"
   style:left="{position.left}px"
   style:top="{position.top}px"
@@ -73,11 +74,11 @@
       <SitePrivacySection {info} {tabId} onUpdate={(next) => (info = next)} {onClose} />
       <SiteBoostSection {tabId} {onClose} />
       {#if info.isPrivate}
-        <p class="kit-hint private"><Icon name="mask" size={12} /> Fenêtre privée : ces réglages ne valent que pour elle, rien n'est enregistré.</p>
+        <p class="kit-hint private"><Icon name="mask" size={12} /> {t("siteInfoPanel.privateWindowTheseSettings")}</p>
       {/if}
     </div>
   {:else if loaded}
-    <p class="empty">Aucune information pour cette page.</p>
+    <p class="empty">{t("siteInfoPanel.noInformationPage")}</p>
   {/if}
 </div>
 

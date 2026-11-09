@@ -1,3 +1,4 @@
+import { t } from "../../i18n";
 import { displayUrl } from "../../url";
 import { rankBoost } from "../scorer";
 import type { Provider, QueryContext, Suggestion } from "../types";
@@ -23,7 +24,7 @@ export class FavoritesProvider implements Provider {
           detail: shortUrl(favorite.url),
           icon: "star",
           favicon: favorite.favicon,
-          verb: "Ouvrir",
+          verb: t("providersPages.open"),
           completion: favorite.url,
           action: { type: "favorite", url: favorite.url },
         }),
@@ -49,7 +50,7 @@ export class BookmarksProvider implements Provider {
           detail: shortUrl(bookmark.url),
           icon: "bookmark",
           favicon: bookmark.favicon,
-          verb: "Ouvrir",
+          verb: t("providersPages.open"),
           completion: bookmark.url,
           action: { type: "open", url: bookmark.url },
         }),
@@ -76,7 +77,7 @@ export class HistoryProvider implements Provider {
         ? matchedRow(
             text,
             "history",
-            { key: "history:all", title: "Tout l'historique", detail: "browser://history", icon: "history", verb: "Ouvrir", action: { type: "open", url: "browser://history" } },
+            { key: "history:all", title: t("providersPages.allHistory"), detail: "browser://history", icon: "history", verb: t("providersPages.open"), action: { type: "open", url: "browser://history" } },
             { boost: -1, keepUnmatched: true },
           )
         : null;
@@ -95,7 +96,7 @@ export class HistoryProvider implements Provider {
             detail: shortUrl(entry.url),
             icon: "history",
             favicon: entry.favicon,
-            verb: "Ouvrir",
+            verb: t("providersPages.open"),
             completion: entry.url,
             action: { type: "open", url: entry.url },
           },
@@ -125,7 +126,7 @@ export class RemoteTabsProvider implements Provider {
           title: tab.title || displayUrl(tab.url),
           detail: `${tab.device} · ${shortUrl(tab.url)}`,
           icon: "cloud",
-          verb: "Ouvrir",
+          verb: t("providersPages.open"),
           completion: tab.url,
           action: { type: "open", url: tab.url },
         }),
@@ -159,7 +160,7 @@ export class AnnotationsProvider implements Provider {
             title: item.exact.length > QUOTE_TITLE ? `${item.exact.slice(0, QUOTE_TITLE - 1)}…` : item.exact,
             detail: `${item.title || shortUrl(item.url)}${item.note ? ` · ${item.note.replace(/\s+/g, " ").slice(0, 80)}` : ""}`,
             icon: "highlighter",
-            verb: "Ouvrir la page",
+            verb: t("providersPages.openPage"),
             completion: item.url,
             action: { type: "open", url: item.url },
           },

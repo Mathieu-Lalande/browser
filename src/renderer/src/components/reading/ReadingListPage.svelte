@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { internalFragment, internalUrl } from "@shared/internal";
   import { readingTimeLabel } from "@shared/reader";
   import type { ReadingEntry } from "@shared/reading-list";
@@ -59,20 +60,20 @@
 {:else}
   <Page
     icon="book-marked"
-    title="Liste de lecture"
+    title={t("readingListPage.readingList")}
     subtitle={browser.isPrivate
-      ? "La liste de lecture n'est pas disponible en navigation privée."
-      : "Les pages gardées pour plus tard, avec leur texte lisible hors ligne. Synchronisée avec vos appareils quand la synchronisation est active."}
+      ? t("readingListPage.readingListIsntAvailable")
+      : t("readingListPage.pagesKeptLaterTheir")}
     testid="reading-list-page"
   >
     {#snippet actions()}
       <Segmented
-        label="Afficher"
+        label={t("readingListPage.show")}
         value={filter}
         options={[
-          { value: "unread" as Filter, label: `Non lues (${unread})` },
-          { value: "all" as Filter, label: "Toutes" },
-          { value: "read" as Filter, label: "Lues" },
+          { value: "unread" as Filter, label: t("readingListPage.unread", { unread }) },
+          { value: "all" as Filter, label: t("readingListPage.all") },
+          { value: "read" as Filter, label: t("readingListPage.read") },
         ]}
         onchange={(next) => (filter = next)}
       />
@@ -85,34 +86,34 @@
             <span class="text">
               <button type="button" class="title" onclick={() => (entry.offline ? read(entry) : openPage(entry))}>{entry.title}</button>
               <span class="detail">
-                {entry.siteName || entry.url} · ajoutée le {dateFormat.format(entry.addedAt)}{#if entry.minutes}
+                {t("readingListPage.added", { p: entry.siteName || entry.url, p2: dateFormat.format(entry.addedAt) })}{#if entry.minutes}
                   · {readingTimeLabel(entry.minutes)}{/if}{#if entry.offline}
-                  · <span class="offline">hors ligne</span>{/if}
+                  · <span class="offline">{t("readingListPage.offline")}</span>{/if}
               </span>
               {#if entry.excerpt}<span class="excerpt">{entry.excerpt}</span>{/if}
             </span>
             {#if entry.offline}
-              <Button size="sm" icon="reader" title="Lire le texte enregistré, sans connexion" onclick={() => read(entry)}>Lire</Button>
+              <Button size="sm" icon="reader" title={t("readingListPage.readSavedTextWithout")} onclick={() => read(entry)}>{t("readingListPage.read2")}</Button>
             {/if}
-            <IconButton size="row" icon="open" iconSize={16} label={`Ouvrir ${entry.title}`} title="Ouvrir la page dans un nouvel onglet" onclick={() => openPage(entry)} />
+            <IconButton size="row" icon="open" iconSize={16} label={t("readingListPage.open", { title: entry.title })} title={t("readingListPage.openPageNewTab")} onclick={() => openPage(entry)} />
             <IconButton
               size="row"
               icon={entry.readAt === null ? "check" : "reset"}
               iconSize={16}
-              label={entry.readAt === null ? `Marquer ${entry.title} comme lue` : `Marquer ${entry.title} comme non lue`}
+              label={entry.readAt === null ? `Marquer ${entry.title} comme lue` : t("readingListPage.markUnread", { title: entry.title })}
               onclick={() => api.reading.setRead(entry.id, entry.readAt === null)}
             />
-            <IconButton size="row" icon="trash" iconSize={16} label={`Retirer ${entry.title}`} title="Retirer de la liste" onclick={() => api.reading.remove(entry.id)} />
+            <IconButton size="row" icon="trash" iconSize={16} label={t("readingListPage.remove", { title: entry.title })} title={t("readingListPage.removeFromList")} onclick={() => api.reading.remove(entry.id)} />
           </ListRow>
         {/each}
       </Card>
     {:else if entries.length}
-      <EmptyState icon="check" title={filter === "unread" ? "Tout est lu" : "Rien ici"} hint="Changez de filtre pour retrouver les autres pages." />
+      <EmptyState icon="check" title={filter === "unread" ? t("readingListPage.allRead") : t("readingListPage.nothingHere")} hint={t("readingListPage.changeFilterFindOther")} />
     {:else}
       <EmptyState
         icon="book-marked"
-        title="Aucune page à lire plus tard"
-        hint="« Lire plus tard » (barre d'adresse, menu de la page ou Ctrl+Maj+D) garde une page et son texte, lisible même hors ligne."
+        title={t("readingListPage.noPagesReadLater")}
+        hint={t("readingListPage.readLaterAddressBar")}
       />
     {/if}
   </Page>

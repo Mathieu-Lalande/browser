@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { AutoplayPolicy, SettingsPatch } from "@shared/settings";
   import { isSiteName } from "@shared/site-info";
   import { filterSiteSettings, type SiteListSetting, type SiteSettingsEntry } from "@shared/site-settings";
@@ -70,40 +71,40 @@
   }
 
   const AUTOPLAY: { value: AutoplayPolicy; label: string }[] = [
-    { value: "allow", label: "Autoriser" },
-    { value: "block-sound", label: "Sans le son" },
-    { value: "block-all", label: "Bloquer" },
+    { value: "allow", label: t("siteSettingsPage.allow") },
+    { value: "block-sound", label: t("siteSettingsPage.muted") },
+    { value: "block-all", label: t("siteSettingsPage.block") },
   ];
 </script>
 
 <Page
   icon="sliders"
-  title="Paramètres des sites"
-  subtitle="Les décisions prises site par site, au même endroit : autorisations, zoom, protections, JavaScript, son, bandeaux cookies. Un site réinitialisé repart des réglages par défaut."
+  title={t("siteSettingsPage.siteSettings")}
+  subtitle={t("siteSettingsPage.decisionsMadeSiteSite")}
   testid="site-settings-page"
 >
   {#snippet actions()}
-    <Button icon="shield-check" onclick={() => api.commands.run("open-privacy-dashboard")}>Confidentialité</Button>
+    <Button icon="shield-check" onclick={() => api.commands.run("open-privacy-dashboard")}>{t("siteSettingsPage.privacy")}</Button>
   {/snippet}
 
   <section class="section" aria-labelledby="site-defaults">
-    <h2 class="heading" id="site-defaults">Par défaut</h2>
-    <Row label="Lecture automatique" hint="Pour les nouveaux onglets. « Sans le son » laisse démarrer les vidéos muettes ; « Bloquer » attend un geste sur la page.">
-      <Segmented label="Lecture automatique" value={s.privacy.autoplay} options={AUTOPLAY} onchange={(autoplay) => update({ privacy: { autoplay } })} />
+    <h2 class="heading" id="site-defaults">{t("siteSettingsPage.default")}</h2>
+    <Row label={t("siteSettingsPage.autoplay")} hint={t("siteSettingsPage.newTabsMutedLets")}>
+      <Segmented label={t("siteSettingsPage.autoplay")} value={s.privacy.autoplay} options={AUTOPLAY} onchange={(autoplay) => update({ privacy: { autoplay } })} />
     </Row>
-    <Row label="Refuser les bandeaux cookies" hint="Clique sur « Tout refuser » (ou masque le bandeau) sur les plateformes de consentement connues.">
-      <Toggle label="Refuser les bandeaux cookies" checked={s.privacy.cookieBanners} onchange={(cookieBanners) => update({ privacy: { cookieBanners } })} />
+    <Row label={t("siteSettingsPage.refuseCookieBanners")} hint={t("siteSettingsPage.clicksRejectAllHides")}>
+      <Toggle label={t("siteSettingsPage.refuseCookieBanners")} checked={s.privacy.cookieBanners} onchange={(cookieBanners) => update({ privacy: { cookieBanners } })} />
     </Row>
   </section>
 
   <section class="section" aria-labelledby="site-list">
-    <h2 class="heading" id="site-list">Sites</h2>
+    <h2 class="heading" id="site-list">{t("siteSettingsPage.sites")}</h2>
     <div class="tools">
-      <SearchField bind:value={query} label="Rechercher un site" />
+      <SearchField bind:value={query} label={t("siteSettingsPage.searchSite")} />
       {#if !readonly}
         <form class="add" onsubmit={addSite}>
-          <input class="ui-field" bind:value={newSite} placeholder="exemple.fr" aria-label="Ajouter un site" />
-          <Button type="submit" icon="plus" disabled={!isSiteName(candidate)}>Ajouter</Button>
+          <input class="ui-field" bind:value={newSite} placeholder={t("siteSettingsPage.exampleCom")} aria-label={t("siteSettingsPage.addSite")} />
+          <Button type="submit" icon="plus" disabled={!isSiteName(candidate)}>{t("siteSettingsPage.add")}</Button>
         </form>
       {/if}
     </div>
@@ -125,13 +126,13 @@
     {:else}
       <EmptyState
         icon="globe"
-        title={query ? "Aucun site trouvé" : "Aucun réglage propre à un site"}
-        hint="Les autorisations accordées, le zoom choisi, les protections désactivées… apparaissent ici."
+        title={query ? t("siteSettingsPage.noSiteFound") : t("siteSettingsPage.noSiteSpecificSettings")}
+        hint={t("siteSettingsPage.grantedPermissionsChosenZoom")}
       />
     {/each}
 
     {#if readonly}
-      <p class="hint"><Icon name="mask" size={12} /> Fenêtre privée : ces réglages se modifient depuis une fenêtre normale.</p>
+      <p class="hint"><Icon name="mask" size={12} /> {t("siteSettingsPage.privateWindowTheseSettings")}</p>
     {/if}
   </section>
 </Page>

@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import type { ReaderArticle } from "@shared/reader";
 import { useState } from "react";
 import { Alert } from "react-native";
@@ -41,7 +42,7 @@ export function useReader({
       void withReaderImages(article, fetch as unknown as FetchLike).then((full) => {
         if (full !== article) setReader((current) => (current?.article === article ? { ...current, article: full } : current));
       });
-    } else Alert.alert("Mode lecture indisponible", "Aucun article n'a été trouvé sur cette page.");
+    } else Alert.alert("Mode lecture indisponible", t("mobile.useReader.noArticleWasFound"));
   });
 
   const close = useEvent(() => setReader(null));

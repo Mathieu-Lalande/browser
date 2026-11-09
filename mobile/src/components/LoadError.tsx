@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { StyleSheet, Text, View } from "react-native";
 import { useTheme } from "../state/theme";
 import { Icon } from "./Icon";
@@ -11,16 +12,16 @@ export function LoadError({ code, description, onRetry }: { code: number; descri
       <View style={[styles.badge, { backgroundColor: colors.surfaceActive }]}>
         <Icon name="globe" size={32} color={colors.textMuted} />
       </View>
-      <Text style={[styles.title, { color: colors.text }]}>Impossible d'ouvrir la page</Text>
+      <Text style={[styles.title, { color: colors.text }]}>{t("mobile.loadError.cantOpenPage")}</Text>
       <Text style={[styles.detail, { color: colors.textMuted }]}>
-        Vérifiez votre connexion ou l'adresse saisie.{"\n"}
+        {t("mobile.loadError.checkConnectionAddressYou")}{"\n"}
         <Text style={{ color: colors.textFaint }}>
           {description} ({code})
         </Text>
       </Text>
       <Tap accessibilityRole="button" onPress={onRetry} style={[styles.button, { backgroundColor: colors.accent }]}>
         <Icon name="reload" size={20} color={colors.onAccent} />
-        <Text style={[styles.buttonText, { color: colors.onAccent }]}>Réessayer</Text>
+        <Text style={[styles.buttonText, { color: colors.onAccent }]}>{t("mobile.loadError.tryAgain")}</Text>
       </Tap>
     </View>
   );

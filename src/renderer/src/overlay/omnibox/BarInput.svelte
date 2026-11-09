@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { scopeById } from "@shared/omnibox/scopes";
   import Icon from "../../components/Icon.svelte";
   import { iconOf } from "./icons";
@@ -25,7 +26,7 @@
 <div class="search">
   <span class="glyph"><Icon name="search" size={19} /></span>
   {#if scope}
-    <button class="chip" title="Retirer le filtre (Retour arrière)" onclick={() => (bar.setScope(null), input?.focus())}>
+    <button class="chip" title={t("barInput.removeFilterBackspace")} onclick={() => (bar.setScope(null), input?.focus())}>
       <Icon name={iconOf(scope.icon)} size={13} />
       {scope.label}
       <span class="x"><Icon name="close" size={11} /></span>
@@ -36,10 +37,10 @@
     value={bar.input}
     oninput={(event) => bar.setInput(event.currentTarget.value)}
     onkeydown={onKeydown}
-    placeholder={scope ? `Rechercher dans ${scope.label.toLowerCase()}` : "Onglets, pages, actions, réglages, calculs…"}
+    placeholder={scope ? t("barInput.search", { p: scope.label.toLowerCase() }) : t("barInput.tabsPagesActionsSettings")}
     spellcheck="false"
     autocomplete="off"
-    aria-label="Barre universelle"
+    aria-label={t("barInput.universalBar")}
     role="combobox"
     aria-expanded="true"
     aria-controls="omnibox-results"

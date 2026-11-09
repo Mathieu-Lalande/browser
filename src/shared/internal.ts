@@ -4,22 +4,24 @@
  * refuses the scheme, so web pages can neither navigate to, open, nor redirect to them.
  */
 
+import { t } from "./i18n";
+
 export const INTERNAL_PAGES = {
-  settings: { title: "Paramètres" },
-  downloads: { title: "Téléchargements" },
-  archive: { title: "Onglets archivés" },
-  extensions: { title: "Extensions" },
-  passwords: { title: "Mots de passe" },
-  boosts: { title: "Boosts" },
-  notes: { title: "Notes et surlignages" },
-  history: { title: "Historique" },
-  import: { title: "Importer des données" },
-  tasks: { title: "Gestionnaire de tâches" },
-  profiles: { title: "Profils" },
-  welcome: { title: "Bienvenue" },
-  privacy: { title: "Confidentialité" },
-  "site-settings": { title: "Paramètres des sites" },
-  "reading-list": { title: "Liste de lecture" },
+  settings: { get title() { return t("internal.settings") } },
+  downloads: { get title() { return t("internal.downloads") } },
+  archive: { get title() { return t("internal.archivedTabs") } },
+  extensions: { get title() { return t("internal.extensions") } },
+  passwords: { get title() { return t("internal.passwords") } },
+  boosts: { get title() { return t("internal.boosts") } },
+  notes: { get title() { return t("internal.notesHighlights") } },
+  history: { get title() { return t("internal.history") } },
+  import: { get title() { return t("internal.importData") } },
+  tasks: { get title() { return t("internal.taskManager") } },
+  profiles: { get title() { return t("internal.profiles") } },
+  welcome: { get title() { return t("internal.welcome") } },
+  privacy: { get title() { return t("internal.privacy") } },
+  "site-settings": { get title() { return t("internal.siteSettings") } },
+  "reading-list": { get title() { return t("internal.readingList") } },
 } as const;
 
 export type InternalPage = keyof typeof INTERNAL_PAGES;

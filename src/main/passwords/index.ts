@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { chmodSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { app, clipboard, dialog, type WebContents } from "electron";
@@ -98,7 +99,7 @@ export function passwordPrompt(c: BrowserController, captureId: string): Passwor
 
 export function answerPrompt(c: BrowserController, captureId: string, answer: PromptAnswer): PasswordResult {
   const item = pending.get(captureId);
-  if (!item || item.controller !== c) return { ok: false, message: "Cette demande a expiré." };
+  if (!item || item.controller !== c) return { ok: false, message: t("passwordsIndex.requestHasExpired") };
   pending.delete(captureId);
   lastCapture = null;
   if (answer === "later") return { ok: true };
@@ -107,7 +108,7 @@ export function answerPrompt(c: BrowserController, captureId: string, answer: Pr
   try {
     return writeVault(saveCapture(vault, item.capture, Date.now(), newPasswordId()));
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : "Le mot de passe n'a pas été enregistré." };
+    return { ok: false, message: error instanceof Error ? error.message : t("passwordsIndex.passwordWasntSaved") };
   }
 }
 
@@ -173,7 +174,7 @@ function takeAccess(c: BrowserController): boolean {
 
 export function revealPassword(c: BrowserController, id: string): RevealResult {
   const password = findPassword(id);
-  if (password === null) return { ok: false, message: "Ce mot de passe n'existe plus." };
+  if (password === null) return { ok: false, message: t("passwordsIndex.passwordNoLongerExists") };
   return takeAccess(c) ? { ok: true, password } : { ok: false, message: PASSWORD_ACCESS_REFUSED };
 }
 
@@ -181,7 +182,7 @@ const CLIPBOARD_CLEAR_MS = 30_000;
 
 export function copyPassword(c: BrowserController, id: string): PasswordResult {
   const password = findPassword(id);
-  if (!password) return { ok: false, message: "Ce mot de passe n'existe plus." };
+  if (!password) return { ok: false, message: t("passwordsIndex.passwordNoLongerExists") };
   if (!takeAccess(c)) return { ok: false, message: PASSWORD_ACCESS_REFUSED };
   clipboard.writeText(password);
   // Not left on the clipboard: cleared after a while, unless something else was copied since.
@@ -210,21 +211,21 @@ export function removeNever(origin: string): void {
  */
 export async function exportPasswords(c: BrowserController): Promise<PasswordResult | null> {
   const { entries } = currentVault();
-  if (!entries.length) return { ok: false, message: "Aucun mot de passe à exporter." };
+  if (!entries.length) return { ok: false, message: t("passwordsIndex.noPasswordsExport") };
   const { response } = await dialog.showMessageBox(c.window, {
     type: "warning",
-    title: "Exporter les mots de passe",
-    message: `Exporter ${entries.length} mot${entries.length > 1 ? "s" : ""} de passe en clair ?`,
-    detail: "Le fichier CSV ne sera pas chiffré : toute personne ou application qui peut le lire verra vos mots de passe.",
-    buttons: ["Annuler", "Exporter"],
+    title: t("passwordsIndex.exportPasswords"),
+    message: t("passwordsIndex.exportPasswordsPlainText", { entriesCount: entries.length }),
+    detail: t("passwordsIndex.csvFileWontEncrypted"),
+    buttons: [t("passwordsIndex.cancel"), t("passwordsIndex.export")],
     defaultId: 0,
     cancelId: 0,
     noLink: true,
   });
   if (response !== 1 || c.window.isDestroyed()) return null;
   const { canceled, filePath } = await dialog.showSaveDialog(c.window, {
-    title: "Exporter les mots de passe",
-    defaultPath: join(app.getPath("documents"), "mots-de-passe.csv"),
+    title: t("passwordsIndex.exportPasswords"),
+    defaultPath: join(app.getPath("documents"), t("passwordsIndex.passwordsCsv")),
     filters: [{ name: "CSV", extensions: ["csv"] }],
   });
   if (canceled || !filePath) return null;
@@ -237,6 +238,6 @@ export async function exportPasswords(c: BrowserController): Promise<PasswordRes
     }
     return { ok: true };
   } catch {
-    return { ok: false, message: "Le fichier n'a pas pu être écrit." };
+    return { ok: false, message: t("passwordsIndex.fileCouldntWritten") };
   }
 }

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { SettingsPatch } from "@shared/settings";
   import { api } from "../../lib/browser.svelte";
   import { settings } from "../../lib/settings.svelte";
@@ -21,36 +22,36 @@
 
 <Row
   anchor="accept-language"
-  label="Uniformiser la langue envoyée aux sites"
-  hint="Annonce « en-US, en » comme la majorité des navigateurs, pour moins se distinguer. Les sites peuvent alors s'afficher en anglais."
+  label={t("privacySection.standardizeLanguageSentSites")}
+  hint={t("privacySection.announcesEnUsEn")}
 >
   <Toggle
-    label="Uniformiser la langue envoyée aux sites"
+    label={t("privacySection.standardizeLanguageSentSites")}
     checked={s.privacy.normalizeAcceptLanguage}
     onchange={(normalizeAcceptLanguage) => update({ privacy: { normalizeAcceptLanguage } })}
   />
 </Row>
 <Row
   anchor="cookie-banners"
-  label="Refuser les bandeaux cookies"
-  hint="Sur les plateformes de consentement connues (OneTrust, Didomi, Cookiebot…), clique sur « Tout refuser » ou « Continuer sans accepter », sinon masque le bandeau. Jamais « Accepter ». Désactivable site par site depuis les infos sur le site."
-  keywords="consentement rgpd gdpr cmp"
+  label={t("privacySection.refuseCookieBanners")}
+  hint={t("privacySection.knownConsentPlatformsOnetrust")}
+  keywords={t("privacySection.consentGdprCmp")}
 >
-  <Toggle label="Refuser les bandeaux cookies" checked={s.privacy.cookieBanners} onchange={(cookieBanners) => update({ privacy: { cookieBanners } })} />
+  <Toggle label={t("privacySection.refuseCookieBanners")} checked={s.privacy.cookieBanners} onchange={(cookieBanners) => update({ privacy: { cookieBanners } })} />
 </Row>
 <Row
   anchor="fingerprinting"
-  label="Protection contre le pistage par empreinte"
+  label={t("privacySection.fingerprintingProtection")}
   hint={s.privacy.fingerprinting === "strict"
-    ? "Strict : en plus, langue uniformisée, aucun indice client détaillé (version exacte, processeur, modèle), polices, écrans et appareils MIDI refusés sans demander. Le dessin (canvas, WebGL) n'est pas brouillé."
-    : "Standard : navigateur présenté comme Google Chrome, version réduite, adresses IP locales masquées à WebRTC."}
+    ? t("privacySection.strictAdditionStandardizedLanguage")
+    : t("privacySection.standardBrowserPresentedGoogle")}
 >
   <Segmented
-    label="Protection contre le pistage par empreinte"
+    label={t("privacySection.fingerprintingProtection")}
     value={s.privacy.fingerprinting}
     options={[
       { value: "standard" as FingerprintingLevel, label: "Standard" },
-      { value: "strict" as FingerprintingLevel, label: "Stricte" },
+      { value: "strict" as FingerprintingLevel, label: t("privacySection.strict") },
     ]}
     onchange={(fingerprinting) => update({ privacy: { fingerprinting } })}
   />
@@ -59,23 +60,23 @@
 <DrmRow />
 <Row
   anchor="weather"
-  label="Widget Météo"
-  hint="Absent par défaut. Une fois ajouté, il envoie à Open-Meteo les coordonnées de la ville choisie (sans clé, sans cookie, réponses gardées 30 min) : rien d'autre ne quitte l'appareil."
-  keywords="open-meteo localisation réseau page d'accueil"
+  label={t("privacySection.weatherWidget")}
+  hint={t("privacySection.absentDefaultOnceAdded")}
+  keywords={t("privacySection.openMeteoLocationNetwork")}
 >
-  <span class="note">Réglé depuis la page d'accueil</span>
+  <span class="note">{t("privacySection.setFromStartPage")}</span>
 </Row>
-<Row label="Mots de passe" hint="Identifiants enregistrés, chiffrés sur cet appareil." keywords="identifiants comptes connexion">
-  <Button icon="key" onclick={() => api.commands.run("open-passwords")}>Gérer les mots de passe</Button>
+<Row label={t("privacySection.passwords")} hint={t("privacySection.savedCredentialsEncryptedDevice")} keywords={t("privacySection.credentialsAccountsSignLogin")}>
+  <Button icon="key" onclick={() => api.commands.run("open-passwords")}>{t("privacySection.managePasswords")}</Button>
 </Row>
 <Row
   anchor="privacy-pages"
-  label="Tableau de bord et paramètres des sites"
-  hint="Ce que les protections ont bloqué ces 30 derniers jours, et toutes les décisions prises site par site (autorisations, JavaScript, son, lecture automatique)."
+  label={t("privacySection.dashboardSiteSettings")}
+  hint={t("privacySection.whatProtectionsBlockedOver")}
 >
   <div class="links">
-    <Button icon="shield-check" onclick={() => api.commands.run("open-privacy-dashboard")}>Tableau de bord</Button>
-    <Button icon="sliders" onclick={() => api.commands.run("open-site-settings")}>Paramètres des sites</Button>
+    <Button icon="shield-check" onclick={() => api.commands.run("open-privacy-dashboard")}>{t("privacySection.dashboard")}</Button>
+    <Button icon="sliders" onclick={() => api.commands.run("open-site-settings")}>{t("privacySection.siteSettings")}</Button>
   </div>
 </Row>
 

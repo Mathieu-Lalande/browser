@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { WIDGET_CATALOG, type StartWidget } from "@shared/start-widgets";
   import type { Component } from "svelte";
   import Icon from "../Icon.svelte";
@@ -96,7 +97,7 @@
   role="listitem"
   data-widget-id={widget.id}
   tabindex={editing ? 0 : undefined}
-  aria-label={editing ? `${info.label}, position ${position} sur ${total}. Flèches pour déplacer, Entrée pour les options, Suppr pour retirer.` : undefined}
+  aria-label={editing ? t("widgetCard.positionArrowsMoveEnter", { label: info.label, position, total }) : undefined}
   draggable={editing}
   onkeydown={onKeydown}
   ondragstart={(event) => {
@@ -121,8 +122,8 @@
     <div class="chrome">
       <span class="handle"><Icon name="grip-vertical" size={14} /> {info.label}</span>
       <span class="tools">
-        <IconButton icon="sliders" size="sm" label="Options de {info.label}" pressed={optionsOpen} onclick={ontoggleoptions} />
-        <IconButton icon="close" size="sm" label="Retirer {info.label}" onclick={() => layout.remove(widget.id)} />
+        <IconButton icon="sliders" size="sm" label={t("widgetCard.options", { label: info.label })} pressed={optionsOpen} onclick={ontoggleoptions} />
+        <IconButton icon="close" size="sm" label={t("widgetCard.remove", { label: info.label })} onclick={() => layout.remove(widget.id)} />
       </span>
     </div>
   {/if}

@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import type { ArchivedTab } from "@shared/archive";
 import type { Favorite } from "@shared/favorites";
 import { displayUrl } from "@shared/url";
@@ -47,7 +48,7 @@ export const FavoritesRow = memo(function FavoritesRow({
               key={favorite.url}
               accessibilityRole="button"
               accessibilityLabel={`${favorite.title}${open ? ", ouvert" : ""}`}
-              accessibilityHint="Maintenir pour plus d'options"
+              accessibilityHint={t("mobile.organize.holdMoreOptions")}
               onPress={() => onOpen(favorite.url)}
               onLongPress={() => {
                 haptic("medium");
@@ -89,11 +90,11 @@ export const ArchivedTabs = memo(function ArchivedTabs({
       <View style={styles.header}>
         <Icon name="archive" size={14} color={colors.textMuted} strokeWidth={2.4} />
         <Text style={[styles.title, { color: colors.textMuted }]} accessibilityRole="header">
-          Archivés · {archive.length}
+          {t("mobile.organize.archived")} {archive.length}
         </Text>
         <View style={styles.spacer} />
         <Tap accessibilityRole="button" onPress={onClear} hitSlop={8} pressScale={0.92}>
-          <Text style={[styles.clear, { color: colors.accentText }]}>Tout effacer</Text>
+          <Text style={[styles.clear, { color: colors.accentText }]}>{t("mobile.organize.clearAll")}</Text>
         </Tap>
       </View>
       <View style={[styles.card, { backgroundColor: colors.bgElevated, borderColor: colors.hairline }]}>
@@ -117,7 +118,7 @@ export const ArchivedTabs = memo(function ArchivedTabs({
               </View>
               <Icon name="archiveRestore" size={18} color={colors.accentText} />
             </Tap>
-            <Tap accessibilityRole="button" accessibilityLabel="Supprimer de l'archive" onPress={() => onRemove(entry.id)} hitSlop={6} pressScale={0.85} style={styles.remove}>
+            <Tap accessibilityRole="button" accessibilityLabel={t("mobile.organize.removeFromArchive")} onPress={() => onRemove(entry.id)} hitSlop={6} pressScale={0.85} style={styles.remove}>
               <Icon name="trash" size={16} color={colors.textMuted} />
             </Tap>
           </View>

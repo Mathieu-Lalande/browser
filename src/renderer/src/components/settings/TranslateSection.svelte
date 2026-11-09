@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t as tr } from "@shared/i18n";
   import {
     isPlainHttp,
     LANGUAGES,
@@ -47,7 +48,7 @@
 
   async function saveKey(id: TranslateProviderId, value: string): Promise<void> {
     busy = true;
-    result = await api.translate.setKey(id, value).catch(() => ({ ok: false, message: "La clé n'a pas été enregistrée." }));
+    result = await api.translate.setKey(id, value).catch(() => ({ ok: false, message: tr("translateSection.keyWasntSaved") }));
     busy = false;
     if (result.ok) keyDraft = "";
     await refreshKeys();
@@ -55,15 +56,15 @@
 
   function saveServer(): void {
     const url = serverDraft.trim() ? normalizeServerUrl(serverDraft) : "";
-    if (url === null) return void (result = { ok: false, message: "Adresse invalide (http:// ou https://, sans identifiants)." });
+    if (url === null) return void (result = { ok: false, message: tr("translateSection.invalidAddressHttpHttps") });
     settings.update({ translate: { libreUrl: url } });
     serverDraft = url;
-    result = { ok: true, message: "Adresse enregistrée." };
+    result = { ok: true, message: tr("translateSection.addressSaved") };
   }
 
   async function test(): Promise<void> {
     busy = true;
-    result = await api.translate.test().catch(() => ({ ok: false, message: "Le test a échoué." }));
+    result = await api.translate.test().catch(() => ({ ok: false, message: tr("translateSection.testFailed") }));
     busy = false;
   }
 
@@ -72,10 +73,10 @@
 
 <Row
   anchor="provider"
-  label="Service de traduction"
+  label={tr("translateSection.translationService")}
   id="translate-provider"
-  hint="Désactivée par défaut. Pour traduire, le texte de la page est envoyé au service choisi (jamais les mots de passe ni les champs de formulaire) : une confirmation est demandée la première fois, et à chaque session en navigation privée."
-  keywords="deepl libretranslate google langue confidentialité"
+  hint={tr("translateSection.offDefaultTranslatePages")}
+  keywords={tr("translateSection.deeplLibretranslateGoogleLanguage")}
 >
   <select
     id="translate-provider"
@@ -83,7 +84,7 @@
     value={t.provider}
     onchange={(event) => settings.update({ translate: { provider: event.currentTarget.value as TranslateProviderChoice } })}
   >
-    <option value="none">Désactivée</option>
+    <option value="none">{tr("translateSection.off")}</option>
     {#each TRANSLATE_PROVIDERS as entry (entry.id)}
       <option value={entry.id}>{entry.label}</option>
     {/each}
@@ -91,9 +92,9 @@
 </Row>
 
 {#if provider === "deepl"}
-  <Row anchor="deepl-plan" label="Formule DeepL" hint="DeepL API Free (clés finissant par « :fx ») ou Pro.">
+  <Row anchor="deepl-plan" label={tr("translateSection.deeplPlan")} hint={tr("translateSection.deeplApiFreeKeys")}>
     <Segmented
-      label="Formule DeepL"
+      label={tr("translateSection.deeplPlan")}
       value={t.deeplPlan}
       options={[
         { value: "free", label: "Free" },
@@ -107,62 +108,62 @@
 {#if provider === "libretranslate"}
   <Row
     anchor="server"
-    label="Serveur LibreTranslate"
+    label={tr("translateSection.libretranslateServer")}
     id="translate-server"
-    hint={t.libreUrl && isPlainHttp(t.libreUrl) ? "Connexion non chiffrée (http) : à réserver à un serveur de votre réseau local." : "Votre propre serveur ou un serveur public, par exemple https://libretranslate.com."}
+    hint={t.libreUrl && isPlainHttp(t.libreUrl) ? tr("translateSection.unencryptedConnectionHttpOnly") : tr("translateSection.ownServerPublicOne")}
   >
     <input id="translate-server" class="ui-field wide" type="url" placeholder="https://…" bind:value={serverDraft} spellcheck="false" />
-    <Button onclick={saveServer} disabled={serverDraft.trim() === t.libreUrl}>Enregistrer</Button>
+    <Button onclick={saveServer} disabled={serverDraft.trim() === t.libreUrl}>{tr("translateSection.save")}</Button>
   </Row>
 {/if}
 
 {#if provider}
   <Row
     anchor="api-key"
-    label={needsKey ? "Clé d'API" : "Clé d'API (facultative)"}
+    label={needsKey ? tr("translateSection.apiKey") : tr("translateSection.apiKeyOptional")}
     id="translate-key"
     hint={browser.isPrivate
-      ? "Indisponible en navigation privée."
+      ? tr("translateSection.unavailablePrivateBrowsing")
       : keys && !keys.available
         ? (keys.message ?? undefined)
         : hasKey
-          ? "Clé enregistrée, chiffrée par le système. Saisissez-en une autre pour la remplacer."
-          : "Chiffrée par le système et gardée sur cet appareil ; elle n'est jamais réaffichée."}
+          ? tr("translateSection.keySavedEncryptedSystem")
+          : tr("translateSection.encryptedSystemKeptDevice")}
   >
     {#if hasKey && !browser.isPrivate}
-      <IconButton icon="trash" size="row" label="Supprimer la clé" onclick={() => saveKey(provider, "")} />
+      <IconButton icon="trash" size="row" label={tr("translateSection.deleteKey")} onclick={() => saveKey(provider, "")} />
     {/if}
     <input
       id="translate-key"
       class="ui-field"
       type="password"
       autocomplete="off"
-      placeholder={hasKey ? "••••••••" : "Clé"}
+      placeholder={hasKey ? "••••••••" : tr("translateSection.key")}
       bind:value={keyDraft}
       disabled={browser.isPrivate || keys?.available === false}
     />
-    <Button onclick={() => saveKey(provider, keyDraft)} disabled={busy || !keyDraft.trim() || browser.isPrivate}>Enregistrer</Button>
+    <Button onclick={() => saveKey(provider, keyDraft)} disabled={busy || !keyDraft.trim() || browser.isPrivate}>{tr("translateSection.save")}</Button>
   </Row>
 
-  <Row anchor="test" label="Tester le service" hint="Traduit une courte phrase d'exemple avec la configuration actuelle.">
+  <Row anchor="test" label={tr("translateSection.testService")} hint={tr("translateSection.translatesShortSampleSentence")}>
     {#if result}
       <span class="result" class:error={!result.ok} role="status"><Icon name={result.ok ? "check" : "warning"} size={12} /> {result.message}</span>
     {/if}
-    <Button icon="languages" onclick={test} disabled={busy}>Tester</Button>
+    <Button icon="languages" onclick={test} disabled={busy}>{tr("translateSection.test")}</Button>
   </Row>
 {/if}
 
-<Row anchor="target" label="Traduire vers" id="translate-target" hint="Par défaut, la langue du système.">
+<Row anchor="target" label={tr("translateSection.translate")} id="translate-target" hint={tr("translateSection.defaultSystemLanguage")}>
   <select id="translate-target" class="ui-field" value={t.target} onchange={(event) => settings.update({ translate: { target: event.currentTarget.value } })}>
-    <option value="">Langue du système</option>
+    <option value="">{tr("translateSection.systemLanguage")}</option>
     {#each LANGUAGES as language (language.code)}
       <option value={language.code}>{language.name}</option>
     {/each}
   </select>
 </Row>
 
-<Row anchor="offer" label="Proposer de traduire" hint="Le bouton de traduction apparaît dans la barre d'adresse sur les pages dans une autre langue.">
-  <Toggle label="Proposer de traduire" checked={t.offer} onchange={(offer) => settings.update({ translate: { offer } })} />
+<Row anchor="offer" label={tr("translateSection.offerTranslate")} hint={tr("translateSection.translateButtonAppearsAddress")}>
+  <Toggle label={tr("translateSection.offerTranslate")} checked={t.offer} onchange={(offer) => settings.update({ translate: { offer } })} />
 </Row>
 
 {#snippet ruleList(title: string, hint: string, items: string[], label: (item: string) => string, remove: (item: string) => void)}
@@ -172,7 +173,7 @@
         {#each items as item (item)}
           <li>
             <span>{label(item)}</span>
-            <IconButton icon="close" size="row" label="Retirer {label(item)}" onclick={() => remove(item)} />
+            <IconButton icon="close" size="row" label={tr("translateSection.remove", { p: label(item) })} onclick={() => remove(item)} />
           </li>
         {/each}
       </ul>
@@ -180,13 +181,13 @@
   {/if}
 {/snippet}
 
-{@render ruleList("Toujours traduire", "Langues traduites dès l'ouverture de la page.", t.alwaysLanguages, languageName, (code) =>
+{@render ruleList(tr("translateSection.alwaysTranslate"), tr("translateSection.languagesTranslatedSoonPage"), t.alwaysLanguages, languageName, (code) =>
   setRules({ alwaysLanguages: t.alwaysLanguages.filter((item) => item !== code) }),
 )}
-{@render ruleList("Ne jamais traduire", "Langues pour lesquelles la traduction n'est pas proposée.", t.neverLanguages, languageName, (code) =>
+{@render ruleList(tr("translateSection.neverTranslate"), tr("translateSection.languagesWhichTranslationIsnt"), t.neverLanguages, languageName, (code) =>
   setRules({ neverLanguages: t.neverLanguages.filter((item) => item !== code) }),
 )}
-{@render ruleList("Jamais pour ces sites", "Sites (et leurs sous-domaines) où la traduction n'est jamais proposée.", t.neverSites, (site) => site, (site) =>
+{@render ruleList(tr("translateSection.neverTheseSites"), tr("translateSection.sitesTheirSubdomainsWhere"), t.neverSites, (site) => site, (site) =>
   setRules({ neverSites: t.neverSites.filter((item) => item !== site) }),
 )}
 

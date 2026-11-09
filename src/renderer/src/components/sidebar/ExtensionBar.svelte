@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { ExtensionInfo } from "@shared/extensions";
   import type { Bounds } from "@shared/types";
   import { api, browser } from "../../lib/browser.svelte";
@@ -23,7 +24,7 @@
   };
 
   const titleOf = (extension: ExtensionInfo) =>
-    extension.action?.hasPopup ? extension.action.title : `${extension.action?.title ?? extension.name} (pas de fenêtre à ouvrir ici)`;
+    extension.action?.hasPopup ? extension.action.title : t("extensionBar.noWindowOpenHere", { p: extension.action?.title ?? extension.name });
 
   function open(extension: ExtensionInfo, event: MouseEvent & { currentTarget: HTMLElement }): void {
     if (extension.action?.hasPopup) api.extensions.openPopup(extension.id, boundsOf(event.currentTarget));
@@ -36,7 +37,7 @@
 </script>
 
 {#if !browser.isPrivate && extensionsUi.list.some((extension) => extension.enabled)}
-  <div class="extension-bar" role="toolbar" aria-label="Extensions" data-testid="extension-bar">
+  <div class="extension-bar" role="toolbar" aria-label={t("extensionBar.extensions")} data-testid="extension-bar">
     {#each visible as extension (extension.id)}
       <IconButton
         size="sm"
@@ -60,8 +61,8 @@
       size="sm"
       icon="extension"
       iconSize={14}
-      label="Extensions"
-      title={hidden ? `Extensions (${hidden} non affichée${hidden > 1 ? "s" : ""})` : "Extensions : ouvrir, épingler, gérer"}
+      label={t("extensionBar.extensions")}
+      title={hidden ? t("extensionBar.extensionsNotShown", { hidden }) : t("extensionBar.extensionsOpenPinManage")}
       aria-haspopup="menu"
       data-extensions-anchor
       onclick={(event) => menu(null, event)}

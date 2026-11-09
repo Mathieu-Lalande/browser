@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { LIMITS, SIZE_LABELS, WIDGET_CATALOG, type StartWidget, type TemperatureUnit, type WidgetSize } from "@shared/start-widgets";
   import { isNavigableUrl } from "@shared/url";
   import Button from "../ui/Button.svelte";
@@ -39,16 +40,16 @@
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<div class="options" role="dialog" aria-label="Options : {info.label}" tabindex="-1" onkeydown={onKeydown}>
+<div class="options" role="dialog" aria-label={t("widgetOptions.options", { label: info.label })} tabindex="-1" onkeydown={onKeydown}>
   <header>
     <strong>{info.label}</strong>
-    <IconButton icon="close" size="sm" label="Fermer les options" onclick={onclose} />
+    <IconButton icon="close" size="sm" label={t("widgetOptions.closeOptions")} onclick={onclose} />
   </header>
   {#if info.sizes.length > 1}
     <div class="field">
-      <span>Taille</span>
+      <span>{t("widgetOptions.size")}</span>
       <Segmented
-        label="Taille du widget"
+        label={t("widgetOptions.widgetSize")}
         value={widget.size}
         options={info.sizes.map((size) => ({ value: size as WidgetSize, label: SIZE_LABELS[size] }))}
         onchange={(size) => layout.resize(widget.id, size)}
@@ -57,13 +58,13 @@
   {/if}
 
   {#if widget.kind === "clock"}
-    <div class="field"><span>Salutation</span><Toggle label="Salutation" checked={widget.options.greeting} onchange={(greeting) => set({ greeting })} /></div>
-    <div class="field"><span>Date</span><Toggle label="Date" checked={widget.options.date} onchange={(date) => set({ date })} /></div>
+    <div class="field"><span>{t("widgetOptions.greeting")}</span><Toggle label={t("widgetOptions.greeting")} checked={widget.options.greeting} onchange={(greeting) => set({ greeting })} /></div>
+    <div class="field"><span>{t("widgetOptions.date")}</span><Toggle label={t("widgetOptions.date")} checked={widget.options.date} onchange={(date) => set({ date })} /></div>
   {:else if widget.kind === "top-sites" || widget.kind === "favorites" || widget.kind === "resume" || widget.kind === "devices"}
     <div class="field">
-      <span>Nombre</span>
+      <span>{t("widgetOptions.number")}</span>
       <Segmented
-        label="Nombre d'éléments"
+        label={t("widgetOptions.numberItems")}
         value={String(widget.options.count)}
         options={COUNTS.map((count) => ({ value: count as string, label: count }))}
         onchange={(count) => set({ count: Number(count) })}
@@ -71,32 +72,32 @@
     </div>
     {#if widget.kind === "top-sites"}
       <div class="pins">
-        <span>Sites épinglés</span>
+        <span>{t("widgetOptions.pinnedSites")}</span>
         {#each widget.options.pins as pin (pin.url)}
           <div class="pin">
             <span title={pin.url}>{pin.title || pin.url}</span>
             <IconButton
               icon="close"
               size="sm"
-              label="Désépingler {pin.title || pin.url}"
+              label={t("widgetOptions.unpin", { p: pin.title || pin.url })}
               onclick={() => widget.kind === "top-sites" && set({ pins: widget.options.pins.filter((other) => other.url !== pin.url) })}
             />
           </div>
         {/each}
         {#if widget.options.pins.length < LIMITS.pins}
           <form onsubmit={addPin}>
-            <input class="ui-field" class:invalid={pinError} bind:value={pinUrl} placeholder="Adresse" aria-label="Adresse du site à épingler" spellcheck="false" />
-            <input class="ui-field" bind:value={pinTitle} placeholder="Nom (facultatif)" aria-label="Nom du site épinglé" maxlength={LIMITS.pinTitle} />
-            <Button size="sm" type="submit" icon="pin">Épingler</Button>
+            <input class="ui-field" class:invalid={pinError} bind:value={pinUrl} placeholder={t("widgetOptions.address")} aria-label={t("widgetOptions.addressSitePin")} spellcheck="false" />
+            <input class="ui-field" bind:value={pinTitle} placeholder={t("widgetOptions.nameOptional")} aria-label={t("widgetOptions.namePinnedSite")} maxlength={LIMITS.pinTitle} />
+            <Button size="sm" type="submit" icon="pin">{t("widgetOptions.pin")}</Button>
           </form>
         {/if}
       </div>
     {/if}
   {:else if widget.kind === "weather"}
     <div class="field">
-      <span>Unité</span>
+      <span>{t("widgetOptions.unit")}</span>
       <Segmented
-        label="Unité de température"
+        label={t("widgetOptions.temperatureUnit")}
         value={widget.options.unit}
         options={[
           { value: "c" as TemperatureUnit, label: "°C" },
@@ -106,15 +107,15 @@
       />
     </div>
     {#if widget.options.place}
-      <div class="field"><span>{widget.options.place.name}</span><Button size="sm" onclick={() => set({ place: null })}>Changer de ville</Button></div>
+      <div class="field"><span>{widget.options.place.name}</span><Button size="sm" onclick={() => set({ place: null })}>{t("widgetOptions.changeCity")}</Button></div>
     {/if}
-    <p class="note">Open-Meteo reçoit les coordonnées de la ville, sans cookie ; réponses gardées 30 min.</p>
+    <p class="note">{t("widgetOptions.openMeteoReceivesCitys")}</p>
   {:else if widget.kind === "calendar"}
-    <div class="field"><span>Numéros de semaine</span><Toggle label="Numéros de semaine" checked={widget.options.weekNumbers} onchange={(weekNumbers) => set({ weekNumbers })} /></div>
+    <div class="field"><span>{t("widgetOptions.weekNumbers")}</span><Toggle label={t("widgetOptions.weekNumbers")} checked={widget.options.weekNumbers} onchange={(weekNumbers) => set({ weekNumbers })} /></div>
   {:else if widget.kind === "todo"}
-    <div class="field"><span>Masquer les tâches terminées</span><Toggle label="Masquer les tâches terminées" checked={widget.options.hideDone} onchange={(hideDone) => set({ hideDone })} /></div>
+    <div class="field"><span>{t("widgetOptions.hideCompletedTasks")}</span><Toggle label={t("widgetOptions.hideCompletedTasks")} checked={widget.options.hideDone} onchange={(hideDone) => set({ hideDone })} /></div>
   {:else if widget.kind === "notes"}
-    <p class="note">Les notes restent sur cet appareil : elles ne sont pas synchronisées.</p>
+    <p class="note">{t("widgetOptions.notesStayDeviceThey")}</p>
   {/if}
 </div>
 

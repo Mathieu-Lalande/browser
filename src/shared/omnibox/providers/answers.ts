@@ -1,3 +1,4 @@
+import { t } from "../../i18n";
 import { BASE_LABELS, parseBaseConversion } from "../bases";
 import { decimalOf, evaluate, formatNumber } from "../calculator";
 import { placeTime } from "../timezones";
@@ -22,7 +23,7 @@ function answer(id: string, result: string, detail: string, icon: OmniboxIcon): 
       detailRanges: [],
       score: ANSWER_SCORE,
       icon,
-      verb: "Copier",
+      verb: t("providersAnswers.copy"),
       completion: result,
       action: { type: "copy", text: result },
     },
@@ -71,6 +72,6 @@ export class NumberBaseProvider implements Provider {
   query(text: string): Suggestion[] {
     const conversion = parseBaseConversion(text);
     if (!conversion) return [];
-    return answer("base", conversion.result, `${conversion.input} en ${BASE_LABELS[conversion.to]}`, "binary");
+    return answer("base", conversion.result, t("providersAnswers.in", { input: conversion.input, p: BASE_LABELS[conversion.to] }), "binary");
   }
 }

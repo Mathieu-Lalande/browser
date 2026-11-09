@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { httpsUpgradeFor, isHttpsUpgradeFailure as sharedIsHttpsUpgradeFailure } from "@shared/https-only";
 import { isNavigableUrl, isPageOpenableUrl } from "@shared/url";
 
@@ -70,6 +71,6 @@ export function decideOpenWindow(url: string, httpExceptions: ReadonlySet<string
 /** What the start page of a private tab says is kept, per platform (ADR-016, audit LOW-5). */
 export function privateModeNotice(platform: string): string {
   return platform === "ios"
-    ? "Les pages ne sont pas enregistrées dans l'historique. Cookies et données de chaque onglet privé sont effacés à sa fermeture."
-    : "Cookies partagés avec les onglets normaux sur Android. Les pages ne sont pas enregistrées dans l'historique ni dans le cache.";
+    ? t("mobile.navigation.pagesArentSavedHistory")
+    : t("mobile.navigation.cookiesSharedNormalTabs");
 }

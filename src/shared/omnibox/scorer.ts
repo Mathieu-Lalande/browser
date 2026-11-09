@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { fuzzyMatch, type Range } from "../fuzzy";
 import type { Section, SectionId, Suggestion } from "./types";
 
@@ -60,15 +61,15 @@ export const SECTION_TITLES: Record<SectionId, string | null> = {
   scopes: "Filtres",
   answer: null,
   go: null,
-  tabs: "Onglets",
-  favorites: "Favoris épinglés",
-  bookmarks: "Favoris",
-  history: "Historique",
+  get tabs() { return t("omniboxScorer.tabs") },
+  get favorites() { return t("omniboxScorer.pinnedFavorites") },
+  get bookmarks() { return t("omniboxScorer.bookmarks") },
+  get history() { return t("omniboxScorer.history") },
   commands: "Actions",
-  settings: "Paramètres",
-  remote: "Onglets de mes autres appareils",
-  archived: "Onglets archivés",
-  notes: "Notes et surlignages",
+  get settings() { return t("omniboxScorer.settings") },
+  get remote() { return t("omniboxScorer.tabsFromMyOther") },
+  get archived() { return t("omniboxScorer.archivedTabs") },
+  get notes() { return t("omniboxScorer.notesHighlights") },
   assistant: "Assistant IA",
   web: "Web",
 };

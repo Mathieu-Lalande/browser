@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import Icon from "../../components/Icon.svelte";
   import { dispositionOf, type OmniboxController } from "./controller.svelte";
   import { SECTION_ICONS } from "./icons";
@@ -37,11 +38,11 @@
   }
 </script>
 
-<div class="results" id="omnibox-results" role="listbox" aria-label="Résultats" bind:this={list}>
+<div class="results" id="omnibox-results" role="listbox" aria-label={t("resultList.results")} bind:this={list}>
   {#if nothingFound}
-    <p class="empty">Aucun onglet, page, action ni réglage ne correspond.</p>
+    <p class="empty">{t("resultList.noTabPageAction")}</p>
   {:else if bar.scope && bar.items.length === 0}
-    <p class="empty">Rien à afficher ici pour l'instant.</p>
+    <p class="empty">{t("resultList.nothingShowHereYet")}</p>
   {/if}
   {#each groups as { section, offset } (section.id)}
     <div class="group" role="group" aria-labelledby={section.title ? `omnibox-section-${section.id}` : undefined}>

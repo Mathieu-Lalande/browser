@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { isFavoriteUrl } from "@shared/favorites";
   import type { SpaceId } from "@shared/types";
   import { api, browser } from "../lib/browser.svelte";
@@ -185,11 +186,11 @@
   </div>
 
   {#if confirmingNewSpace}
-    <div class="new-space-confirm" role="dialog" aria-label="Créer un espace" tabindex="-1" onkeydown={onSidebarKeydown}>
-      <p>Créer un nouvel espace&nbsp;?</p>
+    <div class="new-space-confirm" role="dialog" aria-label={t("sidebar.createSpace")} tabindex="-1" onkeydown={onSidebarKeydown}>
+      <p>{t("sidebar.createNewSpace")}</p>
       <div class="new-space-actions">
-        <button type="button" class="secondary" onclick={() => (confirmingNewSpace = false)}>Annuler</button>
-        <button type="button" class="primary" bind:this={confirmNewSpaceButton} onclick={createConfirmedSpace}>Créer</button>
+        <button type="button" class="secondary" onclick={() => (confirmingNewSpace = false)}>{t("sidebar.cancel")}</button>
+        <button type="button" class="primary" bind:this={confirmNewSpaceButton} onclick={createConfirmedSpace}>{t("sidebar.create")}</button>
       </div>
     </div>
   {/if}
@@ -203,7 +204,7 @@
   {#if drag.current}
     <div class="drag-ghost" style:left="{drag.current.x + 12}px" style:top="{drag.current.y + 8}px" aria-hidden="true">
       <Icon name={drag.current.item.kind === "folder" ? "folder" : drag.overFavorites ? "favorite" : drag.splitTarget ? "split" : "file"} size={12} />
-      <span>{drag.splitTarget ? `Vue scindée : ${drag.current.label}` : drag.current.label}</span>
+      <span>{drag.splitTarget ? t("sidebar.splitView", { label: drag.current.label }) : drag.current.label}</span>
     </div>
   {/if}
   <PanelStrip />

@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { isExtensionId, MAX_DROPPED_FILES, MAX_DROPPED_SIZE, type DroppedExtension } from "@shared/extensions";
 import { Channels } from "@shared/ipc";
 import { isSiteName } from "@shared/site-info";
@@ -97,7 +98,7 @@ function isDroppedExtension(value: unknown): boolean {
   });
 }
 const droppedExtension = custom<DroppedExtension>(isDroppedExtension);
-const privateRefusal = { ok: false, message: "Les extensions se gèrent depuis une fenêtre normale." } as const;
+const privateRefusal = { ok: false, get message() { return t("site.extensionsAreManagedFrom") } } as const;
 
 /**
  * Extensions (ADR-024): the UI names them by id; folders and files are picked in main's dialogs.

@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { originLabel, type PasswordCapture } from "@shared/passwords";
 import { useMemo } from "react";
 import type { MenuSpec } from "../components/ActionSheet";
@@ -37,12 +38,12 @@ export function usePasswordMenus({
     const outcome = passwords.outcome(capture);
     if (outcome !== "new" && outcome !== "update") return;
     const site = originLabel(capture.origin);
-    const verb = outcome === "update" ? "Mettre à jour" : "Enregistrer";
+    const verb = outcome === "update" ? t("mobile.usePasswordMenus.update") : t("mobile.usePasswordMenus.save");
     haptic("light");
     setMenu({
-      title: `${verb} le mot de passe pour ${site} ?`,
-      subtitle: capture.username || "Sans identifiant",
-      note: "Chiffré et enregistré sur cet appareil uniquement.",
+      title: t("mobile.usePasswordMenus.password", { verb, site }),
+      subtitle: capture.username || t("mobile.usePasswordMenus.noUsername"),
+      note: t("mobile.usePasswordMenus.encryptedSavedDeviceOnly"),
       items: [
         {
           key: "save",
@@ -53,8 +54,8 @@ export function usePasswordMenus({
             haptic("success");
           },
         },
-        { key: "never", label: "Jamais pour ce site", icon: "ban", onPress: () => void passwords.never(capture.origin) },
-        { key: "later", label: "Plus tard", icon: "close", onPress: () => {} },
+        { key: "never", label: t("mobile.usePasswordMenus.neverSite"), icon: "ban", onPress: () => void passwords.never(capture.origin) },
+        { key: "later", label: t("mobile.usePasswordMenus.later"), icon: "close", onPress: () => {} },
       ],
     });
   });
@@ -63,11 +64,11 @@ export function usePasswordMenus({
   const passwordsMenu = useEvent((): MenuSpec | null => {
     if (!tab || tabPasswords.length === 0) return null;
     return {
-      title: `Mots de passe pour ${originLabel(tabPasswords[0].origin)}`,
+      title: t("mobile.usePasswordMenus.passwords", { p: originLabel(tabPasswords[0].origin) }),
       siteUrl: tab.url,
       items: tabPasswords.map((entry) => ({
         key: entry.id,
-        label: entry.username || "Sans identifiant",
+        label: entry.username || t("mobile.usePasswordMenus.noUsername"),
         icon: "key" as const,
         onPress: () => {
           actions.fillPassword(entry);

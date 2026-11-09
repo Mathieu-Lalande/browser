@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { SpaceInfo, TabState } from "@shared/types";
   import { displayUrl } from "@shared/url";
   import { api } from "../../lib/browser.svelte";
@@ -36,11 +37,11 @@
   <div class="space-title" style:--dot={space.color ?? "var(--accent)"}>
     <span class="space-icon"><Icon name={space.icon} size={16} /></span>
     <span class="space-name">{space.name}</span>
-    {#if space.isolated}<span class="badge" title={preview ? undefined : "Cookies et connexions séparés"}>Isolé</span>{/if}
+    {#if space.isolated}<span class="badge" title={preview ? undefined : t("spaceHeader.separateCookiesSignIns")}>{t("spaceHeader.isolated")}</span>{/if}
     {#if preview}
       <IconButton as="span" size="sm" icon="more" label="" />
     {:else}
-      <IconButton size="sm" icon="more" label="Modifier l'espace" onclick={onEdit} />
+      <IconButton size="sm" icon="more" label={t("spaceHeader.editSpace")} onclick={onEdit} />
     {/if}
   </div>
 {/if}
@@ -53,7 +54,7 @@
       {/each}
     </div>
   {:else}
-    <div class="pinned" role="tablist" aria-label="Onglets épinglés">
+    <div class="pinned" role="tablist" aria-label={t("spaceHeader.pinnedTabs")}>
       {#each pinned as item (item.id)}
         <button
           class="pinned-tab"
@@ -79,13 +80,13 @@
 
 <div class="new-row">
   {#if preview}
-    <div class="new-tab"><Icon name="plus" size={16} /> <span class="label">Nouvel onglet</span></div>
+    <div class="new-tab"><Icon name="plus" size={16} /> <span class="label">{t("spaceHeader.newTab")}</span></div>
     <IconButton as="span" size="sm" icon="folder-plus" label="" />
   {:else}
-    <button class="new-tab" title={platform.tip("Nouvel onglet", "new-tab")} onclick={onNewTab}>
-      <Icon name="plus" size={16} /> <span class="label">Nouvel onglet</span>
+    <button class="new-tab" title={platform.tip(t("spaceHeader.newTab"), "new-tab")} onclick={onNewTab}>
+      <Icon name="plus" size={16} /> <span class="label">{t("spaceHeader.newTab")}</span>
     </button>
-    <IconButton size="sm" icon="folder-plus" label="Nouveau dossier" onclick={() => api.folders.create()} />
+    <IconButton size="sm" icon="folder-plus" label={t("spaceHeader.newFolder")} onclick={() => api.folders.create()} />
   {/if}
 </div>
 

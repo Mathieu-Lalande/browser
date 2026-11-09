@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { ratioAt, splitLayout, type SplitDivider } from "@shared/split";
   import type { SplitState, TabState } from "@shared/types";
   import { api, browser } from "../../lib/browser.svelte";
@@ -98,7 +99,7 @@
       role="separator"
       tabindex="0"
       aria-orientation={divider.axis === "x" ? "vertical" : "horizontal"}
-      aria-label="Redimensionner la vue scindée"
+      aria-label={t("splitView.resizeSplitView")}
       aria-valuenow={Math.round((divider.axis === "x" ? ratioX : ratioY) * 100)}
       onpointerdown={(event) => startDrag(event, divider)}
       onkeydown={(event) => onDividerKey(event, divider)}

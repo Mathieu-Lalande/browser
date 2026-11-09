@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import * as Clipboard from "expo-clipboard";
 import { memo, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
@@ -37,7 +38,7 @@ export const SyncSettings = memo(function SyncSettings({ onScan }: { onScan: () 
 
   const confirm = (title: string, message: string, action: string, onConfirm: () => void) =>
     Alert.alert(title, message, [
-      { text: "Annuler", style: "cancel" },
+      { text: t("mobile.syncSettings.cancel"), style: "cancel" },
       { text: action, style: "destructive", onPress: onConfirm },
     ]);
 
@@ -49,12 +50,12 @@ export const SyncSettings = memo(function SyncSettings({ onScan }: { onScan: () 
         <Info
           first
           icon="cloudOff"
-          label="Synchroniser avec votre ordinateur"
-          detail="Favoris, historique récent, onglets ouverts, espaces et thème. Chiffré sur l'appareil : votre serveur ne voit que des données illisibles."
+          label={t("mobile.syncSettings.syncComputer")}
+          detail={t("mobile.syncSettings.bookmarksRecentHistoryOpen")}
         />
-        <Action icon="scan" label="Scanner le code de jumelage" onPress={onScan} disabled={isPrivate} />
+        <Action icon="scan" label={t("mobile.syncSettings.scanPairingCode")} onPress={onScan} disabled={isPrivate} />
         <View style={[styles.block, { borderTopColor: colors.hairline }]}>
-          <Text style={[styles.label, { color: colors.text }]}>Ou collez le code</Text>
+          <Text style={[styles.label, { color: colors.text }]}>{t("mobile.syncSettings.pasteCode")}</Text>
           <TextInput
             value={code}
             onChangeText={setCode}
@@ -63,14 +64,14 @@ export const SyncSettings = memo(function SyncSettings({ onScan }: { onScan: () 
             autoCapitalize="none"
             autoCorrect={false}
             style={input}
-            accessibilityLabel="Code de jumelage"
+            accessibilityLabel={t("mobile.syncSettings.pairingCode")}
             keyboardAppearance={dark ? "dark" : "light"}
           />
-          <Button label="Jumeler" disabled={busy || !code.trim() || isPrivate} onPress={() => void run(() => actions.sync.pair(code.trim()), "Appareil jumelé.").then((ok) => ok && setCode(""))} />
+          <Button label={t("mobile.syncSettings.pair")} disabled={busy || !code.trim() || isPrivate} onPress={() => void run(() => actions.sync.pair(code.trim()), t("mobile.syncSettings.devicePaired")).then((ok) => ok && setCode(""))} />
         </View>
         <View style={[styles.block, { borderTopColor: colors.hairline }]}>
-          <Text style={[styles.label, { color: colors.text }]}>Premier appareil</Text>
-          <Text style={[styles.detail, { color: colors.textMuted }]}>Adresse de votre serveur de synchronisation (https). Une nouvelle clé est créée ici.</Text>
+          <Text style={[styles.label, { color: colors.text }]}>{t("mobile.syncSettings.firstDevice")}</Text>
+          <Text style={[styles.detail, { color: colors.textMuted }]}>{t("mobile.syncSettings.addressSyncServerHttps")}</Text>
           <TextInput
             value={serverUrl}
             onChangeText={setServerUrl}
@@ -80,25 +81,25 @@ export const SyncSettings = memo(function SyncSettings({ onScan }: { onScan: () 
             autoCorrect={false}
             keyboardType="url"
             style={input}
-            accessibilityLabel="Adresse du serveur de synchronisation"
+            accessibilityLabel={t("mobile.syncSettings.syncServerAddress")}
             keyboardAppearance={dark ? "dark" : "light"}
           />
           <TextInput
             value={secret}
             onChangeText={setSecret}
-            placeholder="Code d'inscription (facultatif)"
+            placeholder={t("mobile.syncSettings.registrationCodeOptional")}
             placeholderTextColor={colors.textFaint}
             autoCapitalize="none"
             autoCorrect={false}
             secureTextEntry
             style={input}
-            accessibilityLabel="Code d'inscription du serveur"
+            accessibilityLabel={t("mobile.syncSettings.serverRegistrationCode")}
             keyboardAppearance={dark ? "dark" : "light"}
           />
           <Button
-            label="Activer la synchronisation"
+            label={t("mobile.syncSettings.turnSync")}
             disabled={busy || !serverUrl.trim() || isPrivate}
-            onPress={() => void run(() => actions.sync.createAccount(serverUrl.trim(), secret.trim() || undefined), "Synchronisation activée.")}
+            onPress={() => void run(() => actions.sync.createAccount(serverUrl.trim(), secret.trim() || undefined), t("mobile.syncSettings.syncTurned"))}
           />
         </View>
         {busy && <ActivityIndicator style={styles.spinner} color={colors.accent} />}
@@ -108,23 +109,23 @@ export const SyncSettings = memo(function SyncSettings({ onScan }: { onScan: () 
 
   const status =
     sync.phase === "syncing"
-      ? "Synchronisation en cours…"
+      ? t("mobile.syncSettings.syncing")
       : sync.phase === "offline"
-        ? "Serveur injoignable, nouvel essai automatique."
+        ? t("mobile.syncSettings.serverUnreachableRetryingAutomatically")
         : sync.phase === "error"
-          ? (sync.error?.message ?? "Erreur de synchronisation.")
-          : `Synchronisé ${ago(sync.lastSync)}.`;
+          ? (sync.error?.message ?? t("mobile.syncSettings.syncError"))
+          : t("mobile.syncSettings.synced", { p: ago(sync.lastSync) });
 
   return (
     <>
-      <Info first icon={sync.phase === "offline" || sync.phase === "error" ? "cloudOff" : "cloud"} label={status} detail={`${sync.deviceName} · ${sync.serverUrl?.replace(/^https?:\/\//, "")} · clé ${sync.keyFingerprint}`} />
-      <Action icon="reload" label="Synchroniser maintenant" onPress={() => actions.sync.syncNow()} disabled={sync.phase === "syncing"} />
+      <Info first icon={sync.phase === "offline" || sync.phase === "error" ? "cloudOff" : "cloud"} label={status} detail={t("mobile.syncSettings.key", { deviceName: sync.deviceName, p: sync.serverUrl?.replace(/^https?:\/\//, ""), keyFingerprint: sync.keyFingerprint })} />
+      <Action icon="reload" label={t("mobile.syncSettings.syncNow")} onPress={() => actions.sync.syncNow()} disabled={sync.phase === "syncing"} />
       {sync.devices.map((device) => (
         <Info
           key={device.id}
           icon={device.kind === "mobile" ? "smartphone" : "laptop"}
           label={device.name}
-          detail={`${device.tabs.length} onglet${device.tabs.length > 1 ? "s" : ""} ouvert${device.tabs.length > 1 ? "s" : ""} · ${ago(device.updatedAt)}`}
+          detail={t("mobile.syncSettings.openTabs", { tabsCount: device.tabs.length, p2: ago(device.updatedAt) })}
         />
       ))}
       {pairingCode ? (
@@ -134,20 +135,20 @@ export const SyncSettings = memo(function SyncSettings({ onScan }: { onScan: () 
             {pairingCode}
           </Text>
           <View style={styles.buttons}>
-            <Button label="Copier" secondary onPress={() => void Clipboard.setStringAsync(pairingCode)} />
-            <Button label="Masquer" secondary onPress={() => setPairingCode(null)} />
+            <Button label={t("mobile.syncSettings.copy")} secondary onPress={() => void Clipboard.setStringAsync(pairingCode)} />
+            <Button label={t("mobile.syncSettings.hide")} secondary onPress={() => setPairingCode(null)} />
           </View>
         </View>
       ) : (
         <Action
           icon="qr"
-          label="Afficher le code de jumelage"
+          label={t("mobile.syncSettings.showPairingCode")}
           disabled={isPrivate}
           onPress={() =>
             confirm(
-              "Afficher le code de jumelage ?",
-              "Ce code donne un accès complet à vos données synchronisées à quiconque le voit. Ne le montrez à personne et ne l'envoyez pas.",
-              "Afficher",
+              t("mobile.syncSettings.showPairingCode2"),
+              t("mobile.syncSettings.codeGivesFullAccess"),
+              t("mobile.syncSettings.show"),
               () => setPairingCode(actions.sync.pairingCode()),
             )
           }
@@ -155,11 +156,11 @@ export const SyncSettings = memo(function SyncSettings({ onScan }: { onScan: () 
       )}
       <Action
         icon="unlink"
-        label="Déconnecter cet appareil"
+        label={t("mobile.syncSettings.disconnectDevice")}
         destructive
         disabled={busy || isPrivate}
         onPress={() =>
-          confirm("Déconnecter cet appareil ?", "La synchronisation s'arrête ici. Les données restent sur le téléphone.", "Déconnecter", () => {
+          confirm(t("mobile.syncSettings.disconnectDevice2"), t("mobile.syncSettings.syncStopsHereData"), t("mobile.syncSettings.disconnect"), () => {
             setPairingCode(null);
             void run(() => actions.sync.disconnect());
           })
@@ -167,17 +168,17 @@ export const SyncSettings = memo(function SyncSettings({ onScan }: { onScan: () 
       />
       <Action
         icon="key"
-        label="Réinitialiser la synchronisation"
+        label={t("mobile.syncSettings.resetSync")}
         destructive
         disabled={busy || isPrivate}
         onPress={() =>
           confirm(
-            "Réinitialiser la synchronisation ?",
-            "Toutes les données du serveur sont effacées et une nouvelle clé est créée. Vos autres appareils devront être jumelés à nouveau.",
-            "Réinitialiser",
+            t("mobile.syncSettings.resetSync2"),
+            t("mobile.syncSettings.allDataServerErased"),
+            t("mobile.syncSettings.reset"),
             () => {
               setPairingCode(null);
-              void run(() => actions.sync.reset(), "Synchronisation réinitialisée avec une nouvelle clé.");
+              void run(() => actions.sync.reset(), t("mobile.syncSettings.syncResetNewKey"));
             },
           )
         }
@@ -187,17 +188,17 @@ export const SyncSettings = memo(function SyncSettings({ onScan }: { onScan: () 
 });
 
 function ago(time: number | null): string {
-  if (!time) return "jamais";
+  if (!time) return t("mobile.syncSettings.never");
   const minutes = Math.round((Date.now() - time) / 60_000);
-  if (minutes < 1) return "à l'instant";
-  if (minutes < 60) return `il y a ${minutes} min`;
+  if (minutes < 1) return t("mobile.syncSettings.justNow");
+  if (minutes < 60) return t("mobile.syncSettings.minAgo", { minutes });
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return `il y a ${hours} h`;
+  if (hours < 24) return t("mobile.syncSettings.hAgo", { hours });
   return new Date(time).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
 }
 
 /** QR code drawn locally with react-native-svg (uqr, pure JS). */
-export const QrCode = memo(function QrCode({ value, size, label = "QR code de jumelage" }: { value: string; size: number; label?: string }) {
+export const QrCode = memo(function QrCode({ value, size, label = t("mobile.syncSettings.pairingQrCode") }: { value: string; size: number; label?: string }) {
   const qr = useMemo(() => encode(value, { ecc: "M", border: 2 }), [value]);
   const path = useMemo(() => qr.data.flatMap((row, y) => row.map((on, x) => (on ? `M${x} ${y}h1v1h-1z` : ""))).join(""), [qr]);
   return (

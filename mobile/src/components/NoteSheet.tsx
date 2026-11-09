@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { memo, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
@@ -22,7 +23,7 @@ export const NoteSheet = memo(function NoteSheet({ target, onSave, onClose }: { 
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [text, setText] = useState(target.initial);
-  const title = target.kind === "page" ? "Note de la page" : "Note du passage";
+  const title = target.kind === "page" ? t("mobile.noteSheet.pageNote") : t("mobile.noteSheet.passageNote");
 
   const save = () => {
     if (text !== target.initial) onSave(text.trim());
@@ -32,7 +33,7 @@ export const NoteSheet = memo(function NoteSheet({ target, onSave, onClose }: { 
   return (
     <View style={StyleSheet.absoluteFill}>
       <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: colors.scrim }]}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Annuler" />
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel={t("mobile.noteSheet.cancel")} />
       </Animated.View>
       <KeyboardAvoidingView behavior="padding" style={styles.avoid} pointerEvents="box-none">
         <Animated.View style={[styles.sheet, { backgroundColor: colors.bgElevated, paddingBottom: insets.bottom + 16 }]} accessibilityViewIsModal>
@@ -41,8 +42,8 @@ export const NoteSheet = memo(function NoteSheet({ target, onSave, onClose }: { 
             <Text style={[styles.title, { color: colors.text }]} accessibilityRole="header">
               {title}
             </Text>
-            <Tap accessibilityRole="button" accessibilityLabel="Enregistrer la note" onPress={save} style={styles.ok} pressScale={0.9}>
-              <Text style={[styles.okText, { color: colors.accentText }]}>OK</Text>
+            <Tap accessibilityRole="button" accessibilityLabel={t("mobile.noteSheet.saveNote")} onPress={save} style={styles.ok} pressScale={0.9}>
+              <Text style={[styles.okText, { color: colors.accentText }]}>{t("mobile.noteSheet.ok")}</Text>
             </Tap>
           </View>
           {target.context !== "" && (
@@ -58,13 +59,13 @@ export const NoteSheet = memo(function NoteSheet({ target, onSave, onClose }: { 
             autoFocus
             textAlignVertical="top"
             style={[styles.input, { color: colors.text, backgroundColor: colors.surface }]}
-            placeholder="Écrire une note…"
+            placeholder={t("mobile.noteSheet.writeNote")}
             placeholderTextColor={colors.textFaint}
             accessibilityLabel={title}
           />
           {target.initial !== "" && (
             <Tap accessibilityRole="button" onPress={() => (onSave(""), onClose())} style={styles.remove}>
-              <Text style={{ color: colors.danger, fontSize: 15 }}>Supprimer la note</Text>
+              <Text style={{ color: colors.danger, fontSize: 15 }}>{t("mobile.noteSheet.deleteNote")}</Text>
             </Tap>
           )}
         </Animated.View>

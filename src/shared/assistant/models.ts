@@ -5,9 +5,11 @@
  * fallback on a refusal (`fallbacks: "default"`).
  */
 
+import { t } from "../i18n";
+
 export const ASSISTANT_MODELS = [
-  { id: "claude-opus-5-5", label: "Claude Opus 5.5", hint: "Recommandé : rapide et précis", effort: "low" },
-  { id: "claude-fable-5-1", label: "Claude Fable 5.1", hint: "Plus puissant, plus lent et plus coûteux", effort: "medium" },
+  { id: "claude-opus-5-5", label: "Claude Opus 5.5", get hint() { return t("assistantModels.recommendedFastAccurate") }, effort: "low" },
+  { id: "claude-fable-5-1", label: "Claude Fable 5.1", get hint() { return t("assistantModels.morePowerfulSlowerMore") }, effort: "medium" },
 ] as const;
 
 export type AssistantModelId = (typeof ASSISTANT_MODELS)[number]["id"];

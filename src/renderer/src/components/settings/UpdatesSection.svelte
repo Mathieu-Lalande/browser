@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { UpdateChannel } from "@shared/settings";
   import { isUpdateBusy, updateStatusText } from "@shared/updates";
   import { api } from "../../lib/browser.svelte";
@@ -19,59 +20,57 @@
 </script>
 
 <Row
-  label="État"
+  label={t("updatesSection.status")}
   hint={status?.phase === "manual"
-    ? "Cette installation ne peut pas se mettre à jour seule (application non signée sur macOS, paquet .deb ou version portable) : téléchargez la nouvelle version depuis sa page."
+    ? t("updatesSection.installationCantUpdateItself")
     : lastCheck
-      ? `Dernière vérification : ${lastCheck}`
+      ? t("updatesSection.lastCheck", { lastCheck })
       : undefined}
 >
   <div class="status" role="status" data-phase={status?.phase ?? "disabled"}>
     {#if status?.phase === "downloading"}
       <span class="bar" aria-hidden="true"><span style:width="{status.percent}%"></span></span>
     {/if}
-    <span>{status ? updateStatusText(status) : "Mises à jour automatiques indisponibles dans cette version."}</span>
+    <span>{status ? updateStatusText(status) : t("updatesSection.automaticUpdatesUnavailableVersion")}</span>
   </div>
 </Row>
 <div class="actions">
   {#if status?.phase === "ready"}
-    <button class="primary" onclick={() => api.updates.install()}><Icon name="update" size={12} /> Redémarrer pour installer</button>
+    <button class="primary" onclick={() => api.updates.install()}><Icon name="update" size={12} /> {t("updatesSection.restartInstall")}</button>
   {:else if status?.phase === "available"}
-    <button class="primary" onclick={() => api.updates.download()}><Icon name="download" size={12} /> Télécharger</button>
+    <button class="primary" onclick={() => api.updates.download()}><Icon name="download" size={12} /> {t("updatesSection.download")}</button>
   {:else if status?.phase === "manual"}
-    <button class="primary" onclick={() => api.tabs.create(status.releaseUrl)}><Icon name="open" size={12} /> Mise à jour manuelle requise : ouvrir la page</button>
+    <button class="primary" onclick={() => api.tabs.create(status.releaseUrl)}><Icon name="open" size={12} /> {t("updatesSection.manualUpdateRequiredOpen")}</button>
   {/if}
   <button class="secondary" disabled={!status || isUpdateBusy(status)} onclick={() => api.updates.check()}>
-    <Icon name="reload" size={12} /> Rechercher des mises à jour
+    <Icon name="reload" size={12} /> {t("updatesSection.checkUpdates")}
   </button>
 </div>
-<Row label="Téléchargement automatique" hint="Télécharge les nouvelles versions en arrière-plan ; elles s'installent au prochain redémarrage.">
+<Row label={t("updatesSection.automaticDownload")} hint={t("updatesSection.downloadsNewVersionsBackground")}>
   <Toggle
-    label="Téléchargement automatique"
+    label={t("updatesSection.automaticDownload")}
     checked={prefs.autoDownload}
     onchange={(autoDownload) => settings.update({ updates: { autoDownload } })}
   />
 </Row>
-<Row anchor="channel" label="Canal" hint="Bêta : versions préliminaires, plus tôt mais moins éprouvées.">
+<Row anchor="channel" label={t("updatesSection.channel")} hint={t("updatesSection.betaPreviewVersionsEarlier")}>
   <Segmented
-    label="Canal de mise à jour"
+    label={t("updatesSection.updateChannel")}
     value={prefs.channel}
     options={[
       { value: "stable" as UpdateChannel, label: "Stable" },
-      { value: "beta" as UpdateChannel, label: "Bêta" },
+      { value: "beta" as UpdateChannel, label: t("updatesSection.beta") },
     ]}
     onchange={(channel) => settings.update({ updates: { channel } })}
   />
 </Row>
 <div class="beta" data-setting="beta" data-testid="beta-program">
-  <strong>Programme bêta</strong>
+  <strong>{t("updatesSection.betaProgram")}</strong>
   <p>
-    Le canal Bêta reçoit les nouveautés quelques jours ou semaines avant tout le monde. Elles peuvent contenir des défauts : vos données
-    restent les vôtres (même profil, mêmes formats), et revenir au canal Stable se fait ici, la version stable suivante remplaçant la bêta.
-    Si quelque chose ne va pas, Aide, Signaler un problème ouvre un formulaire prérempli avec la version et le système, rien d'autre.
-    {#if prefs.channel === "beta"}Merci de tester !{/if}
+    {t("updatesSection.betaChannelGetsNew")}
+    {#if prefs.channel === "beta"}{t("updatesSection.thanksTesting")}{/if}
   </p>
-  <button class="secondary" onclick={() => api.commands.run("report-issue")}><Icon name="bug" size={12} /> Signaler un problème</button>
+  <button class="secondary" onclick={() => api.commands.run("report-issue")}><Icon name="bug" size={12} /> {t("updatesSection.reportProblem")}</button>
 </div>
 
 <style>

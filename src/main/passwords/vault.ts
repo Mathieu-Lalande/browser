@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { randomBytes } from "node:crypto";
 import { join } from "node:path";
 import { safeStorage } from "electron";
@@ -19,8 +20,8 @@ interface Stored {
   ciphertext: string;
 }
 
-const UNAVAILABLE = "Le chiffrement du système n'est pas disponible : les mots de passe ne peuvent pas être enregistrés sur cet appareil.";
-const LOCKED = "Les mots de passe enregistrés ne peuvent pas être déchiffrés (trousseau du système verrouillé ou changé) : rien n'est modifié.";
+const UNAVAILABLE = t("passwordsVault.systemEncryptionIsntAvailable");
+const LOCKED = t("passwordsVault.savedPasswordsCantDecrypted");
 
 export interface VaultOptions {
   /** Where `passwords.json` lives. */
@@ -73,7 +74,7 @@ export class PasswordVaultStore {
     } catch {
       return { ok: false, message: UNAVAILABLE };
     }
-    if (!current.file.save({ ciphertext })) return { ok: false, message: "Le fichier des mots de passe n'a pas pu être écrit." };
+    if (!current.file.save({ ciphertext })) return { ok: false, message: t("passwordsVault.passwordFileCouldntWritten") };
     current.vault = next;
     current.origins = new Set(next.entries.map((entry) => entry.origin));
     this.changes.emit();

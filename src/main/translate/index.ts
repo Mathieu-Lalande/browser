@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { app, type WebContents } from "electron";
 import { pageLanguage, targetLanguage } from "@shared/translate/languages";
 import { createProvider, TranslationError, type ProviderConfig, type TranslateProviderId } from "@shared/translate/providers";
@@ -27,7 +28,7 @@ import { TranslationRun } from "./run";
  * this language, never this site), the run in progress and what the UIs show (`TabTranslation`).
  */
 
-const PRIVATE_NOTICE = "Fenêtre privée : confirmez l'envoi du texte de la page au service de traduction.";
+const PRIVATE_NOTICE = t("translateIndex.privateWindowConfirmSending");
 
 /** The UI/system languages, for the default target. */
 function preferredLanguages(): string[] {
@@ -41,7 +42,7 @@ export function currentTarget(): string {
 /** The configured provider's settings and key (throws a French `config` error when incomplete). */
 function providerConfig(): ProviderConfig {
   const current = settings().translate;
-  if (current.provider === "none") throw new TranslationError("config", "Choisissez un service de traduction dans Paramètres → Traduction.");
+  if (current.provider === "none") throw new TranslationError("config", t("translateIndex.chooseTranslationServiceSettings"));
   return { provider: current.provider, apiKey: translateKeys.get(current.provider), deeplPlan: current.deeplPlan, libreUrl: current.libreUrl };
 }
 
@@ -64,13 +65,13 @@ function isConfigured(): boolean {
   }
 }
 
-const message = (error: unknown) => (error instanceof TranslationError ? error.message : "La traduction a échoué.");
+const message = (error: unknown) => (error instanceof TranslationError ? error.message : t("translateIndex.translationFailed"));
 
 /** "Tester" in the settings: a short sample through the configured provider. */
 export async function testProvider(): Promise<TranslateResultMessage> {
   try {
     const sample = await testTranslation(currentTranslator(), currentTarget());
-    return { ok: true, message: `Fonctionne : « ${sample} »` };
+    return { ok: true, message: t("translateIndex.works", { sample }) };
   } catch (error) {
     return { ok: false, message: message(error) };
   }
@@ -80,7 +81,7 @@ export const keysStatus = () => translateKeys.status();
 
 export function setProviderKey(provider: TranslateProviderId, key: string): TranslateResultMessage {
   const result = translateKeys.set(provider, key);
-  return result.ok ? { ok: true, message: key.trim() ? "Clé enregistrée." : "Clé supprimée." } : result;
+  return result.ok ? { ok: true, message: key.trim() ? t("translateIndex.keySaved") : t("translateIndex.keyDeleted") } : result;
 }
 
 interface TabEntry {
@@ -177,9 +178,9 @@ export class PageTranslator {
    */
   async translate(tabId: TabId, from: string | null, to: string, consent = false): Promise<TranslateResultMessage> {
     const entry = this.entryOf(tabId);
-    if (!entry) return { ok: false, message: "Cette page ne peut pas être traduite." };
+    if (!entry) return { ok: false, message: t("translateIndex.pageCantTranslated") };
     if (consent) this.consent();
-    if (this.needsConsent) return { ok: false, message: this.c.isPrivate ? PRIVATE_NOTICE : "Acceptez d'abord l'envoi du texte au service de traduction." };
+    if (this.needsConsent) return { ok: false, message: this.c.isPrivate ? PRIVATE_NOTICE : t("translateIndex.acceptSendingTextTranslation") };
     let translator: Translator;
     try {
       translator = currentTranslator();

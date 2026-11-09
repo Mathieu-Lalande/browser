@@ -3,6 +3,8 @@
  * main process reads the files (`src/main/import/`), these modules only interpret their content.
  */
 
+import { t } from "../i18n";
+
 export type BrowserKind = "chrome" | "edge" | "brave" | "vivaldi" | "opera" | "chromium" | "firefox" | "arc";
 
 export const BROWSER_NAMES: Record<BrowserKind, string> = {
@@ -45,10 +47,10 @@ export const IMPORT_ITEMS: readonly ImportItem[] = ["bookmarks", "history", "fav
 export const isImportItem = (value: unknown): value is ImportItem => typeof value === "string" && (IMPORT_ITEMS as readonly string[]).includes(value);
 
 export const IMPORT_ITEM_LABELS: Record<ImportItem, string> = {
-  bookmarks: "Favoris (marque-pages)",
-  history: "Historique",
-  favorites: "Grille des favoris",
-  searchEngine: "Moteur de recherche",
+  get bookmarks() { return t("importTypes.bookmarks") },
+  get history() { return t("importTypes.history") },
+  get favorites() { return t("importTypes.favoritesGrid") },
+  get searchEngine() { return t("importTypes.searchEngine") },
 };
 
 export interface ImportProfile {

@@ -4,6 +4,8 @@
  * adapters: validation, list edits, the badge read from a page title, and the synced record.
  */
 
+import { t } from "./i18n";
+
 export const PANELS_VERSION = 1;
 export const MAX_PANELS = 16;
 export const MAX_PANEL_TITLE = 80;
@@ -51,7 +53,7 @@ export const PANEL_SUGGESTIONS: readonly { title: string; url: string; mobile: b
   { title: "ChatGPT", url: "https://chatgpt.com/", mobile: false },
   { title: "Claude", url: "https://claude.ai/", mobile: false },
   { title: "Gmail", url: "https://mail.google.com/", mobile: true },
-  { title: "Google Agenda", url: "https://calendar.google.com/", mobile: true },
+  { get title() { return t("panels.googleCalendar") }, url: "https://calendar.google.com/", mobile: true },
   { title: "Discord", url: "https://discord.com/app", mobile: false },
 ];
 
@@ -137,11 +139,11 @@ export function addPanel(
   id: string,
   now: number,
 ): PanelAddResult {
-  if (!isPanelUrl(input.url)) return { ok: false, message: "Adresse invalide : seules les pages web (https://…) peuvent devenir un panneau." };
-  if (list.length >= MAX_PANELS) return { ok: false, message: `${MAX_PANELS} panneaux au maximum.` };
-  if (list.some((panel) => samePanelUrl(panel.url, input.url))) return { ok: false, message: "Ce site est déjà dans les panneaux." };
+  if (!isPanelUrl(input.url)) return { ok: false, message: t("panels.invalidAddressOnlyWeb") };
+  if (list.length >= MAX_PANELS) return { ok: false, message: t("panels.panelsMost", { MAX_PANELS }) };
+  if (list.some((panel) => samePanelUrl(panel.url, input.url))) return { ok: false, message: t("panels.siteAlreadyPanels") };
   const panel = sanitizePanel({ id, url: input.url, title: input.title ?? "", mobile: input.mobile === true, width: PANEL_WIDTH.default, createdAt: now });
-  if (!panel) return { ok: false, message: "Panneau invalide." };
+  if (!panel) return { ok: false, message: t("panels.invalidPanel") };
   return { ok: true, panels: [...list, panel], panel };
 }
 

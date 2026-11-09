@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { widevineLabel, type WidevineStatus } from "@shared/drm";
   import { api } from "../../lib/browser.svelte";
   import { settings } from "../../lib/settings.svelte";
@@ -33,15 +34,15 @@
 
   const hint = $derived(
     status?.state === "disabled"
-      ? "Netflix, Disney+, Prime Video et Spotify ne pourront pas lire leurs contenus."
-      : "Lecture des vidéos et musiques protégées (Netflix, Disney+, Prime Video, Spotify) grâce au module Widevine de Google.",
+      ? t("drmRow.netflixDisneyPrimeVideo")
+      : t("drmRow.playbackProtectedVideosMusic"),
   );
 </script>
 
-<Row anchor="drm" label="Contenus protégés (DRM)" {hint} keywords="widevine netflix disney prime video spotify streaming drm">
+<Row anchor="drm" label={t("drmRow.protectedContentDrm")} {hint} keywords={t("drmRow.widevineNetflixDisneyPrime")}>
   <span class="status" data-testid="drm-status">{widevineLabel(status)}</span>
   <Toggle
-    label="Contenus protégés (DRM)"
+    label={t("drmRow.protectedContentDrm")}
     checked={enabled}
     onchange={(protectedContent) => settings.update({ privacy: { protectedContent } })}
   />

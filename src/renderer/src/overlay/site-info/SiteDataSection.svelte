@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { PERMISSION_LABELS, cookieCount, type SiteInfo, type SitePermission } from "@shared/site-info";
   import type { TabId } from "@shared/types";
   import { api } from "../../lib/browser.svelte";
@@ -34,29 +35,29 @@
 <section class="kit-section" aria-labelledby="site-cookies">
   <div class="kit-line">
     <Icon name="cookie" size={14} />
-    <span class="kit-label" id="site-cookies">Cookies et données du site</span>
+    <span class="kit-label" id="site-cookies">{t("siteDataSection.siteCookiesData")}</span>
     <span class="kit-value" data-testid="cookie-count">{cookieCount(info.cookies)}</span>
   </div>
   <div class="kit-actions">
-    {#if cleared}<span class="done"><Icon name="check" size={12} /> Données effacées</span>{/if}
-    <ConfirmButton variant="outlined" question="Effacer et recharger ?" confirmLabel="Effacer" onconfirm={clearData}>
-      <Icon name="trash" size={12} /> Effacer les cookies et données du site
+    {#if cleared}<span class="done"><Icon name="check" size={12} /> {t("siteDataSection.dataCleared")}</span>{/if}
+    <ConfirmButton variant="outlined" question={t("siteDataSection.clearReload")} confirmLabel={t("siteDataSection.clear")} onconfirm={clearData}>
+      <Icon name="trash" size={12} /> {t("siteDataSection.clearSitesCookiesData")}
     </ConfirmButton>
   </div>
   {#if info.thirdPartyCookies.blocking}
     <div class="kit-line">
-      <span class="kit-label">Autoriser les cookies tiers sur ce site</span>
+      <span class="kit-label">{t("siteDataSection.allowThirdPartyCookies")}</span>
       {#if info.isPrivate}
-        <span class="kit-value">{info.thirdPartyCookies.allowedHere ? "Autorisés" : "Bloqués"}</span>
+        <span class="kit-value">{info.thirdPartyCookies.allowedHere ? t("siteDataSection.allowed") : t("siteDataSection.blocked")}</span>
       {:else}
-        <Toggle label="Autoriser les cookies tiers sur ce site" checked={info.thirdPartyCookies.allowedHere} onchange={allowThirdParty} />
+        <Toggle label={t("siteDataSection.allowThirdPartyCookies")} checked={info.thirdPartyCookies.allowedHere} onchange={allowThirdParty} />
       {/if}
     </div>
   {/if}
 </section>
 
 <section class="kit-section" aria-labelledby="site-permissions">
-  <div class="kit-line"><Icon name="key" size={14} /><span class="kit-label" id="site-permissions">Autorisations</span></div>
+  <div class="kit-line"><Icon name="key" size={14} /><span class="kit-label" id="site-permissions">{t("siteDataSection.permissions")}</span></div>
   {#if info.permissions.length}
     <ul class="kit-list">
       {#each info.permissions as permission (`${permission.origin} ${permission.kind}`)}
@@ -64,31 +65,31 @@
           <span class="kit-text">
             <span>{PERMISSION_LABELS[permission.kind]}</span>
             <span class="kit-hint">
-              {permission.decision === "allow" ? "Autorisé" : "Bloqué"}{permission.remembered ? "" : " jusqu'à la fermeture"}{permission.origin !== info.origin ? ` · ${permission.origin}` : ""}
+              {permission.decision === "allow" ? t("siteDataSection.allowed2") : t("siteDataSection.blocked2")}{permission.remembered ? "" : t("siteDataSection.untilClosing")}{permission.origin !== info.origin ? ` · ${permission.origin}` : ""}
             </span>
           </span>
           <Button
             variant="quiet"
             size="sm"
             onclick={() => flipPermission(permission)}
-            aria-label="{permission.decision === 'allow' ? 'Bloquer' : 'Autoriser'} : {PERMISSION_LABELS[permission.kind]}"
+            aria-label="{permission.decision === 'allow' ? t("siteDataSection.block") : t("siteDataSection.allow")} : {PERMISSION_LABELS[permission.kind]}"
           >
-            {permission.decision === "allow" ? "Bloquer" : "Autoriser"}
+            {permission.decision === "allow" ? t("siteDataSection.block") : t("siteDataSection.allow")}
           </Button>
           <Button
             variant="quiet"
             size="sm"
             onclick={() => resetPermission(permission)}
-            aria-label="Réinitialiser : {PERMISSION_LABELS[permission.kind]}"
-            title="Le site demandera de nouveau"
+            aria-label={t("siteDataSection.reset", { p: PERMISSION_LABELS[permission.kind] })}
+            title={t("siteDataSection.siteWillAskAgain")}
           >
-            <Icon name="reset" size={12} /> Réinitialiser
+            <Icon name="reset" size={12} /> {t("siteDataSection.reset2")}
           </Button>
         </li>
       {/each}
     </ul>
   {:else}
-    <p class="kit-hint">Aucune autorisation accordée ni refusée à ce site.</p>
+    <p class="kit-hint">{t("siteDataSection.noPermissionGrantedRefused")}</p>
   {/if}
 </section>
 

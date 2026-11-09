@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { LIMITS } from "@shared/start-widgets";
   import { browser } from "../../../lib/browser.svelte";
   import type { WidgetProps } from "../types";
@@ -6,10 +7,10 @@
   let { widget, layout }: WidgetProps<"notes"> = $props();
 </script>
 
-<h2 class="widget-title">Notes</h2>
+<h2 class="widget-title">{t("notesWidget.notes")}</h2>
 <textarea
-  aria-label="Notes rapides"
-  placeholder={browser.isPrivate ? "Notes non conservées en navigation privée…" : "Une idée, une adresse, une liste…"}
+  aria-label={t("notesWidget.quickNotes")}
+  placeholder={browser.isPrivate ? t("notesWidget.notesNotKeptPrivate") : t("notesWidget.ideaAddressList")}
   maxlength={LIMITS.notes}
   value={widget.options.text}
   oninput={(event) => layout.setOptions(widget.id, { text: event.currentTarget.value }, true)}

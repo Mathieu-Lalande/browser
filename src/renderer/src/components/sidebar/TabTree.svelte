@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { SidebarRow } from "@shared/folders";
   import { api, browser } from "../../lib/browser.svelte";
   import type { TabSelection } from "../../lib/tab-selection.svelte";
@@ -117,7 +118,7 @@
   class="tabs"
   class:dragging={drag.current}
   role="tablist"
-  aria-label="Onglets"
+  aria-label={t("tabTree.tabs")}
   aria-orientation="vertical"
   tabindex="-1"
   bind:this={drag.list}
@@ -152,8 +153,8 @@
           class="more"
           icon="more"
           iconSize={14}
-          label={`Modifier le dossier ${folder.name}`}
-          title="Modifier le dossier"
+          label={t("tabTree.editFolder", { name: folder.name })}
+          title={t("tabTree.editFolder2")}
           onclick={() => onEditFolder(folder.id)}
         />
       </TreeRow>

@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { displayUrl } from "@shared/url";
 import type { MenuItem, MenuSpec } from "../components/ActionSheet";
 import type { PeekRequest } from "../components/PeekSheet";
@@ -35,19 +36,19 @@ export function useLinkMenu({
     if (busy) return;
     haptic("medium");
     const items: MenuItem[] = [
-      { key: "peek", label: "Aperçu", icon: "eye", onPress: () => setPeek({ url: request.url, isPrivate, afterId: tabId }) },
-      { key: "open", label: "Ouvrir dans un nouvel onglet", icon: "plus", onPress: () => void actions.openUrl(request.url, { private: isPrivate, afterId: tabId }) },
+      { key: "peek", label: t("mobile.useLinkMenu.preview"), icon: "eye", onPress: () => setPeek({ url: request.url, isPrivate, afterId: tabId }) },
+      { key: "open", label: t("mobile.useLinkMenu.openNewTab"), icon: "plus", onPress: () => void actions.openUrl(request.url, { private: isPrivate, afterId: tabId }) },
       {
         key: "background",
-        label: "Ouvrir en arrière-plan",
+        label: t("mobile.useLinkMenu.openBackground"),
         icon: "tabs",
         onPress: () => void actions.openUrl(request.url, { private: isPrivate, background: true, afterId: tabId }),
       },
     ];
-    if (!isPrivate) items.push({ key: "private", label: "Ouvrir dans un onglet privé", icon: "mask", onPress: () => void actions.openUrl(request.url, { private: true }) });
+    if (!isPrivate) items.push({ key: "private", label: t("mobile.useLinkMenu.openPrivateTab"), icon: "mask", onPress: () => void actions.openUrl(request.url, { private: true }) });
     items.push(
-      { key: "copy", label: "Copier le lien", icon: "link", onPress: () => copy(request.url) },
-      { key: "share", label: "Partager le lien", icon: "share", onPress: () => share(request.url, request.text) },
+      { key: "copy", label: t("mobile.useLinkMenu.copyLink"), icon: "link", onPress: () => copy(request.url) },
+      { key: "share", label: t("mobile.useLinkMenu.shareLink"), icon: "share", onPress: () => share(request.url, request.text) },
     );
     setMenu({ title: request.text || displayUrl(request.url), subtitle: request.url, siteUrl: request.url, items });
   });

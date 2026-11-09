@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { readFileSync, statSync } from "node:fs";
 import { app, dialog } from "electron";
 import { Channels } from "@shared/ipc";
@@ -23,7 +24,7 @@ const NOTHING: Omit<PasswordImportSummary, "ok"> = { added: 0, updated: 0, skipp
 /** The file is chosen in main's own dialog: the UI never names a path. */
 async function importPasswordsCsv(c: BrowserController): Promise<PasswordImportSummary> {
   const { canceled, filePaths } = await dialog.showOpenDialog(c.window, {
-    title: "Importer des mots de passe",
+    title: t("ipcImport.importPasswords"),
     defaultPath: app.getPath("downloads"),
     filters: [{ name: "CSV", extensions: ["csv"] }],
     properties: ["openFile"],
@@ -32,10 +33,10 @@ async function importPasswordsCsv(c: BrowserController): Promise<PasswordImportS
   if (canceled || !path) return { ok: true, cancelled: true, ...NOTHING };
   let text: string;
   try {
-    if (statSync(path).size > MAX_PASSWORD_CSV_BYTES) return { ok: false, message: "Ce fichier est trop volumineux.", ...NOTHING };
+    if (statSync(path).size > MAX_PASSWORD_CSV_BYTES) return { ok: false, message: t("ipcImport.fileTooLarge"), ...NOTHING };
     text = readFileSync(path, "utf8");
   } catch {
-    return { ok: false, message: "Ce fichier n'a pas pu être lu.", ...NOTHING };
+    return { ok: false, message: t("ipcImport.fileCouldntRead"), ...NOTHING };
   }
   return appServices().imports.importPasswordCsv(text);
 }

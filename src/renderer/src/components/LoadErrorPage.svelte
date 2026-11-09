@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { describeLoadError, type LoadError, type LoadErrorFamily } from "@shared/load-error";
   import type { TabState } from "@shared/types";
   import { api } from "../lib/browser.svelte";
@@ -40,11 +41,11 @@
     </button>
   </div>
   <details>
-    <summary>Détails</summary>
+    <summary>{t("loadErrorPage.details")}</summary>
     <dl>
-      <dt>Adresse</dt>
+      <dt>{t("loadErrorPage.address")}</dt>
       <dd>{error.url}</dd>
-      <dt>Erreur</dt>
+      <dt>{t("loadErrorPage.error")}</dt>
       <dd><code>{error.description || "Erreur inconnue"}</code> ({error.code})</dd>
     </dl>
   </details>

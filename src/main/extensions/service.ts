@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync, type Dirent } from "node:fs";
 import { dirname, extname, join, resolve, sep } from "node:path";
@@ -105,9 +106,9 @@ function readFolder(root: string): { raw: Record<string, unknown>; messages: Rec
 
 /** Validates a folder's manifest; its toolbar button and permission warnings come along. */
 function inspect(root: string): Inspected | Failure {
-  if (!existsSync(join(root, "manifest.json"))) return { ok: false, message: "Ce dossier ne contient pas de fichier manifest.json." };
+  if (!existsSync(join(root, "manifest.json"))) return { ok: false, message: t("extensionsService.folderHasNoManifest") };
   const folder = readFolder(root);
-  if (!folder) return { ok: false, message: "Le fichier manifest.json de l'extension est illisible." };
+  if (!folder) return { ok: false, message: t("extensionsService.extensionsManifestJsonFile") };
   const check = validateManifest(folder.raw, folder.messages);
   if (!check.ok) return check;
   const { action } = folder;
@@ -217,7 +218,7 @@ export class ExtensionService implements SessionService {
 
   /** "Charger un dossier" : an unpacked extension, used in place (never copied nor deleted). */
   async installFromFolder(window: BaseWindow | null): Promise<ExtensionInstallResult> {
-    const folder = await pick(window, { title: "Choisir le dossier d'une extension", properties: ["openDirectory"] });
+    const folder = await pick(window, { title: t("extensionsService.chooseExtensionFolder"), properties: ["openDirectory"] });
     if (!folder) return null;
     return this.installFolder(resolve(folder), newId(), false);
   }
@@ -225,17 +226,17 @@ export class ExtensionService implements SessionService {
   /** "Installer un fichier" : a .zip or .crx, unpacked into `<profile>/extensions/<id>/`. */
   async installFromFile(window: BaseWindow | null): Promise<ExtensionInstallResult> {
     const file = await pick(window, {
-      title: "Choisir une extension (.zip ou .crx)",
+      title: t("extensionsService.chooseExtensionZipCrx"),
       properties: ["openFile"],
-      filters: [{ name: "Extensions", extensions: ["zip", "crx"] }],
+      filters: [{ name: t("extensionsService.extensions"), extensions: ["zip", "crx"] }],
     });
     if (!file) return null;
     let data: Buffer;
     try {
-      if (statSync(file).size > MAX_PACKED_SIZE) return failure("Ce fichier est trop volumineux pour une extension.");
+      if (statSync(file).size > MAX_PACKED_SIZE) return failure(t("extensionsService.fileTooLargeExtension"));
       data = readFileSync(file);
     } catch {
-      return failure("Impossible de lire ce fichier.");
+      return failure(t("extensionsService.cantReadFile"));
     }
     const id = newId();
     const target = join(this.opened().dir, id);
@@ -243,7 +244,7 @@ export class ExtensionService implements SessionService {
       unpackExtension(data, target);
     } catch (error) {
       rmSync(target, { recursive: true, force: true });
-      return failure(error instanceof UnpackError ? error.message : "Impossible de décompresser l'extension.");
+      return failure(error instanceof UnpackError ? error.message : t("extensionsService.cantUnpackExtension"));
     }
     const result = await this.installFolder(target, id, true);
     if (!result?.ok) rmSync(target, { recursive: true, force: true });
@@ -257,11 +258,11 @@ export class ExtensionService implements SessionService {
    */
   async installFromWebStore(webStoreId: string, review: ExtensionReviewer): Promise<ExtensionInstallResult> {
     const webStore = this.options.webStore;
-    if (!webStore) return failure("L'installation depuis le Chrome Web Store n'est pas disponible.");
-    if (this.opened().store.list().some((record) => record.webStoreId === webStoreId)) return failure("Cette extension est déjà installée.");
+    if (!webStore) return failure(t("extensionsService.installingFromChromeWeb"));
+    if (this.opened().store.list().some((record) => record.webStoreId === webStoreId)) return failure(t("extensionsService.extensionAlreadyInstalled"));
     const current = this.storeProgress.get(webStoreId);
     if (current && current.phase !== "error") return null;
-    const result = await this.runStoreInstall(webStoreId, webStore, review).catch((): ExtensionInstallResult => failure("L'installation de l'extension a échoué."));
+    const result = await this.runStoreInstall(webStoreId, webStore, review).catch((): ExtensionInstallResult => failure(t("extensionsService.extensionInstallationFailed")));
     if (result && !result.ok) this.setProgress({ webStoreId, phase: "error", message: result.message });
     else this.setProgress(webStoreId);
     return result;
@@ -298,7 +299,7 @@ export class ExtensionService implements SessionService {
     try {
       crx = await webStore.download(webStoreId, () => this.setProgress({ webStoreId, phase: "verify" }));
     } catch (error) {
-      return failure(error instanceof UnpackError ? error.message : "Le téléchargement de l'extension a échoué.");
+      return failure(error instanceof UnpackError ? error.message : t("extensionsService.extensionDownloadFailed"));
     }
     const id = newId();
     const target = join(this.opened().dir, id);
@@ -335,7 +336,7 @@ export class ExtensionService implements SessionService {
       if (dropped.kind === "file") unpackExtension(Buffer.from(dropped.data), target);
       else writeDroppedFolder(dropped.files, target);
     } catch (error) {
-      return discard(failure(error instanceof UnpackError ? error.message : "Impossible de décompresser l'extension."));
+      return discard(failure(error instanceof UnpackError ? error.message : t("extensionsService.cantUnpackExtension")));
     }
     const inspected = inspect(target);
     if (isFailure(inspected)) return discard(inspected);
@@ -491,7 +492,7 @@ export class ExtensionService implements SessionService {
       if (session.loaded.get(record.id) === PENDING) session.loaded.delete(record.id);
       // Private windows' sessions are in memory, which Electron refuses: not the extension's fault.
       if (session.ephemeral) return null;
-      return `Le navigateur n'a pas pu charger l'extension : ${describe(error)}`;
+      return t("extensionsService.browserCouldntLoadExtension", { p: describe(error) });
     }
   }
 
@@ -530,11 +531,11 @@ export class ExtensionService implements SessionService {
   /** Why an extension at `root` named `name` cannot be added, if it cannot. */
   private duplicateOf(root: string, name: string): string | null {
     const { store } = this.opened();
-    if (store.byPath(root)) return "Cette extension est déjà installée.";
+    if (store.byPath(root)) return t("extensionsService.extensionAlreadyInstalled");
     if (store.list().some((record) => record.name === name)) {
-      return `Une extension nommée « ${name} » est déjà installée : retirez-la d'abord pour la remplacer.`;
+      return t("extensionsService.extensionNamedAlreadyInstalled", { name });
     }
-    return store.full ? "Trop d'extensions installées." : null;
+    return store.full ? t("extensionsService.tooManyExtensionsInstalled") : null;
   }
 
   /** Validates the folder's manifest, records the extension and loads it everywhere it belongs. */
@@ -590,7 +591,7 @@ export class ExtensionService implements SessionService {
       }
     } catch (error) {
       rmSync(target, { recursive: true, force: true });
-      return { ok: false, message: error instanceof UnpackError ? error.message : "Impossible de décompresser l'extension." };
+      return { ok: false, message: error instanceof UnpackError ? error.message : t("extensionsService.cantUnpackExtension") };
     }
     const inspected = inspect(target);
     if (isFailure(inspected)) rmSync(target, { recursive: true, force: true });
@@ -600,12 +601,12 @@ export class ExtensionService implements SessionService {
   private async runUpdates(review?: ExtensionReviewer): Promise<ExtensionUpdateResult> {
     const webStore = this.options.webStore;
     const candidates = this.opened().store.list().filter((record) => record.webStoreId);
-    if (!webStore || !candidates.length) return { ok: true, message: "Aucune extension installée depuis le Chrome Web Store." };
+    if (!webStore || !candidates.length) return { ok: true, message: t("extensionsService.noExtensionsInstalledFrom") };
     let latest: Map<string, string>;
     try {
       latest = await webStore.latestVersions(candidates.map((record) => ({ id: record.webStoreId!, version: record.version })));
     } catch (error) {
-      return { ok: false, message: error instanceof UnpackError ? error.message : "Impossible de joindre le Chrome Web Store." };
+      return { ok: false, message: error instanceof UnpackError ? error.message : t("extensionsService.cantReachChromeWeb") };
     }
     this.lastCheckFile().save(Date.now());
     const updated: string[] = [];
@@ -614,12 +615,12 @@ export class ExtensionService implements SessionService {
       const version = latest.get(record.webStoreId!);
       if (!version || compareVersions(version, record.version) <= 0) continue;
       const outcome = await this.updateOne(record.id, review);
-      if (outcome === true) updated.push(`« ${record.name} » ${this.opened().store.get(record.id)?.version ?? version}`);
-      else if (outcome) problems.push(`« ${record.name} » : ${outcome}`);
+      if (outcome === true) updated.push(t("extensionsService.text", { name: record.name, p: this.opened().store.get(record.id)?.version ?? version }));
+      else if (outcome) problems.push(t("extensionsService.text2", { name: record.name, outcome }));
     }
     this.notify();
-    if (!updated.length && !problems.length) return { ok: true, message: "Toutes les extensions sont à jour." };
-    const parts = [...(updated.length ? [`Mise à jour : ${updated.join(", ")}.`] : []), ...problems];
+    if (!updated.length && !problems.length) return { ok: true, message: t("extensionsService.allExtensionsAreUp") };
+    const parts = [...(updated.length ? [t("extensionsService.updated", { p: updated.join(", ") })] : []), ...problems];
     return { ok: !problems.length, message: parts.join(" ") };
   }
 
@@ -632,7 +633,7 @@ export class ExtensionService implements SessionService {
     try {
       crx = await this.options.webStore.download(old.webStoreId);
     } catch (error) {
-      return error instanceof UnpackError ? error.message : "téléchargement impossible.";
+      return error instanceof UnpackError ? error.message : t("extensionsService.downloadFailed");
     }
     const target = join(dir, `${id}-${randomBytes(4).toString("hex")}`);
     const unpacked = this.unpackStorePackage(crx, target);
@@ -647,7 +648,7 @@ export class ExtensionService implements SessionService {
     const added = details.permissions.filter((label) => !known.has(label));
     if (added.length) {
       if (!review) {
-        const message = "la nouvelle version demande des autorisations supplémentaires : lancez « Mettre à jour les extensions » pour les accepter.";
+        const message = t("extensionsService.newVersionAsksMore");
         this.errors.set(id, `Mise à jour en attente : ${message}`);
         return discard(message);
       }
@@ -716,20 +717,20 @@ function folderSize(root: string): number {
 
 /** A dropped folder's files written into `target`, every path checked and the sizes bounded. */
 function writeDroppedFolder(files: readonly { path: string; data: Uint8Array }[], target: string): void {
-  if (files.length > MAX_DROPPED_FILES) throw new UnpackError("Ce dossier contient trop de fichiers pour une extension.");
+  if (files.length > MAX_DROPPED_FILES) throw new UnpackError(t("extensionsService.folderContainsTooMany"));
   let total = 0;
   // A folder dropped as itself: its files are `<name>/…`; one dropped as its content: `…`.
   const top = files[0]?.path.split("/")[0];
   const prefix = !files.some((file) => file.path === "manifest.json") && top && files.every((file) => file.path.startsWith(`${top}/`)) ? `${top}/` : "";
-  if (!files.some((file) => file.path === `${prefix}manifest.json`)) throw new UnpackError("Ce dossier ne contient pas de fichier manifest.json.");
+  if (!files.some((file) => file.path === `${prefix}manifest.json`)) throw new UnpackError(t("extensionsService.folderHasNoManifest"));
   const root = resolve(target);
   for (const file of files) {
     const path = file.path.slice(prefix.length);
-    if (!isSafeRelativePath(path)) throw new UnpackError(`Chemin refusé « ${path.slice(0, 80)} ».`);
+    if (!isSafeRelativePath(path)) throw new UnpackError(t("extensionsService.refusedPath", { p: path.slice(0, 80) }));
     total += file.data.length;
-    if (total > MAX_DROPPED_SIZE) throw new UnpackError("Ce dossier est trop volumineux pour une extension.");
+    if (total > MAX_DROPPED_SIZE) throw new UnpackError(t("extensionsService.folderTooLargeExtension"));
     const destination = resolve(join(root, path));
-    if (!destination.startsWith(root + sep)) throw new UnpackError("Le dossier contient un chemin refusé.");
+    if (!destination.startsWith(root + sep)) throw new UnpackError(t("extensionsService.folderContainsRefusedPath"));
     mkdirSync(dirname(destination), { recursive: true });
     writeFileSync(destination, file.data);
   }

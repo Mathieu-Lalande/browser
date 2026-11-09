@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { FindState, TabId } from "@shared/types";
   import { api } from "../lib/browser.svelte";
   import Icon from "./Icon.svelte";
@@ -38,7 +39,7 @@
   }
 </script>
 
-<div class="find-bar" role="search" aria-label="Rechercher dans la page">
+<div class="find-bar" role="search" aria-label={t("findBar.findPage")}>
   <label class="field" class:not-found={notFound}>
     <Icon name="search" size={16} />
     <input
@@ -46,8 +47,8 @@
       bind:value={draft}
       oninput={onInput}
       onkeydown={onKeydown}
-      placeholder="Rechercher dans la page"
-      aria-label="Rechercher dans la page"
+      placeholder={t("findBar.findPage")}
+      aria-label={t("findBar.findPage")}
       spellcheck="false"
       autocomplete="off"
     />
@@ -57,21 +58,21 @@
     class="case"
     class:on={find.matchCase}
     aria-pressed={find.matchCase}
-    aria-label="Respecter la casse"
-    title="Respecter la casse"
+    aria-label={t("findBar.matchCase")}
+    title={t("findBar.matchCase")}
     onclick={() => api.find.query(tabId, draft, !find.matchCase)}
   >
     Aa
   </button>
   <div class="steps">
-    <button aria-label="Occurrence précédente" title="Occurrence précédente (Maj+Entrée)" disabled={!find.matches} onclick={() => api.find.step(tabId, false)}>
+    <button aria-label={t("findBar.previousMatch")} title={t("findBar.previousMatchShiftEnter")} disabled={!find.matches} onclick={() => api.find.step(tabId, false)}>
       <Icon name="chevron-up" size={16} />
     </button>
-    <button aria-label="Occurrence suivante" title="Occurrence suivante (Entrée)" disabled={!find.matches} onclick={() => api.find.step(tabId, true)}>
+    <button aria-label={t("findBar.nextMatch")} title={t("findBar.nextMatchEnter")} disabled={!find.matches} onclick={() => api.find.step(tabId, true)}>
       <Icon name="chevron-down" size={16} />
     </button>
   </div>
-  <button class="close" aria-label="Fermer la recherche" title="Fermer (Échap)" onclick={() => api.find.close(tabId)}>
+  <button class="close" aria-label={t("findBar.closeFind")} title={t("findBar.closeEsc")} onclick={() => api.find.close(tabId)}>
     <Icon name="close" size={12} />
   </button>
 </div>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import {
     DEFAULT_PRINT_OPTIONS,
     PDF_DESTINATION,
@@ -55,7 +56,7 @@
   async function run(): Promise<void> {
     busy = true;
     message = "";
-    const result = await api.print.run($state.snapshot(options)).catch(() => ({ ok: false as const, message: "L'opération a échoué." }));
+    const result = await api.print.run($state.snapshot(options)).catch(() => ({ ok: false as const, message: t("printPreviewPanel.operationFailed") }));
     busy = false;
     if (result.ok) onClose(false);
     else message = result.message;
@@ -83,7 +84,7 @@
 <div
   class="card"
   role="dialog"
-  aria-label="Imprimer"
+  aria-label={t("printPreviewPanel.print")}
   data-testid="print-preview"
   style:left="{card.x}px"
   style:top="{card.y}px"
@@ -91,13 +92,13 @@
   style:height="{card.height}px"
 >
   <div class="panel" style:width="{panel.width}px">
-    <h2>Imprimer</h2>
+    <h2>{t("printPreviewPanel.print")}</h2>
     <p class="title" title={info.title}>{info.title}</p>
 
     <label class="field">
-      <span>Destination</span>
+      <span>{t("printPreviewPanel.destination")}</span>
       <select class="ui-field" value={options.destination} onchange={(event) => changed({ destination: event.currentTarget.value })}>
-        <option value={PDF_DESTINATION}>Enregistrer en PDF</option>
+        <option value={PDF_DESTINATION}>{t("printPreviewPanel.savePdf")}</option>
         {#each printers as printer (printer.name)}
           <option value={printer.name}>{printer.displayName}</option>
         {/each}
@@ -105,22 +106,22 @@
     </label>
 
     <div class="field">
-      <span>Pages</span>
+      <span>{t("printPreviewPanel.pages")}</span>
       <Segmented
-        label="Pages"
+        label={t("printPreviewPanel.pages")}
         value={pagesMode}
         options={[
-          { value: "all" as const, label: "Toutes" },
-          { value: "custom" as const, label: "Personnalisées" },
+          { value: "all" as const, label: t("printPreviewPanel.all") },
+          { value: "custom" as const, label: t("printPreviewPanel.custom") },
         ]}
         onchange={(mode) => setPages(mode)}
       />
       {#if pagesMode === "custom"}
         <input
           class="ui-field"
-          aria-label="Pages à imprimer"
+          aria-label={t("printPreviewPanel.pagesPrint")}
           aria-invalid={!pagesValid}
-          placeholder="Par exemple 1-5, 8"
+          placeholder={t("printPreviewPanel.example158")}
           value={pagesText}
           oninput={(event) => setPages("custom", event.currentTarget.value)}
         />
@@ -128,29 +129,29 @@
     </div>
 
     <div class="field">
-      <span>Orientation</span>
+      <span>{t("printPreviewPanel.orientation")}</span>
       <Segmented
-        label="Orientation"
+        label={t("printPreviewPanel.orientation")}
         value={options.orientation}
         options={[
-          { value: "portrait" as PrintOrientation, label: "Portrait" },
-          { value: "landscape" as PrintOrientation, label: "Paysage" },
+          { value: "portrait" as PrintOrientation, label: t("printPreviewPanel.portrait") },
+          { value: "landscape" as PrintOrientation, label: t("printPreviewPanel.landscape") },
         ]}
         onchange={(orientation) => changed({ orientation })}
       />
     </div>
 
     <label class="field">
-      <span>Marges</span>
+      <span>{t("printPreviewPanel.margins")}</span>
       <select class="ui-field" value={options.margins} onchange={(event) => changed({ margins: event.currentTarget.value as PrintMargins })}>
-        <option value="default">Par défaut</option>
-        <option value="minimum">Minimales</option>
-        <option value="none">Aucune</option>
+        <option value="default">{t("printPreviewPanel.default")}</option>
+        <option value="minimum">{t("printPreviewPanel.minimum")}</option>
+        <option value="none">{t("printPreviewPanel.none")}</option>
       </select>
     </label>
 
     <label class="field">
-      <span>Échelle (%)</span>
+      <span>{t("printPreviewPanel.scale")}</span>
       <input
         class="ui-field"
         type="number"
@@ -164,7 +165,7 @@
 
     {#if !isPdf}
       <label class="field">
-        <span>Copies</span>
+        <span>{t("printPreviewPanel.copies")}</span>
         <input
           class="ui-field"
           type="number"
@@ -176,13 +177,13 @@
       </label>
     {/if}
 
-    <Checkbox checked={options.background} onchange={(background) => changed({ background })}>Graphiques d'arrière-plan</Checkbox>
+    <Checkbox checked={options.background} onchange={(background) => changed({ background })}>{t("printPreviewPanel.backgroundGraphics")}</Checkbox>
 
     {#if message}<p class="message" role="alert">{message}</p>{/if}
 
     <div class="buttons">
-      <Button variant="quiet" onclick={cancel}>Annuler</Button>
-      <Button variant="primary" disabled={busy || !pagesValid} onclick={run}>{isPdf ? "Enregistrer" : "Imprimer"}</Button>
+      <Button variant="quiet" onclick={cancel}>{t("printPreviewPanel.cancel")}</Button>
+      <Button variant="primary" disabled={busy || !pagesValid} onclick={run}>{isPdf ? t("printPreviewPanel.save") : "Imprimer"}</Button>
     </div>
   </div>
 </div>

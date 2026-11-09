@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { ACCENT_PRESETS, LIMITS, PAGE_ZOOM_LEVELS, type BackgroundStyle, type Density, type SettingsPatch, type ThemeMode, type UiFont } from "@shared/settings";
   import { FONT_STACKS, backdrop } from "@shared/theme";
   import { platform } from "../../lib/platform.svelte";
@@ -14,18 +15,18 @@
 
   /** Settings > Apparence: theme mode, colors, background, font, density, motion, default zoom. */
   const MODES: { value: ThemeMode; label: string; icon: IconName }[] = [
-    { value: "system", label: "Système", icon: "monitor" },
-    { value: "light", label: "Clair", icon: "sun" },
-    { value: "dark", label: "Sombre", icon: "moon" },
+    { value: "system", label: t("appearanceSection.system"), icon: "monitor" },
+    { value: "light", label: t("appearanceSection.light"), icon: "sun" },
+    { value: "dark", label: t("appearanceSection.dark"), icon: "moon" },
   ];
   const BACKGROUNDS: { value: BackgroundStyle; label: string }[] = [
-    { value: "gradient", label: "Dégradé" },
-    { value: "mesh", label: "Nuances" },
-    { value: "solid", label: "Uni" },
+    { value: "gradient", label: t("appearanceSection.gradient") },
+    { value: "mesh", label: t("appearanceSection.shades") },
+    { value: "solid", label: t("appearanceSection.solid") },
   ];
   const FONTS: { value: UiFont; label: string }[] = [
-    { value: "system", label: "Système" },
-    { value: "rounded", label: "Arrondie" },
+    { value: "system", label: t("appearanceSection.system") },
+    { value: "rounded", label: t("appearanceSection.rounded") },
     { value: "serif", label: "Serif" },
     { value: "mono", label: "Mono" },
   ];
@@ -43,8 +44,8 @@
   );
 </script>
 
-<Row anchor="theme" label="Mode" hint="Clair, sombre, ou selon le réglage du système." keywords="thème clair sombre système dark light" stacked>
-<div class="modes" role="radiogroup" aria-label="Thème">
+<Row anchor="theme" label={t("appearanceSection.mode")} hint={t("appearanceSection.lightDarkFollowingSystem")} keywords={t("appearanceSection.themeLightDarkSystem")} stacked>
+<div class="modes" role="radiogroup" aria-label={t("appearanceSection.theme")}>
   {#each MODES as mode (mode.value)}
     <button
       class="mode"
@@ -67,18 +68,18 @@
 </Row>
 
 <ThemeShare />
-<Row anchor="accent" label="Couleur d'accent" hint="Boutons, sélection, focus et reflets de l'arrière-plan.">
+<Row anchor="accent" label={t("appearanceSection.accentColor")} hint={t("appearanceSection.buttonsSelectionFocusBackground")}>
   <ColorPicker
-    label="Couleur d'accent"
+    label={t("appearanceSection.accentColor")}
     value={s.appearance.accent}
     swatches={accentSwatches}
     onselect={(preset) => update({ appearance: { accent: preset.accent, accent2: preset.accent2 } })}
     onchange={(hex) => update({ appearance: { accent: hex } })}
   />
 </Row>
-<Row anchor="secondary" label="Couleur secondaire" hint="Seconde teinte des dégradés.">
+<Row anchor="secondary" label={t("appearanceSection.secondaryColor")} hint={t("appearanceSection.secondHueGradients")}>
   <ColorPicker
-    label="Couleur secondaire"
+    label={t("appearanceSection.secondaryColor")}
     value={s.appearance.accent2}
     swatches={secondarySwatches}
     onselect={(swatch) => update({ appearance: { accent2: swatch.color } })}
@@ -87,18 +88,18 @@
 </Row>
 <Row
   anchor="dynamic-theme"
-  label="Thème dynamique"
-  hint="L'accent prend la couleur du site affiché (couleur de thème ou de son icône), ajustée pour rester lisible. Sinon, la couleur de l'espace."
+  label={t("appearanceSection.dynamicTheme")}
+  hint={t("appearanceSection.accentTakesColorSite")}
 >
-  <Toggle label="Thème dynamique" checked={s.appearance.dynamicTheme} onchange={(dynamicTheme) => update({ appearance: { dynamicTheme } })} />
+  <Toggle label={t("appearanceSection.dynamicTheme")} checked={s.appearance.dynamicTheme} onchange={(dynamicTheme) => update({ appearance: { dynamicTheme } })} />
 </Row>
 {#if window.platform === "win32"}
-  <Row anchor="mica" label="Effet Mica" hint="Windows 11 : le fond du bureau transparaît, discrètement, derrière la barre latérale. Sans effet sous Windows 10.">
-    <Toggle label="Effet Mica" checked={s.appearance.mica} onchange={(mica) => update({ appearance: { mica } })} />
+  <Row anchor="mica" label={t("appearanceSection.micaEffect")} hint={t("appearanceSection.windows11DesktopBackground")}>
+    <Toggle label={t("appearanceSection.micaEffect")} checked={s.appearance.mica} onchange={(mica) => update({ appearance: { mica } })} />
   </Row>
 {/if}
-<Row anchor="background" label="Arrière-plan" hint="Fond de la fenêtre, autour de la page.">
-  <div class="tiles" role="radiogroup" aria-label="Arrière-plan">
+<Row anchor="background" label={t("appearanceSection.background")} hint={t("appearanceSection.windowBackgroundAroundPage")}>
+  <div class="tiles" role="radiogroup" aria-label={t("appearanceSection.background")}>
     {#each BACKGROUNDS as option (option.value)}
       <button
         class="tile"
@@ -112,8 +113,8 @@
     {/each}
   </div>
 </Row>
-<Row anchor="font" label="Police de l'interface">
-  <div class="tiles" role="radiogroup" aria-label="Police de l'interface">
+<Row anchor="font" label={t("appearanceSection.interfaceFont")}>
+  <div class="tiles" role="radiogroup" aria-label={t("appearanceSection.interfaceFont")}>
     {#each FONTS as option (option.value)}
       <button
         class="tile font"
@@ -127,48 +128,48 @@
     {/each}
   </div>
 </Row>
-<Row anchor="density" label="Densité" hint="Hauteur des onglets et des contrôles.">
+<Row anchor="density" label={t("appearanceSection.density")} hint={t("appearanceSection.heightTabsControls")}>
   <Segmented
-    label="Densité"
+    label={t("appearanceSection.density")}
     value={s.appearance.density}
     options={[
-      { value: "compact" as Density, label: "Compacte" },
-      { value: "comfortable" as Density, label: "Confortable" },
-      { value: "spacious" as Density, label: "Aérée" },
+      { value: "compact" as Density, label: t("appearanceSection.compact") },
+      { value: "comfortable" as Density, label: t("appearanceSection.comfortable") },
+      { value: "spacious" as Density, label: t("appearanceSection.spacious") },
     ]}
     onchange={(density) => update({ appearance: { density } })}
   />
 </Row>
-<Row anchor="radius" label="Arrondi des coins">
+<Row anchor="radius" label={t("appearanceSection.cornerRadius")}>
   <Slider
-    label="Arrondi des coins"
+    label={t("appearanceSection.cornerRadius")}
     value={s.appearance.radius}
     min={LIMITS.radius.min}
     max={LIMITS.radius.max}
     onchange={(radius) => update({ appearance: { radius } })}
   />
 </Row>
-<Row anchor="shadows" label="Ombres" hint="Ombre portée de la page et de la fenêtre.">
-  <Toggle label="Ombres" checked={s.appearance.shadows} onchange={(shadows) => update({ appearance: { shadows } })} />
+<Row anchor="shadows" label={t("appearanceSection.shadows")} hint={t("appearanceSection.dropShadowPageWindow")}>
+  <Toggle label={t("appearanceSection.shadows")} checked={s.appearance.shadows} onchange={(shadows) => update({ appearance: { shadows } })} />
 </Row>
-<Row anchor="reduce-motion" label="Réduire les animations" hint="Coupe transitions et animations, en plus du réglage du système.">
+<Row anchor="reduce-motion" label={t("appearanceSection.reduceMotion")} hint={t("appearanceSection.turnsOffTransitionsAnimations")}>
   <Toggle
-    label="Réduire les animations"
+    label={t("appearanceSection.reduceMotion")}
     checked={s.appearance.reduceMotion}
     onchange={(reduceMotion) => update({ appearance: { reduceMotion } })}
   />
 </Row>
-<Row anchor="hand-cursor" label="Curseur main" hint="Pointeur en forme de main sur les boutons, onglets et liens de l'interface.">
+<Row anchor="hand-cursor" label={t("appearanceSection.handCursor")} hint={t("appearanceSection.handShapedPointerInterfaces")}>
   <Toggle
-    label="Curseur main"
+    label={t("appearanceSection.handCursor")}
     checked={s.appearance.pointerCursor}
     onchange={(pointerCursor) => update({ appearance: { pointerCursor } })}
   />
 </Row>
 <Row
   anchor="page-zoom"
-  label="Zoom par défaut"
-  hint="Taille des pages web. Le zoom choisi sur un site ({platform.shortcut('zoom-in')} / {platform.shortcut('zoom-out')}) est mémorisé pour ce site."
+  label={t("appearanceSection.defaultZoom")}
+  hint={t("appearanceSection.sizeWebPagesZoom", { p: platform.shortcut('zoom-in'), p2: platform.shortcut('zoom-out') })}
   id="page-zoom"
 >
   <select

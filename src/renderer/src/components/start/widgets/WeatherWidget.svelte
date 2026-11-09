@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { WeatherPlace } from "@shared/start-widgets";
   import { MAX_PLACE_QUERY, WEATHER_CACHE_MS, forecastWeekday, formatTemperature, weatherCondition, type Forecast } from "@shared/weather";
   import { api } from "../../../lib/browser.svelte";
@@ -50,14 +51,14 @@
 </script>
 
 {#if !place}
-  <h2 class="widget-title">Météo</h2>
+  <h2 class="widget-title">{t("weatherWidget.weather")}</h2>
   <form class="find" onsubmit={search}>
-    <input class="ui-field" bind:value={query} placeholder="Ville" aria-label="Ville de la météo" maxlength={MAX_PLACE_QUERY} />
-    <button class="go" aria-label="Chercher la ville" disabled={searching}><Icon name="search" size={14} /></button>
+    <input class="ui-field" bind:value={query} placeholder={t("weatherWidget.city")} aria-label={t("weatherWidget.weatherCity")} maxlength={MAX_PLACE_QUERY} />
+    <button class="go" aria-label={t("weatherWidget.searchCity")} disabled={searching}><Icon name="search" size={14} /></button>
   </form>
   {#if results}
     {#if results.length}
-      <ul class="results" aria-label="Villes trouvées">
+      <ul class="results" aria-label={t("weatherWidget.citiesFound")}>
         {#each results as result, index (index)}
           <li>
             <button onclick={() => choose(result)}><Icon name="map-pin" size={13} /> {result.name} <span>{result.region}</span></button>
@@ -65,10 +66,10 @@
         {/each}
       </ul>
     {:else}
-      <p class="widget-empty">Aucune ville trouvée (ou pas de connexion).</p>
+      <p class="widget-empty">{t("weatherWidget.noCityFoundNo")}</p>
     {/if}
   {:else}
-    <p class="widget-empty">Prévisions d'Open-Meteo, sans clé ni cookie.</p>
+    <p class="widget-empty">{t("weatherWidget.forecastsFromOpenMeteo")}</p>
   {/if}
 {:else}
   <div class="now" title={condition?.label}>
@@ -80,7 +81,7 @@
       </div>
     {:else}
       <Icon name="cloud" size={30} />
-      <p class="where">{place.name} · {failed ? "Météo indisponible" : "Chargement…"}</p>
+      <p class="where">{place.name} · {failed ? t("weatherWidget.weatherUnavailable") : "Chargement…"}</p>
     {/if}
   </div>
   {#if widget.size !== "s" && forecast}

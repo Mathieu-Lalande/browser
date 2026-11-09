@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { session } from "electron";
 import { ASSETS_PARTITION } from "../start-image";
 import { crxDownloadUrl, parseUpdateCheck, updateCheckUrl, WEBSTORE_UPDATE_URL } from "@shared/webstore";
@@ -45,13 +46,13 @@ export class WebStoreClient {
     try {
       response = await this.options.fetch(crxDownloadUrl(id, this.options.chromeMajor, this.endpoint), { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS) });
     } catch {
-      throw new UnpackError("Impossible de joindre le Chrome Web Store. Vérifiez votre connexion.");
+      throw new UnpackError(t("extensionsWebstore.cantReachChromeWeb"));
     }
-    if (response.status === 204 || response.status === 404) throw new UnpackError("Cette extension n'est pas disponible au téléchargement.");
-    if (!response.ok) throw new UnpackError(`Le Chrome Web Store a refusé le téléchargement (erreur ${response.status}).`);
-    if (Number(response.headers.get("content-length") ?? 0) > MAX_CRX_SIZE) throw new UnpackError("Cette extension est trop volumineuse.");
+    if (response.status === 204 || response.status === 404) throw new UnpackError(t("extensionsWebstore.extensionIsntAvailableDownload"));
+    if (!response.ok) throw new UnpackError(t("extensionsWebstore.chromeWebStoreRefused", { status: response.status }));
+    if (Number(response.headers.get("content-length") ?? 0) > MAX_CRX_SIZE) throw new UnpackError(t("extensionsWebstore.extensionTooLarge"));
     const data = Buffer.from(await response.arrayBuffer());
-    if (data.length > MAX_CRX_SIZE) throw new UnpackError("Cette extension est trop volumineuse.");
+    if (data.length > MAX_CRX_SIZE) throw new UnpackError(t("extensionsWebstore.extensionTooLarge"));
     onVerify?.();
     return verifyCrx(data, id);
   }
@@ -62,9 +63,9 @@ export class WebStoreClient {
     for (let start = 0; start < entries.length; start += CHECK_BATCH) {
       const url = updateCheckUrl(entries.slice(start, start + CHECK_BATCH), this.options.chromeMajor, this.endpoint);
       const response = await this.options.fetch(url, { signal: AbortSignal.timeout(CHECK_TIMEOUT_MS) });
-      if (!response.ok) throw new UnpackError(`Le Chrome Web Store n'a pas répondu (erreur ${response.status}).`);
+      if (!response.ok) throw new UnpackError(t("extensionsWebstore.chromeWebStoreDidnt", { status: response.status }));
       const xml = await response.text();
-      if (xml.length > MAX_XML_SIZE) throw new UnpackError("Réponse du Chrome Web Store trop volumineuse.");
+      if (xml.length > MAX_XML_SIZE) throw new UnpackError(t("extensionsWebstore.chromeWebStoreResponse"));
       for (const [id, version] of parseUpdateCheck(xml)) versions.set(id, version);
     }
     return versions;

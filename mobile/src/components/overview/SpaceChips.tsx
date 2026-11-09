@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import type { SpaceInfo } from "@shared/types";
 import { useEffect, useRef } from "react";
 import { ScrollView, StyleSheet, Text, View, type ScrollViewInstance, type ViewStyle } from "react-native";
@@ -47,7 +48,7 @@ export function SpaceChips({
       <ScrollView ref={scroll} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
         <Chip
           onLayout={(x) => chipX.current.set(PRIVATE_SPACE_ID, x)}
-          label={privateCount ? `Privé · ${privateCount}` : "Privé"}
+          label={privateCount ? t("mobile.spaceChips.private", { privateCount }) : t("mobile.spaceChips.private2")}
           icon="mask"
           selected={isPrivate}
           onPress={() => onShowSpace(PRIVATE_SPACE_ID)}
@@ -65,7 +66,7 @@ export function SpaceChips({
             onLongPress={() => onSpaceMenu(space)}
           />
         ))}
-        <Chip label="Espace" icon="plus" selected={false} onPress={onAddSpace} />
+        <Chip label={t("mobile.spaceChips.space")} icon="plus" selected={false} onPress={onAddSpace} />
       </ScrollView>
     </Animated.View>
   );
@@ -95,7 +96,7 @@ function Chip({
       accessibilityRole="tab"
       accessibilityState={{ selected }}
       accessibilityLabel={label}
-      accessibilityHint={onLongPress ? "Maintenir pour modifier l'espace" : undefined}
+      accessibilityHint={onLongPress ? t("mobile.spaceChips.holdEditSpace") : undefined}
       onPress={() => {
         haptic("selection");
         onPress();

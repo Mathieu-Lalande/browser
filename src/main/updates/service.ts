@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import type { UpdateSettings } from "@shared/settings";
 import {
   initialUpdateStatus,
@@ -53,8 +54,8 @@ const realTimers: Timers = {
   clear: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
 };
 
-export const CHECK_FAILED = "Impossible de rechercher les mises à jour. Vérifiez votre connexion, puis réessayez.";
-export const DOWNLOAD_FAILED = "Le téléchargement de la mise à jour a échoué. Réessayez plus tard.";
+export const CHECK_FAILED = t("updatesService.cantCheckUpdatesCheck");
+export const DOWNLOAD_FAILED = t("updatesService.updateDownloadFailedTry");
 
 export class UpdateService {
   private state: UpdateStatus;

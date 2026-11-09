@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type Ref } from "react";
 import { Linking, Platform, StyleSheet, View } from "react-native";
 import { WebView as RNWebView } from "react-native-webview";
@@ -35,7 +36,7 @@ const newAnnotateNonce = () => annotateNonce(getRandomBytes);
 const newAutofillNonce = () => autofillNonce(getRandomBytes);
 const newBannerNonce = () => captureNonce(getRandomBytes);
 /** The selection menu's extra item (ADR-037). */
-const HIGHLIGHT_MENU = [{ label: "Surligner", key: "highlight" }];
+const HIGHLIGHT_MENU = [{ get label() { return t("mobile.webTab.highlight") }, key: "highlight" }];
 /** Only these schemes may ever reach the native view (navigation policy: `decideNavigation`). */
 export const WEBVIEW_ORIGIN_WHITELIST = ["http://*", "https://*", "about:*", "data:*", "mailto:*", "tel:*", "sms:*"];
 

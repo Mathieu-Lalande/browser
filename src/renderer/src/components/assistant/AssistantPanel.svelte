@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import {
     ACTION_LABELS,
     assistantModel,
@@ -57,7 +58,7 @@
 
   async function send(next: AssistantRequest): Promise<void> {
     message = null;
-    const result = await api.assistant.ask(tab.id, next).catch(() => ({ ok: false, message: "La demande n'a pas pu être envoyée.", needsConsent: false }));
+    const result = await api.assistant.ask(tab.id, next).catch(() => ({ ok: false, message: t("assistantPanel.requestCouldntSent"), needsConsent: false }));
     if (!result.ok && !result.needsConsent) message = result.message;
     await refresh();
   }
@@ -76,7 +77,7 @@
   }
 
   async function accept(): Promise<void> {
-    const result = await api.assistant.accept(tab.id).catch(() => ({ ok: false, message: "La demande n'a pas pu être envoyée." }));
+    const result = await api.assistant.accept(tab.id).catch(() => ({ ok: false, message: t("assistantPanel.requestCouldntSent") }));
     message = result.ok ? null : result.message;
     await refresh();
   }
@@ -89,36 +90,36 @@
   }
 </script>
 
-<aside class="assistant" aria-label="Assistant IA" data-testid="assistant-panel">
+<aside class="assistant" aria-label={t("assistantPanel.aiAssistant")} data-testid="assistant-panel">
   <header>
     <Icon name="sparkles" size={16} />
-    <h2>Assistant</h2>
+    <h2>{t("assistantPanel.assistant")}</h2>
     {#if panel?.turns.length}
-      <IconButton size="sm" icon="trash" iconSize={14} label="Nouvelle conversation" onclick={() => api.assistant.clear(tab.id)} />
+      <IconButton size="sm" icon="trash" iconSize={14} label={t("assistantPanel.newConversation")} onclick={() => api.assistant.clear(tab.id)} />
     {/if}
-    <IconButton size="sm" icon="close" iconSize={14} label="Fermer l'assistant" command="toggle-assistant" onclick={onClose} />
+    <IconButton size="sm" icon="close" iconSize={14} label={t("assistantPanel.closeAssistant")} command="toggle-assistant" onclick={onClose} />
   </header>
 
   {#if panel && !panel.enabled}
-    <EmptyState icon="sparkles" title="L'assistant est désactivé" hint="Activez-le et ajoutez votre clé d'API Anthropic dans les paramètres.">
+    <EmptyState icon="sparkles" title={t("assistantPanel.assistantTurnedOff")} hint={t("assistantPanel.turnAddAnthropicApi")}>
       {#snippet action()}
-        <Button icon="settings" onclick={() => api.omnibox.open("browser://settings#assistant", "new")}>Ouvrir les paramètres</Button>
+        <Button icon="settings" onclick={() => api.omnibox.open("browser://settings#assistant", "new")}>{t("assistantPanel.openSettings")}</Button>
       {/snippet}
     </EmptyState>
   {:else if panel && !panel.configured}
-    <EmptyState icon="key" title="Clé d'API manquante" hint="L'assistant utilise votre propre clé d'API Anthropic, gardée chiffrée sur cet appareil.">
+    <EmptyState icon="key" title={t("assistantPanel.apiKeyMissing")} hint={t("assistantPanel.assistantUsesOwnAnthropic")}>
       {#snippet action()}
-        <Button icon="settings" onclick={() => api.omnibox.open("browser://settings#assistant/api-key", "new")}>Ajouter une clé</Button>
+        <Button icon="settings" onclick={() => api.omnibox.open("browser://settings#assistant/api-key", "new")}>{t("assistantPanel.addKey")}</Button>
       {/snippet}
     </EmptyState>
   {:else if panel}
     {#if panel.needsConsent}
       <div class="notice" role="alert" data-testid="assistant-notice">
-        <p><Icon name={panel.isPrivate ? "mask" : "info"} size={14} /> <strong>{panel.isPrivate ? "Fenêtre privée" : "Avant le premier envoi"}</strong></p>
+        <p><Icon name={panel.isPrivate ? "mask" : "info"} size={14} /> <strong>{panel.isPrivate ? t("assistantPanel.privateWindow") : t("assistantPanel.beforeFirstSend")}</strong></p>
         {#if panel.isPrivate}<p>{PRIVATE_NOTICE}</p>{/if}
         <p>{PRIVACY_NOTICE}</p>
-        {#if panel.pending}<p class="pending">Demande en attente : {panel.pending}</p>{/if}
-        <Button variant="primary" onclick={accept}>{panel.pending ? "Accepter et envoyer" : "Accepter"}</Button>
+        {#if panel.pending}<p class="pending">{t("assistantPanel.pendingRequest", { pending: panel.pending })}</p>{/if}
+        <Button variant="primary" onclick={accept}>{panel.pending ? t("assistantPanel.acceptSend") : t("assistantPanel.accept")}</Button>
       </div>
     {/if}
 
@@ -132,19 +133,19 @@
 
     {#if compared.length >= 2}
       <div class="compare" data-testid="assistant-compare">
-        <span class="label">Comparer {compared.length} onglets</span>
+        <span class="label">{t("assistantPanel.compareTabs", { comparedCount: compared.length })}</span>
         <ul>
           {#each compared as entry (entry.id)}<li>{entry.title || entry.url}</li>{/each}
         </ul>
         <div class="row">
-          <Button variant="primary" icon="sparkles" size="sm" onclick={compare} disabled={panel.running}>Comparer</Button>
-          <Button variant="quiet" size="sm" onclick={() => (assistantPanel.compare = [])}>Annuler</Button>
+          <Button variant="primary" icon="sparkles" size="sm" onclick={compare} disabled={panel.running}>{t("assistantPanel.compare")}</Button>
+          <Button variant="quiet" size="sm" onclick={() => (assistantPanel.compare = [])}>{t("assistantPanel.cancel")}</Button>
         </div>
       </div>
     {/if}
 
     {#if readable}
-      <div class="actions" role="group" aria-label="Actions rapides">
+      <div class="actions" role="group" aria-label={t("assistantPanel.quickActions")}>
         {#each ["summarize", "key-points", "explain-selection", "translate-selection"] as const as action (action)}
           <button class="chip" disabled={panel.running} onclick={() => send({ action })}>{ACTION_LABELS[action]}</button>
         {/each}
@@ -154,9 +155,9 @@
     <div class="composer">
       <p class="context" title={tab.url}>
         {#if readable}
-          <Checkbox checked={includePage} onchange={(value) => (includePage = value)}>Joindre la page : {pageTitle}</Checkbox>
+          <Checkbox checked={includePage} onchange={(value) => (includePage = value)}>{t("assistantPanel.attachPage", { pageTitle })}</Checkbox>
         {:else}
-          Questions seules : aucune page n'est jointe.
+          {t("assistantPanel.questionsOnlyNoPage")}
         {/if}
       </p>
       <div class="input">
@@ -164,18 +165,18 @@
           class="ui-field"
           rows="2"
           maxlength={QUESTION_MAX_LENGTH}
-          placeholder={readable ? "Poser une question sur cette page…" : "Poser une question…"}
-          aria-label="Question à l'assistant"
+          placeholder={readable ? t("assistantPanel.askQuestionAboutPage") : t("assistantPanel.askQuestion")}
+          aria-label={t("assistantPanel.questionAssistant")}
           bind:value={question}
           onkeydown={onkey}
         ></textarea>
         {#if panel.running}
-          <IconButton icon="stop-recording" label="Arrêter la réponse" onclick={() => api.assistant.stop(tab.id)} />
+          <IconButton icon="stop-recording" label={t("assistantPanel.stopResponse")} onclick={() => api.assistant.stop(tab.id)} />
         {:else}
-          <IconButton icon="send" label="Envoyer la question" disabled={!question.trim()} onclick={ask} />
+          <IconButton icon="send" label={t("assistantPanel.sendQuestion")} disabled={!question.trim()} onclick={ask} />
         {/if}
       </div>
-      <p class="foot">{assistantModel(panel.model).label} · les réponses peuvent contenir des erreurs.</p>
+      <p class="foot">{t("assistantPanel.answersMayContainMistakes", { p: assistantModel(panel.model).label })}</p>
     </div>
   {/if}
 </aside>

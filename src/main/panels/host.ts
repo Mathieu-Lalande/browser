@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { Menu, session, WebContentsView, type BaseWindow, type BrowserWindow, type WebContents } from "electron";
 import { MAX_PANEL_FAVICON, panelBadge, panelPartition, panelToToggle, type PanelsState, type WebPanel } from "@shared/panels";
 import type { Bounds } from "@shared/types";
@@ -114,15 +115,15 @@ export class PanelHost {
     if (!panel || this.deps.isPrivate) return;
     const loaded = this.live.has(id);
     Menu.buildFromTemplate([
-      { label: this.openId === id ? "Masquer le panneau" : "Afficher le panneau", click: () => this.toggle(id) },
-      { label: "Actualiser", enabled: loaded, click: () => this.reload(id) },
-      { label: "Revenir à la page du panneau", enabled: loaded, click: () => this.home(id) },
-      { label: "Version mobile", type: "checkbox", checked: panel.mobile, click: () => service.update(id, { mobile: !panel.mobile }) },
+      { label: this.openId === id ? t("panelsHost.hidePanel") : t("panelsHost.showPanel"), click: () => this.toggle(id) },
+      { label: t("panelsHost.reload"), enabled: loaded, click: () => this.reload(id) },
+      { label: t("panelsHost.backPanelsPage"), enabled: loaded, click: () => this.home(id) },
+      { label: t("panelsHost.mobileSite"), type: "checkbox", checked: panel.mobile, click: () => service.update(id, { mobile: !panel.mobile }) },
       { type: "separator" },
-      { label: "Monter", enabled: index > 0, click: () => service.move(id, index - 1) },
-      { label: "Descendre", enabled: index < service.list().length - 1, click: () => service.move(id, index + 1) },
+      { label: t("panelsHost.moveUp"), enabled: index > 0, click: () => service.move(id, index - 1) },
+      { label: t("panelsHost.moveDown"), enabled: index < service.list().length - 1, click: () => service.move(id, index + 1) },
       { type: "separator" },
-      { label: "Retirer le panneau", click: () => service.remove(id) },
+      { label: t("panelsHost.removePanel"), click: () => service.remove(id) },
     ]).popup({ window: this.deps.window as BrowserWindow });
   }
 

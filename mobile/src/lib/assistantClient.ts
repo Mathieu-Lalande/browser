@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import Anthropic from "@anthropic-ai/sdk";
 import {
   assistantModel,
@@ -44,9 +45,9 @@ export async function testClaude(apiKey: string, model: AssistantModelId): Promi
 export const isAbort = (error: unknown) => error instanceof Anthropic.APIUserAbortError;
 
 export function errorMessage(error: unknown): string {
-  if (error instanceof Anthropic.AuthenticationError) return "Clé d'API refusée par Anthropic : vérifiez-la dans les paramètres.";
-  if (error instanceof Anthropic.RateLimitError) return "Trop de requêtes : réessayez dans un instant.";
-  if (error instanceof Anthropic.APIConnectionError) return "Impossible de joindre Anthropic : vérifiez la connexion.";
-  if (error instanceof Anthropic.APIError) return `Erreur de l'API d'Anthropic (${error.status ?? "?"}).`;
-  return "L'assistant n'a pas pu répondre.";
+  if (error instanceof Anthropic.AuthenticationError) return t("mobile.assistantClient.apiKeyRefusedAnthropic");
+  if (error instanceof Anthropic.RateLimitError) return t("mobile.assistantClient.tooManyRequestsTry");
+  if (error instanceof Anthropic.APIConnectionError) return t("mobile.assistantClient.cantReachAnthropicCheck");
+  if (error instanceof Anthropic.APIError) return t("mobile.assistantClient.anthropicApiError", { p: error.status ?? "?" });
+  return t("mobile.assistantClient.assistantCouldntAnswer");
 }

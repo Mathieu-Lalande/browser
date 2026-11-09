@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { MAX_SPELL_LANGUAGES } from "@shared/settings";
   import { isDictionaryWord, spellLanguageName } from "@shared/spellcheck";
   import { api, browser } from "../../lib/browser.svelte";
@@ -65,17 +66,17 @@
   }
 </script>
 
-<Row anchor="enabled" label="Vérifier l'orthographe" hint="Souligne les fautes dans les champs de texte ; clic droit pour les suggestions." keywords="correcteur fautes orthographe spellcheck">
-  <Toggle label="Vérifier l'orthographe" checked={s.enabled} onchange={(enabled) => settings.update({ spellcheck: { enabled } })} />
+<Row anchor="enabled" label={t("spellcheckSection.checkSpelling")} hint={t("spellcheckSection.underlinesMistakesTextFields")} keywords={t("spellcheckSection.spellCheckerMistakesSpelling")}>
+  <Toggle label={t("spellcheckSection.checkSpelling")} checked={s.enabled} onchange={(enabled) => settings.update({ spellcheck: { enabled } })} />
 </Row>
 <Row
   anchor="languages"
-  label="Langues"
+  label={t("spellcheckSection.languages")}
   hint={available.length
-    ? `Jusqu'à ${MAX_SPELL_LANGUAGES} dictionnaires, téléchargés au premier usage. Aucune choisie : la langue du système.`
-    : "Sur ce système, les langues de la vérification suivent les réglages du système."}
+    ? t("spellcheckSection.upDictionariesDownloadedFirst", { MAX_SPELL_LANGUAGES })
+    : t("spellcheckSection.systemLanguagesCheckFollow")}
   stacked
-  keywords="dictionnaire langue français anglais"
+  keywords={t("spellcheckSection.dictionaryLanguageFrenchEnglish")}
 >
   {#if available.length}
     <div class="languages" data-testid="spellcheck-languages">
@@ -88,20 +89,20 @@
   {/if}
 </Row>
 {#if !browser.isPrivate}
-  <Row anchor="words" label="Mots ajoutés au dictionnaire" stacked keywords="dictionnaire personnel mots">
+  <Row anchor="words" label={t("spellcheckSection.wordsAddedDictionary")} stacked keywords={t("spellcheckSection.personalDictionaryWords")}>
     {#if words.length}
-      <Card aria-label="Mots ajoutés">
+      <Card aria-label={t("spellcheckSection.addedWords")}>
         {#each words as word (word)}
           <ListRow dense>
             <span class="word">{word}</span>
-            <IconButton icon="close" size="row" label="Retirer « {word} » du dictionnaire" onclick={() => removeWord(word)} />
+            <IconButton icon="close" size="row" label={t("spellcheckSection.removeFromDictionary", { word })} onclick={() => removeWord(word)} />
           </ListRow>
         {/each}
       </Card>
     {/if}
     <form class="add" onsubmit={addWord}>
-      <input class="ui-field" aria-label="Mot à ajouter" placeholder="Ajouter un mot" maxlength="64" bind:value={draft} />
-      <Button type="submit" disabled={!isDictionaryWord(draft.trim())}><Icon name="plus" size={12} /> Ajouter</Button>
+      <input class="ui-field" aria-label={t("spellcheckSection.wordAdd")} placeholder={t("spellcheckSection.addWord")} maxlength="64" bind:value={draft} />
+      <Button type="submit" disabled={!isDictionaryWord(draft.trim())}><Icon name="plus" size={12} /> {t("spellcheckSection.add")}</Button>
     </form>
   </Row>
 {/if}

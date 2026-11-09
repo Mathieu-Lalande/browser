@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from "expo-camera";
 import { memo, useRef } from "react";
 import { Linking, StyleSheet, Text, View } from "react-native";
@@ -15,8 +16,8 @@ export const PairingScanner = memo(function PairingScanner({
   onCode,
   onClose,
   prefix = "browser-sync:",
-  hint = "Visez le QR code affiché dans Paramètres, Synchronisation, sur l'ordinateur.",
-  purpose = "Pour scanner le QR code de jumelage affiché par votre ordinateur.",
+  hint = t("mobile.pairingScanner.aimQrCodeShown"),
+  purpose = t("mobile.pairingScanner.scanPairingQrCode"),
 }: {
   onCode: (code: string) => void;
   onClose: () => void;
@@ -43,9 +44,9 @@ export const PairingScanner = memo(function PairingScanner({
       ) : (
         <View style={styles.permission}>
           <Icon name="scan" size={44} color="#fff" />
-          <Text style={styles.permissionTitle}>Accès à l'appareil photo</Text>
+          <Text style={styles.permissionTitle}>{t("mobile.pairingScanner.cameraAccess")}</Text>
           <Text style={styles.permissionText}>
-            {purpose} L'image n'est ni enregistrée ni envoyée.
+            {purpose} {t("mobile.pairingScanner.imageNeitherSavedNor")}
           </Text>
           <Tap
             accessibilityRole="button"
@@ -53,7 +54,7 @@ export const PairingScanner = memo(function PairingScanner({
             style={[styles.button, { backgroundColor: colors.accent }]}
           >
             <Text style={[styles.buttonText, { color: colors.onAccent }]}>
-              {permission && !permission.canAskAgain ? "Ouvrir les réglages" : "Autoriser l'appareil photo"}
+              {permission && !permission.canAskAgain ? t("mobile.pairingScanner.openSettings") : t("mobile.pairingScanner.allowCamera")}
             </Text>
           </Tap>
         </View>
@@ -61,7 +62,7 @@ export const PairingScanner = memo(function PairingScanner({
       <View style={[styles.frame, { top: insets.top + 120 }]} pointerEvents="none" />
       <View style={[styles.top, { paddingTop: insets.top + 8 }]}>
         <Text style={styles.hint}>{hint}</Text>
-        <Tap accessibilityRole="button" accessibilityLabel="Fermer le scanner" onPress={onClose} style={styles.close} pressScale={0.9}>
+        <Tap accessibilityRole="button" accessibilityLabel={t("mobile.pairingScanner.closeScanner")} onPress={onClose} style={styles.close} pressScale={0.9}>
           <Icon name="close" size={22} color="#fff" strokeWidth={2.4} />
         </Tap>
       </View>

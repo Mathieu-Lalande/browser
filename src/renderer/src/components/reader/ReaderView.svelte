@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { READER_THEME_LABELS, READER_WIDTHS, readerColors, readingTimeLabel, type ReaderArticle } from "@shared/reader";
   import { LIMITS, type ReaderFont, type ReaderTheme, type ReaderWidth } from "@shared/settings";
   import type { TabState } from "@shared/types";
@@ -46,9 +47,9 @@
     { value: "sans", label: "Sans serif" },
   ];
   const WIDTHS: { value: ReaderWidth; label: string }[] = [
-    { value: "narrow", label: "Étroite" },
-    { value: "medium", label: "Moyenne" },
-    { value: "wide", label: "Large" },
+    { value: "narrow", label: t("readerView.narrow") },
+    { value: "medium", label: t("readerView.medium") },
+    { value: "wide", label: t("readerView.wide") },
   ];
   const THEMES: ReaderTheme[] = ["auto", "sepia", "dark"];
 
@@ -63,13 +64,13 @@
 </script>
 
 <div class="reader" class:sans={prefs.font === "sans"} {style} data-testid="reader-view">
-  <div class="toolbar" role="toolbar" aria-label="Options de lecture">
-    <button type="button" class="tool" title={platform.tip("Quitter le mode lecture", "toggle-reader")} onclick={exit}>
+  <div class="toolbar" role="toolbar" aria-label={t("readerView.readingOptions")}>
+    <button type="button" class="tool" title={platform.tip(t("readerView.exitReaderMode"), "toggle-reader")} onclick={exit}>
       <Icon name="back" size={14} />
-      <span>Quitter</span>
+      <span>{t("readerView.exit")}</span>
     </button>
     <span class="spacer"></span>
-    <div class="group" role="radiogroup" aria-label="Police">
+    <div class="group" role="radiogroup" aria-label={t("readerView.font")}>
       {#each FONTS as font (font.value)}
         <button
           type="button"
@@ -81,16 +82,16 @@
         >
       {/each}
     </div>
-    <div class="group" role="group" aria-label="Taille du texte">
-      <button type="button" class="choice" aria-label="Réduire le texte" disabled={prefs.size <= LIMITS.readerSize.min} onclick={() => setSize(prefs.size - 1)}
+    <div class="group" role="group" aria-label={t("readerView.textSize")}>
+      <button type="button" class="choice" aria-label={t("readerView.smallerText")} disabled={prefs.size <= LIMITS.readerSize.min} onclick={() => setSize(prefs.size - 1)}
         ><Icon name="type" size={11} /></button
       >
       <span class="value" aria-live="polite">{prefs.size}&#8239;px</span>
-      <button type="button" class="choice" aria-label="Agrandir le texte" disabled={prefs.size >= LIMITS.readerSize.max} onclick={() => setSize(prefs.size + 1)}
+      <button type="button" class="choice" aria-label={t("readerView.largerText")} disabled={prefs.size >= LIMITS.readerSize.max} onclick={() => setSize(prefs.size + 1)}
         ><Icon name="type" size={15} /></button
       >
     </div>
-    <div class="group" role="radiogroup" aria-label="Largeur des lignes">
+    <div class="group" role="radiogroup" aria-label={t("readerView.lineWidth")}>
       <Icon name="move-horizontal" size={13} />
       {#each WIDTHS as width (width.value)}
         <button
@@ -102,7 +103,7 @@
         >
       {/each}
     </div>
-    <div class="group" role="radiogroup" aria-label="Thème de lecture">
+    <div class="group" role="radiogroup" aria-label={t("readerView.readingTheme")}>
       {#each THEMES as theme (theme)}
         <button
           type="button"
@@ -129,7 +130,7 @@
         <div class="content"><ReaderNodes nodes={article.content} onlink={openLink} /></div>
       </article>
     {:else if loaded}
-      <p class="empty">Cet article n'est plus disponible en mode lecture.</p>
+      <p class="empty">{t("readerView.articleNoLongerAvailable")}</p>
     {/if}
   </div>
 </div>

@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import { isActiveDownload, overallProgress, type DownloadEntry } from "./downloads";
 
 /**
@@ -54,13 +55,13 @@ export const MAX_DESKTOP_SPACES = 8;
 export function desktopTasks(spaces: readonly { id: string; name: string }[]): DesktopTasks {
   return {
     tasks: [
-      { title: "Nouvel onglet", description: "Ouvre un nouvel onglet dans la dernière fenêtre", args: NEW_TAB_SWITCH },
-      { title: "Nouvelle fenêtre privée", description: "Ouvre une fenêtre de navigation privée", args: PRIVATE_SWITCH },
+      { title: t("desktop.newTab"), description: t("desktop.opensNewTabLast"), args: NEW_TAB_SWITCH },
+      { title: t("desktop.newPrivateWindow"), description: t("desktop.opensPrivateBrowsingWindow"), args: PRIVATE_SWITCH },
     ],
     spaces: spaces
       .filter((space) => SPACE_ID.test(space.id))
       .slice(0, MAX_DESKTOP_SPACES)
-      .map((space) => ({ title: space.name, description: `Affiche l'espace « ${space.name} »`, args: `${SPACE_SWITCH}${space.id}` })),
+      .map((space) => ({ title: space.name, description: t("desktop.showsSpace", { name: space.name }), args: `${SPACE_SWITCH}${space.id}` })),
   };
 }
 

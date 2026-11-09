@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { FolderRow } from "../../lib/tab-tree";
   import Icon from "../Icon.svelte";
 
@@ -18,7 +19,7 @@
   <button
     class="chevron"
     aria-expanded={!folder.collapsed}
-    aria-label={folder.collapsed ? `Déplier le dossier ${folder.name}` : `Replier le dossier ${folder.name}`}
+    aria-label={folder.collapsed ? t("folderLabel.expandFolder", { name: folder.name }) : t("folderLabel.collapseFolder", { name: folder.name })}
     onclick={onToggle}
   >
     {@render content()}

@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { hostname } from "node:os";
 import { join } from "node:path";
 import { Notification, app, net } from "electron";
@@ -145,7 +146,7 @@ export class SyncService {
       if (!target) return;
       this.handled.add(tab.id);
       target.tabs.create(tab.url, { activate: false });
-      if (Notification.isSupported()) new Notification({ title: `Onglet reçu de ${tab.fromName}`, body: tab.title || tab.url, silent: true }).show();
+      if (Notification.isSupported()) new Notification({ title: t("syncService.tabReceivedFrom", { fromName: tab.fromName }), body: tab.title || tab.url, silent: true }).show();
       // Outside the status listener: dismissing publishes a new status.
       queueMicrotask(() => this.controller.dismissReceivedTab(tab.id));
     }

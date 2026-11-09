@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { isThumbnailUrl, type TabPreview } from "@shared/tab-preview";
   import Favicon from "../components/Favicon.svelte";
   import Icon from "../components/Icon.svelte";
@@ -24,12 +25,12 @@
     </div>
     <div class="badges">
       {#if preview.audible || preview.muted}
-        <span class="badge" title={preview.muted ? "Son coupé" : "Lecture audio"}>
+        <span class="badge" title={preview.muted ? t("tabPreviewCard.soundMuted") : t("tabPreviewCard.playingAudio")}>
           <Icon name={preview.muted ? "volume-off" : "volume"} size={12} />
         </span>
       {/if}
       {#if preview.asleep}
-        <span class="badge sleep"><Icon name="moon" size={12} /> En veille</span>
+        <span class="badge sleep"><Icon name="moon" size={12} /> {t("tabPreviewCard.asleep")}</span>
       {/if}
     </div>
   </div>

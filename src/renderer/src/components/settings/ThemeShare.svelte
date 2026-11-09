@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { ResolvedMode } from "@shared/theme";
   import {
     THEME_GALLERY,
@@ -53,7 +54,7 @@
   }
 
   async function importFile(): Promise<void> {
-    const result = await api.theme.importFile().catch(() => ({ ok: false as const, error: "Le fichier n'a pas pu être lu." }));
+    const result = await api.theme.importFile().catch(() => ({ ok: false as const, error: t("themeShare.fileCouldntRead") }));
     if (!result) return;
     pending = result.ok ? result.theme : null;
     error = result.ok ? null : result.error;
@@ -71,8 +72,8 @@
   }
 </script>
 
-<Row label="Thèmes" hint="Une sélection de thèmes prêts à l'emploi : couleurs, police, densité et arrondi." stacked>
-  <div class="gallery" role="group" aria-label="Galerie de thèmes">
+<Row label={t("themeShare.themes")} hint={t("themeShare.selectionReadyUseThemes")} stacked>
+  <div class="gallery" role="group" aria-label={t("themeShare.themeGallery")}>
     {#each THEME_GALLERY as theme (theme.name)}
       <button class="card" aria-pressed={isCurrentTheme(s, theme)} onclick={() => apply(theme)}>
         <span class="frame"><MiniBrowser settings={applyTheme(s, theme)} mode={modeOf(theme)} /></span>
@@ -85,48 +86,48 @@
   </div>
 </Row>
 
-<Row label="Partager le thème" hint="Un code à coller dans Browser, sur ordinateur ou sur téléphone. Aucune image ni adresse n'est incluse." stacked>
+<Row label={t("themeShare.shareTheme")} hint={t("themeShare.codePasteBrowserComputer")} stacked>
   <div class="share">
-    <input class="ui-field code" readonly value={code} aria-label="Code du thème" spellcheck="false" onfocus={(event) => event.currentTarget.select()} />
+    <input class="ui-field code" readonly value={code} aria-label={t("themeShare.themeCode")} spellcheck="false" onfocus={(event) => event.currentTarget.select()} />
     <div class="buttons">
-      <Button icon={copied ? "check" : "copy-text"} onclick={copy}>{copied ? "Copié" : "Copier le code"}</Button>
-      <Button icon={exported ? "check" : "file-down"} onclick={exportFile}>{exported ? "Exporté" : "Exporter un fichier…"}</Button>
-      <Button icon="qr" aria-pressed={showQr} onclick={() => (showQr = !showQr)}>QR code</Button>
+      <Button icon={copied ? "check" : "copy-text"} onclick={copy}>{copied ? t("themeShare.copied") : t("themeShare.copyCode")}</Button>
+      <Button icon={exported ? "check" : "file-down"} onclick={exportFile}>{exported ? t("themeShare.exported") : t("themeShare.exportFile")}</Button>
+      <Button icon="qr" aria-pressed={showQr} onclick={() => (showQr = !showQr)}>{t("themeShare.qrCode")}</Button>
     </div>
     {#if showQr}
-      <QrCode value={code} size={176} label="QR code du thème" />
+      <QrCode value={code} size={176} label={t("themeShare.themeQrCode")} />
     {/if}
   </div>
 </Row>
 
-<Row label="Importer un thème" hint="Collez un code de thème, ou choisissez un fichier .browsertheme." stacked>
+<Row label={t("themeShare.importTheme")} hint={t("themeShare.pasteThemeCodeChoose")} stacked>
   <div class="share">
     <div class="buttons">
       <input
         class="ui-field code"
         value={draft}
         placeholder="browser-theme:v1:…"
-        aria-label="Code de thème à importer"
+        aria-label={t("themeShare.themeCodeImport")}
         spellcheck="false"
         autocomplete="off"
         oninput={(event) => ((draft = event.currentTarget.value), (error = null))}
         onkeydown={(event) => event.key === "Enter" && preview(draft)}
       />
-      <Button icon="paste" disabled={!draft.trim()} onclick={() => preview(draft)}>Aperçu</Button>
-      <Button icon="file-up" onclick={importFile}>Depuis un fichier…</Button>
+      <Button icon="paste" disabled={!draft.trim()} onclick={() => preview(draft)}>{t("themeShare.preview")}</Button>
+      <Button icon="file-up" onclick={importFile}>{t("themeShare.fromFile")}</Button>
     </div>
     {#if error}<p class="error" role="alert">{error}</p>{/if}
     {#if pending}
-      <div class="preview" role="group" aria-label="Aperçu du thème importé">
+      <div class="preview" role="group" aria-label={t("themeShare.previewImportedTheme")}>
         <span class="frame large"><MiniBrowser settings={applyTheme(s, pending)} mode={modeOf(pending)} /></span>
         <div class="preview-text">
-          <strong>{pending.name || "Thème importé"}</strong>
+          <strong>{pending.name || t("themeShare.themeImported")}</strong>
           <span class="swatches">
             <i style:background={pending.accent}></i><i style:background={pending.accent2}></i>
           </span>
           <div class="buttons">
-            <Button variant="primary" icon="check" onclick={confirm}>Appliquer</Button>
-            <Button onclick={cancel}>Annuler</Button>
+            <Button variant="primary" icon="check" onclick={confirm}>{t("themeShare.apply")}</Button>
+            <Button onclick={cancel}>{t("themeShare.cancel")}</Button>
           </div>
         </div>
       </div>

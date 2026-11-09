@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { authorization, normalizeServerUrl, type SyncCredentials } from "./pairing";
 import {
   PROTOCOL_PREFIX,
@@ -100,14 +101,14 @@ export class SyncClient {
   /** Creates an account on `serverUrl` (the first device). */
   static async createAccount(transport: Transport, serverUrl: string, registrationSecret?: string): Promise<AccountResponse> {
     const base = normalizeServerUrl(serverUrl);
-    if (!base) throw new SyncError("protocol", "Adresse de serveur invalide");
+    if (!base) throw new SyncError("protocol", t("syncClient.invalidServerAddress"));
     const headers: Record<string, string> = { "content-type": "application/json" };
     if (registrationSecret) headers["x-registration-secret"] = registrationSecret;
     const response = await send(transport, { method: "POST", url: `${base}${PROTOCOL_PREFIX}/accounts`, headers, body: "{}" });
-    if (response.status === 403) throw new SyncError("auth", "Inscription refusée par le serveur (code d'inscription ?)");
+    if (response.status === 403) throw new SyncError("auth", t("syncClient.registrationRefusedServerRegistration"));
     check(response, [201]);
     const account = parseAccountResponse(parseJson(response.body));
-    if (!account) throw new SyncError("protocol", "Réponse inattendue du serveur");
+    if (!account) throw new SyncError("protocol", t("syncClient.unexpectedServerResponse"));
     return account;
   }
 
@@ -116,16 +117,16 @@ export class SyncClient {
     const response = await this.request("GET", `/collections/${collection}?${query}`);
     check(response, [200]);
     const parsed = parsePullResponse(parseJson(response.body));
-    if (!parsed) throw new SyncError("protocol", "Réponse inattendue du serveur");
+    if (!parsed) throw new SyncError("protocol", t("syncClient.unexpectedServerResponse"));
     return parsed;
   }
 
   async push(collection: string, records: PushRecord[]): Promise<PushResponse> {
     const response = await this.request("POST", `/collections/${collection}`, JSON.stringify({ records }));
-    if (response.status === 409) throw new SyncError("conflict", "Données modifiées sur le serveur entre-temps");
+    if (response.status === 409) throw new SyncError("conflict", t("syncClient.dataChangedServerMeantime"));
     check(response, [200]);
     const parsed = parsePushResponse(parseJson(response.body));
-    if (!parsed) throw new SyncError("protocol", "Réponse inattendue du serveur");
+    if (!parsed) throw new SyncError("protocol", t("syncClient.unexpectedServerResponse"));
     return parsed;
   }
 
@@ -155,10 +156,10 @@ async function send(transport: Transport, request: HttpRequest): Promise<HttpRes
 function check(response: HttpResponse, ok: number[]): void {
   if (ok.includes(response.status)) return;
   const { status } = response;
-  if (status === 401 || status === 403) throw new SyncError("auth", "Ce compte de synchronisation n'existe plus ou cet appareil n'y a plus accès");
-  if (status === 413) throw new SyncError("too-large", "Requête trop volumineuse pour le serveur");
-  if (status === 429) throw new SyncError("rate-limited", "Trop de requêtes, nouvel essai plus tard", retryAfter(response));
-  if (status === 507) throw new SyncError("too-large", "Quota du compte atteint sur le serveur");
-  if (status >= 500) throw new SyncError("server", `Erreur du serveur (${status})`, retryAfter(response));
-  throw new SyncError("protocol", `Réponse inattendue du serveur (${status})`);
+  if (status === 401 || status === 403) throw new SyncError("auth", t("syncClient.syncAccountNoLonger"));
+  if (status === 413) throw new SyncError("too-large", t("syncClient.requestTooLargeServer"));
+  if (status === 429) throw new SyncError("rate-limited", t("syncClient.tooManyRequestsRetrying"), retryAfter(response));
+  if (status === 507) throw new SyncError("too-large", t("syncClient.accountQuotaReachedServer"));
+  if (status >= 500) throw new SyncError("server", t("syncClient.serverError", { status }), retryAfter(response));
+  throw new SyncError("protocol", t("syncClient.unexpectedServerResponse2", { status }));
 }

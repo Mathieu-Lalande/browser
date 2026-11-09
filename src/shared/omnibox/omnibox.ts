@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { CalculatorProvider, ConversionProvider, NumberBaseProvider, TimeZoneProvider } from "./providers/answers";
 import { CommandsProvider, SettingsProvider } from "./providers/commands";
 import { AnnotationsProvider, ArchivedTabsProvider, BookmarksProvider, FavoritesProvider, HistoryProvider, RemoteTabsProvider } from "./providers/pages";
@@ -9,7 +10,7 @@ import { parseScope, scopesMatching } from "./scopes";
 import type { OmniboxData, OmniboxResult, Provider, ScopeId, Section, Suggestion } from "./types";
 
 /** Section titles before anything is typed. */
-const EMPTY_TITLES: Partial<Record<Section["id"], string>> = { tabs: "Onglets récents" };
+const EMPTY_TITLES: Partial<Record<Section["id"], string>> = { get tabs() { return t("omniboxOmnibox.recentTabs") } };
 
 /** Before typing, every action is listed (browsing them is how users discover them). */
 const EMPTY_LIMITS = { commands: SCOPED_LIMIT };

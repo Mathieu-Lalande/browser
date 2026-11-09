@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import { isNavigableUrl } from "./url";
 
 /**
@@ -338,7 +339,7 @@ export type PresetId = "minimal" | "productive" | "complete";
 export const LAYOUT_PRESETS: readonly { id: PresetId; label: string; widgets: readonly { kind: WidgetKind; size: WidgetSize }[] }[] = [
   {
     id: "minimal",
-    label: "Minimal",
+    get label() { return t("startWidgets.minimal") },
     widgets: [
       { kind: "clock", size: "l" },
       { kind: "search", size: "l" },
@@ -346,7 +347,7 @@ export const LAYOUT_PRESETS: readonly { id: PresetId; label: string; widgets: re
   },
   {
     id: "productive",
-    label: "Productif",
+    get label() { return t("startWidgets.productive") },
     widgets: [
       { kind: "clock", size: "l" },
       { kind: "search", size: "l" },
@@ -359,7 +360,7 @@ export const LAYOUT_PRESETS: readonly { id: PresetId; label: string; widgets: re
   },
   {
     id: "complete",
-    label: "Complet",
+    get label() { return t("startWidgets.complete") },
     widgets: [
       { kind: "clock", size: "l" },
       { kind: "search", size: "l" },

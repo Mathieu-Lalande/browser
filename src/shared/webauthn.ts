@@ -15,6 +15,8 @@
  * cross-origin frames still need `allow="publickey-credentials-get"` (enforced by Chromium).
  */
 
+import { t } from "./i18n";
+
 export type WebAuthnMethod = "platform" | "security-key" | "security-key-pin" | "phone";
 
 export interface WebAuthnSupport {
@@ -49,7 +51,7 @@ export function webauthnChoices(accounts: readonly { credentialId: string; name?
   return accounts.slice(0, MAX_WEBAUTHN_ACCOUNTS).map((account, index) => {
     const name = account.name?.trim() ?? "";
     const display = account.displayName?.trim() ?? "";
-    const label = name && display && name !== display ? `${display} (${name})` : name || display || `Clé d'accès ${index + 1}`;
+    const label = name && display && name !== display ? `${display} (${name})` : name || display || t("webauthn.passkey", { p: index + 1 });
     return { credentialId: account.credentialId, label: label.slice(0, 80) };
   });
 }

@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { dialog, systemPreferences } from "electron";
 import type { WindowPort } from "../ports";
 
@@ -9,7 +10,7 @@ import type { WindowPort } from "../ports";
 export async function confirmCardReveal(c: WindowPort): Promise<boolean> {
   if (process.platform === "darwin" && systemPreferences.canPromptTouchID()) {
     try {
-      await systemPreferences.promptTouchID("afficher le numéro d'une carte enregistrée");
+      await systemPreferences.promptTouchID(t("autofillAuth.showNumberSavedCard"));
       return true;
     } catch {
       return false;
@@ -18,10 +19,10 @@ export async function confirmCardReveal(c: WindowPort): Promise<boolean> {
   if (c.window.isDestroyed()) return false;
   const { response } = await dialog.showMessageBox(c.window, {
     type: "question",
-    title: "Afficher le numéro de la carte",
-    message: "Afficher le numéro complet de cette carte ?",
-    detail: "Il restera visible sur la page des réglages jusqu'à ce que vous la quittiez.",
-    buttons: ["Annuler", "Afficher"],
+    title: t("autofillAuth.showCardNumber"),
+    message: t("autofillAuth.showFullNumberCard"),
+    detail: t("autofillAuth.willStayVisibleSettings"),
+    buttons: [t("autofillAuth.cancel"), t("autofillAuth.show")],
     defaultId: 0,
     cancelId: 0,
     noLink: true,

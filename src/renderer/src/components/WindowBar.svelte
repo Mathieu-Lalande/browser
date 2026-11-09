@@ -4,6 +4,7 @@
 </script>
 
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { energyTooltip } from "@shared/energy";
   import { api, browser } from "../lib/browser.svelte";
   import Icon from "./Icon.svelte";
@@ -27,18 +28,18 @@
   const energy = $derived(browser.state.energy);
   const energyTip = $derived(energy ? energyTooltip(energy) : null);
   const modes = $derived<{ value: Mode; label: string; title: string; icon: "sidebar" | "sidebar-compact" | "zen" }[]>([
-    { value: "full", label: "Complète", icon: "sidebar", title: "Barre latérale complète : onglets, adresse, espaces" },
+    { value: "full", label: t("windowBar.full"), icon: "sidebar", title: t("windowBar.fullSidebarTabsAddress") },
     {
       value: "compact",
-      label: "Compacte",
+      label: t("windowBar.compact"),
       icon: "sidebar-compact",
-      title: platform.tip("Barre latérale compacte : les icônes des onglets, dépliée au survol. Recliquer : barre complète", "toggle-compact-mode"),
+      title: platform.tip(t("windowBar.compactSidebarTabIcons"), "toggle-compact-mode"),
     },
     {
       value: "zen",
-      label: "Zen",
+      label: t("windowBar.zen"),
       icon: "zen",
-      title: platform.tip("Mode zen : barre masquée, elle revient quand la souris touche le bord. Recliquer : barre complète", "toggle-zen"),
+      title: platform.tip(t("windowBar.zenModeSidebarHidden"), "toggle-zen"),
     },
   ]);
 
@@ -130,7 +131,7 @@
 >
   {#if revealed}
     <div class="start">
-      <SidebarModeSwitch value={mode === "hidden" ? null : mode} options={modes} label="Barre latérale" onchange={choose} />
+      <SidebarModeSwitch value={mode === "hidden" ? null : mode} options={modes} label={t("windowBar.sidebar")} onchange={choose} />
       {#if energy && energyTip}
         <span class="energy" role="img" aria-label={energyTip} title={energyTip} data-testid="energy-indicator">
           <Icon name={energy.reason === "battery" ? "energy-battery" : "energy-always"} />

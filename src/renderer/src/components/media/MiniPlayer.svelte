@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { currentPosition, formatMediaTime, type MediaSource } from "@shared/media";
   import { api } from "../../lib/browser.svelte";
   import { media } from "../../lib/media.svelte";
@@ -20,7 +21,7 @@
   });
 
   const position = $derived(top ? (seeking ?? currentPosition(top, media.now)) : 0);
-  const playLabel = (source: MediaSource) => (source.playing ? "Mettre en pause" : "Lire");
+  const playLabel = (source: MediaSource) => (source.playing ? t("miniPlayer.pause") : "Lire");
 
   function seek(source: MediaSource, value: number): void {
     seeking = null;
@@ -29,12 +30,12 @@
 </script>
 
 {#if top}
-  <section class="mini-player" aria-label="Lecture en cours" data-testid="mini-player">
+  <section class="mini-player" aria-label={t("miniPlayer.nowPlaying")} data-testid="mini-player">
     {#if expanded}
-      <ul class="list" aria-label="Sources de lecture" data-testid="media-list">
+      <ul class="list" aria-label={t("miniPlayer.playbackSources")} data-testid="media-list">
         {#each sources as source (source.tabId)}
           <li class="row">
-            <button class="row-main" title="Aller à l'onglet" onclick={() => api.media.focus(source.tabId)}>
+            <button class="row-main" title={t("miniPlayer.goTab")} onclick={() => api.media.focus(source.tabId)}>
               <MediaArtwork src={source.artwork} size="sm" />
               <span class="labels">
                 <span class="title">{source.title}</span>
@@ -51,17 +52,17 @@
             <IconButton
               size="sm"
               icon={source.muted ? "volume-off" : "volume"}
-              label={source.muted ? "Réactiver le son" : "Couper le son"}
+              label={source.muted ? t("miniPlayer.unmute") : t("miniPlayer.mute")}
               onclick={() => api.media.toggleMute(source.tabId)}
             />
-            <IconButton size="sm" icon="close" label="Fermer" onclick={() => api.media.dismiss(source.tabId)} />
+            <IconButton size="sm" icon="close" label={t("miniPlayer.close")} onclick={() => api.media.dismiss(source.tabId)} />
           </li>
         {/each}
       </ul>
     {/if}
     <div class="card">
       <div class="head">
-        <button class="head-main" title="Aller à l'onglet" onclick={() => api.media.focus(top.tabId)}>
+        <button class="head-main" title={t("miniPlayer.goTab")} onclick={() => api.media.focus(top.tabId)}>
           <MediaArtwork src={top.artwork} />
           <span class="labels">
             <span class="title" data-testid="mini-player-title">{top.title}</span>
@@ -72,8 +73,8 @@
           <button
             class="count"
             aria-expanded={expanded}
-            aria-label="{sources.length} sources de lecture"
-            title="Toutes les sources"
+            aria-label={t("miniPlayer.playbackSources2", { sourcesCount: sources.length })}
+            title={t("miniPlayer.allSources")}
             onclick={() => (expanded = !expanded)}
           >
             {sources.length}
@@ -88,7 +89,7 @@
           max={top.duration}
           step="1"
           value={position}
-          aria-label="Position de lecture"
+          aria-label={t("miniPlayer.playbackPosition")}
           aria-valuetext="{formatMediaTime(position)} sur {formatMediaTime(top.duration)}"
           style:--progress="{(position / top.duration) * 100}%"
           disabled={!top.controllable}
@@ -105,11 +106,11 @@
           disabled={!top.controllable}
           onclick={() => api.media.action(top.tabId, "toggle")}
         />
-        <IconButton size="sm" icon="fast-forward" label="Avancer de 10 s" disabled={!top.controllable} onclick={() => api.media.action(top.tabId, "forward")} />
+        <IconButton size="sm" icon="fast-forward" label={t("miniPlayer.skipAhead10S")} disabled={!top.controllable} onclick={() => api.media.action(top.tabId, "forward")} />
         {#if top.video}
-          <IconButton size="sm" icon="pip" label="Image dans l'image" onclick={() => api.media.pictureInPicture(top.tabId)} />
+          <IconButton size="sm" icon="pip" label={t("miniPlayer.picturePicture")} onclick={() => api.media.pictureInPicture(top.tabId)} />
         {/if}
-        <IconButton size="sm" icon="close" label="Fermer le lecteur" onclick={() => api.media.dismiss(top.tabId)} />
+        <IconButton size="sm" icon="close" label={t("miniPlayer.closePlayer")} onclick={() => api.media.dismiss(top.tabId)} />
       </div>
     </div>
   </section>

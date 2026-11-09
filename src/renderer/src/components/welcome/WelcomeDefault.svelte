@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { DefaultBrowserStatus } from "@shared/default-browser";
   import { api } from "../../lib/browser.svelte";
   import Icon from "../Icon.svelte";
@@ -19,16 +20,16 @@
   const hint = $derived(
     status?.message ??
       (status?.state === "not-default"
-        ? "Votre système peut vous demander de confirmer."
-        : "Indisponible dans cette version : vous pourrez le faire plus tard depuis les paramètres."),
+        ? t("welcomeDefault.systemMayAskYou")
+        : t("welcomeDefault.unavailableVersionYouCan")),
   );
 </script>
 
 <div class="box" data-testid="welcome-default">
   {#if status?.state === "default"}
-    <p class="done" role="status"><Icon name="badge-check" size={18} /> Browser est votre navigateur par défaut.</p>
+    <p class="done" role="status"><Icon name="badge-check" size={18} /> {t("welcomeDefault.browserDefaultBrowser")}</p>
   {:else}
-    <Button variant="primary" icon="badge-check" disabled={status?.state !== "not-default"} onclick={makeDefault}>Définir comme navigateur par défaut</Button>
+    <Button variant="primary" icon="badge-check" disabled={status?.state !== "not-default"} onclick={makeDefault}>{t("welcomeDefault.setDefaultBrowser")}</Button>
     <p class="hint">{hint}</p>
   {/if}
 </div>

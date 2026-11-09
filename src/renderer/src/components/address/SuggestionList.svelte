@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { Suggestion } from "@shared/search";
   import { displayUrl, normalizeInput } from "@shared/url";
   import { settings } from "../../lib/settings.svelte";
@@ -20,7 +21,7 @@
   }: { query: string; isSearch: boolean; suggestions: Suggestion[]; selected: number; onGo: (target: string | null) => void } = $props();
 </script>
 
-<ul class="suggestions" id="address-suggestions" role="listbox" aria-label="Suggestions">
+<ul class="suggestions" id="address-suggestions" role="listbox" aria-label={t("suggestionList.suggestions")}>
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <li
     id="suggestion-0"
@@ -33,7 +34,7 @@
     <span class="icon"><Icon name={isSearch ? "search" : "globe"} size={16} /></span>
     <span class="text">
       <span class="title"
-        >{#if isSearch}Rechercher « {query} »{:else}Aller à {displayUrl(normalizeInput(query, settings.engine))}{/if}</span
+        >{#if isSearch}{t("suggestionList.search", { query })}{:else}{t("suggestionList.go", { p: displayUrl(normalizeInput(query, settings.engine)) })}{/if}</span
       >
     </span>
   </li>
@@ -54,7 +55,7 @@
         <span class="url">{displayUrl(suggestion.url)}</span>
       </span>
       {#if suggestion.kind === "bookmark"}
-        <span class="kind" title="Favori"><Icon name="star" size={12} filled /></span>
+        <span class="kind" title={t("suggestionList.bookmark")}><Icon name="star" size={12} filled /></span>
       {/if}
     </li>
   {/each}

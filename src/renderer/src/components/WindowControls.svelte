@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { api } from "../lib/browser.svelte";
   import Icon from "./Icon.svelte";
 
@@ -17,18 +18,18 @@
   });
 </script>
 
-<div class="controls no-drag" role="group" aria-label="Fenêtre">
-  <button aria-label="Réduire" title="Réduire" onclick={() => api.window.minimize()}>
+<div class="controls no-drag" role="group" aria-label={t("windowControls.window")}>
+  <button aria-label={t("windowControls.minimize")} title={t("windowControls.minimize")} onclick={() => api.window.minimize()}>
     <Icon name="minimize" size={16} />
   </button>
   <button
-    aria-label={maximized ? "Restaurer" : "Agrandir"}
-    title={maximized ? "Restaurer" : "Agrandir"}
+    aria-label={maximized ? t("windowControls.restore") : t("windowControls.maximize")}
+    title={maximized ? t("windowControls.restore") : t("windowControls.maximize")}
     onclick={() => api.window.toggleMaximize()}
   >
     <Icon name={maximized ? "restore" : "maximize"} size={maximized ? 13 : 12} />
   </button>
-  <button class="close" aria-label="Fermer la fenêtre" title="Fermer" onclick={() => api.window.close()}>
+  <button class="close" aria-label={t("windowControls.closeWindow")} title={t("windowControls.close")} onclick={() => api.window.close()}>
     <Icon name="close" size={16} />
   </button>
 </div>

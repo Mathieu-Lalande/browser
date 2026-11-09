@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import type { DefaultBrowserStatus } from "@shared/default-browser";
 
 /** What the OS offers (Electron's `app` and `shell`, injected: testable with fakes). */
@@ -30,7 +31,7 @@ export class DefaultBrowserService {
   constructor(private readonly port: DefaultClientPort) {}
 
   status(): DefaultBrowserStatus {
-    if (!this.port.packaged) return { state: "unavailable", message: "Disponible dans la version installée du navigateur." };
+    if (!this.port.packaged) return { state: "unavailable", message: t("defaultBrowserService.availableInstalledVersionBrowser") };
     return { state: this.isDefault() ? "default" : "not-default", message: null };
   }
 
@@ -43,7 +44,7 @@ export class DefaultBrowserService {
     }
     await this.port.openExternal(WINDOWS_DEFAULT_APPS_URL).catch(() => {});
     const status = this.status();
-    return status.state === "default" ? status : { state: "not-default", message: "Choisissez « Browser » dans les Paramètres de Windows qui viennent de s'ouvrir." };
+    return status.state === "default" ? status : { state: "not-default", message: t("defaultBrowserService.chooseBrowserWindowsSettings") };
   }
 
   private isDefault(): boolean {

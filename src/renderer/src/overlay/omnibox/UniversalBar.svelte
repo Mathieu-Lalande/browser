@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { OmniboxController, dispositionOf } from "./controller.svelte";
   import BarInput from "./BarInput.svelte";
   import BarFooter from "./BarFooter.svelte";
@@ -51,7 +52,7 @@
 
 <svelte:window onkeydown={onKeydown} />
 
-<div class="panel" role="dialog" aria-modal="true" aria-label="Barre universelle">
+<div class="panel" role="dialog" aria-modal="true" aria-label={t("universalBar.universalBar")}>
   {#if bar.confirming}
     <ConfirmPanel
       command={bar.confirming}

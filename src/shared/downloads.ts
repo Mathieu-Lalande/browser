@@ -3,6 +3,8 @@
  * The UI only ever refers to a download by `id`: paths are shown, never sent back to main.
  */
 
+import { t } from "./i18n";
+
 export type DownloadState = "progressing" | "paused" | "completed" | "cancelled" | "interrupted";
 
 export interface DownloadEntry {
@@ -104,15 +106,15 @@ export function formatDuration(seconds: number): string {
 export function downloadStatus(entry: DownloadEntry): string {
   const size = entry.totalBytes > 0 ? formatBytes(entry.totalBytes) : formatBytes(entry.receivedBytes);
   if (entry.awaitingConfirmation) {
-    return entry.state === "completed" ? "Fichier potentiellement dangereux · à confirmer" : "Fichier potentiellement dangereux";
+    return entry.state === "completed" ? t("downloads.potentiallyDangerousFileNeeds") : t("downloads.potentiallyDangerousFile");
   }
   switch (entry.state) {
     case "completed":
-      return `Terminé · ${size}`;
+      return t("downloads.done", { size });
     case "cancelled":
-      return "Annulé";
+      return t("downloads.canceled");
     case "interrupted":
-      return entry.canResume ? "Interrompu · peut reprendre" : "Échec du téléchargement";
+      return entry.canResume ? t("downloads.interruptedCanResume") : t("downloads.downloadFailed");
     case "paused":
       return `En pause · ${formatBytes(entry.receivedBytes)}${entry.totalBytes > 0 ? ` / ${size}` : ""}`;
     default: {

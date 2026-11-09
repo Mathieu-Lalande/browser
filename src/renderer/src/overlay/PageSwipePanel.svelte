@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { Bounds, PageSwipeIndicator } from "@shared/types";
   import { api } from "../lib/browser.svelte";
   import Icon from "../components/Icon.svelte";
@@ -39,7 +40,7 @@
   data-testid="page-swipe"
   data-direction={indicator.direction < 0 ? "back" : "forward"}
   role="status"
-  aria-label={indicator.direction < 0 ? "Page précédente" : "Page suivante"}
+  aria-label={indicator.direction < 0 ? t("pageSwipePanel.previousPage") : t("pageSwipePanel.nextPage")}
   style:left="{left}px"
   style:top="{area.y + area.height / 2 - SIZE / 2}px"
   style:--progress={indicator.progress}

@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { StyleSheet, Text, View } from "react-native";
 import { siteHost } from "../lib/site";
 import { useTheme } from "../state/theme";
@@ -13,17 +14,16 @@ export function HttpsOnlyPage({ url, onContinue, onBack }: { url: string; onCont
         <Icon name="shield" size={32} color={colors.accentText} />
       </View>
       <Text style={[styles.title, { color: colors.text }]} accessibilityRole="header">
-        Connexion sécurisée indisponible
+        {t("mobile.httpsOnlyPage.secureConnectionUnavailable")}
       </Text>
       <Text style={[styles.text, { color: colors.textMuted }]}>
-        {siteHost(url) || url} ne prend pas en charge HTTPS. En HTTP, ce que vous voyez et saisissez sur ce site peut être lu ou modifié
-        sur le réseau.
+        {siteHost(url) || url} {t("mobile.httpsOnlyPage.doesNotSupportHttps")}
       </Text>
       <Tap accessibilityRole="button" onPress={onBack} style={[styles.primary, { backgroundColor: colors.accent }]}>
-        <Text style={[styles.primaryText, { color: colors.onAccent }]}>Revenir en lieu sûr</Text>
+        <Text style={[styles.primaryText, { color: colors.onAccent }]}>{t("mobile.httpsOnlyPage.goBackSafety")}</Text>
       </Tap>
       <Tap accessibilityRole="button" onPress={onContinue} style={styles.secondary}>
-        <Text style={[styles.secondaryText, { color: colors.textMuted }]}>Continuer en HTTP</Text>
+        <Text style={[styles.secondaryText, { color: colors.textMuted }]}>{t("mobile.httpsOnlyPage.continueOverHttp")}</Text>
       </Tap>
     </View>
   );

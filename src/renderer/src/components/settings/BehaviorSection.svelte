@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { ENERGY_SAVER_OPTIONS, type EnergySaverMode } from "@shared/energy";
   import { ARCHIVE_DELAY_OPTIONS, type CloseTabActivates, type NewTabPosition, type SettingsPatch, type TabArchiveDelay, type TabSleepDelay } from "@shared/settings";
   import { api } from "../../lib/browser.svelte";
@@ -18,64 +19,64 @@
 <DefaultBrowserRow />
 <Row
   anchor="restore-session"
-  label="Au démarrage"
-  hint="Les onglets reviennent chargés à la demande. Après un plantage, la page d'accueil propose de restaurer la session."
-  keywords="restaurer la session reprendre"
+  label={t("behaviorSection.startup")}
+  hint={t("behaviorSection.tabsComeBackLoaded")}
+  keywords={t("behaviorSection.restoreSessionResume")}
 >
   <Segmented
-    label="Au démarrage"
+    label={t("behaviorSection.startup")}
     value={s.behavior.restoreSession ? "resume" : "home"}
     options={[
-      { value: "resume", label: "Reprendre où j'en étais" },
-      { value: "home", label: "Page d'accueil" },
+      { value: "resume", label: t("behaviorSection.continueWhereILeft") },
+      { value: "home", label: t("behaviorSection.startPage") },
     ]}
     onchange={(choice) => update({ behavior: { restoreSession: choice === "resume" } })}
   />
 </Row>
-<Row anchor="new-tab-position" label="Ouvrir les nouveaux onglets">
+<Row anchor="new-tab-position" label={t("behaviorSection.openNewTabs")}>
   <Segmented
-    label="Ouvrir les nouveaux onglets"
+    label={t("behaviorSection.openNewTabs")}
     value={s.behavior.newTabPosition}
     options={[
-      { value: "end" as NewTabPosition, label: "À la fin" },
-      { value: "next" as NewTabPosition, label: "Après l'onglet actif" },
+      { value: "end" as NewTabPosition, label: t("behaviorSection.end") },
+      { value: "next" as NewTabPosition, label: t("behaviorSection.afterActiveTab") },
     ]}
     onchange={(newTabPosition) => update({ behavior: { newTabPosition } })}
   />
 </Row>
-<Row anchor="after-close" label="Après la fermeture d'un onglet, afficher">
+<Row anchor="after-close" label={t("behaviorSection.afterClosingTabShow")}>
   <Segmented
-    label="Après la fermeture d'un onglet, afficher"
+    label={t("behaviorSection.afterClosingTabShow")}
     value={s.behavior.closeTabActivates}
     options={[
-      { value: "next" as CloseTabActivates, label: "Le suivant" },
-      { value: "previous" as CloseTabActivates, label: "Le précédent" },
-      { value: "recent" as CloseTabActivates, label: "Le dernier utilisé" },
+      { value: "next" as CloseTabActivates, label: t("behaviorSection.nextOne") },
+      { value: "previous" as CloseTabActivates, label: t("behaviorSection.previousOne") },
+      { value: "recent" as CloseTabActivates, label: t("behaviorSection.lastUsedOne") },
     ]}
     onchange={(closeTabActivates) => update({ behavior: { closeTabActivates } })}
   />
 </Row>
 <Row
   anchor="mini-window"
-  label="Ouvrir les liens externes dans une mini-fenêtre"
-  hint="Un lien ouvert depuis une autre application s'affiche dans une petite fenêtre. « Ouvrir dans le navigateur » (Ctrl+O) le garde dans un onglet ; la fermer l'oublie."
+  label={t("behaviorSection.openExternalLinksMini")}
+  hint={t("behaviorSection.linkOpenedFromAnother")}
 >
   <Toggle
-    label="Ouvrir les liens externes dans une mini-fenêtre"
+    label={t("behaviorSection.openExternalLinksMini")}
     checked={s.behavior.externalLinksInMiniWindow}
     onchange={(externalLinksInMiniWindow) => update({ behavior: { externalLinksInMiniWindow } })}
   />
 </Row>
 <Row
   anchor="sleep"
-  label="Mettre en veille les onglets inactifs après"
-  hint="Libère la mémoire : la page se recharge quand vous revenez sur l'onglet. Jamais pour un onglet qui joue du son ou un formulaire en cours."
+  label={t("behaviorSection.putInactiveTabsSleep")}
+  hint={t("behaviorSection.freesMemoryPageReloads")}
 >
   <Segmented
-    label="Mettre en veille les onglets inactifs après"
+    label={t("behaviorSection.putInactiveTabsSleep")}
     value={s.behavior.sleepTabsAfter}
     options={[
-      { value: "never" as TabSleepDelay, label: "Jamais" },
+      { value: "never" as TabSleepDelay, label: t("behaviorSection.never") },
       { value: "15m" as TabSleepDelay, label: "15 min" },
       { value: "30m" as TabSleepDelay, label: "30 min" },
       { value: "1h" as TabSleepDelay, label: "1 h" },
@@ -86,12 +87,12 @@
 </Row>
 <Row
   anchor="energy-saver"
-  label="Économiseur d'énergie"
-  hint="Onglets mis en veille au bout de 5 min au plus, pages en arrière-plan ralenties, aperçus moins fréquents, animations coupées. Une icône le signale dans la barre de fenêtre."
-  keywords="batterie autonomie"
+  label={t("behaviorSection.energySaver")}
+  hint={t("behaviorSection.tabsPutSleepAfter")}
+  keywords={t("behaviorSection.batteryLifePower")}
 >
   <Segmented
-    label="Économiseur d'énergie"
+    label={t("behaviorSection.energySaver")}
     value={s.behavior.energySaver}
     options={ENERGY_SAVER_OPTIONS.map((option) => ({ value: option.value as EnergySaverMode, label: option.label }))}
     onchange={(energySaver) => update({ behavior: { energySaver } })}
@@ -99,11 +100,11 @@
 </Row>
 <Row
   anchor="archive"
-  label="Archiver les onglets inactifs après"
-  hint="L'onglet est fermé et rangé dans les onglets archivés, d'où il se restaure. Jamais pour un onglet épinglé, favori, qui joue du son ou dans une vue scindée."
+  label={t("behaviorSection.archiveInactiveTabsAfter")}
+  hint={t("behaviorSection.tabClosedKeptArchived")}
 >
   <Segmented
-    label="Archiver les onglets inactifs après"
+    label={t("behaviorSection.archiveInactiveTabsAfter")}
     value={s.behavior.archiveTabsAfter}
     options={ARCHIVE_DELAY_OPTIONS.map((option) => ({ value: option.value as TabArchiveDelay, label: option.label }))}
     onchange={(archiveTabsAfter) => update({ behavior: { archiveTabsAfter } })}
@@ -111,19 +112,19 @@
 </Row>
 <Row
   anchor="auto-pip"
-  label="Image dans l'image automatique"
-  hint="Quand vous quittez un onglet qui lit une vidéo visible, elle continue dans une fenêtre flottante, et revient à sa place à votre retour. Les sites qui interdisent l'image dans l'image sont respectés."
-  keywords="pip picture in picture vidéo flottante"
+  label={t("behaviorSection.automaticPicturePicture")}
+  hint={t("behaviorSection.whenYouLeaveTab")}
+  keywords={t("behaviorSection.pipPicturePictureFloating")}
 >
   <Toggle
-    label="Image dans l'image automatique"
+    label={t("behaviorSection.automaticPicturePicture")}
     checked={s.media.autoPictureInPicture}
     onchange={(autoPictureInPicture) => update({ media: { autoPictureInPicture } })}
   />
 </Row>
-<Row label="Onglets archivés" hint="Les onglets fermés par l'archivage, à restaurer ou supprimer.">
-  <Button icon="archive" onclick={() => api.commands.run("open-archive")}>Voir les onglets archivés</Button>
+<Row label={t("behaviorSection.archivedTabs")} hint={t("behaviorSection.tabsClosedArchivingRestore")}>
+  <Button icon="archive" onclick={() => api.commands.run("open-archive")}>{t("behaviorSection.seeArchivedTabs")}</Button>
 </Row>
-<Row label="Extensions" hint="Installer, activer ou retirer des extensions." keywords="modules addons">
-  <Button icon="extension" onclick={() => api.commands.run("open-extensions")}>Gérer les extensions</Button>
+<Row label={t("behaviorSection.extensions")} hint={t("behaviorSection.installTurnRemoveExtensions")} keywords={t("behaviorSection.modulesAddonsAddOns")}>
+  <Button icon="extension" onclick={() => api.commands.run("open-extensions")}>{t("behaviorSection.manageExtensions")}</Button>
 </Row>

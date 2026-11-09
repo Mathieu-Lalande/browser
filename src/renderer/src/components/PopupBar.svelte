@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { TabId, TabState } from "@shared/types";
   import { api } from "../lib/browser.svelte";
   import Icon from "./Icon.svelte";
@@ -19,14 +20,14 @@
   });
 </script>
 
-<div class="popup-bar" role="status" aria-label="Fenêtre surgissante bloquée">
+<div class="popup-bar" role="status" aria-label={t("popupBar.popUpBlocked")}>
   <Icon name="window" size={15} />
   <p>
-    <strong>Fenêtre surgissante bloquée</strong>
-    <span class="target" title={popup.url}>{target}{#if popup.count > 1}&nbsp;· {popup.count} tentatives{/if}</span>
+    <strong>{t("popupBar.popUpBlocked")}</strong>
+    <span class="target" title={popup.url}>{target}{#if popup.count > 1}{t("popupBar.attempts", { count: popup.count })}{/if}</span>
   </p>
-  <button class="primary" onclick={() => api.tabs.openBlockedPopup(tabId)}>Ouvrir</button>
-  <button class="dismiss" aria-label="Ignorer" title="Ignorer" onclick={() => api.tabs.dismissBlockedPopup(tabId)}>
+  <button class="primary" onclick={() => api.tabs.openBlockedPopup(tabId)}>{t("popupBar.open")}</button>
+  <button class="dismiss" aria-label={t("popupBar.ignore")} title={t("popupBar.ignore")} onclick={() => api.tabs.dismissBlockedPopup(tabId)}>
     <Icon name="close" size={14} />
   </button>
 </div>

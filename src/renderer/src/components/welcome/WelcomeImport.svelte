@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { internalUrl } from "@shared/internal";
   import type { ImportSource, ImportSummary } from "@shared/import/types";
   import { api, browser } from "../../lib/browser.svelte";
@@ -32,34 +33,33 @@
     const profile = source?.profiles[0];
     if (!profile || busy) return;
     busy = true;
-    summary = await api.import.run(profile.id, [...profile.items]).catch(() => ({ ok: false, message: "L'import a échoué." }));
+    summary = await api.import.run(profile.id, [...profile.items]).catch(() => ({ ok: false, message: t("welcomeImport.importFailed") }));
     busy = false;
   }
 
   const plural = (count: number, word: string) => `${count} ${word}${count > 1 ? "s" : ""}`;
   const summaryText = (result: ImportSummary): string => {
-    if (!result.ok) return result.message ?? "L'import a échoué.";
+    if (!result.ok) return result.message ?? t("welcomeImport.importFailed");
     const parts = [
       result.bookmarks && plural(result.bookmarks.added, "favori"),
       result.history && `${plural(result.history.added, "page")} d'historique`,
       result.searchEngine && `moteur ${result.searchEngine}`,
     ].filter(Boolean);
-    return parts.length ? `Importé : ${parts.join(", ")}.` : "Rien de nouveau à importer.";
+    return parts.length ? t("welcomeImport.imported", { p: parts.join(", ") }) : t("welcomeImport.nothingNewImport");
   };
 </script>
 
 <div class="import" data-testid="welcome-import">
   {#if browser.isPrivate}
-    <p class="hint">L'import est indisponible en navigation privée.</p>
+    <p class="hint">{t("welcomeImport.importUnavailablePrivateBrowsing")}</p>
   {:else if sources === null}
-    <p class="hint">Recherche des navigateurs installés…</p>
+    <p class="hint">{t("welcomeImport.lookingInstalledBrowsers")}</p>
   {:else if sources.length === 0}
     <p class="hint">
-      <Icon name="search" size={14} /> Aucun autre navigateur trouvé sur cet ordinateur. Vous pourrez importer plus tard (favoris HTML, mots de passe CSV) depuis
-      Fichier, Importer des données.
+      <Icon name="search" size={14} /> {t("welcomeImport.noOtherBrowserFound")}
     </p>
   {:else}
-    <div class="sources" role="radiogroup" aria-label="Navigateur à importer">
+    <div class="sources" role="radiogroup" aria-label={t("welcomeImport.browserImport")}>
       {#each sources as candidate (candidate.id)}
         <button class="source" role="radio" aria-checked={candidate.id === chosen} onclick={() => ((chosen = candidate.id), (summary = null))}>
           <span class="radio" aria-hidden="true">{#if candidate.id === chosen}<span class="dot"></span>{/if}</span>
@@ -68,8 +68,8 @@
       {/each}
     </div>
     <div class="actions">
-      <Button variant="primary" icon="import" disabled={busy || !source} onclick={run}>{busy ? "Import en cours…" : `Importer depuis ${source?.name ?? "…"}`}</Button>
-      <Button variant="quiet" onclick={() => api.tabs.create(internalUrl("import"))}>Plus d'options</Button>
+      <Button variant="primary" icon="import" disabled={busy || !source} onclick={run}>{busy ? t("welcomeImport.importing") : `Importer depuis ${source?.name ?? "…"}`}</Button>
+      <Button variant="quiet" onclick={() => api.tabs.create(internalUrl("import"))}>{t("welcomeImport.moreOptions")}</Button>
     </div>
     {#if summary}
       <p class="summary" class:error={!summary.ok} role="status" data-testid="welcome-import-summary">

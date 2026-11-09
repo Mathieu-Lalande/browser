@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { COUNTRIES, countryCode, fold, splitName, type AddressFields } from "./address";
 import { cardBrand, cardDigits, isExpiry, isValidCardNumber, parseExpiry, parseMonth, parseYear, type CardBrand, type CardExpiry } from "./card";
 import { classifyForm, formSections, sectionOf, type FieldDescriptor, type FieldKind, type FieldSection } from "./classify";
@@ -99,12 +100,12 @@ export interface CardInput {
 
 /** A card from the UI: the number must pass the checks, the expiry be a real month. */
 export function sanitizeCardInput(value: unknown, numberRequired: boolean): CardInput | { error: string } {
-  if (typeof value !== "object" || value === null) return { error: "Carte invalide." };
+  if (typeof value !== "object" || value === null) return { error: t("autofillModel.invalidCard") };
   const raw = value as Record<string, unknown>;
   const digits = typeof raw.number === "string" && raw.number.trim() === "" ? "" : cardDigits(raw.number);
-  if (digits === null || (digits === "" && numberRequired)) return { error: "Saisissez le numéro de la carte." };
-  if (digits && !isValidCardNumber(digits)) return { error: "Ce numéro de carte n'est pas valide." };
-  if (!isExpiry(raw.expMonth, raw.expYear)) return { error: "La date d'expiration n'est pas valide." };
+  if (digits === null || (digits === "" && numberRequired)) return { error: t("autofillModel.enterCardNumber") };
+  if (digits && !isValidCardNumber(digits)) return { error: t("autofillModel.cardNumberIsntValid") };
+  if (!isExpiry(raw.expMonth, raw.expYear)) return { error: t("autofillModel.expirationDateIsntValid") };
   return { name: clean(raw.name), number: digits, expMonth: raw.expMonth as number, expYear: raw.expYear as number, nickname: clean(raw.nickname, 60) };
 }
 
@@ -216,7 +217,7 @@ export function cardOutcome(data: AutofillData, card: NonNullable<AutofillCaptur
 export function saveAddress(data: AutofillData, fields: AddressFields, now: number, id: string): AutofillData {
   const index = data.addresses.findIndex((entry) => addressKey(entry) === addressKey(fields));
   if (index === -1) {
-    if (data.addresses.length >= MAX_ADDRESSES) throw new Error("Trop d'adresses enregistrées.");
+    if (data.addresses.length >= MAX_ADDRESSES) throw new Error(t("autofillModel.tooManyAddressesSaved"));
     return { ...data, addresses: [...data.addresses, { ...fields, id, createdAt: now, updatedAt: now, lastUsedAt: null }] };
   }
   const known = data.addresses[index];
@@ -232,7 +233,7 @@ export function saveCard(data: AutofillData, card: NonNullable<AutofillCapture["
     const updated: SavedCard = { ...known, name: card.name || known.name, expMonth: card.month, expYear: card.year, updatedAt: now };
     return { ...data, cards: data.cards.map((entry) => (entry.id === known.id ? updated : entry)) };
   }
-  if (data.cards.length >= MAX_CARDS) throw new Error("Trop de cartes enregistrées.");
+  if (data.cards.length >= MAX_CARDS) throw new Error(t("autofillModel.tooManyCardsSaved"));
   return {
     ...data,
     cards: [...data.cards, { id, name: card.name, number: card.number, expMonth: card.month, expYear: card.year, nickname: "", createdAt: now, updatedAt: now, lastUsedAt: null }],
@@ -243,7 +244,7 @@ export function saveCard(data: AutofillData, card: NonNullable<AutofillCapture["
 export function putAddress(data: AutofillData, id: string, fields: AddressFields, now: number): AutofillData {
   const known = data.addresses.find((entry) => entry.id === id);
   if (!known) {
-    if (data.addresses.length >= MAX_ADDRESSES) throw new Error("Trop d'adresses enregistrées.");
+    if (data.addresses.length >= MAX_ADDRESSES) throw new Error(t("autofillModel.tooManyAddressesSaved"));
     return { ...data, addresses: [...data.addresses, { ...fields, id, createdAt: now, updatedAt: now, lastUsedAt: null }] };
   }
   return { ...data, addresses: data.addresses.map((entry) => (entry.id === id ? { ...known, ...fields, updatedAt: now } : entry)) };
@@ -252,9 +253,9 @@ export function putAddress(data: AutofillData, id: string, fields: AddressFields
 /** Adds (`id` unknown, number required) or edits a card (an empty number keeps the saved one). */
 export function putCard(data: AutofillData, id: string, input: CardInput, now: number): AutofillData | { error: string } {
   const known = data.cards.find((entry) => entry.id === id);
-  if (!known && !input.number) return { error: "Saisissez le numéro de la carte." };
+  if (!known && !input.number) return { error: t("autofillModel.enterCardNumber") };
   const number = input.number || known!.number;
-  if (data.cards.some((entry) => entry.id !== id && entry.number === number)) return { error: "Cette carte est déjà enregistrée." };
+  if (data.cards.some((entry) => entry.id !== id && entry.number === number)) return { error: t("autofillModel.cardAlreadySaved") };
   const card: SavedCard = {
     id,
     name: input.name,
@@ -266,7 +267,7 @@ export function putCard(data: AutofillData, id: string, input: CardInput, now: n
     updatedAt: now,
     lastUsedAt: known?.lastUsedAt ?? null,
   };
-  if (!known && data.cards.length >= MAX_CARDS) return { error: "Trop de cartes enregistrées." };
+  if (!known && data.cards.length >= MAX_CARDS) return { error: t("autofillModel.tooManyCardsSaved") };
   return { ...data, cards: known ? data.cards.map((entry) => (entry.id === id ? card : entry)) : [...data.cards, card] };
 }
 

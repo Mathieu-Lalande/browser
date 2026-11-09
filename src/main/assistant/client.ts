@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import Anthropic from "@anthropic-ai/sdk";
 import { app } from "electron";
 import type { HistoryMessage } from "@shared/assistant/conversation";
@@ -66,13 +67,13 @@ export const isAbort = (error: unknown) => error instanceof Anthropic.APIUserAbo
 
 /** A French explanation of a failed call (never the key, never the request). */
 export function errorMessage(error: unknown): string {
-  if (error instanceof Anthropic.AuthenticationError) return "Clé d'API refusée par Anthropic : vérifiez-la dans Paramètres → Assistant IA.";
-  if (error instanceof Anthropic.PermissionDeniedError) return "Cette clé d'API n'a pas accès à ce modèle.";
-  if (error instanceof Anthropic.NotFoundError) return "Modèle introuvable pour cette clé d'API.";
-  if (error instanceof Anthropic.RateLimitError) return "Trop de requêtes : réessayez dans un instant.";
-  if (error instanceof Anthropic.BadRequestError) return "Requête refusée par Anthropic (page trop longue ou crédit épuisé ?).";
-  if (error instanceof Anthropic.InternalServerError) return "Le service d'Anthropic est momentanément indisponible.";
-  if (error instanceof Anthropic.APIConnectionError) return "Impossible de joindre Anthropic : vérifiez la connexion.";
-  if (error instanceof Anthropic.APIError) return `Erreur de l'API d'Anthropic (${error.status ?? "?"}).`;
-  return "L'assistant n'a pas pu répondre.";
+  if (error instanceof Anthropic.AuthenticationError) return t("assistantClient.apiKeyRefusedAnthropic");
+  if (error instanceof Anthropic.PermissionDeniedError) return t("assistantClient.apiKeyDoesntHave");
+  if (error instanceof Anthropic.NotFoundError) return t("assistantClient.modelNotFoundApi");
+  if (error instanceof Anthropic.RateLimitError) return t("assistantClient.tooManyRequestsTry");
+  if (error instanceof Anthropic.BadRequestError) return t("assistantClient.requestRefusedAnthropicPage");
+  if (error instanceof Anthropic.InternalServerError) return t("assistantClient.anthropicsServiceTemporarilyUnavailable");
+  if (error instanceof Anthropic.APIConnectionError) return t("assistantClient.cantReachAnthropicCheck");
+  if (error instanceof Anthropic.APIError) return t("assistantClient.anthropicApiError", { p: error.status ?? "?" });
+  return t("assistantClient.assistantCouldntAnswer");
 }

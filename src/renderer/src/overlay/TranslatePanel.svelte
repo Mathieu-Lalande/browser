@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { LANGUAGES, languageName, providerLabel, type TranslatePanelState } from "@shared/translate";
   import type { Bounds, TabId } from "@shared/types";
   import { api, browser } from "../lib/browser.svelte";
@@ -62,7 +63,7 @@
     error = null;
     const consent = info.needsConsent;
     // Resolves once the first batch is in the page: the rest goes on in main, progressively.
-    const result = await api.translate.run(tabId, from || null, to, consent).catch(() => ({ ok: false as const, message: "La traduction a échoué." }));
+    const result = await api.translate.run(tabId, from || null, to, consent).catch(() => ({ ok: false as const, message: t("translatePanel.translationFailed") }));
     busy = false;
     if (result.ok) onClose(false);
     else error = result.message;
@@ -92,7 +93,7 @@
   use:dismiss={{ onDismiss: () => onClose(true) }}
   class="panel"
   role="dialog"
-  aria-label="Traduction de la page"
+  aria-label={t("translatePanel.pageTranslation")}
   tabindex="-1"
   data-testid="translate-panel"
   style:left="{position.left}px"
@@ -104,26 +105,26 @@
     <header>
       <span class="badge"><Icon name="languages" size={16} /></span>
       <h2>
-        {#if status === "translated"}Page traduite de {sourceName} vers {languageName(translation?.to)}
-        {:else if status === "translating"}Traduction en cours…
-        {:else}Traduire cette page ?{/if}
+        {#if status === "translated"}{t("translatePanel.pageTranslatedFrom", { sourceName, p: languageName(translation?.to) })}
+        {:else if status === "translating"}{t("translatePanel.translating")}
+        {:else}{t("translatePanel.translatePage")}{/if}
       </h2>
     </header>
 
     {#if info.provider === "none" || !info.configured}
       <p class="hint">
         {info.provider === "none"
-          ? "La traduction est désactivée. Choisissez un service (DeepL, LibreTranslate ou Google) dans les paramètres."
-          : "Le service choisi n'est pas encore configuré (clé d'API ou adresse du serveur)."}
+          ? t("translatePanel.translationTurnedOffChoose")
+          : t("translatePanel.chosenServiceIsntSet")}
       </p>
       <div class="buttons">
-        <Button size="sm" variant="primary" icon="settings" onclick={openSettings}>Paramètres de traduction</Button>
+        <Button size="sm" variant="primary" icon="settings" onclick={openSettings}>{t("translatePanel.translationSettings")}</Button>
       </div>
     {:else}
       <div class="languages">
         <label>
-          <span>De</span>
-          <select class="ui-field" bind:value={from} aria-label="Langue de la page">
+          <span>{t("translatePanel.from")}</span>
+          <select class="ui-field" bind:value={from} aria-label={t("translatePanel.pageLanguage")}>
             <option value="">Détecter{translation?.from && !translation.pageLanguage ? ` (${languageName(translation.from)})` : ""}</option>
             {#each LANGUAGES as language (language.code)}
               <option value={language.code}>{language.name}</option>
@@ -132,8 +133,8 @@
         </label>
         <Icon name="forward" size={14} />
         <label>
-          <span>Vers</span>
-          <select class="ui-field" bind:value={to} aria-label="Langue de traduction">
+          <span>{t("translatePanel.to")}</span>
+          <select class="ui-field" bind:value={to} aria-label={t("translatePanel.translationLanguage")}>
             {#each LANGUAGES as language (language.code)}
               <option value={language.code}>{language.name}</option>
             {/each}
@@ -153,10 +154,10 @@
 
       <div class="rules">
         <Checkbox checked={info.alwaysLanguage} onchange={(on) => setRule("always-language", on)}>
-          {ruleLanguage ? `Toujours traduire : ${languageName(ruleLanguage)}` : "Toujours traduire cette langue"}
+          {ruleLanguage ? t("translatePanel.alwaysTranslate", { p: languageName(ruleLanguage) }) : t("translatePanel.alwaysTranslateLanguage")}
         </Checkbox>
         {#if info.site}
-          <Checkbox checked={info.neverSite} onchange={(on) => setRule("never-site", on)}>Jamais pour {info.site}</Checkbox>
+          <Checkbox checked={info.neverSite} onchange={(on) => setRule("never-site", on)}>{t("translatePanel.never", { site: info.site })}</Checkbox>
         {/if}
       </div>
 
@@ -164,15 +165,15 @@
 
       <div class="buttons">
         {#if status === "translated" || status === "translating"}
-          <Button size="sm" variant="ghost" onclick={showOriginal}>Afficher l'original</Button>
+          <Button size="sm" variant="ghost" onclick={showOriginal}>{t("translatePanel.showOriginal")}</Button>
         {/if}
         <Button size="sm" variant="primary" disabled={busy} onclick={translate}>
-          {info.needsConsent ? "Envoyer et traduire" : status === "translated" ? "Traduire de nouveau" : "Traduire"}
+          {info.needsConsent ? t("translatePanel.sendTranslate") : status === "translated" ? t("translatePanel.translateAgain") : t("translatePanel.translate")}
         </Button>
       </div>
     {/if}
   {:else if loaded}
-    <p class="hint">Cette page ne peut pas être traduite.</p>
+    <p class="hint">{t("translatePanel.pageCantTranslated")}</p>
   {/if}
 </div>
 

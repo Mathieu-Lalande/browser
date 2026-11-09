@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { DefaultBrowserStatus } from "@shared/default-browser";
   import { api, browser } from "../../lib/browser.svelte";
   import { settings } from "../../lib/settings.svelte";
@@ -27,11 +28,11 @@
 </script>
 
 {#if !browser.isPrivate && !dismissed && status?.state === "not-default"}
-  <div class="prompt" role="region" aria-label="Navigateur par défaut">
+  <div class="prompt" role="region" aria-label={t("defaultBrowserPrompt.defaultBrowser")}>
     <Icon name="badge-check" size={18} />
-    <span class="text">Faire de Browser votre navigateur par défaut ?</span>
-    <Button size="sm" variant="primary" onclick={makeDefault}>Définir par défaut</Button>
-    <Button size="sm" variant="quiet" onclick={answer}>Plus tard</Button>
+    <span class="text">{t("defaultBrowserPrompt.makeBrowserDefaultBrowser")}</span>
+    <Button size="sm" variant="primary" onclick={makeDefault}>{t("defaultBrowserPrompt.makeDefault")}</Button>
+    <Button size="sm" variant="quiet" onclick={answer}>{t("defaultBrowserPrompt.later")}</Button>
   </div>
 {/if}
 

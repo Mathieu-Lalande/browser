@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import * as Clipboard from "expo-clipboard";
 import { applyTheme, isCurrentTheme, themePatch, THEME_GALLERY, type SharedTheme } from "@shared/theme-share";
 import { memo, useMemo, useState } from "react";
@@ -39,7 +40,7 @@ export const ThemeSettings = memo(function ThemeSettings({
 
   return (
     <View style={[styles.block, { borderTopColor: colors.hairline }]}>
-      <Text style={[styles.label, { color: colors.text }]}>Thèmes</Text>
+      <Text style={[styles.label, { color: colors.text }]}>{t("mobile.themeSettings.themes")}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.gallery}>
         {THEME_GALLERY.map((theme) => {
           const selected = isCurrentTheme(settings, theme);
@@ -48,7 +49,7 @@ export const ThemeSettings = memo(function ThemeSettings({
             <Pressable
               key={theme.name}
               accessibilityRole="button"
-              accessibilityLabel={`Thème ${theme.name}`}
+              accessibilityLabel={t("mobile.themeSettings.theme", { name: theme.name })}
               accessibilityState={{ selected }}
               onPress={() => apply(theme)}
               style={[styles.card, { backgroundColor: preview.bg, borderColor: selected ? colors.accent : colors.hairline }]}
@@ -66,35 +67,35 @@ export const ThemeSettings = memo(function ThemeSettings({
         })}
       </ScrollView>
 
-      <Text style={[styles.label, { color: colors.text }]}>Partager le thème</Text>
+      <Text style={[styles.label, { color: colors.text }]}>{t("mobile.themeSettings.shareTheme")}</Text>
       <View style={styles.buttons}>
-        <SmallButton icon="share" label="Partager" onPress={() => void Share.share({ message: shareMessage(settings) })} />
-        <SmallButton icon="qr" label={showQr ? "Masquer le QR" : "QR code"} onPress={() => setShowQr((on) => !on)} />
-        <SmallButton icon="copy" label="Copier" onPress={() => void Clipboard.setStringAsync(code).then(() => haptic("success"))} />
+        <SmallButton icon="share" label={t("mobile.themeSettings.share")} onPress={() => void Share.share({ message: shareMessage(settings) })} />
+        <SmallButton icon="qr" label={showQr ? t("mobile.themeSettings.hideQr") : "QR code"} onPress={() => setShowQr((on) => !on)} />
+        <SmallButton icon="copy" label={t("mobile.themeSettings.copy")} onPress={() => void Clipboard.setStringAsync(code).then(() => haptic("success"))} />
       </View>
       {showQr && (
         <View style={styles.qr}>
-          <QrCode value={code} size={180} label="QR code du thème" />
+          <QrCode value={code} size={180} label={t("mobile.themeSettings.themeQrCode")} />
         </View>
       )}
 
-      <Text style={[styles.label, { color: colors.text }]}>Importer un thème</Text>
+      <Text style={[styles.label, { color: colors.text }]}>{t("mobile.themeSettings.importTheme")}</Text>
       <TextInput
         value={input}
         onChangeText={onInput}
-        placeholder="Collez un code browser-theme:v1:…"
+        placeholder={t("mobile.themeSettings.pasteBrowserThemeV1")}
         placeholderTextColor={colors.textFaint}
         autoCapitalize="none"
         autoCorrect={false}
         keyboardAppearance={dark ? "dark" : "light"}
         style={[styles.input, { color: colors.text, backgroundColor: colors.surface }]}
-        accessibilityLabel="Code de thème à importer"
+        accessibilityLabel={t("mobile.themeSettings.themeCodeImport")}
       />
       <View style={styles.buttons}>
-        <SmallButton icon="scan" label="Scanner un QR code" onPress={onScan} />
+        <SmallButton icon="scan" label={t("mobile.themeSettings.scanQrCode")} onPress={onScan} />
         <SmallButton
           icon="copy"
-          label="Coller"
+          label={t("mobile.themeSettings.paste")}
           onPress={() => void Clipboard.getStringAsync().then((text) => text && onInput(text.slice(0, 4096)))}
         />
       </View>
@@ -110,8 +111,8 @@ export const ThemeSettings = memo(function ThemeSettings({
   function renderPreview(theme: SharedTheme, onApply: () => void, onCancel: () => void) {
     const preview = previewColors(settings, theme, scheme);
     return (
-      <View style={[styles.preview, { backgroundColor: preview.bg, borderColor: colors.hairline }]} accessibilityLabel="Aperçu du thème importé">
-        <Text style={[styles.previewName, { color: preview.text }]}>{theme.name || "Thème importé"}</Text>
+      <View style={[styles.preview, { backgroundColor: preview.bg, borderColor: colors.hairline }]} accessibilityLabel={t("mobile.themeSettings.previewImportedTheme")}>
+        <Text style={[styles.previewName, { color: preview.text }]}>{theme.name || t("mobile.themeSettings.themeImported")}</Text>
         <View style={styles.cardSwatches}>
           <View style={[styles.dot, { backgroundColor: preview.accent }]} />
           <View style={[styles.dot, { backgroundColor: preview.accent2 }]} />
@@ -119,10 +120,10 @@ export const ThemeSettings = memo(function ThemeSettings({
         </View>
         <View style={styles.buttons}>
           <Pressable accessibilityRole="button" onPress={onApply} style={[styles.button, { backgroundColor: preview.accent }]}>
-            <Text style={[styles.buttonText, { color: preview.onAccent }]}>Appliquer</Text>
+            <Text style={[styles.buttonText, { color: preview.onAccent }]}>{t("mobile.themeSettings.apply")}</Text>
           </Pressable>
           <Pressable accessibilityRole="button" onPress={onCancel} style={[styles.button, { backgroundColor: preview.surfaceActive }]}>
-            <Text style={[styles.buttonText, { color: preview.text }]}>Annuler</Text>
+            <Text style={[styles.buttonText, { color: preview.text }]}>{t("mobile.themeSettings.cancel")}</Text>
           </Pressable>
         </View>
       </View>

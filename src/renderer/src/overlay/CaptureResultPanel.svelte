@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { CaptureResult } from "@shared/capture";
   import { api } from "../lib/browser.svelte";
   import Icon from "../components/Icon.svelte";
@@ -42,21 +43,21 @@
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<div bind:this={panel} class="panel" role="dialog" aria-label="Capture d'écran" tabindex="-1" onkeydown={onKeydown}>
-  <div class="preview"><img src={capture.preview} alt="Aperçu de la capture" /></div>
+<div bind:this={panel} class="panel" role="dialog" aria-label={t("captureResultPanel.screenshot")} tabindex="-1" onkeydown={onKeydown}>
+  <div class="preview"><img src={capture.preview} alt={t("captureResultPanel.screenshotPreview")} /></div>
   <div class="info">
-    <span class="title">Capture d'écran</span>
+    <span class="title">{t("captureResultPanel.screenshot")}</span>
     <span class="size" data-testid="capture-size">{capture.width} × {capture.height}</span>
-    <button class="close" aria-label="Fermer" title="Fermer" onclick={() => onClose(true)}><Icon name="close" size={14} /></button>
+    <button class="close" aria-label={t("captureResultPanel.close")} title={t("captureResultPanel.close")} onclick={() => onClose(true)}><Icon name="close" size={14} /></button>
   </div>
   <div class="actions">
     <button onclick={copy}>
       <Icon name={copied ? "check" : "copy-text"} size={14} />
-      {copied ? "Copiée" : failed ? "Échec de la copie" : "Copier"}
+      {copied ? t("captureResultPanel.copied") : failed ? t("captureResultPanel.copyFailed") : t("captureResultPanel.copy")}
     </button>
     <button class="primary" onclick={save} disabled={saving}>
       <Icon name="save" size={14} />
-      Enregistrer
+      {t("captureResultPanel.save")}
     </button>
   </div>
 </div>

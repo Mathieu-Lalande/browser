@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -74,7 +75,7 @@ class Preview {
       return { ok: true };
     } catch (error) {
       console.warn("[print] preview:", error);
-      return { ok: false, message: "L'aperçu n'a pas pu être généré (vérifiez les pages choisies)." };
+      return { ok: false, message: t("printService.previewCouldntGeneratedCheck") };
     }
   }
 
@@ -130,7 +131,7 @@ export class PrintService {
   /** The options changed: the preview is rendered again. */
   async update(host: PrintHost, options: PrintOptions): Promise<PrintResult> {
     const preview = this.previews.get(host);
-    if (!preview) return { ok: false, message: "Aperçu fermé." };
+    if (!preview) return { ok: false, message: t("printService.previewClosed") };
     const reRender = options.orientation !== preview.options.orientation || options.margins !== preview.options.margins ||
       options.scale !== preview.options.scale || options.background !== preview.options.background || options.pages !== preview.options.pages;
     preview.options = options;
@@ -147,7 +148,7 @@ export class PrintService {
   /** "Enregistrer" (PDF) or "Imprimer" (printer), with the options shown; closes the preview when done. */
   async run(host: PrintHost, options: PrintOptions): Promise<PrintResult> {
     const preview = this.previews.get(host);
-    if (!preview || preview.page.isDestroyed()) return { ok: false, message: "La page n'est plus ouverte." };
+    if (!preview || preview.page.isDestroyed()) return { ok: false, message: t("printService.pageNoLongerOpen") };
     await this.update(host, options);
     if (options.destination === PDF_DESTINATION) {
       const pdf = preview.pdf ?? (await preview.page.printToPDF(pdfOptions(options)));
@@ -156,12 +157,12 @@ export class PrintService {
       try {
         writeFileSync(path, pdf);
       } catch {
-        return { ok: false, message: "Le fichier n'a pas pu être écrit." };
+        return { ok: false, message: t("printService.fileCouldntWritten") };
       }
     } else {
       const page = preview.page;
       const printed = await new Promise<boolean>((resolve) => page.print(printerOptions(options), (success) => resolve(success)));
-      if (!printed) return { ok: false, message: "L'impression a échoué." };
+      if (!printed) return { ok: false, message: t("printService.printingFailed") };
     }
     this.closeOverlay(host);
     return { ok: true };
@@ -171,9 +172,9 @@ export class PrintService {
     if (this.deps.testSavePath) return this.deps.testSavePath;
     const base = (title || "page").replace(/[\\/:*?"<>|\u0000-\u001f]+/g, " ").trim().slice(0, 120) || "page";
     const { canceled, filePath } = await dialog.showSaveDialog(host.window, {
-      title: "Enregistrer en PDF",
+      title: t("printService.savePdf"),
       defaultPath: join(this.deps.downloadsFolder(), `${base}.pdf`),
-      filters: [{ name: "Document PDF", extensions: ["pdf"] }],
+      filters: [{ name: t("printService.pdfDocument"), extensions: ["pdf"] }],
     });
     return canceled || !filePath ? null : filePath;
   }

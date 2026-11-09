@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { TabState } from "@shared/types";
   import { api, browser } from "../../lib/browser.svelte";
   import { platform } from "../../lib/platform.svelte";
@@ -13,7 +14,7 @@
 </script>
 
 <!-- Presentational wrapper: its tabs stay direct members of the tab list for assistive tech. -->
-<div class="split-group" class:visible role="none" title="Vue scindée">
+<div class="split-group" class:visible role="none" title={t("splitGroup.splitView")}>
   <!-- Same arrangement as the panes (SplitView, splitLayout): columns, top to bottom. -->
   <div class="members" class:three={tabs.length === 3} class:four={tabs.length === 4} role="none">
     {#each tabs as tab (tab.id)}
@@ -24,8 +25,8 @@
     <button
       class="exit"
       tabindex="-1"
-      aria-label="Quitter la vue scindée"
-      title={platform.tip("Quitter la vue scindée", "toggle-split")}
+      aria-label={t("splitGroup.leaveSplitView")}
+      title={platform.tip(t("splitGroup.leaveSplitView"), "toggle-split")}
       onclick={() => api.split.exit()}
     >
       <Icon name="split" size={12} />

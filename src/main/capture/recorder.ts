@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { dialog, webContents as allContents, type WebContents } from "electron";
@@ -79,9 +80,9 @@ export class TabRecorder {
     if (!c.window.isDestroyed()) c.spaces.refresh();
     if (!recording || !isRecordingData(data) || c.window.isDestroyed()) return false;
     const { canceled, filePath } = await dialog.showSaveDialog(c.window, {
-      title: "Enregistrer la vidéo",
+      title: t("captureRecorder.saveVideo"),
       defaultPath: join(this.deps.downloadsFolder(), captureFileName(recording.url, new Date(recording.startedAt), "video")),
-      filters: [{ name: "Vidéo WebM", extensions: ["webm"] }],
+      filters: [{ name: t("captureRecorder.webmVideo"), extensions: ["webm"] }],
     });
     if (canceled || !filePath) return false;
     try {

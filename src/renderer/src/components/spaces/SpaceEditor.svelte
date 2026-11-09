@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { SPACE_COLORS, SPACE_ICON_LABELS, SPACE_ICONS } from "@shared/spaces";
   import type { SpaceInfo, SpaceInput } from "@shared/types";
   import { api, browser } from "../../lib/browser.svelte";
@@ -55,15 +56,15 @@
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<div class="editor" role="dialog" aria-label="Modifier l'espace" tabindex="-1" onkeydown={onKeydown}>
+<div class="editor" role="dialog" aria-label={t("spaceEditor.editSpace")} tabindex="-1" onkeydown={onKeydown}>
   {#if confirming}
     <div class="confirm">
-      <p>Supprimer l'espace <strong>« {space.name} »</strong> ? Ses onglets seront fermés{space.isolated
+      <p>{t("spaceEditor.deleteSpace")} <strong>« {space.name} »</strong> ? Ses onglets seront fermés{space.isolated
           ? ", et ses cookies et données effacés"
           : ""}.</p>
       <div class="actions">
-        <button class="secondary" bind:this={cancelButton} onclick={() => (confirming = false)}>Annuler</button>
-        <button class="danger" onclick={remove}>Supprimer</button>
+        <button class="secondary" bind:this={cancelButton} onclick={() => (confirming = false)}>{t("spaceEditor.cancel")}</button>
+        <button class="danger" onclick={remove}>{t("spaceEditor.delete")}</button>
       </div>
     </div>
   {:else}
@@ -72,7 +73,7 @@
       <input
         bind:this={nameInput}
         bind:value={name}
-        aria-label="Nom de l'espace"
+        aria-label={t("spaceEditor.spaceName")}
         maxlength="40"
         spellcheck="false"
         onchange={commitName}
@@ -80,7 +81,7 @@
       />
     </div>
 
-    <div class="icons" role="radiogroup" aria-label="Icône">
+    <div class="icons" role="radiogroup" aria-label={t("spaceEditor.icon")}>
       {#each SPACE_ICONS as icon (icon)}
         <button
           role="radio"
@@ -94,13 +95,13 @@
       {/each}
     </div>
 
-    <div class="colors" role="radiogroup" aria-label="Couleur">
+    <div class="colors" role="radiogroup" aria-label={t("spaceEditor.color")}>
       <button
         class="swatch theme"
         role="radio"
         aria-checked={space.color === null}
-        aria-label="Couleur du thème"
-        title="Couleur du thème"
+        aria-label={t("spaceEditor.themeColor")}
+        title={t("spaceEditor.themeColor")}
         class:selected={space.color === null}
         onclick={() => update({ color: null })}
       ></button>
@@ -119,16 +120,16 @@
 
     <div class="isolated">
       <Checkbox checked={space.isolated} onchange={(isolated) => update({ isolated })}>
-        <strong>Espace isolé</strong>
-        <small>Cookies, connexions et stockage séparés des autres espaces. Les onglets se rechargent.</small>
+        <strong>{t("spaceEditor.isolatedSpace")}</strong>
+        <small>{t("spaceEditor.cookiesSignInsStorage")}</small>
       </Checkbox>
     </div>
 
     <div class="actions">
       <button class="delete" disabled={!canDelete} onclick={() => (confirming = true)}>
-        <Icon name="trash" size={12} /> Supprimer
+        <Icon name="trash" size={12} /> {t("spaceEditor.delete")}
       </button>
-      <button class="primary" onclick={() => (commitName(), onClose())}>Terminé</button>
+      <button class="primary" onclick={() => (commitName(), onClose())}>{t("spaceEditor.done")}</button>
     </div>
   {/if}
 </div>

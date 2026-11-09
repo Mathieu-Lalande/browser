@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import Icon from "../Icon.svelte";
 
   /** The search box of pages (settings, downloads, archive, passwords…): icon, field, clear button. */
@@ -23,7 +24,7 @@
     onkeydown={(event) => event.key === "Escape" && value && (event.preventDefault(), (value = ""))}
   />
   {#if value}
-    <button type="button" class="clear" aria-label="Effacer la recherche" title="Effacer la recherche" onclick={() => ((value = ""), element?.focus())}>
+    <button type="button" class="clear" aria-label={t("searchField.clearSearch")} title={t("searchField.clearSearch")} onclick={() => ((value = ""), element?.focus())}>
       <Icon name="close" size={14} />
     </button>
   {/if}

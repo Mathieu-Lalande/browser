@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { PeekAction, PeekState } from "@shared/peek";
   import { PEEK_HEADER_HEIGHT } from "@shared/peek";
   import { displayUrl } from "@shared/url";
@@ -30,7 +31,7 @@
 <div
   class="card"
   role="dialog"
-  aria-label="Aperçu du lien"
+  aria-label={t("linkPeekPanel.linkPreview")}
   tabindex="-1"
   style:left="{peek.card.x}px"
   style:top="{peek.card.y}px"
@@ -44,13 +45,13 @@
       <span class="title">{peek.title}</span>
       <span class="url">{displayUrl(peek.url)}</span>
     </div>
-    <button class="action" title="Ouvrir dans un onglet" onclick={() => act("open-tab")}>
-      <Icon name="open" size={14} /> <span>Ouvrir dans un onglet</span>
+    <button class="action" title={t("linkPeekPanel.openTab")} onclick={() => act("open-tab")}>
+      <Icon name="open" size={14} /> <span>{t("linkPeekPanel.openTab")}</span>
     </button>
-    <button class="icon" title="Ouvrir en vue scindée" aria-label="Ouvrir en vue scindée" disabled={!peek.canSplit} onclick={() => act("open-split")}>
+    <button class="icon" title={t("linkPeekPanel.openSplitView")} aria-label={t("linkPeekPanel.openSplitView")} disabled={!peek.canSplit} onclick={() => act("open-split")}>
       <Icon name="split" size={15} />
     </button>
-    <button class="icon" title="Fermer (Échap)" aria-label="Fermer" onclick={() => act("close")}>
+    <button class="icon" title={t("linkPeekPanel.closeEsc")} aria-label={t("linkPeekPanel.close")} onclick={() => act("close")}>
       <Icon name="close" size={15} />
     </button>
   </header>

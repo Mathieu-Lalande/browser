@@ -1,3 +1,4 @@
+import { t, keywords } from "@shared/i18n";
 import { type CommandContext, type CommandDefinition, type CommandId } from "@shared/commands";
 import { Omnibox, sharedProviders } from "@shared/omnibox/omnibox";
 import { matchedRow, present } from "@shared/omnibox/providers/util";
@@ -44,9 +45,9 @@ export interface MobileAction {
 }
 
 export const MOBILE_ACTIONS: readonly MobileAction[] = [
-  { id: "share", label: "Partager la page", keywords: ["share", "envoyer", "lien"], icon: "share", needsPage: true },
-  { id: "new-private-tab", label: "Nouvel onglet privé", keywords: ["private", "incognito", "navigation privée"], icon: "mask" },
-  { id: "show-tabs", label: "Afficher les onglets", keywords: ["tabs", "onglets ouverts", "aperçu"], icon: "tabs" },
+  { id: "share", get label() { return t("mobile.searchSheet.sharePage") }, get keywords() { return keywords("mobile.searchSheet.shareKeywords") }, icon: "share", needsPage: true },
+  { id: "new-private-tab", get label() { return t("mobile.searchSheet.newPrivateTab") }, get keywords() { return keywords("mobile.searchSheet.privateKeywords") }, icon: "mask" },
+  { id: "show-tabs", get label() { return t("mobile.searchSheet.showTabs") }, get keywords() { return keywords("mobile.searchSheet.tabsKeywords") }, icon: "tabs" },
 ];
 
 export const mobileAction = (id: string) => MOBILE_ACTIONS.find((action) => action.id === id);
@@ -107,7 +108,7 @@ class MobileActionsProvider implements Provider {
             title: action.label,
             detail: "",
             icon: "command" as OmniboxIcon,
-            verb: "Exécuter",
+            verb: t("mobile.searchSheet.run"),
             completion: action.label,
             action: { type: "custom", id: action.id },
           },
@@ -159,12 +160,12 @@ export function buildSheet(input: SheetInput): SheetSection[] {
           score: 0,
           icon: "history",
           favicon: entry.favicon,
-          verb: "Ouvrir",
+          verb: t("mobile.searchSheet.open"),
           completion: entry.url,
           action: { type: "open", url: entry.url },
         }),
       );
-    if (frequent.length) sections.unshift({ id: "history", title: "Sites fréquents", items: frequent });
+    if (frequent.length) sections.unshift({ id: "history", title: t("mobile.searchSheet.topSites"), items: frequent });
   }
   return sections;
 }

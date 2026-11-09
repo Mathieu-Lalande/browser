@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { webHostname } from "@shared/hosts";
 
 /**
@@ -19,12 +20,12 @@ export function mobileSiteInfo(url: string): MobileSiteInfo | null {
 }
 
 export function connectionLabel(info: MobileSiteInfo): string {
-  return info.secure ? "Connexion sécurisée (HTTPS)" : "Connexion non sécurisée (HTTP)";
+  return info.secure ? t("mobile.siteInfo.secureConnectionHttps") : t("mobile.siteInfo.notSecureConnectionHttp");
 }
 
 export const SITE_DATA_NOTE =
-  "Effacer les données du site vide son stockage et ses cookies accessibles aux pages, puis recharge la page. " +
-  "Les cookies protégés (HttpOnly) ne peuvent pas être effacés site par site dans cette version de l'application.";
+  t("mobile.siteInfo.clearingSiteDataEmpties") +
+  t("mobile.siteInfo.protectedCookiesHttponlyCant");
 
 /**
  * Clears the page's own data from inside it: localStorage, sessionStorage, IndexedDB, Cache

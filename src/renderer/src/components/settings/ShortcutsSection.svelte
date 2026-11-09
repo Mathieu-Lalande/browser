@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { acceleratorFromKeyPress, type KeyPress } from "@shared/accelerators";
   import {
     COMMAND_GROUPS,
@@ -78,11 +79,11 @@
       case "needs-modifier":
         return `Ajoutez ${platform.isMac ? "⌘, ⌃ ou ⌥" : "Ctrl ou Alt"} à cette touche.`;
       case "reserved":
-        return "Cette combinaison est réservée par le système.";
+        return t("shortcutsSection.combinationReservedSystem");
       case "fixed":
-        return `Déjà utilisée par « ${check.label} », qui ne peut pas changer.`;
+        return t("shortcutsSection.alreadyUsedWhichCant", { label: check.label });
       default:
-        return "Cette touche ne peut pas servir de raccourci.";
+        return t("shortcutsSection.keyCantUsedShortcut");
     }
   }
 
@@ -136,15 +137,15 @@
 <div class="toolbar">
   <label class="search">
     <Icon name="search" size={14} />
-    <input type="search" placeholder="Rechercher une commande" aria-label="Rechercher un raccourci" bind:value={query} />
+    <input type="search" placeholder={t("shortcutsSection.searchCommand")} aria-label={t("shortcutsSection.searchShortcut")} bind:value={query} />
   </label>
-  <ConfirmButton question="Tous les raccourcis par défaut ?" confirmLabel="Réinitialiser" onconfirm={() => ((pending = null), save({}))}>
-    <Icon name="reset" size={12} /> Tout réinitialiser
+  <ConfirmButton question={t("shortcutsSection.allDefaultShortcuts")} confirmLabel={t("shortcutsSection.reset")} onconfirm={() => ((pending = null), save({}))}>
+    <Icon name="reset" size={12} /> {t("shortcutsSection.resetAll")}
   </ConfirmButton>
 </div>
 <p class="help">
-  Cliquez sur un raccourci, puis appuyez sur la nouvelle combinaison. <kbd>Échap</kbd> annule,
-  <kbd>{platform.isMac ? "⌫" : "Retour arrière"}</kbd> retire le raccourci.
+  {t("shortcutsSection.clickShortcutThenPress")} <kbd>{t("shortcutsSection.esc")}</kbd> {t("shortcutsSection.cancels")}
+  <kbd>{platform.isMac ? "⌫" : t("shortcutsSection.backspace")}</kbd> {t("shortcutsSection.removesShortcut")}
 </p>
 
 {#each groups as group (group.label)}
@@ -163,8 +164,8 @@
               size="row"
               icon="reset"
               iconSize={12}
-              title="Raccourci par défaut"
-              label="Rétablir le raccourci par défaut"
+              title={t("shortcutsSection.defaultShortcut")}
+              label={t("shortcutsSection.restoreDefaultShortcut")}
               aria-describedby="shortcut-{id}"
               onclick={() => ((pending = null), save(resetShortcut(overrides, id)))}
             />
@@ -173,18 +174,18 @@
             class="keys"
             class:capturing={capturing === id}
             class:custom
-            aria-label="Modifier le raccourci"
+            aria-label={t("shortcutsSection.changeShortcut")}
             aria-describedby="shortcut-{id}"
             aria-pressed={capturing === id}
             onclick={() => startCapture(id)}
             onblur={() => capturing === id && stopCapture()}
           >
             {#if capturing === id}
-              Appuyez sur la combinaison…
+              {t("shortcutsSection.pressCombination")}
             {:else if keys.length}
               {#each keys as key, index (index)}<kbd>{key}</kbd>{/each}
             {:else}
-              <span class="none">Aucun</span>
+              <span class="none">{t("shortcutsSection.none")}</span>
             {/if}
           </button>
         </div>
@@ -196,11 +197,11 @@
           <div class="note conflict" role="alert">
             <Icon name="warning" size={12} />
             <span class="message">
-              {shortcutText(taken.accelerator, platform.name)} est déjà utilisé par « {labelOf(taken.conflict)} ».
+              {t("shortcutsSection.alreadyUsed", { p: shortcutText(taken.accelerator, platform.name), p2: labelOf(taken.conflict) })}
             </span>
             <span class="actions">
-              <button class="action" onclick={() => (pending = null)}>Annuler</button>
-              <button class="action primary" onclick={replace}>Remplacer</button>
+              <button class="action" onclick={() => (pending = null)}>{t("shortcutsSection.cancel")}</button>
+              <button class="action primary" onclick={replace}>{t("shortcutsSection.replace")}</button>
             </span>
           </div>
         {/if}
@@ -208,7 +209,7 @@
     {/each}
   </div>
 {:else}
-  <p class="empty">Aucune commande ne correspond.</p>
+  <p class="empty">{t("shortcutsSection.noCommandMatches")}</p>
 {/each}
 
 <style>

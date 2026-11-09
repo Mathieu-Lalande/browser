@@ -1,3 +1,4 @@
+import { t } from "../../i18n";
 import { recency } from "../scorer";
 import type { OmniboxTab, Provider, QueryContext, Suggestion } from "../types";
 import { matchedRow, present, shortUrl } from "./util";
@@ -28,11 +29,11 @@ export class TabsProvider implements Provider {
           "tabs",
           {
             key: `tab:${tab.id}`,
-            title: tab.title || url || "Nouvel onglet",
+            title: tab.title || url || t("providersTabs.newTab"),
             detail: elsewhere ? `${tab.spaceName} · ${url}` : url,
             icon: "tab",
             favicon: tab.favicon,
-            verb: "Aller à l'onglet",
+            verb: t("providersTabs.goTab"),
             completion: tab.url,
             action: { type: "tab", tabId: tab.id, spaceId: tab.spaceId },
           },

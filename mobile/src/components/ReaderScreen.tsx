@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { READER_THEME_LABELS, readerColors, readingTimeLabel, type ReaderArticle, type ReaderColors } from "@shared/reader";
 import { LIMITS, type ReaderFont, type ReaderTheme } from "@shared/settings";
 import { memo, useEffect, useMemo, useState } from "react";
@@ -41,10 +42,10 @@ export const ReaderScreen = memo(function ReaderScreen({ article, onClose, onOpe
   return (
     <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.background, paddingTop: insets.top }]} accessibilityViewIsModal>
       <View style={[styles.toolbar, { borderBottomColor: colors.rule }]}>
-        <IconButton icon="close" label="Quitter le mode lecture" color={colors.text} onPress={onClose} />
+        <IconButton icon="close" label={t("mobile.readerScreen.exitReaderMode")} color={colors.text} onPress={onClose} />
         <View style={styles.spacer} />
-        <IconButton icon="textSize" size={16} label="Réduire le texte" color={colors.text} disabled={size <= LIMITS.readerSize.min} onPress={() => update({ size: size - 1 })} />
-        <IconButton icon="textSize" size={24} label="Agrandir le texte" color={colors.text} disabled={size >= LIMITS.readerSize.max} onPress={() => update({ size: size + 1 })} />
+        <IconButton icon="textSize" size={16} label={t("mobile.readerScreen.smallerText")} color={colors.text} disabled={size <= LIMITS.readerSize.min} onPress={() => update({ size: size - 1 })} />
+        <IconButton icon="textSize" size={24} label={t("mobile.readerScreen.largerText")} color={colors.text} disabled={size >= LIMITS.readerSize.max} onPress={() => update({ size: size + 1 })} />
       </View>
       <View style={[styles.options, { borderBottomColor: colors.rule }]}>
         {FONTS.map((font) => (

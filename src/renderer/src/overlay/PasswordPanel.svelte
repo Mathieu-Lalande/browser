@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { PasswordAccounts, PasswordPrompt, PromptAnswer } from "@shared/passwords";
   import type { Bounds, TabId } from "@shared/types";
   import { api } from "../lib/browser.svelte";
@@ -48,7 +49,7 @@
   async function answer(choice: PromptAnswer): Promise<void> {
     if (!captureId || busy) return;
     busy = true;
-    const result = await api.passwords.answer(captureId, choice).catch(() => ({ ok: false as const, message: "Le mot de passe n'a pas été enregistré." }));
+    const result = await api.passwords.answer(captureId, choice).catch(() => ({ ok: false as const, message: t("passwordPanel.passwordWasntSaved") }));
     busy = false;
     if (result.ok) onClose(false);
     else error = result.message;
@@ -60,7 +61,7 @@
     const filled = await api.passwords.fill(tabId, id).catch(() => false);
     busy = false;
     if (filled) onClose(false);
-    else error = "Aucun champ de mot de passe à remplir sur cette page.";
+    else error = t("passwordPanel.noPasswordFieldFill");
   }
 
 </script>
@@ -72,7 +73,7 @@
   use:dismiss={{ onDismiss: () => onClose(true) }}
   class="panel"
   role="dialog"
-  aria-label={kind === "save" ? "Enregistrer le mot de passe" : "Mots de passe enregistrés"}
+  aria-label={kind === "save" ? t("passwordPanel.savePassword") : t("passwordPanel.savedPasswords")}
   tabindex="-1"
   style:left="{position.left}px"
   style:top="{position.top}px"
@@ -85,20 +86,20 @@
       <h2>{prompt.update ? "Mettre à jour" : "Enregistrer"} le mot de passe pour {prompt.site} ?</h2>
     </header>
     <p class="account"><Icon name="circle-user" size={14} /> <span>{prompt.username || "Sans identifiant"}</span></p>
-    <p class="hint">Chiffré et enregistré sur cet appareil uniquement.</p>
+    <p class="hint">{t("passwordPanel.encryptedSavedDeviceOnly")}</p>
     {#if error}<p class="error" role="alert"><Icon name="warning" size={12} /> {error}</p>{/if}
     <div class="buttons">
-      <button class="ghost" disabled={busy} onclick={() => answer("never")}>Jamais pour ce site</button>
-      <button class="ghost" disabled={busy} onclick={() => answer("later")}>Plus tard</button>
-      <button class="primary" disabled={busy} onclick={() => answer("save")}>{prompt.update ? "Mettre à jour" : "Enregistrer"}</button>
+      <button class="ghost" disabled={busy} onclick={() => answer("never")}>{t("passwordPanel.neverSite")}</button>
+      <button class="ghost" disabled={busy} onclick={() => answer("later")}>{t("passwordPanel.later")}</button>
+      <button class="primary" disabled={busy} onclick={() => answer("save")}>{prompt.update ? t("passwordPanel.update") : t("passwordPanel.save")}</button>
     </div>
   {:else if kind === "fill" && accounts}
     <header>
       <span class="badge"><Icon name="key" size={16} /></span>
-      <h2>Mots de passe pour {accounts.site}</h2>
+      <h2>{t("passwordPanel.passwords", { site: accounts.site })}</h2>
     </header>
     {#if accounts.accounts.length}
-      <ul class="accounts" aria-label="Comptes enregistrés">
+      <ul class="accounts" aria-label={t("passwordPanel.savedAccounts")}>
         {#each accounts.accounts as account (account.id)}
           <li>
             <button disabled={busy} onclick={() => fill(account.id)}>
@@ -110,14 +111,14 @@
         {/each}
       </ul>
     {:else}
-      <p class="hint">Aucun mot de passe enregistré pour ce site.</p>
+      <p class="hint">{t("passwordPanel.noSavedPasswordSite")}</p>
     {/if}
     {#if error}<p class="error" role="alert"><Icon name="warning" size={12} /> {error}</p>{/if}
     <div class="buttons">
-      <button class="ghost" onclick={() => (api.commands.run("open-passwords"), onClose(false))}>Gérer les mots de passe</button>
+      <button class="ghost" onclick={() => (api.commands.run("open-passwords"), onClose(false))}>{t("passwordPanel.managePasswords")}</button>
     </div>
   {:else if loaded}
-    <p class="hint">Cette demande n'est plus disponible.</p>
+    <p class="hint">{t("passwordPanel.requestNoLongerAvailable")}</p>
   {/if}
 </div>
 

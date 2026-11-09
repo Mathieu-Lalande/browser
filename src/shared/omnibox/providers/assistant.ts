@@ -1,3 +1,4 @@
+import { t } from "../../i18n";
 import type { Provider, QueryContext, Suggestion } from "../types";
 
 /**
@@ -16,7 +17,7 @@ export class AssistantProvider implements Provider {
       section: "assistant",
       title: question,
       titleRanges: [],
-      detail: includePage ? "Demander à l'assistant, avec la page actuelle" : "Demander à l'assistant, sans envoyer la page",
+      detail: includePage ? t("providersAssistant.askAssistantCurrentPage") : t("providersAssistant.askAssistantWithoutSending"),
       detailRanges: [],
       score,
       icon: "sparkles",

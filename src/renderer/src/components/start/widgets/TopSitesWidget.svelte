@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { HistoryEntry } from "@shared/types";
   import { displayUrl } from "@shared/url";
   import { api } from "../../../lib/browser.svelte";
@@ -24,7 +25,7 @@
 </script>
 
 {#if sites.length}
-  <nav class="sites" aria-label="Sites les plus visités">
+  <nav class="sites" aria-label={t("topSitesWidget.mostVisitedSites")}>
     {#each sites as site (site.url)}
       <button class="site" title={site.url} onclick={() => openHere(site.url)}>
         <span class="tile">
@@ -36,7 +37,7 @@
     {/each}
   </nav>
 {:else}
-  <p class="empty">Les sites que vous visitez souvent apparaîtront ici.</p>
+  <p class="empty">{t("topSitesWidget.sitesYouVisitOften")}</p>
 {/if}
 
 <style>

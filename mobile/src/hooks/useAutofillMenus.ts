@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { CARD_BRAND_LABELS, addressSummary, byRecentUse, maskCardNumber } from "@shared/autofill";
 import { useState } from "react";
 import type { MenuSpec } from "../components/ActionSheet";
@@ -26,8 +27,8 @@ export function useAutofillMenus(tab: MobileTab | null) {
     if (!usable) return null;
     if (section === "card") {
       return {
-        title: "Remplir une carte de paiement",
-        note: "Le code de sécurité n'est jamais enregistré.",
+        title: t("mobile.useAutofillMenus.fillPaymentCard"),
+        note: t("mobile.useAutofillMenus.securityCodeNeverSaved"),
         items: byRecentUse(data.cards).map((card) => ({
           key: card.id,
           label: `${card.nickname || CARD_BRAND_LABELS.unknown} ${maskCardNumber(card.number.slice(-4))}`,
@@ -37,7 +38,7 @@ export function useAutofillMenus(tab: MobileTab | null) {
       };
     }
     return {
-      title: "Remplir une adresse",
+      title: t("mobile.useAutofillMenus.fillAddress"),
       items: byRecentUse(data.addresses).map((address) => ({
         key: address.id,
         label: address.name ? `${address.name}, ${addressSummary(address)}` : addressSummary(address),

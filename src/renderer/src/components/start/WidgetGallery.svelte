@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { WIDGET_CATALOG, WIDGET_KINDS, canAdd, type StartWidget, type WidgetKind } from "@shared/start-widgets";
   import Icon from "../Icon.svelte";
   import IconButton from "../ui/IconButton.svelte";
@@ -20,10 +21,10 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 <div class="scrim" onclick={onclose}></div>
-<div class="sheet" role="dialog" aria-modal="true" aria-label="Ajouter un widget" tabindex="-1" bind:this={sheet} onkeydown={onKeydown}>
+<div class="sheet" role="dialog" aria-modal="true" aria-label={t("widgetGallery.addWidget")} tabindex="-1" bind:this={sheet} onkeydown={onKeydown}>
   <header>
-    <h2>Ajouter un widget</h2>
-    <IconButton icon="close" label="Fermer" onclick={onclose} />
+    <h2>{t("widgetGallery.addWidget")}</h2>
+    <IconButton icon="close" label={t("widgetGallery.close")} onclick={onclose} />
   </header>
   <ul>
     {#each kinds as kind (kind)}
@@ -33,8 +34,8 @@
         <button disabled={!allowed} onclick={() => onadd(kind)}>
           <span class="icon"><Icon name={info.icon} size={20} /></span>
           <span class="text">
-            <strong>{info.label}{#if info.network}<em class="badge">Réseau</em>{/if}</strong>
-            <span>{allowed ? info.description : "Déjà sur la page."}</span>
+            <strong>{info.label}{#if info.network}<em class="badge">{t("widgetGallery.network")}</em>{/if}</strong>
+            <span>{allowed ? info.description : t("widgetGallery.alreadyPage")}</span>
           </span>
         </button>
       </li>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { ExtensionInfo } from "@shared/extensions";
   import type { Bounds } from "@shared/types";
   import { api } from "../lib/browser.svelte";
@@ -45,7 +46,7 @@
   use:dismiss={{ onDismiss: () => onClose(true) }}
   class="popover"
   role="dialog"
-  aria-label="Extension ajoutée"
+  aria-label={t("extensionInstalledPanel.extensionAdded")}
   data-testid="extension-installed"
   style:left="{left}px"
   style:top="{top}px"
@@ -56,21 +57,21 @@
       <span class="badge">
         {#if extension.icon}<img src={extension.icon} alt="" />{:else}<Icon name="extension" size={16} />{/if}
       </span>
-      <h2>« {extension.name} » a été ajoutée</h2>
+      <h2>{t("extensionInstalledPanel.wasAdded", { name: extension.name })}</h2>
     </header>
     <p>
       {#if extension.action && !extension.pinned}
-        Retrouvez-la sous la pièce de puzzle, ou épinglez son bouton dans la barre latérale.
+        {t("extensionInstalledPanel.findUnderPuzzlePiece")}
       {:else if extension.action}
-        Son bouton est dans la barre latérale, sous la barre d'adresse.
+        {t("extensionInstalledPanel.buttonSidebarUnderAddress")}
       {:else}
-        Elle s'applique aux pages ; gérez-la depuis la page Extensions.
+        {t("extensionInstalledPanel.appliesPagesManageFrom")}
       {/if}
     </p>
     <div class="actions">
-      <Button variant="quiet" onclick={() => onClose(true)}>OK</Button>
+      <Button variant="quiet" onclick={() => onClose(true)}>{t("extensionInstalledPanel.ok")}</Button>
       {#if extension.action && !extension.pinned}
-        <Button variant="primary" icon="pin" bind:element={pinButton} onclick={pin}>Épingler</Button>
+        <Button variant="primary" icon="pin" bind:element={pinButton} onclick={pin}>{t("extensionInstalledPanel.pin")}</Button>
       {/if}
     </div>
   {/if}

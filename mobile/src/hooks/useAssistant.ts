@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { finalStatus, REFUSAL_MESSAGE, TRUNCATED_NOTE, type AssistantTurn } from "@shared/assistant";
 import type { ReaderArticle } from "@shared/reader";
 import type { Settings, SettingsPatch } from "@shared/settings";
@@ -64,7 +65,7 @@ export function useAssistant({
       finish({ text: progress.text, status, error: status === "refused" ? REFUSAL_MESSAGE : status === "truncated" ? TRUNCATED_NOTE : undefined });
     } catch (error) {
       if (isAbort(error)) finish({ status: "stopped" });
-      else finish({ status: "error", error: apiKey ? errorMessage(error) : "Ajoutez votre clé d'API Anthropic dans les paramètres." });
+      else finish({ status: "error", error: apiKey ? errorMessage(error) : t("mobile.useAssistant.addAnthropicApiKey") });
     } finally {
       if (abort.current === controller) abort.current = null;
       setBusy(false);
@@ -107,7 +108,7 @@ export function useAssistant({
       const id = `e${Date.now()}`;
       setConversations((all) => {
         const base = all[tabId] ?? { tabId, url: tab.url, turns: [] };
-        return { ...all, [tabId]: { ...base, turns: [...base.turns, { id, role: "assistant", text: "", status: "error", error: "Aucun texte lisible sur cette page." }] } };
+        return { ...all, [tabId]: { ...base, turns: [...base.turns, { id, role: "assistant", text: "", status: "error", error: t("mobile.useAssistant.noReadableTextPage") }] } };
       });
       return;
     }
@@ -127,7 +128,7 @@ export function useAssistant({
     busy,
     isPrivate,
     waitingConsent: waitingConsent && needsConsent,
-    pendingLabel: pending ? (pending.action === "ask" ? pending.question ?? "" : pending.action === "summarize" ? "Résumer la page" : "Points clés") : null,
+    pendingLabel: pending ? (pending.action === "ask" ? pending.question ?? "" : pending.action === "summarize" ? t("mobile.useAssistant.summarizePage") : t("mobile.useAssistant.keyPoints")) : null,
   };
 }
 

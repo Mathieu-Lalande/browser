@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { monthGrid } from "@shared/start-widgets";
   import type { WidgetProps } from "../types";
 
@@ -18,10 +19,10 @@
 
 <h2 class="widget-title"><span class="month">{title}</span></h2>
 {#if widget.size !== "s"}<p class="today">{long}</p>{/if}
-<table class:weeks={widget.options.weekNumbers} aria-label="Calendrier de {title}">
+<table class:weeks={widget.options.weekNumbers} aria-label={t("calendarWidget.calendar", { title })}>
   <thead>
     <tr>
-      {#if widget.options.weekNumbers}<th scope="col" class="week" aria-label="Semaine">S</th>{/if}
+      {#if widget.options.weekNumbers}<th scope="col" class="week" aria-label={t("calendarWidget.week")}>S</th>{/if}
       {#each WEEKDAYS as day, index (index)}<th scope="col">{day}</th>{/each}
     </tr>
   </thead>

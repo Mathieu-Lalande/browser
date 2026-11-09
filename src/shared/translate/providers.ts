@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { normalizeLanguage } from "./languages";
 
 /**
@@ -81,7 +82,7 @@ function parseJson(response: HttpResponse): unknown {
   try {
     return JSON.parse(response.body);
   } catch {
-    throw new TranslationError("invalid", "Réponse illisible du service de traduction.");
+    throw new TranslationError("invalid", t("translateProviders.unreadableResponseFromTranslation"));
   }
 }
 
@@ -91,16 +92,16 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 function checkStatus(label: string, response: HttpResponse): void {
   const { status } = response;
   if (status >= 200 && status < 300) return;
-  if (status === 401 || status === 403) throw new TranslationError("auth", `${label} a refusé la clé d'API.`);
-  if (status === 456) throw new TranslationError("quota", `Le quota de traduction de ${label} est épuisé.`);
-  if (status === 429) throw new TranslationError("rate", `${label} reçoit trop de demandes : réessayez dans un instant.`);
-  if (status === 400) throw new TranslationError("invalid", `${label} a refusé la demande (langue non prise en charge ?).`);
-  throw new TranslationError("server", `${label} ne répond pas correctement (erreur ${status}).`);
+  if (status === 401 || status === 403) throw new TranslationError("auth", t("translateProviders.refusedApiKey", { label }));
+  if (status === 456) throw new TranslationError("quota", t("translateProviders.translationQuotaUsedUp", { label }));
+  if (status === 429) throw new TranslationError("rate", t("translateProviders.gettingTooManyRequests", { label }));
+  if (status === 400) throw new TranslationError("invalid", t("translateProviders.refusedRequestUnsupportedLanguage", { label }));
+  throw new TranslationError("server", t("translateProviders.isntRespondingCorrectlyError", { label, status }));
 }
 
 /** Translations of a JSON list, one per text sent; a shorter or longer list is refused. */
 function listOf(value: unknown, count: number, label: string): unknown[] {
-  if (!Array.isArray(value) || value.length !== count) throw new TranslationError("invalid", `Réponse incomplète de ${label}.`);
+  if (!Array.isArray(value) || value.length !== count) throw new TranslationError("invalid", t("translateProviders.incompleteResponseFrom", { label }));
   return value;
 }
 
@@ -196,7 +197,7 @@ export class LibreTranslateProvider implements TranslationProvider {
     }
     checkStatus(this.label, response);
     const json = parseJson(response);
-    if (!isRecord(json)) throw new TranslationError("invalid", `Réponse incomplète de ${this.label}.`);
+    if (!isRecord(json)) throw new TranslationError("invalid", t("translateProviders.incompleteResponseFrom", { label: this.label }));
     // A single text may come back as a plain string.
     const translated = typeof json.translatedText === "string" && count === 1 ? [json.translatedText] : json.translatedText;
     const texts = listOf(translated, count, this.label).map(textOrNull);
@@ -261,14 +262,14 @@ export function createProvider(config: ProviderConfig): TranslationProvider {
   const key = config.apiKey.trim();
   switch (config.provider) {
     case "deepl":
-      if (!key) throw new TranslationError("config", "Ajoutez une clé d'API DeepL dans Paramètres → Traduction.");
+      if (!key) throw new TranslationError("config", t("translateProviders.addDeeplApiKey"));
       return new DeepLProvider(key, config.deeplPlan);
     case "google":
-      if (!key) throw new TranslationError("config", "Ajoutez une clé d'API Google Cloud dans Paramètres → Traduction.");
+      if (!key) throw new TranslationError("config", t("translateProviders.addGoogleCloudApi"));
       return new GoogleTranslateProvider(key);
     case "libretranslate": {
       const url = normalizeServerUrl(config.libreUrl);
-      if (!url) throw new TranslationError("config", "Indiquez l'adresse du serveur LibreTranslate dans Paramètres → Traduction.");
+      if (!url) throw new TranslationError("config", t("translateProviders.enterLibretranslateServerAddress"));
       return new LibreTranslateProvider(url, key);
     }
   }

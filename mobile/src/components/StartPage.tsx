@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import type { Favorite } from "@shared/favorites";
 import {
   LAYOUT_PRESETS,
@@ -140,11 +141,11 @@ export const StartPage = memo(function StartPage({ bottomInset, onSearch, onOpen
       >
         {editing && (
           <View style={[styles.toolbar, { backgroundColor: colors.bgElevated, borderColor: colors.hairline }]} accessibilityRole="toolbar">
-            <Chip label="Ajouter" icon="plus" primary onPress={() => setGallery(true)} />
+            <Chip label={t("mobile.startPage.add")} icon="plus" primary onPress={() => setGallery(true)} />
             {LAYOUT_PRESETS.map((preset) => (
               <Chip key={preset.id} label={preset.label} onPress={() => edit((list) => applyPreset(list, preset.id))} />
             ))}
-            <Chip label="Terminé" icon="check" onPress={() => setEditing(false)} testID="start-done" />
+            <Chip label={t("mobile.startPage.done")} icon="check" onPress={() => setEditing(false)} testID="start-done" />
           </View>
         )}
         {isPrivate && (
@@ -153,7 +154,7 @@ export const StartPage = memo(function StartPage({ bottomInset, onSearch, onOpen
               <Icon name="mask" size={32} color={colors.accentText} />
             </View>
             <Text style={[styles.heading, { color: colors.text }]} accessibilityRole="header">
-              Navigation privée
+              {t("mobile.startPage.privateBrowsing")}
             </Text>
             <Text style={[styles.privateText, { color: colors.textMuted }]}>{privateModeNotice(Platform.OS)}</Text>
           </View>
@@ -188,7 +189,7 @@ export const StartPage = memo(function StartPage({ bottomInset, onSearch, onOpen
         {!editing && (
           <Tap accessibilityRole="button" onPress={() => setEditing(true)} style={styles.customize} testID="start-customize">
             <Icon name="layout-dashboard" size={16} color={colors.textMuted} />
-            <Text style={[styles.customizeText, { color: colors.textMuted }]}>Personnaliser</Text>
+            <Text style={[styles.customizeText, { color: colors.textMuted }]}>{t("mobile.startPage.customize")}</Text>
           </Tap>
         )}
       </ScrollView>
@@ -285,13 +286,13 @@ const WidgetCard = memo(function WidgetCard({ widget, width, editing, position, 
       style={[{ width }, card && [styles.card, { backgroundColor: withAlpha(colors.bgElevated, 0.9), borderColor: colors.hairline }], style]}
       onLayout={(event) => onLayout(event.nativeEvent.layout)}
       accessible={editing}
-      accessibilityLabel={editing ? `${info.label}, position ${position} sur ${total}` : undefined}
+      accessibilityLabel={editing ? t("mobile.startPage.position", { label: info.label, position, total }) : undefined}
       accessibilityActions={
         editing
           ? [
-              { name: "moveUp", label: "Monter" },
-              { name: "moveDown", label: "Descendre" },
-              { name: "remove", label: "Retirer" },
+              { name: "moveUp", label: t("mobile.startPage.moveUp") },
+              { name: "moveDown", label: t("mobile.startPage.moveDown") },
+              { name: "remove", label: t("mobile.startPage.remove") },
             ]
           : undefined
       }
@@ -305,7 +306,7 @@ const WidgetCard = memo(function WidgetCard({ widget, width, editing, position, 
       {editing && (
         <View style={styles.cardBar}>
           <GestureDetector gesture={pan}>
-            <View style={styles.handle} accessibilityLabel={`Déplacer ${info.label}`}>
+            <View style={styles.handle} accessibilityLabel={t("mobile.startPage.move", { label: info.label })}>
               <Icon name="grip-vertical" size={16} color={colors.textMuted} />
               <Text style={[styles.cardLabel, { color: colors.textMuted }]} numberOfLines={1}>
                 {info.label}
@@ -317,7 +318,7 @@ const WidgetCard = memo(function WidgetCard({ widget, width, editing, position, 
               <Text style={[styles.cardLabel, { color: colors.text }]}>{SIZE_LABELS[widget.size]}</Text>
             </Tap>
           )}
-          <Tap accessibilityRole="button" accessibilityLabel={`Retirer ${info.label}`} onPress={onRemove} style={styles.iconButton}>
+          <Tap accessibilityRole="button" accessibilityLabel={t("mobile.startPage.remove2", { label: info.label })} onPress={onRemove} style={styles.iconButton}>
             <Icon name="close" size={16} color={colors.textMuted} />
           </Tap>
         </View>
@@ -336,10 +337,10 @@ function Gallery({ visible, widgets, isPrivate, onClose, onAdd }: { visible: boo
   const kinds = WIDGET_KINDS.filter((kind) => WIDGET_CATALOG[kind].mobile && !(isPrivate && WIDGET_CATALOG[kind].revealsHabits));
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
-      <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: withAlpha("#000000", 0.4) }]} onPress={onClose} accessibilityLabel="Fermer" />
+      <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: withAlpha("#000000", 0.4) }]} onPress={onClose} accessibilityLabel={t("mobile.startPage.close")} />
       <View style={[styles.sheet, { backgroundColor: colors.bgElevated }]} accessibilityViewIsModal>
         <Text style={[styles.sheetTitle, { color: colors.text }]} accessibilityRole="header">
-          Ajouter un widget
+          {t("mobile.startPage.addWidget")}
         </Text>
         <ScrollView>
           {kinds.map((kind) => {
@@ -352,7 +353,7 @@ function Gallery({ visible, widgets, isPrivate, onClose, onAdd }: { visible: boo
                 </View>
                 <View style={styles.galleryText}>
                   <Text style={[styles.galleryLabel, { color: colors.text }]}>{info.label}</Text>
-                  <Text style={[styles.galleryHint, { color: colors.textMuted }]}>{allowed ? info.description : "Déjà sur la page."}</Text>
+                  <Text style={[styles.galleryHint, { color: colors.textMuted }]}>{allowed ? info.description : t("mobile.startPage.alreadyPage")}</Text>
                 </View>
               </Tap>
             );

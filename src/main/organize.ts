@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { randomUUID } from "node:crypto";
 import { Menu } from "electron";
 import { tabsToArchive, type ArchivedTab } from "@shared/archive";
@@ -88,11 +89,11 @@ export function favoriteFavicon(url: string, favicon: string | null | undefined)
 export function showFavoriteMenu(c: BrowserController, url: string): void {
   if (!profile().favorites.has(url)) return;
   Menu.buildFromTemplate([
-    { id: "open", label: "Ouvrir", click: () => openFavorite(c, url) },
-    { id: "open-new", label: "Ouvrir dans un nouvel onglet", click: () => openFavorite(c, url, true) },
+    { id: "open", label: t("organize.open"), click: () => openFavorite(c, url) },
+    { id: "open-new", label: t("organize.openNewTab"), click: () => openFavorite(c, url, true) },
     { type: "separator" },
     // A private window reads the grid but never edits it.
-    { id: "remove", label: "Retirer de la grille des favoris", enabled: !c.isPrivate, click: () => removeFavorite(c, url) },
+    { id: "remove", label: t("organize.removeFromFavoritesGrid"), enabled: !c.isPrivate, click: () => removeFavorite(c, url) },
   ]).popup({ window: c.window });
 }
 

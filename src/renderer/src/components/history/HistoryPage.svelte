@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { groupByDay, type HistoryClearRange, type HistoryCursor } from "@shared/history";
   import type { HistoryEntry } from "@shared/types";
   import { displayUrl } from "@shared/url";
@@ -23,10 +24,10 @@
    */
 
   const RANGES: { id: HistoryClearRange; label: string }[] = [
-    { id: "hour", label: "Dernière heure" },
-    { id: "today", label: "Aujourd'hui" },
-    { id: "week", label: "7 derniers jours" },
-    { id: "all", label: "Tout l'historique" },
+    { id: "hour", label: t("historyPage.lastHour") },
+    { id: "today", label: t("historyPage.today") },
+    { id: "week", label: t("historyPage.last7Days") },
+    { id: "all", label: t("historyPage.allHistory") },
   ];
 
   let query = $state("");
@@ -104,22 +105,22 @@
   }
 </script>
 
-<Page icon="history" title="Historique" subtitle="Les pages visitées sur cet appareil, les plus récentes d'abord." testid="history-page">
+<Page icon="history" title={t("historyPage.history")} subtitle={t("historyPage.pagesVisitedDeviceMost")} testid="history-page">
   {#snippet actions()}
     {#if !browser.isPrivate}
       <div class="clear" use:dismiss={{ enabled: menuOpen, outside: true, onDismiss: () => ((menuOpen = false), (clearing = null)) }}>
-        <Button icon="trash" aria-expanded={menuOpen} onclick={() => ((menuOpen = !menuOpen), (clearing = null))}>Effacer l'historique</Button>
+        <Button icon="trash" aria-expanded={menuOpen} onclick={() => ((menuOpen = !menuOpen), (clearing = null))}>{t("historyPage.clearHistory")}</Button>
         {#if menuOpen}
           {#if clearing}
-            <div class="menu" role="dialog" aria-label="Confirmer l'effacement">
-              <p>Effacer : {RANGES.find((range) => range.id === clearing)?.label.toLowerCase()} ?</p>
+            <div class="menu" role="dialog" aria-label={t("historyPage.confirmClearing")}>
+              <p>{t("historyPage.clear", { p: RANGES.find((range) => range.id === clearing)?.label.toLowerCase() })}</p>
               <div class="confirm">
-                <Button size="sm" variant="quiet" onclick={() => (clearing = null)}>Annuler</Button>
-                <Button size="sm" variant="danger" onclick={() => clearing && clear(clearing)}>Effacer</Button>
+                <Button size="sm" variant="quiet" onclick={() => (clearing = null)}>{t("historyPage.cancel")}</Button>
+                <Button size="sm" variant="danger" onclick={() => clearing && clear(clearing)}>{t("historyPage.clear2")}</Button>
               </div>
             </div>
           {:else}
-            <Menu class="menu" label="Effacer l'historique">
+            <Menu class="menu" label={t("historyPage.clearHistory")}>
               {#each RANGES as range (range.id)}
                 <MenuItem role="menuitem" icon="clock" iconSize={15} label={range.label} onclick={() => (clearing = range.id)} />
               {/each}
@@ -131,21 +132,21 @@
   {/snippet}
 
   {#if browser.isPrivate}
-    <EmptyState icon="mask" title="Historique indisponible en navigation privée" hint="Les fenêtres privées n'enregistrent ni ne montrent l'historique de navigation." />
+    <EmptyState icon="mask" title={t("historyPage.historyUnavailablePrivateBrowsing")} hint={t("historyPage.privateWindowsNeitherSave")} />
   {:else}
-    <SearchField bind:value={query} label="Rechercher dans l'historique" />
+    <SearchField bind:value={query} label={t("historyPage.searchHistory")} />
 
     {#if selected.size}
-      <div class="selection" role="toolbar" aria-label="Sélection">
-        <span>{selected.size} sélectionnée{selected.size > 1 ? "s" : ""}</span>
-        <Button size="sm" variant="quiet" onclick={() => (selected = new Set())}>Annuler</Button>
+      <div class="selection" role="toolbar" aria-label={t("historyPage.selection")}>
+        <span>{t("historyPage.selected", { size: selected.size })}</span>
+        <Button size="sm" variant="quiet" onclick={() => (selected = new Set())}>{t("historyPage.cancel")}</Button>
         <ConfirmButton
           variant="outlined"
-          question={`Supprimer ${selected.size} entrée${selected.size > 1 ? "s" : ""} ?`}
-          confirmLabel="Supprimer"
+          question={t("historyPage.deleteEntries", { size: selected.size })}
+          confirmLabel={t("historyPage.delete")}
           onconfirm={() => remove([...selected])}
         >
-          <Icon name="trash" size={12} /> Supprimer la sélection
+          <Icon name="trash" size={12} /> {t("historyPage.deleteSelection")}
         </ConfirmButton>
       </div>
     {/if}
@@ -157,7 +158,7 @@
           {#each group.entries as entry (entry.url)}
             <ListRow dense class="history-row" data-url={entry.url}>
               <Checkbox checked={selected.has(entry.url)} onchange={(checked) => toggle(entry.url, checked)}>
-                <span class="sr">Sélectionner {entry.title || displayUrl(entry.url)}</span>
+                <span class="sr">{t("historyPage.select", { p: entry.title || displayUrl(entry.url) })}</span>
               </Checkbox>
               <span class="time">{timeFormat.format(entry.lastVisit)}</span>
               <Favicon src={entry.favicon} />
@@ -167,13 +168,13 @@
               </button>
               <ConfirmButton
                 variant="ghost"
-                question="Supprimer cette entrée ?"
-                confirmLabel="Supprimer"
-                title="Supprimer de l'historique"
+                question={t("historyPage.deleteEntry")}
+                confirmLabel={t("historyPage.delete")}
+                title={t("historyPage.deleteFromHistory")}
                 onconfirm={() => remove([entry.url])}
               >
                 <Icon name="trash" size={16} />
-                <span class="sr">Supprimer {entry.title || displayUrl(entry.url)} de l'historique</span>
+                <span class="sr">{t("historyPage.deleteFromHistory2", { p: entry.title || displayUrl(entry.url) })}</span>
               </ConfirmButton>
             </ListRow>
           {/each}
@@ -182,9 +183,9 @@
     {:else}
       {#if !loading}
         {#if query}
-          <EmptyState icon="search" title="Aucun résultat" hint="Aucune page visitée ne correspond à cette recherche." />
+          <EmptyState icon="search" title={t("historyPage.noResults")} hint={t("historyPage.noVisitedPageMatches")} />
         {:else}
-          <EmptyState icon="history" title="Aucune page visitée" hint="Les pages que vous ouvrez apparaîtront ici, jour par jour." />
+          <EmptyState icon="history" title={t("historyPage.noVisitedPages")} hint={t("historyPage.pagesYouOpenWill")} />
         {/if}
       {/if}
     {/each}

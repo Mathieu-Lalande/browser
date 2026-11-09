@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import type { BetaMessage, BetaRawMessageStreamEvent, BetaStopReason } from "@anthropic-ai/sdk/resources/beta/messages";
 import type { TurnStatus } from "./conversation";
 
@@ -46,8 +47,8 @@ export function messageProgress(message: BetaMessage): AnswerProgress {
   return { text, model: message.model, stopReason: message.stop_reason, fellBack };
 }
 
-export const REFUSAL_MESSAGE = "L'assistant a refusé de répondre à cette demande.";
-export const TRUNCATED_NOTE = "Réponse interrompue : elle a atteint la longueur maximale.";
+export const REFUSAL_MESSAGE = t("assistantStream.assistantRefusedAnswerRequest");
+export const TRUNCATED_NOTE = t("assistantStream.responseInterruptedReachedMaximum");
 
 /** How a finished answer ends: refused (whatever text came before), cut by the length limit, or done. */
 export function finalStatus(progress: AnswerProgress): TurnStatus {

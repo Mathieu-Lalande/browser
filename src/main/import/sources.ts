@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { isAbsolute, join, posix, resolve, win32 } from "node:path";
 import { isProfileFolderName, parseChromiumProfiles } from "@shared/import/chromium";
@@ -106,7 +107,7 @@ function expandStar(path: string): string | null {
 
 /** The profiles of a Chromium "User Data" folder (or the folder itself when it is the profile, like Opera's). */
 function chromiumProfiles(userData: string): { dir: string; name: string }[] {
-  if (ChromiumProfileReader.isProfile(userData)) return [{ dir: userData, name: "Profil principal" }];
+  if (ChromiumProfileReader.isProfile(userData)) return [{ dir: userData, name: t("importSources.mainProfile") }];
   const named = (() => {
     const text = readText(join(userData, "Local State"));
     if (!text) return new Map<string, string>();
@@ -123,7 +124,7 @@ function chromiumProfiles(userData: string): { dir: string; name: string }[] {
     return [];
   }
   return folders
-    .map((name) => ({ dir: join(userData, name), name: named.get(name) ?? (name === "Default" ? "Profil principal" : name) }))
+    .map((name) => ({ dir: join(userData, name), name: named.get(name) ?? (name === "Default" ? t("importSources.mainProfile") : name) }))
     .filter((profile) => ChromiumProfileReader.isProfile(profile.dir))
     .sort((a, b) => Number(b.dir.endsWith("Default")) - Number(a.dir.endsWith("Default")) || a.name.localeCompare(b.name));
 }
@@ -158,7 +159,7 @@ export function detectSources(locations: readonly BrowserLocation[], extra: read
       for (const profile of firefoxProfiles(location.path)) add(profile.dir, profile.name, new FirefoxProfileReader(profile.dir));
     } else if (location.family === "arc") {
       const file = expandStar(location.path);
-      if (file && existsSync(file)) add(file, "Barre latérale", new ArcReader(file));
+      if (file && existsSync(file)) add(file, t("importSources.sidebar"), new ArcReader(file));
     }
     if (profiles.length) found.push({ source: { id: location.id, browser: location.browser, name: location.name, profiles }, readers });
   }

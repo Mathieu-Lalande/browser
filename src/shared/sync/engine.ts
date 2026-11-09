@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { randomBytesChecked, toHex, type RandomBytes } from "./bytes";
 import { SyncClient, SyncError, type Transport } from "./client";
 import { deriveKeys, open, openLocal, recordId, seal, sealLocal, type SyncKeys } from "./crypto";
@@ -375,7 +376,7 @@ export class SyncEngine {
       // Nothing on a page could be read: another key (reset elsewhere) or tampering. Stop here,
       // cursor untouched, rather than skipping the account's data.
       if (page.records.length > 0 && failures === page.records.filter((record) => record.payload !== null).length && failures > 0) {
-        throw new SyncError("crypto", "Les données du serveur ne peuvent pas être déchiffrées avec la clé de cet appareil");
+        throw new SyncError("crypto", t("syncEngine.serversDataCantDecrypted"));
       }
       if (!page.more) {
         cursor = Math.max(cursor, page.version);

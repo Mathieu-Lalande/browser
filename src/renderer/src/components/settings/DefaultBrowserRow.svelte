@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { DefaultBrowserStatus } from "@shared/default-browser";
   import { api } from "../../lib/browser.svelte";
   import Icon from "../Icon.svelte";
@@ -18,15 +19,15 @@
   }
 
   const hint = $derived(
-    status?.message ?? (status?.state === "default" ? "Les liens ouverts depuis d'autres applications s'ouvrent ici." : "Ouvrir ici les liens des autres applications, et les fichiers HTML et PDF."),
+    status?.message ?? (status?.state === "default" ? t("defaultBrowserRow.linksOpenedFromOther") : t("defaultBrowserRow.openLinksFromOther")),
   );
 </script>
 
-<Row anchor="default-browser" label="Navigateur par défaut" {hint} keywords="défaut default liens http pdf html associer">
+<Row anchor="default-browser" label={t("defaultBrowserRow.defaultBrowser")} {hint} keywords={t("defaultBrowserRow.defaultLinksHttpPdf")}>
   {#if status?.state === "default"}
-    <span class="done" data-testid="default-browser-state"><Icon name="badge-check" size={14} /> Navigateur par défaut</span>
+    <span class="done" data-testid="default-browser-state"><Icon name="badge-check" size={14} /> {t("defaultBrowserRow.defaultBrowser")}</span>
   {:else}
-    <Button icon="badge-check" disabled={status?.state !== "not-default"} onclick={makeDefault}>Définir par défaut</Button>
+    <Button icon="badge-check" disabled={status?.state !== "not-default"} onclick={makeDefault}>{t("defaultBrowserRow.makeDefault")}</Button>
   {/if}
 </Row>
 

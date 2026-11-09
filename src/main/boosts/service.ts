@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { randomUUID } from "node:crypto";
 import type { WebContents } from "electron";
 import {
@@ -20,7 +21,7 @@ import type { TabBoost } from "@shared/types";
 import type { WindowDirectory, WindowPort } from "../ports";
 import { SCRIPT_WORLD_ID, ZAP_SCRIPT, ZAP_WORLD_ID, userScript } from "./scripts";
 
-const PRIVATE_REFUSAL: BoostResult = { ok: false, message: "Les boosts se modifient depuis une fenêtre normale." };
+const PRIVATE_REFUSAL: BoostResult = { ok: false, get message() { return t("boostsService.boostsAreEditedFrom") } };
 
 /** Where the boosts are kept (the profile's `boosts.json`). */
 export interface BoostStore {

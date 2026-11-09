@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import {
   addHighlight,
   ANNOTATION_LIMITS,
@@ -69,16 +70,16 @@ export function useHighlights({
       subtitle: highlight.note || undefined,
       items: [
         ...HIGHLIGHT_COLORS.filter((color) => color !== highlight.color).map(
-          (color): MenuItem => ({ key: color, label: `Surligner en ${COLOR_LABELS[color].toLowerCase()}`, icon: "highlighter", onPress: () => setColor(color) }),
+          (color): MenuItem => ({ key: color, label: t("mobile.useHighlights.highlight", { p: COLOR_LABELS[color].toLowerCase() }), icon: "highlighter", onPress: () => setColor(color) }),
         ),
         {
           key: "note",
-          label: highlight.note ? "Modifier la note" : "Ajouter une note",
+          label: highlight.note ? t("mobile.useHighlights.editNote") : t("mobile.useHighlights.addNote"),
           icon: "edit",
           onPress: () => setNote({ kind: "highlight", id, context: highlight.exact, initial: highlight.note, maxLength: ANNOTATION_LIMITS.note }),
         },
-        { key: "copy", label: "Copier le passage", icon: "copy", onPress: () => copy(highlight.exact) },
-        { key: "delete", label: "Supprimer le surlignage", icon: "trash", destructive: true, onPress: () => actions.setAnnotations((data) => removeHighlight(data, id)) },
+        { key: "copy", label: t("mobile.useHighlights.copyPassage"), icon: "copy", onPress: () => copy(highlight.exact) },
+        { key: "delete", label: t("mobile.useHighlights.deleteHighlight"), icon: "trash", destructive: true, onPress: () => actions.setAnnotations((data) => removeHighlight(data, id)) },
       ],
     });
   });

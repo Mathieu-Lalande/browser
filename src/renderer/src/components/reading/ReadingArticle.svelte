@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { READER_WIDTHS, readerColors, readingTimeLabel } from "@shared/reader";
   import { readingArticle, type ReadingItem } from "@shared/reading-list";
   import { api, browser } from "../../lib/browser.svelte";
@@ -47,20 +48,20 @@
 
 <div class="offline" class:sans={prefs.font === "sans"} {style} data-testid="reading-article">
   <div class="toolbar">
-    <Button size="sm" variant="quiet" icon="back" onclick={onBack}>Liste de lecture</Button>
+    <Button size="sm" variant="quiet" icon="back" onclick={onBack}>{t("readingArticle.readingList")}</Button>
     <span class="spacer"></span>
-    {#if item}<Button size="sm" variant="quiet" icon="open" onclick={openPage}>Ouvrir la page</Button>{/if}
+    {#if item}<Button size="sm" variant="quiet" icon="open" onclick={openPage}>{t("readingArticle.openPage")}</Button>{/if}
   </div>
   <div class="scroll">
     {#if article}
       <article>
-        <p class="meta"><Icon name="book-marked" size={14} /> Copie hors ligne{#if article.siteName}&nbsp;· {article.siteName}{/if} · {readingTimeLabel(article.minutes)}</p>
+        <p class="meta"><Icon name="book-marked" size={14} /> {t("readingArticle.offlineCopy")}{#if article.siteName}&nbsp;· {article.siteName}{/if} · {readingTimeLabel(article.minutes)}</p>
         <h1>{article.title}</h1>
         <div class="content"><ReaderNodes nodes={article.content} onlink={(href) => api.tabs.create(href)} /></div>
       </article>
     {:else if loaded}
       <p class="empty">
-        {item ? "Aucun texte n'a pu être enregistré pour cette page." : "Cette page n'est plus dans la liste de lecture."}
+        {item ? t("readingArticle.noTextCouldSaved") : t("readingArticle.pageNoLongerReading")}
       </p>
     {/if}
   </div>

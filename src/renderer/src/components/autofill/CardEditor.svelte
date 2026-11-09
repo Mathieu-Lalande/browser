@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { CARD_BRAND_LABELS, cardBrand, cardDigits, isValidCardNumber, type CardInput, type CardSummary } from "@shared/autofill";
   import Button from "../ui/Button.svelte";
 
@@ -31,7 +32,7 @@
   async function submit(event: SubmitEvent): Promise<void> {
     event.preventDefault();
     if (!initial || draft.number.trim()) {
-      if (!isValidCardNumber(draft.number)) return void (error = "Ce numéro de carte n'est pas valide.");
+      if (!isValidCardNumber(draft.number)) return void (error = t("cardEditor.cardNumberIsntValid"));
     }
     busy = true;
     error = await onsave({ ...draft, number: digits });
@@ -39,36 +40,36 @@
   }
 </script>
 
-<form class="editor" aria-label={initial ? "Modifier la carte" : "Nouvelle carte"} onsubmit={submit}>
-  <label class="wide">Titulaire <input class="ui-field" autocomplete="off" bind:value={draft.name} /></label>
+<form class="editor" aria-label={initial ? t("cardEditor.editCard") : t("cardEditor.newCard")} onsubmit={submit}>
+  <label class="wide">{t("cardEditor.cardholder")} <input class="ui-field" autocomplete="off" bind:value={draft.name} /></label>
   <label class="wide"
-    >Numéro {#if brand}<span class="brand">{brand}</span>{/if}
+    >{t("cardEditor.number")} {#if brand}<span class="brand">{brand}</span>{/if}
     <input
       class="ui-field"
       inputmode="numeric"
       autocomplete="off"
-      placeholder={initial ? `Inchangé (•••• ${initial.last4})` : "1234 5678 9012 3456"}
+      placeholder={initial ? t("cardEditor.unchanged", { last4: initial.last4 }) : "1234 5678 9012 3456"}
       bind:value={draft.number}
     />
   </label>
   <label
-    >Mois d'expiration
+    >{t("cardEditor.expirationMonth")}
     <select class="ui-field" bind:value={draft.expMonth}>
       {#each Array.from({ length: 12 }, (_, index) => index + 1) as month (month)}<option value={month}>{String(month).padStart(2, "0")}</option>{/each}
     </select>
   </label>
   <label
-    >Année
+    >{t("cardEditor.year")}
     <select class="ui-field" bind:value={draft.expYear}>
       {#each years as year (year)}<option value={year}>{year}</option>{/each}
     </select>
   </label>
-  <label class="wide">Nom de la carte (facultatif) <input class="ui-field" autocomplete="off" bind:value={draft.nickname} /></label>
-  <p class="hint wide">Le code de sécurité (CVC) n'est jamais enregistré : le site vous le demandera.</p>
+  <label class="wide">{t("cardEditor.cardNameOptional")} <input class="ui-field" autocomplete="off" bind:value={draft.nickname} /></label>
+  <p class="hint wide">{t("cardEditor.securityCodeCvcNever")}</p>
   {#if error}<p class="error wide" role="alert">{error}</p>{/if}
   <div class="actions wide">
-    <Button variant="quiet" onclick={oncancel}>Annuler</Button>
-    <Button variant="primary" type="submit" disabled={busy}>Enregistrer</Button>
+    <Button variant="quiet" onclick={oncancel}>{t("cardEditor.cancel")}</Button>
+    <Button variant="primary" type="submit" disabled={busy}>{t("cardEditor.save")}</Button>
   </div>
 </form>
 

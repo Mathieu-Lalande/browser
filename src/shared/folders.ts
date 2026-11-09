@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import { isSpaceIcon, type SpaceIcon } from "./spaces";
 
 /**
@@ -30,7 +31,7 @@ export interface FolderInput {
 }
 
 export const DEFAULT_FOLDER_ICON: SpaceIcon = "folder";
-export const DEFAULT_FOLDER_NAME = "Nouveau dossier";
+export const DEFAULT_FOLDER_NAME = t("folders.newFolder");
 export const MAX_FOLDERS = 64;
 /** Nesting levels (a root folder is level 1). */
 export const MAX_FOLDER_DEPTH = 4;

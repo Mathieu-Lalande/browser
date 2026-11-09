@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { memo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Animated, { interpolate, useAnimatedStyle, type SharedValue } from "react-native-reanimated";
@@ -55,9 +56,9 @@ export const TabCard = memo(function TabCard({
         <Animated.View style={[{ flex: 1 }, style]}>
           <Tap
             accessibilityRole="button"
-            accessibilityLabel={`${title}${active ? ", onglet actif" : ""}`}
-            accessibilityHint="Maintenir pour plus d'options"
-            accessibilityActions={[{ name: "close", label: "Fermer l'onglet" }]}
+            accessibilityLabel={`${title}${active ? t("mobile.tabCard.activeTab") : ""}`}
+            accessibilityHint={t("mobile.tabCard.holdMoreOptions")}
+            accessibilityActions={[{ name: "close", label: t("mobile.tabCard.closeTab") }]}
             onAccessibilityAction={(event) => event.nativeEvent.actionName === "close" && close()}
             onPress={() => onPress(tab.id)}
             onLongPress={() => {
@@ -80,7 +81,7 @@ export const TabCard = memo(function TabCard({
               <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
                 {title}
               </Text>
-              <Tap accessibilityRole="button" accessibilityLabel="Fermer l'onglet" onPress={close} hitSlop={8} pressScale={0.8} style={styles.cardClose}>
+              <Tap accessibilityRole="button" accessibilityLabel={t("mobile.tabCard.closeTab")} onPress={close} hitSlop={8} pressScale={0.8} style={styles.cardClose}>
                 <View style={[styles.cardCloseDot, { backgroundColor: colors.surfaceActive }]}>
                   <Icon name="close" size={12} color={colors.textMuted} strokeWidth={2} />
                 </View>
@@ -122,7 +123,7 @@ export const PinnedTile = memo(function PinnedTile({
     <Animated.View style={style}>
       <Tap
         accessibilityRole="button"
-        accessibilityLabel={`Onglet épinglé : ${tab.title || siteLabel(tab.url)}`}
+        accessibilityLabel={t("mobile.tabCard.pinnedTab", { p: tab.title || siteLabel(tab.url) })}
         onPress={() => onPress(tab.id)}
         onLongPress={() => onLongPress(tab)}
         pressScale={0.9}

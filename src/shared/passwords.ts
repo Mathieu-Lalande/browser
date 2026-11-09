@@ -8,6 +8,8 @@
  * second save for a site that logs in on several hosts.
  */
 
+import { t } from "./i18n";
+
 export interface PasswordEntry {
   id: string;
   /** Exact origin, e.g. "https://example.com" (see `passwordOrigin`). */
@@ -150,7 +152,7 @@ export function captureOutcome(vault: PasswordVault, capture: PasswordCapture): 
 export function saveCapture(vault: PasswordVault, capture: PasswordCapture, now: number, id: string): PasswordVault {
   const known = findAccount(vault, capture.origin, capture.username);
   if (known) return { ...vault, entries: vault.entries.map((entry) => (entry === known ? { ...entry, password: capture.password, updatedAt: now } : entry)) };
-  if (vault.entries.length >= MAX_ENTRIES) throw new Error("Trop de mots de passe enregistrés.");
+  if (vault.entries.length >= MAX_ENTRIES) throw new Error(t("sharedPasswords.tooManyPasswordsSaved"));
   const entry: PasswordEntry = { id, ...capture, createdAt: now, updatedAt: now, lastUsedAt: null };
   // Asking to save is also a "yes" to future prompts for the site.
   return { entries: [...vault.entries, entry], never: vault.never.filter((origin) => origin !== capture.origin) };
@@ -170,11 +172,11 @@ export function isPasswordEdit(value: unknown): value is PasswordEdit {
 /** Edits an entry; a French error message when refused (unknown entry, account already saved). */
 export function editEntry(vault: PasswordVault, id: string, edit: PasswordEdit, now: number): { vault: PasswordVault } | { error: string } {
   const entry = vault.entries.find((item) => item.id === id);
-  if (!entry) return { error: "Ce mot de passe n'existe plus." };
+  if (!entry) return { error: t("sharedPasswords.passwordNoLongerExists") };
   const username = edit.username === undefined ? entry.username : cleanUsername(edit.username);
   const password = edit.password ?? entry.password;
   const clash = findAccount(vault, entry.origin, username);
-  if (clash && clash.id !== id) return { error: "Un mot de passe est déjà enregistré pour cet identifiant sur ce site." };
+  if (clash && clash.id !== id) return { error: t("sharedPasswords.passwordAlreadySavedUsername") };
   if (username === entry.username && password === entry.password) return { vault };
   return { vault: { ...vault, entries: vault.entries.map((item) => (item.id === id ? { ...item, username, password, updatedAt: now } : item)) } };
 }
@@ -236,7 +238,7 @@ export type RevealResult = { ok: true; password: string } | { ok: false; message
 /** Reveals and copies per window and per minute: a compromised UI cannot dump the vault quickly. */
 export const PASSWORD_ACCESS_LIMIT = 10;
 export const PASSWORD_ACCESS_WINDOW_MS = 60_000;
-export const PASSWORD_ACCESS_REFUSED = "Trop de mots de passe affichés ou copiés en peu de temps. Réessayez dans une minute.";
+export const PASSWORD_ACCESS_REFUSED = t("sharedPasswords.tooManyPasswordsShown");
 
 /**
  * Sliding-window limit: the accesses still counted (oldest first) with this one added, or null

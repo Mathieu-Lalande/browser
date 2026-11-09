@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { tick } from "svelte";
   import { internalFragment } from "@shared/internal";
   import { browser } from "../../lib/browser.svelte";
@@ -34,24 +35,24 @@
    * `Section`). Deep links (`#section/row`) scroll to a section's `data-setting` row.
    */
   const NAV: { id: string; label: string; icon: IconName }[] = [
-    { id: "appearance", label: "Apparence", icon: "palette" },
-    { id: "layout", label: "Disposition", icon: "sidebar" },
-    { id: "search", label: "Recherche", icon: "search" },
-    { id: "startPage", label: "Page d'accueil", icon: "home" },
-    { id: "behavior", label: "Comportement", icon: "sliders" },
-    { id: "shortcuts", label: "Raccourcis clavier", icon: "keyboard" },
-    { id: "privacy", label: "Confidentialité", icon: "shield" },
-    { id: "autofill", label: "Adresses et paiements", icon: "credit-card" },
-    { id: "siteData", label: "Données des sites", icon: "cookie" },
-    { id: "notifications", label: "Notifications", icon: "bell" },
-    { id: "translate", label: "Traduction", icon: "languages" },
-    { id: "assistant", label: "Assistant IA", icon: "sparkles" },
-    { id: "spellcheck", label: "Orthographe", icon: "spell-check" },
-    { id: "downloads", label: "Téléchargements", icon: "download" },
-    { id: "data", label: "Données", icon: "database" },
-    { id: "sync", label: "Synchronisation", icon: "cloud" },
-    { id: "updates", label: "Mises à jour", icon: "update" },
-    { id: "diagnostics", label: "Diagnostic", icon: "bug" },
+    { id: "appearance", label: t("settingsPage.appearance"), icon: "palette" },
+    { id: "layout", label: t("settingsPage.layout"), icon: "sidebar" },
+    { id: "search", label: t("settingsPage.search"), icon: "search" },
+    { id: "startPage", label: t("settingsPage.startPage"), icon: "home" },
+    { id: "behavior", label: t("settingsPage.behavior"), icon: "sliders" },
+    { id: "shortcuts", label: t("settingsPage.keyboardShortcuts"), icon: "keyboard" },
+    { id: "privacy", label: t("settingsPage.privacy"), icon: "shield" },
+    { id: "autofill", label: t("settingsPage.addressesPayments"), icon: "credit-card" },
+    { id: "siteData", label: t("settingsPage.siteData"), icon: "cookie" },
+    { id: "notifications", label: t("settingsPage.notifications"), icon: "bell" },
+    { id: "translate", label: t("settingsPage.translation"), icon: "languages" },
+    { id: "assistant", label: t("settingsPage.aiAssistant"), icon: "sparkles" },
+    { id: "spellcheck", label: t("settingsPage.spelling"), icon: "spell-check" },
+    { id: "downloads", label: t("settingsPage.downloads"), icon: "download" },
+    { id: "data", label: t("settingsPage.data"), icon: "database" },
+    { id: "sync", label: t("settingsPage.sync"), icon: "cloud" },
+    { id: "updates", label: t("settingsPage.updates"), icon: "update" },
+    { id: "diagnostics", label: t("settingsPage.diagnostics"), icon: "bug" },
   ];
 
   /** Settings search: rows hide themselves when they do not match (ui/filter.ts). */
@@ -151,7 +152,7 @@
 </script>
 
 <div class="settings">
-  <nav class="toc" aria-label="Sections des paramètres">
+  <nav class="toc" aria-label={t("settingsPage.settingsSections")}>
     {#each NAV as item (item.id)}
       <button
         class:current={current === item.id}
@@ -165,8 +166,8 @@
       </button>
     {/each}
     <div class="reset-all">
-      <ConfirmButton question="Tous les réglages par défaut ?" confirmLabel="Tout réinitialiser" onconfirm={() => settings.reset()}>
-        <Icon name="reset" size={12} /> <span class="toc-label">Tout réinitialiser</span>
+      <ConfirmButton question={t("settingsPage.allDefaultSettings")} confirmLabel={t("settingsPage.resetAll")} onconfirm={() => settings.reset()}>
+        <Icon name="reset" size={12} /> <span class="toc-label">{t("settingsPage.resetAll")}</span>
       </ConfirmButton>
     </div>
   </nav>
@@ -174,18 +175,18 @@
   <div class="content" bind:this={content} onscroll={onScroll}>
     <div class="inner" bind:this={inner}>
       <header class="top">
-        <h1>Paramètres</h1>
-        <div class="search"><SearchField bind:value={query} label="Rechercher un réglage" /></div>
+        <h1>{t("settingsPage.settings")}</h1>
+        <div class="search"><SearchField bind:value={query} label={t("settingsPage.searchSettings")} /></div>
       </header>
       {#if visible?.size === 0}
-        <EmptyState icon="search" title="Aucun réglage trouvé" hint="Essayez un autre mot : « thème », « onglets », « cookies »…">
-          {#snippet action()}<Button onclick={() => (query = "")}>Effacer la recherche</Button>{/snippet}
+        <EmptyState icon="search" title={t("settingsPage.noSettingFound")} hint={t("settingsPage.tryAnotherWordTheme")}>
+          {#snippet action()}<Button onclick={() => (query = "")}>{t("settingsPage.clearSearch")}</Button>{/snippet}
         </EmptyState>
       {/if}
       <Section
         id="appearance"
         icon="palette"
-        title="Apparence"
+        title={t("settingsPage.appearance")}
         description="Couleurs, ambiance et typographie de l'interface."
         onReset={() => settings.reset("appearance")}
       >
@@ -195,7 +196,7 @@
       <Section
         id="layout"
         icon="sidebar"
-        title="Disposition"
+        title={t("settingsPage.layout")}
         description="Place de la barre latérale et de la page."
         onReset={() => settings.reset("layout")}
       >
@@ -205,7 +206,7 @@
       <Section
         id="search"
         icon="search"
-        title="Recherche"
+        title={t("settingsPage.search")}
         description="Moteur utilisé par la barre d'adresse et la page d'accueil."
         onReset={() => settings.reset("search")}
       >
@@ -215,7 +216,7 @@
       <Section
         id="startPage"
         icon="home"
-        title="Page d'accueil"
+        title={t("settingsPage.startPage")}
         description="Ce qu'affiche un nouvel onglet."
         onReset={() => settings.reset("startPage")}
       >
@@ -225,7 +226,7 @@
       <Section
         id="behavior"
         icon="sliders"
-        title="Comportement"
+        title={t("settingsPage.behavior")}
         description="Démarrage et gestion des onglets."
         onReset={() => settings.reset("behavior")}
       >
@@ -235,9 +236,9 @@
       <Section
         id="shortcuts"
         icon="keyboard"
-        title="Raccourcis clavier"
+        title={t("settingsPage.keyboardShortcuts")}
         description="Choisissez la combinaison de chaque commande, ou retirez-la."
-        keywords="touches combinaison clavier accélérateur"
+        keywords={t("settingsPage.keysCombinationKeyboardAccelerator")}
       >
         <ShortcutsSection />
       </Section>
@@ -245,7 +246,7 @@
       <Section
         id="privacy"
         icon="shield"
-        title="Confidentialité"
+        title={t("settingsPage.privacy")}
         description="Ce que le navigateur révèle de vous aux sites."
         onReset={() => settings.reset("privacy")}
       >
@@ -255,22 +256,22 @@
       <Section
         id="autofill"
         icon="credit-card"
-        title="Adresses et paiements"
+        title={t("settingsPage.addressesPayments")}
         description="Adresses et cartes chiffrées sur cet appareil, proposées dans les formulaires."
-        keywords="autofill remplissage automatique carte bancaire adresse"
+        keywords={t("settingsPage.autofillAutomaticFillingBank")}
         onReset={() => settings.reset("autofill")}
       >
         <AutofillSection />
       </Section>
 
-      <Section id="siteData" icon="cookie" title="Données des sites" description="Cookies et stockage laissés par les sites, et cookies tiers.">
+      <Section id="siteData" icon="cookie" title={t("settingsPage.siteData")} description="Cookies et stockage laissés par les sites, et cookies tiers.">
         <SiteDataSection />
       </Section>
 
       <Section
         id="notifications"
         icon="bell"
-        title="Notifications"
+        title={t("settingsPage.notifications")}
         description="Les alertes que les sites ouverts peuvent afficher sur le bureau."
         onReset={() => settings.reset("notifications")}
       >
@@ -280,9 +281,9 @@
       <Section
         id="translate"
         icon="languages"
-        title="Traduction"
+        title={t("settingsPage.translation")}
         description="Traduire les pages avec le service de votre choix : le texte de la page lui est envoyé."
-        keywords="translate deepl libretranslate google langue"
+        keywords={t("settingsPage.translateDeeplLibretranslateGoogle")}
         onReset={() => settings.reset("translate")}
       >
         <TranslateSection />
@@ -291,9 +292,9 @@
       <Section
         id="assistant"
         icon="sparkles"
-        title="Assistant IA"
+        title={t("settingsPage.aiAssistant")}
         description="Résumer, expliquer et interroger les pages avec Claude, avec votre propre clé d'API Anthropic : le texte des pages choisies lui est envoyé."
-        keywords="assistant ia ai claude anthropic résumé chat"
+        keywords={t("settingsPage.assistantAiClaudeAnthropic")}
         onReset={() => settings.reset("assistant")}
       >
         <AssistantSection />
@@ -302,9 +303,9 @@
       <Section
         id="spellcheck"
         icon="spell-check"
-        title="Orthographe"
+        title={t("settingsPage.spelling")}
         description="Vérification de l'orthographe dans les champs de texte des pages."
-        keywords="correcteur dictionnaire spellcheck"
+        keywords={t("settingsPage.spellCheckerDictionarySpellcheck")}
         onReset={() => settings.reset("spellcheck")}
       >
         <SpellcheckSection />
@@ -313,21 +314,21 @@
       <Section
         id="downloads"
         icon="download"
-        title="Téléchargements"
+        title={t("settingsPage.downloads")}
         description="Où vont les fichiers, et comment."
         onReset={() => settings.reset("downloads")}
       >
         <DownloadsSection />
       </Section>
 
-      <Section id="data" icon="database" title="Données" description="Historique et favoris, stockés uniquement sur cet appareil.">
+      <Section id="data" icon="database" title={t("settingsPage.data")} description="Historique et favoris, stockés uniquement sur cet appareil.">
         <DataSection />
       </Section>
 
       <Section
         id="sync"
         icon="cloud"
-        title="Synchronisation"
+        title={t("settingsPage.sync")}
         description="Vos appareils synchronisés, chiffrés de bout en bout : le serveur ne peut rien lire."
       >
         <SyncSection />
@@ -336,7 +337,7 @@
       <Section
         id="updates"
         icon="update"
-        title="Mises à jour"
+        title={t("settingsPage.updates")}
         description="Nouvelles versions de Browser, installées au redémarrage."
         onReset={() => settings.reset("updates")}
       >
@@ -346,9 +347,9 @@
       <Section
         id="diagnostics"
         icon="bug"
-        title="Diagnostic"
+        title={t("settingsPage.diagnostics")}
         description="Rapports de plantage (désactivés par défaut) et signalement des problèmes."
-        keywords="crash plantage rapport bug diagnostic"
+        keywords={t("settingsPage.crashReportBugDiagnostics")}
         onReset={() => settings.reset("diagnostics")}
       >
         <DiagnosticsSection />

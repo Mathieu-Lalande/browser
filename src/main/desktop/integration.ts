@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { app, Menu, nativeImage, type BrowserWindow, type NativeImage } from "electron";
 import { desktopTasks, parseLaunchActions, taskbarDownloads, type DesktopTask, type LaunchActions } from "@shared/desktop";
 import type { DownloadEntry } from "@shared/downloads";
@@ -56,9 +57,9 @@ export class DesktopIntegration {
   attach(target: DesktopWindow): void {
     if (!this.isWindows || target.window.isDestroyed()) return;
     target.window.setThumbarButtons([
-      { tooltip: "Précédent", icon: this.icon("back"), click: () => target.back() },
-      { tooltip: "Suivant", icon: this.icon("forward"), click: () => target.forward() },
-      { tooltip: "Nouvel onglet", icon: this.icon("new-tab"), click: () => target.newTab() },
+      { tooltip: t("desktopIntegration.previous"), icon: this.icon("back"), click: () => target.back() },
+      { tooltip: t("desktopIntegration.next"), icon: this.icon("forward"), click: () => target.forward() },
+      { tooltip: t("desktopIntegration.newTab"), icon: this.icon("new-tab"), click: () => target.newTab() },
     ]);
     this.showDownloads([target]);
   }
@@ -75,7 +76,7 @@ export class DesktopIntegration {
       if (progress === null) target.window.setProgressBar(-1);
       else if (progress === "indeterminate") target.window.setProgressBar(2, { mode: "indeterminate" });
       else target.window.setProgressBar(progress);
-      const label = running === 1 ? "1 téléchargement en cours" : `${running} téléchargements en cours`;
+      const label = running === 1 ? t("desktopIntegration.n1DownloadProgress") : t("desktopIntegration.downloadsProgress", { running });
       target.window.setOverlayIcon(running > 0 ? this.icon("badge") : null, running > 0 ? label : "");
     }
   }
@@ -95,7 +96,7 @@ export class DesktopIntegration {
       iconIndex: 0,
     });
     const categories: Electron.JumpListCategory[] = [{ type: "tasks", items: tasks.map(item) }];
-    if (spaces.length) categories.push({ type: "custom", name: "Espaces", items: spaces.map(item) });
+    if (spaces.length) categories.push({ type: "custom", name: t("desktopIntegration.spaces"), items: spaces.map(item) });
     // Files the browser opened (it is registered for .html and .pdf, ADR-039).
     categories.push({ type: "recent" });
     try {

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { displayUrl } from "@shared/url";
   import { api, browser } from "../../lib/browser.svelte";
   import { sync } from "../../lib/sync.svelte";
@@ -44,13 +45,13 @@
   });
 
   function ago(time: number | null): string {
-    if (!time) return "jamais";
+    if (!time) return t("syncSection.never");
     const seconds = Math.max(0, Math.round((now - time) / 1000));
-    if (seconds < 45) return "à l'instant";
+    if (seconds < 45) return t("syncSection.justNow");
     const minutes = Math.round(seconds / 60);
-    if (minutes < 60) return `il y a ${minutes} min`;
+    if (minutes < 60) return t("syncSection.minAgo", { minutes });
     const hours = Math.round(minutes / 60);
-    if (hours < 24) return `il y a ${hours} h`;
+    if (hours < 24) return t("syncSection.hAgo", { hours });
     return new Date(time).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
   }
 
@@ -58,13 +59,13 @@
     if (!status) return "";
     switch (status.phase) {
       case "syncing":
-        return "Synchronisation en cours…";
+        return t("syncSection.syncing");
       case "offline":
         return `Serveur injoignable${status.retryAt ? `, nouvel essai à ${new Date(status.retryAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}` : ""}.`;
       case "error":
-        return status.error?.message ?? "Erreur de synchronisation.";
+        return status.error?.message ?? t("syncSection.syncError");
       default:
-        return `Synchronisé ${ago(status.lastSync)}.`;
+        return t("syncSection.synced", { p: ago(status.lastSync) });
     }
   });
 
@@ -76,7 +77,7 @@
       if (!result.ok) message = result.message;
       return result.ok;
     } catch {
-      message = "Action refusée.";
+      message = t("syncSection.actionRefused");
       return false;
     } finally {
       busy = false;
@@ -127,24 +128,24 @@
 </script>
 
 {#if browser.isPrivate}
-  <Row label="Fenêtre privée" hint="Rien de ce que vous faites dans une fenêtre privée n'est synchronisé. Gérez la synchronisation depuis une fenêtre normale.">
+  <Row label={t("syncSection.privateWindow")} hint={t("syncSection.nothingYouDoPrivate")}>
     <Icon name="mask" size={16} />
   </Row>
 {:else if !status?.configured}
   <Row
-    label="Synchroniser vos appareils"
-    hint="Favoris, historique récent, onglets ouverts, espaces et thème entre ce PC et votre téléphone. Tout est chiffré sur l'appareil avant l'envoi : le serveur, que vous hébergez vous-même, ne voit que des données illisibles."
+    label={t("syncSection.syncDevices")}
+    hint={t("syncSection.bookmarksRecentHistoryOpen")}
   >
     <Icon name="cloud-off" size={18} />
   </Row>
-  <Row label="Premier appareil" hint="Adresse de votre serveur de synchronisation (https). Une nouvelle clé de chiffrement est créée sur cet appareil." stacked>
+  <Row label={t("syncSection.firstDevice")} hint={t("syncSection.addressSyncServerHttps")} stacked>
     <form class="form" onsubmit={create}>
       <input
         class="field"
         type="url"
         bind:value={serverUrl}
         placeholder="https://sync.exemple.fr"
-        aria-label="Adresse du serveur de synchronisation"
+        aria-label={t("syncSection.syncServerAddress")}
         spellcheck="false"
         autocomplete="off"
         required
@@ -153,49 +154,49 @@
         class="field small"
         type="password"
         bind:value={secret}
-        placeholder="Code d'inscription (facultatif)"
-        aria-label="Code d'inscription du serveur"
+        placeholder={t("syncSection.registrationCodeOptional")}
+        aria-label={t("syncSection.serverRegistrationCode")}
         autocomplete="off"
       />
       <button class="primary" type="submit" disabled={busy || !serverUrl.trim()}>
-        <Icon name="cloud" size={13} /> Activer la synchronisation
+        <Icon name="cloud" size={13} /> {t("syncSection.turnSync")}
       </button>
     </form>
   </Row>
-  <Row label="Rejoindre un compte existant" hint="Collez le code de jumelage affiché par un appareil déjà synchronisé (Paramètres, Synchronisation)." stacked>
+  <Row label={t("syncSection.joinExistingAccount")} hint={t("syncSection.pastePairingCodeShown")} stacked>
     <form class="form" onsubmit={pair}>
-      <textarea class="field code" bind:value={code} rows="2" placeholder="browser-sync:1:…" aria-label="Code de jumelage" spellcheck="false" required></textarea>
+      <textarea class="field code" bind:value={code} rows="2" placeholder="browser-sync:1:…" aria-label={t("syncSection.pairingCode")} spellcheck="false" required></textarea>
       <button class="primary" type="submit" disabled={busy || !code.trim()}>
-        <Icon name="qr" size={13} /> Jumeler cet appareil
+        <Icon name="qr" size={13} /> {t("syncSection.pairDevice")}
       </button>
     </form>
   </Row>
 {:else}
-  <Row label="État" hint={statusText}>
+  <Row label={t("syncSection.status")} hint={statusText}>
     <span class="phase" class:error={status.phase === "error"} class:offline={status.phase === "offline"} data-phase={status.phase}>
       <Icon name={status.phase === "offline" || status.phase === "error" ? "cloud-off" : "cloud"} size={14} />
-      {status.phase === "syncing" ? "En cours" : status.phase === "idle" ? "Activée" : status.phase === "offline" ? "Hors ligne" : "Erreur"}
+      {status.phase === "syncing" ? "En cours" : status.phase === "idle" ? t("syncSection.on") : status.phase === "offline" ? "Hors ligne" : "Erreur"}
     </span>
     <button class="secondary" onclick={() => api.sync.syncNow()} disabled={status.phase === "syncing"}>
-      <Icon name="reload" size={13} /> Synchroniser maintenant
+      <Icon name="reload" size={13} /> {t("syncSection.syncNow")}
     </button>
   </Row>
-  <Row label="Cet appareil" hint={`${status.deviceName} · serveur ${status.serverUrl?.replace(/^https?:\/\//, "")} · clé ${status.keyFingerprint}`}>
+  <Row label={t("syncSection.device")} hint={t("syncSection.serverKey", { deviceName: status.deviceName, p: status.serverUrl?.replace(/^https?:\/\//, ""), keyFingerprint: status.keyFingerprint })}>
     <Icon name="laptop" size={16} />
   </Row>
   <Row
-    label="Onglets de mes autres appareils"
-    hint={status.devices.length ? undefined : "Aucun autre appareil pour l'instant : jumelez votre téléphone avec le code ci-dessous."}
+    label={t("syncSection.tabsFromMyOther")}
+    hint={status.devices.length ? undefined : t("syncSection.noOtherDevicesYet")}
     stacked={status.devices.length > 0}
   >
     {#if status.devices.length}
-      <ul class="devices" aria-label="Autres appareils">
+      <ul class="devices" aria-label={t("syncSection.otherDevices")}>
         {#each status.devices as device (device.id)}
           <li class="device">
             <div class="device-head">
               <Icon name={device.kind === "mobile" ? "smartphone" : "laptop"} size={15} />
               <span class="device-name">{device.name}</span>
-              <span class="device-time">{device.tabs.length} onglet{device.tabs.length > 1 ? "s" : ""} · {ago(device.updatedAt)}</span>
+              <span class="device-time">{t("syncSection.tabs", { tabsCount: device.tabs.length, p2: ago(device.updatedAt) })}</span>
             </div>
             {#each device.tabs as tab (tab.url)}
               <button class="remote-tab" title={tab.url} onclick={() => api.tabs.create(tab.url)}>
@@ -209,80 +210,79 @@
     {/if}
   </Row>
   <Row
-    label="Ajouter un appareil"
+    label={t("syncSection.addDevice")}
     hint={reveal === "shown"
-      ? "Sur le téléphone : Paramètres, Synchroniser, Scanner. Sur un autre PC : collez le code."
-      : "Affiche le QR code et le code de jumelage à scanner ou coller sur l'autre appareil."}
+      ? t("syncSection.phoneSettingsSyncScan")
+      : t("syncSection.showsQrCodePairing")}
     stacked={reveal !== "hidden"}
   >
     {#if reveal === "hidden"}
-      <button class="secondary" onclick={() => (reveal = "warning")}><Icon name="qr" size={13} /> Afficher le code de jumelage</button>
+      <button class="secondary" onclick={() => (reveal = "warning")}><Icon name="qr" size={13} /> {t("syncSection.showPairingCode")}</button>
     {:else if reveal === "warning"}
       <div class="warning" role="alert">
         <Icon name="warning" size={16} />
         <p>
-          Ce code donne un <strong>accès complet</strong> à vos données synchronisées (favoris, historique, onglets) à quiconque le voit.
-          Ne l'affichez pas pendant un partage d'écran et ne l'envoyez à personne.
+          {t("syncSection.codeGives")} <strong>{t("syncSection.fullAccess")}</strong> {t("syncSection.syncedDataBookmarksHistory")}
         </p>
         <div class="buttons">
-          <button class="secondary" onclick={hideCode}>Annuler</button>
-          <button class="primary" onclick={showCode}>Afficher le code</button>
+          <button class="secondary" onclick={hideCode}>{t("syncSection.cancel")}</button>
+          <button class="primary" onclick={showCode}>{t("syncSection.showCode")}</button>
         </div>
       </div>
     {:else if pairingCode}
       <div class="pairing">
-        <QrCode value={pairingCode} size={196} label="QR code de jumelage" />
+        <QrCode value={pairingCode} size={196} label={t("syncSection.pairingQrCode")} />
         <div class="pairing-side">
-          <textarea class="field code" readonly rows="4" aria-label="Code de jumelage" value={pairingCode}></textarea>
+          <textarea class="field code" readonly rows="4" aria-label={t("syncSection.pairingCode")} value={pairingCode}></textarea>
           <div class="buttons">
-            <button class="secondary" onclick={copyCode}><Icon name={copied ? "check" : "duplicate"} size={13} /> {copied ? "Copié" : "Copier le code"}</button>
-            <button class="secondary" onclick={hideCode}>Masquer</button>
+            <button class="secondary" onclick={copyCode}><Icon name={copied ? "check" : "duplicate"} size={13} /> {copied ? t("syncSection.copied") : t("syncSection.copyCode")}</button>
+            <button class="secondary" onclick={hideCode}>{t("syncSection.hide")}</button>
           </div>
         </div>
       </div>
     {/if}
   </Row>
   <Row
-    label="Notes et surlignages"
+    label={t("syncSection.notesHighlights")}
     anchor="annotations"
-    keywords="annotations notes surligner"
-    hint="Facultatif : synchronise aussi vos passages surlignés et notes de pages (chiffrés comme le reste). Jamais ceux des fenêtres privées."
+    keywords={t("syncSection.annotationsNotesHighlight")}
+    hint={t("syncSection.optionalAlsoSyncsHighlighted")}
   >
     <Toggle
-      label="Synchroniser les notes et surlignages"
+      label={t("syncSection.syncNotesHighlights")}
       checked={settings.current.annotations.sync}
       onchange={(sync) => settings.update({ annotations: { sync } })}
     />
   </Row>
   <Row
-    label="Mots de passe"
+    label={t("syncSection.passwords")}
     anchor="passwords"
-    keywords="mots de passe passwords identifiants trousseau"
-    hint="Facultatif et désactivé par défaut. Vos mots de passe et la liste « Jamais pour ce site » sont chiffrés de bout en bout : le serveur ne voit rien. Attention : toute personne qui jumelle un appareil avec votre code de jumelage pourra les lire. Gardez ce code secret et ne l'activez que sur vos appareils."
+    keywords={t("syncSection.passwordsCredentialsKeychain")}
+    hint={t("syncSection.optionalOffDefaultPasswords")}
   >
-    <Toggle label="Synchroniser les mots de passe" checked={settings.current.passwords.sync} onchange={(sync) => settings.update({ passwords: { sync } })} />
+    <Toggle label={t("syncSection.syncPasswords")} checked={settings.current.passwords.sync} onchange={(sync) => settings.update({ passwords: { sync } })} />
   </Row>
   <Row
-    label="Panneaux web"
+    label={t("syncSection.webPanels")}
     anchor="panels"
-    keywords="panneaux panels whatsapp spotify"
-    hint="Facultatif : retrouve les mêmes panneaux de la barre latérale sur vos ordinateurs (les sites, pas leurs sessions). La liste de lecture, elle, est toujours synchronisée."
+    keywords={t("syncSection.panelsWhatsappSpotify")}
+    hint={t("syncSection.optionalFindsSameSidebar")}
   >
-    <Toggle label="Synchroniser les panneaux web" checked={settings.current.panels.sync} onchange={(sync) => settings.update({ panels: { sync } })} />
+    <Toggle label={t("syncSection.syncWebPanels")} checked={settings.current.panels.sync} onchange={(sync) => settings.update({ panels: { sync } })} />
   </Row>
-  <Row label="Déconnecter cet appareil" hint="Arrête la synchronisation ici et retire cet appareil de la liste. Les données restent sur l'appareil.">
+  <Row label={t("syncSection.disconnectDevice")} hint={t("syncSection.stopsSyncHereRemoves")}>
     <button class="danger" class:confirming={confirming === "disconnect"} disabled={busy} onclick={() => confirmed("disconnect")}>
       <Icon name="unlink" size={13} />
-      {confirming === "disconnect" ? "Confirmer" : "Déconnecter"}
+      {confirming === "disconnect" ? "Confirmer" : t("syncSection.disconnect")}
     </button>
   </Row>
   <Row
-    label="Réinitialiser la synchronisation"
-    hint="Efface toutes les données du serveur et crée une nouvelle clé. Les autres appareils sont déconnectés et devront être jumelés à nouveau."
+    label={t("syncSection.resetSync")}
+    hint={t("syncSection.erasesAllDataServer")}
   >
     <button class="danger" class:confirming={confirming === "reset"} disabled={busy} onclick={() => confirmed("reset")}>
       <Icon name="key" size={13} />
-      {confirming === "reset" ? "Confirmer la réinitialisation" : "Réinitialiser"}
+      {confirming === "reset" ? t("syncSection.confirmReset") : t("syncSection.reset")}
     </button>
   </Row>
 {/if}

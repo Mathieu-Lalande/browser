@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { panelLabel } from "@shared/panels";
   import { platform } from "../../lib/platform.svelte";
   import { api } from "../../lib/browser.svelte";
@@ -17,7 +18,7 @@
 </script>
 
 {#if panelsUi.available}
-  <div class="strip" class:vertical role="toolbar" aria-label="Panneaux web" aria-orientation={vertical ? "vertical" : "horizontal"} data-testid="panel-strip">
+  <div class="strip" class:vertical role="toolbar" aria-label={t("panelStrip.webPanels")} aria-orientation={vertical ? "vertical" : "horizontal"} data-testid="panel-strip">
     {#each panelsUi.list as panel (panel.id)}
       {@const label = panelLabel(panel)}
       <button
@@ -25,8 +26,8 @@
         class="panel"
         class:open={panel.id === openId}
         aria-pressed={panel.id === openId}
-        aria-label={panel.badge ? `${label} (${panel.badge} non lus)` : label}
-        title={panel.id === openId ? platform.tip(`Masquer ${label}`, "toggle-web-panel") : label}
+        aria-label={panel.badge ? t("panelStrip.unread", { label, badge: panel.badge }) : label}
+        title={panel.id === openId ? platform.tip(t("panelStrip.hide", { label }), "toggle-web-panel") : label}
         data-panel-id={panel.id}
         onclick={() => panelsUi.toggle(panel.id)}
         oncontextmenu={(event) => (event.preventDefault(), api.panels.contextMenu(panel.id))}
@@ -35,7 +36,7 @@
         {#if panel.badge}<span class="badge" aria-hidden="true">{panel.badge > 99 ? "99+" : panel.badge}</span>{/if}
       </button>
     {/each}
-    <IconButton icon="plus" size="sm" label="Ajouter un panneau web" pressed={panelsUi.adding} onclick={() => panelsUi.startAdding()} />
+    <IconButton icon="plus" size="sm" label={t("panelStrip.addWebPanel")} pressed={panelsUi.adding} onclick={() => panelsUi.startAdding()} />
   </div>
 {/if}
 

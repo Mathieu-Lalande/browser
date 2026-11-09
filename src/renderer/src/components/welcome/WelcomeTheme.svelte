@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { ResolvedMode } from "@shared/theme";
   import { THEME_GALLERY, applyTheme, isCurrentTheme, themePatch, type SharedTheme } from "@shared/theme-share";
   import { settings } from "../../lib/settings.svelte";
@@ -11,7 +12,7 @@
   const modeOf = (theme: SharedTheme): ResolvedMode => (theme.mode === "system" ? (settings.systemDark ? "dark" : "light") : theme.mode);
 </script>
 
-<div class="gallery" role="group" aria-label="Thèmes">
+<div class="gallery" role="group" aria-label={t("welcomeTheme.themes")}>
   {#each THEME_GALLERY as theme (theme.name)}
     <button class="card" aria-pressed={isCurrentTheme(s, theme)} onclick={() => settings.update(themePatch(theme, settings.current))}>
       <span class="frame"><MiniBrowser settings={applyTheme(s, theme)} mode={modeOf(theme)} /></span>

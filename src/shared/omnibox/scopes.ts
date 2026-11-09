@@ -1,3 +1,4 @@
+import { t, keywords } from "../i18n";
 import { fold } from "../fuzzy";
 import type { OmniboxIcon, ScopeId } from "./types";
 
@@ -13,13 +14,13 @@ export interface ScopeDefinition {
 }
 
 export const SCOPES: readonly ScopeDefinition[] = [
-  { id: "tabs", label: "Onglets", names: ["onglets", "o", "onglet", "tabs"], icon: "tab" },
-  { id: "favorites", label: "Favoris", names: ["favoris", "f", "favori", "bookmarks"], icon: "star" },
-  { id: "history", label: "Historique", names: ["historique", "h", "history"], icon: "history" },
-  { id: "commands", label: "Commandes", names: ["commandes", "c", "commande", "actions"], icon: "command" },
-  { id: "notes", label: "Notes", names: ["notes", "n", "note", "annotations", "surlignages"], icon: "highlighter" },
-  { id: "assistant", label: "Assistant IA", names: ["ia", "assistant", "ai", "claude"], icon: "sparkles" },
-  { id: "settings", label: "Réglages", names: ["réglages", "r", "reglages", "paramètres", "parametres", "settings"], icon: "settings" },
+  { id: "tabs", get label() { return t("omniboxScopes.tabs") }, get names() { return keywords("omniboxScopes.tabsKeywords") }, icon: "tab" },
+  { id: "favorites", get label() { return t("omniboxScopes.bookmarks") }, get names() { return keywords("omniboxScopes.bookmarksKeywords") }, icon: "star" },
+  { id: "history", get label() { return t("omniboxScopes.history") }, names: ["historique", "h", "history"], icon: "history" },
+  { id: "commands", get label() { return t("omniboxScopes.commands") }, names: ["commandes", "c", "commande", "actions"], icon: "command" },
+  { id: "notes", get label() { return t("omniboxScopes.notes") }, names: ["notes", "n", "note", "annotations", "surlignages"], icon: "highlighter" },
+  { id: "assistant", get label() { return t("omniboxScopes.aiAssistant") }, names: ["ia", "assistant", "ai", "claude"], icon: "sparkles" },
+  { id: "settings", get label() { return t("omniboxScopes.settings") }, get names() { return keywords("omniboxScopes.settingsKeywords") }, icon: "settings" },
 ];
 
 export const scopeById = (id: ScopeId): ScopeDefinition => SCOPES.find((scope) => scope.id === id)!;

@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import type { Settings, SettingsPatch } from "@shared/settings";
 import {
   THEME_CODE_PREFIX,
@@ -25,7 +26,7 @@ export function currentThemeCode(settings: Settings): string {
 
 /** Text for the share sheet: a line for people, then the code. */
 export function shareMessage(settings: Settings): string {
-  return `Mon thème Browser : collez ce code dans Paramètres, Apparence.\n${currentThemeCode(settings)}`;
+  return t("mobile.themeShare.myBrowserThemePaste", { p: currentThemeCode(settings) });
 }
 
 export type ThemeImport = { ok: true; theme: SharedTheme; patch: SettingsPatch } | { ok: false; error: string };

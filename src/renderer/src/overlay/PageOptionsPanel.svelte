@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { CommandId, CommandIcon } from "@shared/commands";
   import type { Bounds, TabId } from "@shared/types";
   import { displayUrl } from "@shared/url";
@@ -67,9 +68,9 @@
 
   type Item = { id: CommandId; icon: CommandIcon; label: string; mode?: "close" | "stay" | "handoff"; hidden?: boolean };
   const captures: Item[] = [
-    { id: "screenshot-visible", icon: "camera", label: "Zone visible", mode: "handoff" },
-    { id: "screenshot-full", icon: "capture-full", label: "Page entière", mode: "handoff" },
-    { id: "screenshot-element", icon: "capture-element", label: "Élément…", mode: "handoff" },
+    { id: "screenshot-visible", icon: "camera", label: t("pageOptionsPanel.visibleArea"), mode: "handoff" },
+    { id: "screenshot-full", icon: "capture-full", label: t("pageOptionsPanel.fullPage"), mode: "handoff" },
+    { id: "screenshot-element", icon: "capture-element", label: t("pageOptionsPanel.element"), mode: "handoff" },
   ];
   const isHttp = $derived(!!tab && /^https?:/.test(tab.url) && !tab.interstitial);
   /** Reading the page differently. */
@@ -77,24 +78,24 @@
     {
       id: "toggle-reader",
       icon: "reader",
-      label: tab?.reader ? "Quitter le mode lecture" : "Mode lecture",
+      label: tab?.reader ? t("pageOptionsPanel.exitReaderMode") : t("pageOptionsPanel.readerMode"),
       hidden: !isWeb || !(tab?.readerable || tab?.reader),
     },
     // Only where translation is on (ADR-036: off by default) and this page can be translated.
     {
       id: "translate-page",
       icon: "languages",
-      label: tab?.translated ? "Afficher l'original" : "Traduire la page",
+      label: tab?.translated ? t("pageOptionsPanel.showOriginal") : t("pageOptionsPanel.translatePage"),
       // Main may answer with the translation popover (privacy notice, setup): it takes this one's place.
       mode: "handoff",
       hidden: !isHttp || !(tab?.translation && (tab.translation.offer || tab.translation.status !== "idle" || tab.translated)),
     },
-    { id: "toggle-mobile-site", icon: "smartphone", label: tab?.mobileSite ? "Version pour ordinateur" : "Version mobile", hidden: !isWeb },
+    { id: "toggle-mobile-site", icon: "smartphone", label: tab?.mobileSite ? t("pageOptionsPanel.desktopSite") : t("pageOptionsPanel.mobileSite"), hidden: !isWeb },
   ]);
   /** The site itself. */
   const site = $derived<Item[]>([
-    { id: "open-boosts", icon: "rocket", label: "Boost du site", hidden: !isWeb || browser.isPrivate },
-    { id: "site-info", icon: "info", label: "Infos sur le site et protections", mode: "handoff", hidden: !isHttp },
+    { id: "open-boosts", icon: "rocket", label: t("pageOptionsPanel.siteBoost"), hidden: !isWeb || browser.isPrivate },
+    { id: "site-info", icon: "info", label: t("pageOptionsPanel.siteInfoProtections"), mode: "handoff", hidden: !isHttp },
   ]);
 
   /** Saved passwords for this site (ADR-025): the account chooser takes this popover's place. */
@@ -111,7 +112,7 @@
   bind:this={panel}
   class="panel"
   role="dialog"
-  aria-label="Options de la page"
+  aria-label={t("pageOptionsPanel.pageOptions")}
   tabindex="-1"
   style:left="{position.left}px"
   style:top="{position.top}px"
@@ -125,33 +126,33 @@
     </header>
     <!-- Arrow keys walk the actions, like a menu. -->
     <Menu class="body" role="group">
-      <MenuItem icon={copied ? "check" : "copy"} label={copied ? "Lien copié" : "Copier le lien"} keys={platform.shortcut("copy-url")} onclick={copyLink} />
+      <MenuItem icon={copied ? "check" : "copy"} label={copied ? t("pageOptionsPanel.linkCopied") : t("pageOptionsPanel.copyLink")} keys={platform.shortcut("copy-url")} onclick={copyLink} />
 
       {#if isWeb}
-        <div class="zoom" role="group" aria-label="Zoom">
+        <div class="zoom" role="group" aria-label={t("pageOptionsPanel.zoom")}>
           <Icon name="zoom-in" size={16} />
-          <span class="label">Zoom</span>
-          <button class="round" aria-label="Zoom arrière" title={platform.tip("Zoom arrière", "zoom-out")} onclick={() => run("zoom-out", "stay")}>
+          <span class="label">{t("pageOptionsPanel.zoom")}</span>
+          <button class="round" aria-label={t("pageOptionsPanel.zoomOut")} title={platform.tip(t("pageOptionsPanel.zoomOut"), "zoom-out")} onclick={() => run("zoom-out", "stay")}>
             <Icon name="minimize" size={14} />
           </button>
           <button
             class="value"
             class:changed={tab.zoom !== defaultZoom}
-            aria-label="Zoom {tab.zoom} %, revenir à {defaultZoom} %"
-            title={platform.tip(`Revenir à ${defaultZoom} %`, "zoom-reset")}
+            aria-label={t("pageOptionsPanel.zoomBack", { zoom: tab.zoom, defaultZoom })}
+            title={platform.tip(t("pageOptionsPanel.back", { defaultZoom }), "zoom-reset")}
             data-testid="page-zoom"
             onclick={() => run("zoom-reset", "stay")}
           >
             {tab.zoom}&#8239;%
           </button>
-          <button class="round" aria-label="Zoom avant" title={platform.tip("Zoom avant", "zoom-in")} onclick={() => run("zoom-in", "stay")}>
+          <button class="round" aria-label={t("pageOptionsPanel.zoom2")} title={platform.tip("Zoom avant", "zoom-in")} onclick={() => run("zoom-in", "stay")}>
             <Icon name="plus" size={14} />
           </button>
         </div>
 
-        <MenuItem icon="camera" label="Capture d'écran" expanded={captureOpen} onclick={() => (captureOpen = !captureOpen)} />
+        <MenuItem icon="camera" label={t("pageOptionsPanel.screenshot")} expanded={captureOpen} onclick={() => (captureOpen = !captureOpen)} />
         {#if captureOpen}
-          <div class="sub" role="group" aria-label="Capture d'écran">
+          <div class="sub" role="group" aria-label={t("pageOptionsPanel.screenshot")}>
             {#each captures as item (item.id)}
               <MenuItem icon={item.icon} iconSize={15} label={item.label} keys={platform.shortcut(item.id)} onclick={() => run(item.id, item.mode)} />
             {/each}
@@ -160,7 +161,7 @@
       {/if}
 
       {#if isWeb}
-        <MenuItem icon="video" label={recording ? "Arrêter l'enregistrement" : "Enregistrer une vidéo"} keys={platform.shortcut("record-video")} onclick={() => run("record-video", "handoff")} />
+        <MenuItem icon="video" label={recording ? t("pageOptionsPanel.stopRecording") : t("pageOptionsPanel.recordVideo")} keys={platform.shortcut("record-video")} onclick={() => run("record-video", "handoff")} />
       {/if}
 
       {#if views.some((item) => !item.hidden)}<div class="separator" role="separator"></div>{/if}
@@ -170,17 +171,17 @@
 
       <div class="separator" role="separator"></div>
       {#if tab.hasPasswords && isHttp}
-        <MenuItem icon="key" label="Remplir un mot de passe enregistré" onclick={fillPassword} />
+        <MenuItem icon="key" label={t("pageOptionsPanel.fillSavedPassword")} onclick={fillPassword} />
       {/if}
       {#each site.filter((item) => !item.hidden) as item (item.id)}
         <MenuItem icon={item.icon} label={item.label} keys={platform.shortcut(item.id)} onclick={() => run(item.id, item.mode)} />
       {/each}
 
-      <MenuItem icon="qr" label="Partager (code QR)" expanded={qrOpen} onclick={() => (qrOpen = !qrOpen)} />
+      <MenuItem icon="qr" label={t("pageOptionsPanel.shareQrCode")} expanded={qrOpen} onclick={() => (qrOpen = !qrOpen)} />
       {#if qrOpen}
         <div class="qr">
-          <QrCode value={tab.url} size={168} label="Code QR de {displayUrl(tab.url)}" />
-          <p>Scannez-le avec un téléphone pour ouvrir cette page.</p>
+          <QrCode value={tab.url} size={168} label={t("pageOptionsPanel.qrCode", { p: displayUrl(tab.url) })} />
+          <p>{t("pageOptionsPanel.scanPhoneOpenPage")}</p>
         </div>
       {/if}
     </Menu>

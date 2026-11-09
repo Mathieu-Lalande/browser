@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { displayUrl } from "@shared/url";
 import { memo, useMemo, useState, type ComponentType } from "react";
 import { Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
@@ -122,12 +123,12 @@ export const PeekSheet = memo(function PeekSheet({ peek, onClose }: Props) {
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: colors.scrim }, backdropStyle]}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={dismiss} accessibilityRole="button" accessibilityLabel="Fermer l'aperçu" />
+        <Pressable style={StyleSheet.absoluteFill} onPress={dismiss} accessibilityRole="button" accessibilityLabel={t("mobile.peekSheet.closePreview")} />
       </Animated.View>
       <Animated.View
         style={[styles.sheet, { height: sheetHeight + 40, bottom: -40, paddingBottom: 40 + insets.bottom, backgroundColor: colors.bgElevated }, sheetStyle]}
         accessibilityViewIsModal
-        accessibilityLabel="Aperçu du lien"
+        accessibilityLabel={t("mobile.peekSheet.linkPreview")}
       >
         <GestureDetector gesture={drag}>
           <View style={[styles.header, { borderBottomColor: colors.hairline }]}>
@@ -144,13 +145,13 @@ export const PeekSheet = memo(function PeekSheet({ peek, onClose }: Props) {
               <Tap
                 onPress={openInTab}
                 accessibilityRole="button"
-                accessibilityLabel="Ouvrir dans un onglet"
+                accessibilityLabel={t("mobile.peekSheet.openTab")}
                 style={[styles.open, { backgroundColor: colors.surface }]}
               >
                 <Icon name="open" size={16} color={colors.accentText} />
-                <Text style={[styles.openLabel, { color: colors.accentText }]}>Ouvrir dans un onglet</Text>
+                <Text style={[styles.openLabel, { color: colors.accentText }]}>{t("mobile.peekSheet.openTab")}</Text>
               </Tap>
-              <IconButton icon="close" label="Fermer" onPress={dismiss} size={22} />
+              <IconButton icon="close" label={t("mobile.peekSheet.close")} onPress={dismiss} size={22} />
             </View>
           </View>
         </GestureDetector>

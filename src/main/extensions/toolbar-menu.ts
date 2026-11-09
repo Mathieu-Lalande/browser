@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { Menu, type BaseWindow, type MenuItemConstructorOptions } from "electron";
 import type { ExtensionInfo } from "@shared/extensions";
 import type { Bounds } from "@shared/types";
@@ -18,13 +19,13 @@ export interface ExtensionMenuHost {
  */
 export function extensionMenuTemplate(host: ExtensionMenuHost, id: string | null, anchor: Bounds): MenuItemConstructorOptions[] {
   const withAction = host.list().filter((extension) => extension.enabled && extension.action);
-  const manage: MenuItemConstructorOptions = { label: "Gérer les extensions", click: () => host.openExtensionsPage() };
+  const manage: MenuItemConstructorOptions = { label: t("extensionsToolbarMenu.manageExtensions"), click: () => host.openExtensionsPage() };
   const one = id ? withAction.find((extension) => extension.id === id) : undefined;
   if (one) {
     return [
       { label: one.name, enabled: false },
       { type: "separator" },
-      { label: one.pinned ? "Désépingler" : "Épingler", click: () => host.setPinned(one.id, !one.pinned) },
+      { label: one.pinned ? t("extensionsToolbarMenu.unpin") : t("extensionsToolbarMenu.pin"), click: () => host.setPinned(one.id, !one.pinned) },
       manage,
     ];
   }
@@ -40,9 +41,9 @@ export function extensionMenuTemplate(host: ExtensionMenuHost, id: string | null
     click: () => host.setPinned(extension.id, !extension.pinned),
   }));
   return [
-    ...(items.length ? items : [{ label: "Aucune extension avec bouton", enabled: false }]),
+    ...(items.length ? items : [{ label: t("extensionsToolbarMenu.noExtensionsButton"), enabled: false }]),
     { type: "separator" },
-    ...(pins.length ? [{ label: "Épingler dans la barre latérale", submenu: pins }] : []),
+    ...(pins.length ? [{ label: t("extensionsToolbarMenu.pinSidebar"), submenu: pins }] : []),
     manage,
   ];
 }

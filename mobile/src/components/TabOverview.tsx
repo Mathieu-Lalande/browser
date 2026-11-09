@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { isFavoriteTab, type Favorite } from "@shared/favorites";
 import type { SpaceInfo } from "@shared/types";
 import { memo, useMemo } from "react";
@@ -193,7 +194,7 @@ export const TabOverview = memo(function TabOverview(props: Props) {
   );
 
   // Short: it sits beside the + button.
-  const spaceName = isPrivate ? "Privé" : (model.spaces.find((space) => space.id === model.activeSpaceId)?.name ?? "");
+  const spaceName = isPrivate ? t("mobile.tabOverview.private") : (model.spaces.find((space) => space.id === model.activeSpaceId)?.name ?? "");
 
   return (
     <View style={StyleSheet.absoluteFill} testID="tab-overview">
@@ -245,8 +246,8 @@ export const TabOverview = memo(function TabOverview(props: Props) {
         {tabs.length === 0 && (
           <Animated.View style={styles.empty}>
             <Icon name={isPrivate ? "mask" : "tabs"} size={36} color={colors.textFaint} />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>{isPrivate ? "Aucun onglet privé" : "Aucun onglet"}</Text>
-            <Text style={[styles.emptyText, { color: colors.textMuted }]}>Touchez + pour ouvrir un nouvel onglet{isPrivate ? " privé" : ""}.</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>{isPrivate ? t("mobile.tabOverview.noPrivateTabs") : t("mobile.tabOverview.noTabs")}</Text>
+            <Text style={[styles.emptyText, { color: colors.textMuted }]}>{t("mobile.tabOverview.tapOpenNewTab")}{isPrivate ? t("mobile.tabOverview.private2") : ""}.</Text>
           </Animated.View>
         )}
         {!isPrivate && props.onOpenRemote && <RemoteTabs onOpen={props.onOpenRemote} />}

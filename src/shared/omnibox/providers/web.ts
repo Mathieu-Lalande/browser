@@ -1,3 +1,4 @@
+import { t } from "../../i18n";
 import { fold } from "../../fuzzy";
 import { displayUrl, normalizeInput, searchUrl, type SearchEngine } from "../../url";
 import type { Provider, QueryContext, Suggestion } from "../types";
@@ -34,13 +35,13 @@ export class WebProvider implements Provider {
         {
           key: "go",
           section: "go",
-          title: `Aller à ${displayUrl(url)}`,
+          title: t("providersWeb.go", { p: displayUrl(url) }),
           titleRanges: [],
           detail: "",
           detailRanges: [],
           score: 0,
           icon: "globe",
-          verb: "Ouvrir",
+          verb: t("providersWeb.open"),
           completion: input,
           action: { type: "open", url },
         },
@@ -56,14 +57,14 @@ export class WebProvider implements Provider {
     const row = (query: string, score: number, key: string): Suggestion => ({
       key,
       section: "web",
-      title: `Rechercher « ${query} »`,
+      title: t("providersWeb.search", { query }),
       // The typed part is not highlighted: the completion is what matters.
       titleRanges: query === input ? [] : [[13 + input.length, 13 + query.length]],
       detail: context.engine.name,
       detailRanges: [],
       score,
       icon: "search",
-      verb: "Rechercher",
+      verb: t("providersWeb.search2"),
       completion: query,
       action: { type: "open", url: searchUrl(query, context.engine) },
     });

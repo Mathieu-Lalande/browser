@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { Channels, type SyncActionResult } from "@shared/ipc";
 import { SyncError } from "@shared/sync/client";
 import { appServices } from "../app-services-ref";
@@ -20,7 +21,7 @@ async function attempt(action: () => Promise<void>): Promise<SyncActionResult> {
     return { ok: true };
   } catch (error) {
     if (error instanceof SyncError) return { ok: false, message: error.message };
-    return { ok: false, message: "La synchronisation a échoué." };
+    return { ok: false, message: t("services.syncFailed") };
   }
 }
 

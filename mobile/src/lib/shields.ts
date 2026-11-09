@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { approximateSite, cosmeticCss, cosmeticSelectors, hostMatches, sanitizeCosmeticIndex, type CosmeticIndex } from "@shared/blocklist";
 import { COOKIE_BANNER_RULES, DEFAULT_AGENT_OPTIONS, bannerHandled, sanitizeBannerResult, type BannerResult } from "@shared/cookie-banners";
 import type { PrivacyEvent } from "@shared/privacy-stats";
@@ -13,7 +14,7 @@ import agentSource from "../generated/cookie-banner-agent.json";
  * switch ("Bouclier") and the counters. Network blocking is native (`modules/content-blocker`).
  */
 
-export const SHIELD_UNAVAILABLE_NOTE = "Bloqueur complet disponible dans l'app compilée";
+export const SHIELD_UNAVAILABLE_NOTE = t("mobile.shields.fullBlockerAvailableCompiled");
 
 /** The shield's site key of a host: its registrable domain (approximated, like the native side). */
 export const shieldSiteOf = (host: string | null | undefined): string | null => (host ? approximateSite(host.toLowerCase()) : null);

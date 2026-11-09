@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { BaseWindow, WebContentsView, type Session, type WebContents } from "electron";
 import { Channels } from "@shared/ipc";
 import { MINI_PAGE_RADIUS, MINI_SIZE, miniLayout, miniShortcut, type MiniAction, type MiniState } from "@shared/mini";
@@ -59,7 +60,7 @@ export class MiniWindow {
       frame: false,
       roundedCorners: true,
       backgroundColor: host.background(),
-      title: "Browser — Mini-fenêtre",
+      title: t("miniMiniWindow.browserMiniWindow"),
       show: false,
     });
     this.bar = new WebContentsView({

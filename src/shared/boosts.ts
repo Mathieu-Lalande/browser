@@ -4,6 +4,8 @@
  * touches a DOM: the scripts that run in pages are strings built by each platform.
  */
 
+import { t } from "./i18n";
+
 export const BOOSTS_VERSION = 1;
 export const MAX_BOOSTS = 200;
 export const MAX_BOOST_NAME = 80;
@@ -15,11 +17,11 @@ export const MAX_SELECTOR = 400;
 
 /** Font override: a few system stacks only (no web font is ever downloaded). */
 export const BOOST_FONTS = {
-  system: { label: "Police du système", stack: "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" },
-  sans: { label: "Sans empattement", stack: "Helvetica, Arial, 'Liberation Sans', sans-serif" },
-  serif: { label: "Avec empattement", stack: "Georgia, 'Times New Roman', 'Liberation Serif', serif" },
-  mono: { label: "Chasse fixe", stack: "ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" },
-  rounded: { label: "Arrondie", stack: "ui-rounded, 'SF Pro Rounded', 'Nunito', 'Varela Round', system-ui, sans-serif" },
+  system: { get label() { return t("boosts.systemFont") }, stack: "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" },
+  sans: { get label() { return t("boosts.sansSerif") }, stack: "Helvetica, Arial, 'Liberation Sans', sans-serif" },
+  serif: { get label() { return t("boosts.serif") }, stack: "Georgia, 'Times New Roman', 'Liberation Serif', serif" },
+  mono: { get label() { return t("boosts.monospace") }, stack: "ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" },
+  rounded: { get label() { return t("boosts.rounded") }, stack: "ui-rounded, 'SF Pro Rounded', 'Nunito', 'Varela Round', system-ui, sans-serif" },
 } as const;
 export type BoostFont = keyof typeof BOOST_FONTS;
 export const isBoostFont = (value: unknown): value is BoostFont => typeof value === "string" && Object.hasOwn(BOOST_FONTS, value);
@@ -382,13 +384,13 @@ export type BoostResult = { ok: true; boost: Boost } | { ok: false; message: str
 
 /** Checks an edited boost (nothing is silently truncated) and gives it `id`. */
 export function validateBoostInput(value: unknown, id: string, now: number): BoostResult {
-  if (!isRecord(value)) return { ok: false, message: "Boost invalide." };
-  if (!normalizeMatch(value.match)) return { ok: false, message: "Site invalide : saisissez un domaine (exemple.fr), ou *.exemple.fr pour inclure ses sous-domaines." };
-  if (typeof value.css === "string" && value.css.length > MAX_BOOST_CSS) return { ok: false, message: `Le CSS dépasse ${MAX_BOOST_CSS} caractères.` };
+  if (!isRecord(value)) return { ok: false, message: t("boosts.invalidBoost") };
+  if (!normalizeMatch(value.match)) return { ok: false, message: t("boosts.invalidSiteEnterDomain") };
+  if (typeof value.css === "string" && value.css.length > MAX_BOOST_CSS) return { ok: false, message: t("boosts.cssLongerThanCharacters", { MAX_BOOST_CSS }) };
   const script = isRecord(value.script) ? value.script : {};
-  if (typeof script.code === "string" && script.code.length > MAX_BOOST_SCRIPT) return { ok: false, message: `Le script dépasse ${MAX_BOOST_SCRIPT} caractères.` };
-  if (Array.isArray(value.zaps) && value.zaps.length > MAX_ZAPS) return { ok: false, message: `${MAX_ZAPS} éléments masqués au plus.` };
-  if (Array.isArray(value.zaps) && !value.zaps.every(isValidSelector)) return { ok: false, message: "Un élément masqué a un sélecteur invalide." };
+  if (typeof script.code === "string" && script.code.length > MAX_BOOST_SCRIPT) return { ok: false, message: t("boosts.scriptLongerThanCharacters", { MAX_BOOST_SCRIPT }) };
+  if (Array.isArray(value.zaps) && value.zaps.length > MAX_ZAPS) return { ok: false, message: t("boosts.hiddenElementsMost", { MAX_ZAPS }) };
+  if (Array.isArray(value.zaps) && !value.zaps.every(isValidSelector)) return { ok: false, message: t("boosts.hiddenElementHasInvalid") };
   const boost = sanitizeBoost({ ...value, id, updatedAt: now });
-  return boost ? { ok: true, boost } : { ok: false, message: "Boost invalide." };
+  return boost ? { ok: true, boost } : { ok: false, message: t("boosts.invalidBoost") };
 }

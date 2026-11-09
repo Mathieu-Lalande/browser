@@ -4,17 +4,19 @@
  * on this device only; private windows record nothing. Pure (shared with tests and the UI).
  */
 
+import { t } from "./i18n";
+
 export const PRIVACY_COUNTERS = ["trackers", "cookieBanners", "httpsUpgrades", "thirdPartyCookies", "fingerprinting"] as const;
 export type PrivacyCounter = (typeof PRIVACY_COUNTERS)[number];
 export type Counts = Record<PrivacyCounter, number>;
 
 /** French labels of the counters (dashboard, site info). */
 export const PRIVACY_COUNTER_LABELS: Record<PrivacyCounter, string> = {
-  trackers: "Traqueurs et publicités bloqués",
-  cookieBanners: "Bandeaux cookies refusés",
-  httpsUpgrades: "Connexions passées en HTTPS",
-  thirdPartyCookies: "Cookies tiers bloqués",
-  fingerprinting: "Pistages par empreinte contrés",
+  get trackers() { return t("privacyStats.trackersAdsBlocked") },
+  get cookieBanners() { return t("privacyStats.cookieBannersRefused") },
+  get httpsUpgrades() { return t("privacyStats.connectionsUpgradedHttps") },
+  get thirdPartyCookies() { return t("privacyStats.thirdPartyCookiesBlocked") },
+  get fingerprinting() { return t("privacyStats.fingerprintingAttemptsCountered") },
 };
 
 /** "45 s", "12 min", "2 h 05". */

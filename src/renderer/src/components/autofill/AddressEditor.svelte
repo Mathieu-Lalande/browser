@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { COUNTRIES, postalCodeValid, type AddressFields } from "@shared/autofill";
   import Button from "../ui/Button.svelte";
 
@@ -20,34 +21,34 @@
 
   async function submit(event: SubmitEvent): Promise<void> {
     event.preventDefault();
-    if (!draft.street.trim() || !(draft.postalCode.trim() || draft.city.trim())) return void (error = "Indiquez au moins l'adresse et la ville ou le code postal.");
-    if (draft.postalCode.trim() && draft.country && !postalCodeValid(draft.country, draft.postalCode)) return void (error = "Ce code postal ne correspond pas au pays choisi.");
+    if (!draft.street.trim() || !(draft.postalCode.trim() || draft.city.trim())) return void (error = t("addressEditor.enterLeastAddressCity"));
+    if (draft.postalCode.trim() && draft.country && !postalCodeValid(draft.country, draft.postalCode)) return void (error = t("addressEditor.postalCodeDoesntMatch"));
     busy = true;
     error = await onsave({ ...draft });
     busy = false;
   }
 </script>
 
-<form class="editor" aria-label={initial ? "Modifier l'adresse" : "Nouvelle adresse"} onsubmit={submit}>
-  <label class="wide">Nom complet <input class="ui-field" autocomplete="off" bind:value={draft.name} /></label>
-  <label class="wide">Société <input class="ui-field" autocomplete="off" bind:value={draft.organization} /></label>
-  <label class="wide">Adresse <textarea class="ui-field" rows="2" autocomplete="off" bind:value={draft.street}></textarea></label>
-  <label>Code postal <input class="ui-field" autocomplete="off" bind:value={draft.postalCode} /></label>
-  <label>Ville <input class="ui-field" autocomplete="off" bind:value={draft.city} /></label>
-  <label>Région ou état <input class="ui-field" autocomplete="off" bind:value={draft.region} /></label>
+<form class="editor" aria-label={initial ? t("addressEditor.editAddress") : t("addressEditor.newAddress")} onsubmit={submit}>
+  <label class="wide">{t("addressEditor.fullName")} <input class="ui-field" autocomplete="off" bind:value={draft.name} /></label>
+  <label class="wide">{t("addressEditor.company")} <input class="ui-field" autocomplete="off" bind:value={draft.organization} /></label>
+  <label class="wide">{t("addressEditor.address")} <textarea class="ui-field" rows="2" autocomplete="off" bind:value={draft.street}></textarea></label>
+  <label>{t("addressEditor.postalCode")} <input class="ui-field" autocomplete="off" bind:value={draft.postalCode} /></label>
+  <label>{t("addressEditor.city")} <input class="ui-field" autocomplete="off" bind:value={draft.city} /></label>
+  <label>{t("addressEditor.regionState")} <input class="ui-field" autocomplete="off" bind:value={draft.region} /></label>
   <label
-    >Pays
+    >{t("addressEditor.country")}
     <select class="ui-field" bind:value={draft.country}>
       <option value="">—</option>
       {#each COUNTRIES as country (country.code)}<option value={country.code}>{country.name}</option>{/each}
     </select>
   </label>
-  <label>Téléphone <input class="ui-field" type="tel" autocomplete="off" bind:value={draft.phone} /></label>
-  <label>E-mail <input class="ui-field" type="email" autocomplete="off" bind:value={draft.email} /></label>
+  <label>{t("addressEditor.phone")} <input class="ui-field" type="tel" autocomplete="off" bind:value={draft.phone} /></label>
+  <label>{t("addressEditor.email")} <input class="ui-field" type="email" autocomplete="off" bind:value={draft.email} /></label>
   {#if error}<p class="error wide" role="alert">{error}</p>{/if}
   <div class="actions wide">
-    <Button variant="quiet" onclick={oncancel}>Annuler</Button>
-    <Button variant="primary" type="submit" disabled={busy}>Enregistrer</Button>
+    <Button variant="quiet" onclick={oncancel}>{t("addressEditor.cancel")}</Button>
+    <Button variant="primary" type="submit" disabled={busy}>{t("addressEditor.save")}</Button>
   </div>
 </form>
 

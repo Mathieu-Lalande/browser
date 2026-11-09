@@ -4,6 +4,8 @@
  * data folder, validation, paths and the relaunch arguments.
  */
 
+import { t } from "./i18n";
+
 export type ProfileId = string;
 
 /** The first profile ("Personnel") keeps using the root folder: no data moves on upgrade. */
@@ -48,7 +50,7 @@ export interface ProfilesView extends ProfilesData {
   current: ProfileId;
 }
 
-export const DEFAULT_PROFILE: ProfileInfo = { id: DEFAULT_PROFILE_ID, name: "Personnel", color: PROFILE_COLORS[0], icon: "circle-user", createdAt: 0 };
+export const DEFAULT_PROFILE: ProfileInfo = { id: DEFAULT_PROFILE_ID, get name() { return t("profiles.personal") }, color: PROFILE_COLORS[0], icon: "circle-user", createdAt: 0 };
 
 export const isProfileId = (value: unknown): value is ProfileId => typeof value === "string" && /^[a-z0-9-]{1,40}$/.test(value);
 const isColor = (value: unknown): value is string => typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value);

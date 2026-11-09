@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { chunkTexts, fitTranslation } from "./segments";
 import { TranslationError, type HttpClient, type TranslationProvider } from "./providers";
 
@@ -36,7 +37,7 @@ export class Translator {
       try {
         response = await this.http(this.provider.buildRequest(chunk, from, to));
       } catch {
-        throw new TranslationError("network", `${this.provider.label} est injoignable (réseau ou délai dépassé).`);
+        throw new TranslationError("network", t("translateTranslator.unreachableNetworkTimeout", { label: this.provider.label }));
       }
       const batch = this.provider.parseResponse(response, chunk.length);
       detected ??= batch.detected;
@@ -65,6 +66,6 @@ export class Translator {
 export async function testTranslation(translator: Translator, to: string): Promise<string> {
   const sample = to === "en" ? "Bonjour, le monde !" : "Hello, world!";
   const { texts } = await translator.translate([sample], to === "en" ? "fr" : "en", to);
-  if (!texts[0]) throw new TranslationError("invalid", `${translator.provider.label} n'a renvoyé aucune traduction.`);
+  if (!texts[0]) throw new TranslationError("invalid", t("translateTranslator.returnedNoTranslation", { label: translator.provider.label }));
   return texts[0];
 }

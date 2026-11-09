@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { Highlight, HighlightColor } from "@shared/annotations/model";
   import type { Bounds } from "@shared/types";
   import { api } from "../lib/browser.svelte";
@@ -83,7 +84,7 @@
   use:dismiss={{ onDismiss: () => void saveNote().then(() => onClose(true)) }}
   class="panel"
   role="dialog"
-  aria-label="Surlignage"
+  aria-label={t("annotationPanel.highlight")}
   tabindex="-1"
   data-testid="annotation-panel"
   style:left="{position.left}px"
@@ -93,16 +94,16 @@
 >
   {#if highlight}
     <blockquote>{highlight.exact}</blockquote>
-    <HighlightColors value={highlight.color} label="Couleur du surlignage" onpick={setColor} />
-    <textarea class="ui-field" bind:value={note} rows="3" placeholder="Ajouter une note…" aria-label="Note du surlignage" onblur={saveNote}></textarea>
+    <HighlightColors value={highlight.color} label={t("annotationPanel.highlightColor")} onpick={setColor} />
+    <textarea class="ui-field" bind:value={note} rows="3" placeholder={t("annotationPanel.addNote")} aria-label={t("annotationPanel.highlightNote")} onblur={saveNote}></textarea>
     <div class="actions">
-      <Button size="sm" variant="ghost" icon={copied ? "check" : "copy-text"} onclick={copy}>{copied ? "Copié" : "Copier"}</Button>
-      <Button size="sm" variant="danger" icon="trash" onclick={remove}>Supprimer</Button>
+      <Button size="sm" variant="ghost" icon={copied ? "check" : "copy-text"} onclick={copy}>{copied ? t("annotationPanel.copied") : t("annotationPanel.copy")}</Button>
+      <Button size="sm" variant="danger" icon="trash" onclick={remove}>{t("annotationPanel.delete")}</Button>
       <span class="spacer"></span>
-      <Button size="sm" variant="primary" onclick={done}>Terminé</Button>
+      <Button size="sm" variant="primary" onclick={done}>{t("annotationPanel.done")}</Button>
     </div>
   {:else if loaded}
-    <p class="hint"><Icon name="info" size={14} /> Ce surlignage n'existe plus.</p>
+    <p class="hint"><Icon name="info" size={14} /> {t("annotationPanel.highlightNoLongerExists")}</p>
   {/if}
 </div>
 

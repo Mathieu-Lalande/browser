@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { addSpace, DEFAULT_SPACE, isSpaceId, neighborSpace, removeSpace, sanitizeSpace, updateSpace } from "@shared/spaces";
 import type { CloseTabActivates } from "@shared/settings";
 import { closeSuccessor, pinnedFirst } from "@shared/tab-order";
@@ -161,10 +162,10 @@ export function overviewGroups(model: TabsModel, spaceId: SpaceId = model.active
 /** "Dossier", then "Dossier 2"… within a space. */
 export function nextMobileFolderName(model: TabsModel, spaceId: SpaceId): string {
   const names = new Set(model.folders.filter((folder) => folder.spaceId === spaceId).map((folder) => folder.name));
-  if (!names.has("Dossier")) return "Dossier";
+  if (!names.has("Dossier")) return t("mobile.libTabs.folder");
   let n = 2;
   while (names.has(`Dossier ${n}`)) n++;
-  return `Dossier ${n}`;
+  return t("mobile.libTabs.folder2", { n });
 }
 
 export type SwipeTarget = { kind: "tab"; id: TabId } | { kind: "new" } | null;
@@ -531,7 +532,7 @@ export function parseSession(data: unknown): TabsModel | null {
     if (!isRecord(value) || !isTabId(value.id) || typeof value.spaceId !== "string" || !spaceIds.has(value.spaceId)) continue;
     if (folders.length >= MAX_MOBILE_FOLDERS || folders.some((folder) => folder.id === value.id)) continue;
     const name = typeof value.name === "string" ? cleanFolderName(value.name) : "";
-    folders.push({ id: value.id, spaceId: value.spaceId, name: name || "Dossier", collapsed: value.collapsed === true });
+    folders.push({ id: value.id, spaceId: value.spaceId, name: name || t("mobile.libTabs.folder"), collapsed: value.collapsed === true });
   }
   let seq = 0;
   const seen = new Set<string>();

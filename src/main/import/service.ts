@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { randomUUID } from "node:crypto";
 import type { History } from "@shared/history";
 import { parsePasswordCsv } from "@shared/import/passwords-csv";
@@ -33,10 +34,10 @@ export interface ImportDeps {
 }
 
 const STEP_LABELS: Record<ImportItem, string> = {
-  bookmarks: "Import des favoris…",
-  history: "Import de l'historique…",
-  favorites: "Import de la grille des favoris…",
-  searchEngine: "Lecture du moteur de recherche…",
+  get bookmarks() { return t("importService.importingBookmarks") },
+  get history() { return t("importService.importingHistory") },
+  get favorites() { return t("importService.importingFavoritesGrid") },
+  get searchEngine() { return t("importService.readingSearchEngine") },
 };
 
 /**
@@ -60,8 +61,8 @@ export class ImportService {
   /** Imports `items` of a profile listed by the last `sources()`. */
   run(profileId: string, items: readonly ImportItem[], onProgress: (progress: ImportProgress) => void = () => {}): ImportSummary {
     const reader = [...this.detected.values()].map((detected) => detected.readers.get(profileId)).find((found) => found !== undefined);
-    if (!reader) return { ok: false, message: "Ce profil n'est plus disponible. Relancez la détection." };
-    if (this.running) return { ok: false, message: "Un import est déjà en cours." };
+    if (!reader) return { ok: false, message: t("importService.profileNoLongerAvailable") };
+    if (this.running) return { ok: false, message: t("importService.importAlreadyProgress") };
     this.running = true;
     const summary: ImportSummary = { ok: true };
     const failed: string[] = [];
@@ -87,8 +88,8 @@ export class ImportService {
       this.running = false;
     }
     this.deps.refreshAll();
-    onProgress({ step: "done", label: "Import terminé" });
-    if (failed.length) return { ...summary, ok: false, message: `Illisible : ${failed.join(", ")}. Fermez l'autre navigateur puis réessayez.` };
+    onProgress({ step: "done", label: t("importService.importFinished") });
+    if (failed.length) return { ...summary, ok: false, message: t("importService.unreadableCloseOtherBrowser", { p: failed.join(", ") }) };
     return summary;
   }
 
@@ -96,7 +97,7 @@ export class ImportService {
   importPasswordCsv(text: string): PasswordImportSummary {
     const empty = { added: 0, updated: 0, skipped: 0, invalid: 0 };
     const status = this.deps.passwords.status();
-    if (!status.available) return { ok: false, message: status.message ?? "Les mots de passe ne peuvent pas être enregistrés.", ...empty };
+    if (!status.available) return { ok: false, message: status.message ?? t("importService.passwordsCantSaved"), ...empty };
     const parsed = parsePasswordCsv(text);
     if (parsed.error) return { ok: false, message: parsed.error, ...empty };
     const now = this.now();

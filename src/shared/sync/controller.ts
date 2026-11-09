@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { randomBytesChecked, toBase64Url, toHex, type RandomBytes } from "./bytes";
 import { SyncClient, SyncError, type SyncErrorKind, type Transport } from "./client";
 import { generateSyncKey } from "./crypto";
@@ -116,7 +117,7 @@ export class SyncController {
   /** First device: creates an account on `serverUrl` with a new random sync key. */
   async createAccount(serverUrl: string, registrationSecret?: string): Promise<void> {
     const base = normalizeServerUrl(serverUrl);
-    if (!base) throw new SyncError("protocol", "Adresse de serveur invalide : https:// obligatoire (http:// seulement en réseau local)");
+    if (!base) throw new SyncError("protocol", t("syncController.invalidServerAddressHttps"));
     const account = await SyncClient.createAccount(this.platform.transport, base, registrationSecret);
     const credentials: SyncCredentials = { serverUrl: base, ...account, syncKey: toBase64Url(generateSyncKey(this.platform.rng)) };
     await this.connect(credentials);
@@ -125,7 +126,7 @@ export class SyncController {
   /** Other devices: joins the account of a pairing code (QR code or pasted text). */
   async pair(code: string): Promise<void> {
     const credentials = decodePairingCode(code);
-    if (!credentials) throw new SyncError("protocol", "Code de jumelage invalide");
+    if (!credentials) throw new SyncError("protocol", t("syncController.invalidPairingCode"));
     await this.connect(credentials);
   }
 

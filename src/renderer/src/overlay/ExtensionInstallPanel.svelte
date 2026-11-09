@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { ExtensionReview } from "@shared/extensions";
   import { api } from "../lib/browser.svelte";
   import { dismiss } from "../components/ui/dismiss";
@@ -36,7 +37,7 @@
     onClose(!accepted);
   }
 
-  const title = $derived(review ? (review.update ? `Mettre à jour « ${review.name} » ?` : `Ajouter « ${review.name} » ?`) : "Extension");
+  const title = $derived(review ? (review.update ? t("extensionInstallPanel.update", { name: review.name }) : t("extensionInstallPanel.add", { name: review.name })) : "Extension");
 </script>
 
 <div
@@ -59,25 +60,25 @@
       </div>
     </header>
     {#if review.permissions.length}
-      <p>{review.update ? "La nouvelle version demande des autorisations supplémentaires. Elle pourra :" : "Elle pourra :"}</p>
+      <p>{review.update ? t("extensionInstallPanel.newVersionAsksMore") : "Elle pourra :"}</p>
       <ul>
         {#each review.permissions as permission (permission)}
           <li><Icon name="check" size={12} /> {permission}</li>
         {/each}
       </ul>
     {:else}
-      <p>Cette extension ne demande aucune autorisation particulière.</p>
+      <p>{t("extensionInstallPanel.extensionDoesntAskAny")}</p>
     {/if}
-    <p class="hint">Elle ne s'exécutera pas dans les fenêtres privées. Vous pourrez la désactiver ou la retirer depuis la page Extensions.</p>
+    <p class="hint">{t("extensionInstallPanel.wontRunPrivateWindows")}</p>
     <div class="actions">
-      <Button variant="quiet" onclick={() => answer(false)}>Annuler</Button>
+      <Button variant="quiet" onclick={() => answer(false)}>{t("extensionInstallPanel.cancel")}</Button>
       <Button variant="primary" bind:element={confirmButton} onclick={() => answer(true)}>
-        {review.update ? "Mettre à jour" : "Ajouter l'extension"}
+        {review.update ? t("extensionInstallPanel.update2") : t("extensionInstallPanel.addExtension")}
       </Button>
     </div>
   {:else if loaded}
-    <p>Cette demande d'installation a expiré.</p>
-    <div class="actions"><Button onclick={() => onClose(true)}>Fermer</Button></div>
+    <p>{t("extensionInstallPanel.installationRequestHasExpired")}</p>
+    <div class="actions"><Button onclick={() => onClose(true)}>{t("extensionInstallPanel.close")}</Button></div>
   {/if}
 </div>
 

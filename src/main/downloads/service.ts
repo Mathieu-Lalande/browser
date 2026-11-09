@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { randomUUID } from "node:crypto";
 import { copyFileSync, existsSync, mkdirSync, renameSync, rmSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
@@ -246,7 +247,7 @@ export class DownloadService implements SessionService {
   /** Native folder picker; the choice becomes the downloads folder setting. */
   async chooseFolder(window?: BaseWindow): Promise<Settings> {
     const options: Electron.OpenDialogOptions = {
-      title: "Dossier des téléchargements",
+      title: t("downloadsService.downloadsFolder"),
       defaultPath: this.folder(),
       properties: ["openDirectory", "createDirectory"],
     };

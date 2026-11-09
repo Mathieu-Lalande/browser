@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import type { SpaceId, SpaceInfo, SpaceInput } from "./types";
 
 /** Accent colors offered for spaces (the first ones are used, in order, for new spaces). */
@@ -46,25 +47,25 @@ export const SPACE_ICONS = [
 export const SPACE_ICON_LABELS: Readonly<Record<(typeof SPACE_ICONS)[number], string>> = {
   "circle-user": "Personnel",
   briefcase: "Travail",
-  palette: "Création",
-  "book-open": "Lecture",
+  get palette() { return t("spaces.creation") },
+  get "book-open"() { return t("spaces.reading") },
   "gamepad-2": "Jeux",
   "shopping-bag": "Achats",
   plane: "Voyages",
   music: "Musique",
-  lightbulb: "Idées",
+  get lightbulb() { return t("spaces.ideas") },
   "flask-conical": "Recherche",
   sprout: "Nature",
-  star: "Favoris",
-  lock: "Privé",
-  newspaper: "Actualités",
+  get star() { return t("spaces.favorites") },
+  get lock() { return t("spaces.private") },
+  get newspaper() { return t("spaces.news") },
   "chef-hat": "Cuisine",
-  heart: "Santé",
-  code: "Développement",
-  "graduation-cap": "Études",
+  get heart() { return t("spaces.health") },
+  get code() { return t("spaces.development") },
+  get "graduation-cap"() { return t("spaces.studies") },
   dumbbell: "Sport",
   camera: "Photo",
-  film: "Vidéo",
+  get film() { return t("spaces.video") },
   globe: "Web",
   rocket: "Projets",
   landmark: "Administration",
@@ -74,8 +75,8 @@ export const SPACE_ICON_LABELS: Readonly<Record<(typeof SPACE_ICONS)[number], st
   folder: "Dossiers",
   layers: "Divers",
   zap: "Rapide",
-  coffee: "Pause",
-  users: "Équipe",
+  get coffee() { return t("spaces.break") },
+  get users() { return t("spaces.team") },
 };
 
 /** Icon of the ephemeral space of private windows (ADR-014); never offered for regular spaces. */
@@ -147,7 +148,7 @@ export function migrateSpaceIcon(value: unknown): SpaceIcon {
 }
 
 /** The space every profile starts with (and that v1 sessions are migrated into). */
-export const DEFAULT_SPACE: SpaceInfo = { id: "personal", name: "Personnel", icon: "circle-user", color: null, isolated: false };
+export const DEFAULT_SPACE: SpaceInfo = { id: "personal", get name() { return t("spaces.personal") }, icon: "circle-user", color: null, isolated: false };
 
 export const MAX_SPACES = 12;
 const MAX_NAME = 40;
@@ -180,7 +181,7 @@ export function sanitizeSpace(value: unknown): SpaceInfo | null {
   const name = typeof s.name === "string" ? cleanName(s.name) : "";
   return {
     id: s.id,
-    name: name || "Espace",
+    name: name || t("spaces.space"),
     icon: migrateSpaceIcon(s.icon),
     color: isSpaceColor(s.color) ? s.color.toLowerCase() : null,
     isolated: s.isolated === true,
@@ -194,7 +195,7 @@ export function nextSpaceDefaults(spaces: readonly SpaceInfo[]): Omit<SpaceInfo,
   while (names.has(`Espace ${n}`)) n++;
   const icon = SPACE_ICONS.find((candidate) => !spaces.some((space) => space.icon === candidate)) ?? SPACE_ICONS[0];
   const color = SPACE_COLORS.find((candidate) => !spaces.some((space) => space.color === candidate)) ?? SPACE_COLORS[0];
-  return { name: `Espace ${n}`, icon, color, isolated: false };
+  return { name: t("spaces.space2", { n }), icon, color, isolated: false };
 }
 
 /** Applies validated input to a space. */

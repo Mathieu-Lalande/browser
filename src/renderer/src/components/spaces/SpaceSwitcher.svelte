@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { shortcutText } from "@shared/commands";
   import { MAX_SPACES } from "@shared/spaces";
   import type { SpaceId } from "@shared/types";
@@ -81,7 +82,7 @@
     class:fade-start={fadeStart}
     class:fade-end={fadeEnd}
     role="tablist"
-    aria-label="Espaces"
+    aria-label={t("spaceSwitcher.spaces")}
     bind:this={list}
     onscroll={measure}
     onwheel={onWheel}
@@ -110,8 +111,8 @@
   </div>
   <button
     class="add"
-    aria-label="Nouvel espace"
-    title={browser.state.spaces.length >= MAX_SPACES ? `Nouvel espace (${MAX_SPACES} au maximum)` : "Nouvel espace"}
+    aria-label={t("spaceSwitcher.newSpace")}
+    title={browser.state.spaces.length >= MAX_SPACES ? t("spaceSwitcher.newSpaceMost", { MAX_SPACES }) : t("spaceSwitcher.newSpace")}
     disabled={browser.state.spaces.length >= MAX_SPACES}
     onclick={create}
   >

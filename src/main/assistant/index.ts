@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { clipboard, type WebContents } from "electron";
 import { ANNOTATION_LIMITS } from "@shared/annotations/model";
 import {
@@ -48,16 +49,16 @@ export const keyStatus = (): AssistantKeyStatus => assistantKey.status();
 
 export function setKey(key: string): AssistantResult {
   const result = assistantKey.set(key);
-  return result.ok ? { ok: true, message: key.trim() ? "Clé enregistrée." : "Clé supprimée." } : result;
+  return result.ok ? { ok: true, message: key.trim() ? t("assistantIndex.keySaved") : t("assistantIndex.keyDeleted") } : result;
 }
 
 /** "Tester" in the settings. */
 export async function testAssistant(): Promise<AssistantResult> {
   const key = assistantKey.get();
-  if (!key) return { ok: false, message: "Enregistrez d'abord une clé d'API." };
+  if (!key) return { ok: false, message: t("assistantIndex.saveApiKeyFirst") };
   try {
     await testKey(key, settings().assistant.model);
-    return { ok: true, message: "Fonctionne : la clé est acceptée." };
+    return { ok: true, message: t("assistantIndex.worksKeyAccepted") };
   } catch (error) {
     return { ok: false, message: errorMessage(error) };
   }
@@ -136,23 +137,23 @@ export class PageAssistant {
   /** Shows the panel and asks (omnibox `@ia`, page menu). */
   open(request: AssistantRequest, tabId: TabId | null = this.c.tabs.activeTabId): Promise<AssistantResult> {
     this.c.sendUiCommand("open-assistant");
-    if (!tabId) return Promise.resolve({ ok: false, message: "Aucun onglet." });
+    if (!tabId) return Promise.resolve({ ok: false, message: t("assistantIndex.noTab") });
     return this.ask(tabId, request);
   }
 
   /** Sends a request about the tab (and, to compare, other tabs): resolves once the answer started. */
   async ask(tabId: TabId, request: AssistantRequest): Promise<AssistantResult> {
     const current = settings().assistant;
-    if (!current.enabled) return { ok: false, message: "Activez l'assistant dans Paramètres → Assistant IA." };
+    if (!current.enabled) return { ok: false, message: t("assistantIndex.turnAssistantSettingsAi") };
     const apiKey = assistantKey.get();
-    if (!apiKey) return { ok: false, message: "Ajoutez votre clé d'API Anthropic dans Paramètres → Assistant IA." };
+    if (!apiKey) return { ok: false, message: t("assistantIndex.addAnthropicApiKey") };
     for (const id of this.conversations.keys()) if (id !== tabId && !this.tabExists(id)) this.conversations.delete(id);
     const conversation = this.conversation(tabId);
     if (request.consent) this.consent();
     if (this.needsConsent) {
       conversation.pending = { ...request, consent: undefined };
       this.notify(tabId, true);
-      return { ok: false, needsConsent: true, message: this.c.isPrivate ? PRIVATE_NOTICE : "Acceptez d'abord l'envoi à Anthropic." };
+      return { ok: false, needsConsent: true, message: this.c.isPrivate ? PRIVATE_NOTICE : t("assistantIndex.acceptSendingAnthropicFirst") };
     }
     conversation.pending = null;
     conversation.abort?.abort();
@@ -162,13 +163,13 @@ export class PageAssistant {
     const wantsPage = request.action !== "compare-tabs" && request.action !== "translate-selection" && (request.action !== "ask" || request.includePage !== false);
     if ((wantsPage || usesSelection(request.action)) && (!contents || !isWeb(pageUrl))) {
       this.notify(tabId, true);
-      return { ok: false, message: "L'assistant lit les pages web : ouvrez-en une." };
+      return { ok: false, message: t("assistantIndex.assistantReadsWebPages") };
     }
 
     let selection: { text: string; truncated: boolean } | null = null;
     if (usesSelection(request.action)) {
       const text = (await readSelection(contents!)).trim();
-      if (!text) return { ok: false, message: "Sélectionnez d'abord un passage de la page." };
+      if (!text) return { ok: false, message: t("assistantIndex.selectPassagePageFirst") };
       selection = truncateToTokens(text, SELECTION_TOKEN_BUDGET);
     }
 
@@ -184,7 +185,7 @@ export class PageAssistant {
           if (tab) sources.push({ title: tab.title || tab.url, url: tab.url, text: "" });
         }
       }
-      if (sources.filter((source) => source.text).length < 2) return { ok: false, message: "Il faut au moins deux onglets chargés à comparer." };
+      if (sources.filter((source) => source.text).length < 2) return { ok: false, message: t("assistantIndex.youNeedLeastTwo") };
     } else if (wantsPage && !(request.action === "ask" && alreadySent)) {
       sources.push(await readPage(contents!));
     }
@@ -270,10 +271,10 @@ export class PageAssistant {
   insertNote(tabId: TabId, id: string): AssistantResult {
     const turn = this.answer(tabId, id);
     const page = this.c.annotator.forTab(tabId);
-    if (!turn || !page) return { ok: false, message: "Les notes sont disponibles sur les pages web." };
+    if (!turn || !page) return { ok: false, message: t("assistantIndex.notesAreAvailableWeb") };
     const note = (page.note.trim() ? `${page.note.trimEnd()}\n\n${turn.text.trim()}` : turn.text.trim()).slice(0, ANNOTATION_LIMITS.pageNote);
     this.c.annotator.setNote(page.url, note, page.title);
-    return { ok: true, message: page.isPrivate ? "Ajoutée aux notes de cette fenêtre privée." : "Ajoutée aux notes de la page." };
+    return { ok: true, message: page.isPrivate ? t("assistantIndex.addedNotesPrivateWindow") : t("assistantIndex.addedPageNotes") };
   }
 
   private consent(): void {

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { TabState } from "@shared/types";
   import { displayUrl } from "@shared/url";
   import { api } from "../lib/browser.svelte";
@@ -46,9 +47,9 @@
       class="audio"
       class:muted={tab.isMuted}
       tabindex="-1"
-      aria-label={tab.isMuted ? "Réactiver le son de l'onglet" : "Couper le son de l'onglet"}
+      aria-label={tab.isMuted ? t("tabItem.unmuteTab") : t("tabItem.muteTab")}
       aria-pressed={tab.isMuted}
-      title={platform.tip(tab.isMuted ? "Réactiver le son" : "Couper le son", "toggle-mute")}
+      title={platform.tip(tab.isMuted ? t("tabItem.unmute") : t("tabItem.mute"), "toggle-mute")}
       onclick={(event) => (event.stopPropagation(), api.tabs.toggleMute(tab.id))}
     >
       <Icon name={tab.isMuted ? "volume-off" : "volume"} size={12} />
@@ -57,8 +58,8 @@
   <button
     class="close"
     tabindex="-1"
-    aria-label="Fermer l'onglet"
-    title={platform.tip("Fermer l'onglet", "close-tab")}
+    aria-label={t("tabItem.closeTab")}
+    title={platform.tip(t("tabItem.closeTab"), "close-tab")}
     onclick={(event) => (event.stopPropagation(), api.tabs.close(tab.id))}
   >
     <Icon name="close" size={12} />

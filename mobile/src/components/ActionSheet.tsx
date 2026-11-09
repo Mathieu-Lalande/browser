@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { memo } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import Animated from "react-native-reanimated";
@@ -40,7 +41,7 @@ export const ActionSheet = memo(function ActionSheet({ menu, onClose, onReplace 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: colors.scrim }]}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityRole="button" accessibilityLabel="Fermer le menu" />
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityRole="button" accessibilityLabel={t("mobile.actionSheet.closeMenu")} />
       </Animated.View>
       <Animated.View
         style={[styles.sheet, { backgroundColor: colors.bgElevated, paddingBottom: insets.bottom + 10, maxHeight: height * 0.8 }]}

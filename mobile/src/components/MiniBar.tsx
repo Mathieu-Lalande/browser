@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { memo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
@@ -19,7 +20,7 @@ export const MiniBar = memo(function MiniBar({ title, subtitle, playing, onToggl
   return (
     <Animated.View
       style={[styles.bar, { backgroundColor: colors.bgElevated, borderColor: colors.hairline }]}
-      accessibilityLabel="Lecture en cours"
+      accessibilityLabel={t("mobile.miniBar.nowPlaying")}
       testID="mini-bar"
     >
       <View style={[styles.art, { backgroundColor: colors.surface }]}>
@@ -33,8 +34,8 @@ export const MiniBar = memo(function MiniBar({ title, subtitle, playing, onToggl
           {subtitle}
         </Text>
       </View>
-      <IconButton icon={playing ? "pause" : "play"} label={playing ? "Mettre en pause" : "Lire"} size={22} onPress={onToggle} />
-      <IconButton icon="close" label="Fermer le lecteur" size={20} color={colors.textMuted} onPress={onClose} />
+      <IconButton icon={playing ? "pause" : "play"} label={playing ? t("mobile.miniBar.pause") : "Lire"} size={22} onPress={onToggle} />
+      <IconButton icon="close" label={t("mobile.miniBar.closePlayer")} size={20} color={colors.textMuted} onPress={onClose} />
     </Animated.View>
   );
 });

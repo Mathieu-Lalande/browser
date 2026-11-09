@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { SpaceId } from "@shared/types";
   import { api, browser } from "../../lib/browser.svelte";
   import { updates } from "../../lib/updates.svelte";
@@ -24,9 +25,9 @@
 <footer class="footer">
   {#if browser.isPrivate}
     <!-- One ephemeral space per private window: no switcher (ADR-014). -->
-    <p class="private-hint" title="Navigation privée : cookies, cache et données de sites sont effacés à la fermeture de la fenêtre">
+    <p class="private-hint" title={t("sidebarFooter.privateBrowsingCookiesCache")}>
       <Icon name="mask" size={14} />
-      <span>Navigation privée</span>
+      <span>{t("sidebarFooter.privateBrowsing")}</span>
     </p>
   {:else}
     <SpaceSwitcher onEdit={onEditSpace} {progress} {following} />
@@ -36,18 +37,18 @@
     <IconButton
       icon="update"
       on
-      label="Redémarrer pour mettre à jour"
-      title="Redémarrer pour mettre à jour (version {updates.status?.version})"
+      label={t("sidebarFooter.restartUpdate")}
+      title={t("sidebarFooter.restartUpdateVersion", { version: updates.status?.version })}
       onclick={() => api.updates.install()}
     />
   {/if}
   <DownloadsButton />
-  <IconButton icon="settings" label="Paramètres" command="open-settings" onclick={() => api.settings.open()} />
+  <IconButton icon="settings" label={t("sidebarFooter.settings")} command="open-settings" onclick={() => api.settings.open()} />
   <IconButton
     bind:element={appMenuButton}
     icon="more"
-    label="Menu de l'application"
-    title="Menu : historique, favoris, mots de passe, extensions, outils, aide…"
+    label={t("sidebarFooter.appMenu")}
+    title={t("sidebarFooter.menuHistoryBookmarksPasswords")}
     aria-haspopup="menu"
     data-testid="app-menu-button"
     onclick={showAppMenu}

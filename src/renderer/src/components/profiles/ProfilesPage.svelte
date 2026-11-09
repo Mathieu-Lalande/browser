@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { untrack } from "svelte";
   import { PROFILE_COLORS, PROFILE_ICONS, type ProfileIcon, type ProfileInfo, type ProfilesView } from "@shared/profiles";
   import { internalFragment } from "@shared/internal";
@@ -67,24 +68,24 @@
   }
 </script>
 
-<Page icon="users" title="Profils" subtitle="Chaque profil a ses propres réglages, historique, favoris, mots de passe et sessions." testid="profiles-page">
+<Page icon="users" title={t("profilesPage.profiles")} subtitle={t("profilesPage.eachProfileHasOwn")} testid="profiles-page">
   {#snippet actions()}
     {#if !browser.isPrivate}
-      <Button variant="primary" icon="plus" onclick={startCreate}>Nouveau profil</Button>
+      <Button variant="primary" icon="plus" onclick={startCreate}>{t("profilesPage.newProfile")}</Button>
     {/if}
   {/snippet}
 
   {#if editing}
-    <Card as="form" variant="section" aria-label={editing.id ? "Modifier le profil" : "Nouveau profil"} onsubmit={save}>
+    <Card as="form" variant="section" aria-label={editing.id ? t("profilesPage.editProfile") : t("profilesPage.newProfile")} onsubmit={save}>
       <div class="editor">
         <label class="field">
-          <span>Nom</span>
+          <span>{t("profilesPage.name")}</span>
           <!-- svelte-ignore a11y_autofocus -->
-          <input class="ui-field" maxlength="40" bind:value={editing.name} placeholder="Travail, Études…" autofocus />
+          <input class="ui-field" maxlength="40" bind:value={editing.name} placeholder={t("profilesPage.workStudies")} autofocus />
         </label>
         <div class="field">
-          <span>Couleur</span>
-          <div class="swatches" role="radiogroup" aria-label="Couleur">
+          <span>{t("profilesPage.color")}</span>
+          <div class="swatches" role="radiogroup" aria-label={t("profilesPage.color")}>
             {#each PROFILE_COLORS as color (color)}
               <button
                 type="button"
@@ -99,8 +100,8 @@
           </div>
         </div>
         <div class="field">
-          <span>Icône</span>
-          <div class="icons" role="radiogroup" aria-label="Icône">
+          <span>{t("profilesPage.icon")}</span>
+          <div class="icons" role="radiogroup" aria-label={t("profilesPage.icon")}>
             {#each PROFILE_ICONS as icon (icon)}
               <button type="button" class="icon" role="radio" aria-checked={editing.icon === icon} aria-label={icon} onclick={() => editing && (editing.icon = icon)}>
                 <Icon name={icon} size={16} />
@@ -109,8 +110,8 @@
           </div>
         </div>
         <div class="buttons">
-          <Button variant="quiet" onclick={() => (editing = null)}>Annuler</Button>
-          <Button type="submit" variant="primary" disabled={!editing.name.trim()}>{editing.id ? "Enregistrer" : "Créer le profil"}</Button>
+          <Button variant="quiet" onclick={() => (editing = null)}>{t("profilesPage.cancel")}</Button>
+          <Button type="submit" variant="primary" disabled={!editing.name.trim()}>{editing.id ? t("profilesPage.save") : t("profilesPage.createProfile")}</Button>
         </div>
       </div>
     </Card>
@@ -118,22 +119,22 @@
 
   {#if view?.profiles.length}
     <section class="ui-section">
-      <Card as="ul" aria-label="Profils">
+      <Card as="ul" aria-label={t("profilesPage.profiles")}>
         {#each view.profiles as profile (profile.id)}
           {@const current = profile.id === view.current}
           <ListRow data-profile={profile.id}>
             <span class="avatar" style:background={profile.color}><Icon name={profile.icon} size={16} /></span>
             <span class="name">{profile.name}</span>
-            {#if current}<span class="badge">Profil actuel</span>{/if}
+            {#if current}<span class="badge">{t("profilesPage.currentProfile")}</span>{/if}
             <span class="actions">
               {#if !current}
-                <Button size="sm" icon="open" onclick={() => api.profiles.open(profile.id)}>Ouvrir</Button>
+                <Button size="sm" icon="open" onclick={() => api.profiles.open(profile.id)}>{t("profilesPage.open")}</Button>
               {/if}
               {#if !browser.isPrivate}
-                <Button size="sm" variant="quiet" icon="pencil" onclick={() => startEdit(profile)}>Modifier</Button>
+                <Button size="sm" variant="quiet" icon="pencil" onclick={() => startEdit(profile)}>{t("profilesPage.edit")}</Button>
                 {#if !current && profile.id !== "default"}
-                  <ConfirmButton question="Supprimer ce profil et toutes ses données ?" confirmLabel="Supprimer" title={`Supprimer ${profile.name}`} onconfirm={() => remove(profile.id)}>
-                    <Icon name="trash" size={14} /> Supprimer
+                  <ConfirmButton question={t("profilesPage.deleteProfileAllData")} confirmLabel={t("profilesPage.delete")} title={t("profilesPage.delete2", { name: profile.name })} onconfirm={() => remove(profile.id)}>
+                    <Icon name="trash" size={14} /> {t("profilesPage.delete")}
                   </ConfirmButton>
                 {/if}
               {/if}
@@ -143,25 +144,25 @@
       </Card>
       {#if view.profiles.length === 1}
         <p class="ui-section-hint">
-          Un seul profil pour l'instant. Créez-en un autre pour séparer, par exemple, le travail et la vie personnelle : chacun garde ses propres données.
+          {t("profilesPage.onlyOneProfileNow")}
         </p>
       {/if}
     </section>
 
     {#if !browser.isPrivate}
       <section class="ui-section" aria-labelledby="launch-title">
-        <h2 class="ui-section-title" id="launch-title">Démarrage</h2>
+        <h2 class="ui-section-title" id="launch-title">{t("profilesPage.startup")}</h2>
         <Card as="div" variant="section">
-          <Row label="Choisir le profil au démarrage" hint="Sinon, le dernier profil utilisé s'ouvre." anchor="ask-on-launch">
-            <Toggle label="Choisir le profil au démarrage" checked={view.askOnLaunch} onchange={setAsk} />
+          <Row label={t("profilesPage.chooseProfileStartup")} hint={t("profilesPage.otherwiseLastUsedProfile")} anchor="ask-on-launch">
+            <Toggle label={t("profilesPage.chooseProfileStartup")} checked={view.askOnLaunch} onchange={setAsk} />
           </Row>
         </Card>
       </section>
     {/if}
   {:else if view}
-    <EmptyState icon="users" title="Aucun profil" hint="Créez un profil pour séparer vos réglages, votre historique et vos mots de passe." />
+    <EmptyState icon="users" title={t("profilesPage.noProfiles")} hint={t("profilesPage.createProfileSeparateSettings")} />
   {:else}
-    <EmptyState icon="users" title="Chargement des profils…" />
+    <EmptyState icon="users" title={t("profilesPage.loadingProfiles")} />
   {/if}
 
   {#if !browser.isPrivate}

@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { randomBytes } from "node:crypto";
 import { join } from "node:path";
 import type { WebContents } from "electron";
@@ -53,9 +54,9 @@ export interface AutofillDeps {
   now?: () => number;
 }
 
-const UNAVAILABLE = "Le chiffrement du système n'est pas disponible : les adresses et les cartes ne peuvent pas être enregistrées sur cet appareil.";
-const LOCKED = "Les adresses et cartes enregistrées ne peuvent pas être déchiffrées (trousseau du système verrouillé ou changé) : rien n'est modifié.";
-const WRITE_FAILED = "Les données n'ont pas pu être enregistrées.";
+const UNAVAILABLE = t("autofillService.systemEncryptionIsntAvailable");
+const LOCKED = t("autofillService.savedAddressesCardsCant");
+const WRITE_FAILED = t("autofillService.dataCouldntSaved");
 const PENDING_TTL = 10 * 60_000;
 
 /** The form a suggestion was offered for: filled when the user picks an entry. */
@@ -270,7 +271,7 @@ export class AutofillService {
 
   answer(c: WindowPort, captureId: string, answer: AutofillAnswer): AutofillResult {
     const item = this.pending.get(captureId);
-    if (!item || item.window !== c) return { ok: false, message: "Cette demande a expiré." };
+    if (!item || item.window !== c) return { ok: false, message: t("autofillService.requestHasExpired") };
     this.pending.delete(captureId);
     if (answer === "later" || c.isPrivate) return { ok: true };
     const now = this.now();
@@ -312,8 +313,8 @@ export class AutofillService {
   /** A card's number, after the user confirmed (OS authentication when available). */
   async revealCard(c: WindowPort, id: string): Promise<AutofillRevealResult> {
     const card = this.store.current().cards.find((entry) => entry.id === id);
-    if (!card) return { ok: false, message: "Cette carte n'existe plus." };
-    if (!(await this.deps.confirmReveal(c))) return { ok: false, message: "Affichage annulé." };
+    if (!card) return { ok: false, message: t("autofillService.cardNoLongerExists") };
+    if (!(await this.deps.confirmReveal(c))) return { ok: false, message: t("autofillService.displayCanceled") };
     return { ok: true, number: card.number };
   }
 

@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import {
   DEFAULT_SETTINGS,
   validateSettingsField,
@@ -79,20 +80,20 @@ export function isCurrentTheme(settings: Settings, theme: SharedTheme): boolean 
 
 /** Strict validation of a decoded object. */
 export function validateTheme(value: unknown): ThemeDecodeResult {
-  const invalid = (detail: string): ThemeDecodeResult => ({ ok: false, error: `Thème invalide : ${detail}.` });
+  const invalid = (detail: string): ThemeDecodeResult => ({ ok: false, error: t("themeShare.invalidTheme", { detail }) });
   if (!isRecord(value)) return invalid("format inattendu");
-  for (const key of Object.keys(value)) if (!THEME_KEYS.has(key)) return invalid(`champ inconnu « ${key.slice(0, 24)} »`);
+  for (const key of Object.keys(value)) if (!THEME_KEYS.has(key)) return invalid(t("themeShare.unknownField", { p: key.slice(0, 24) }));
   const theme = {} as Record<string, unknown>;
   for (const key of APPEARANCE_KEYS) {
     const cleaned = validateSettingsField("appearance", key, value[key]);
-    if (cleaned === undefined || cleaned !== value[key]) return invalid(`valeur incorrecte pour « ${key} »`);
+    if (cleaned === undefined || cleaned !== value[key]) return invalid(t("themeShare.incorrectValue", { key }));
     theme[key] = cleaned;
   }
   const name = value.name ?? "";
   if (typeof name !== "string" || name.length > MAX_THEME_NAME || cleanName(name) !== name) return invalid("nom incorrect");
   theme.name = name;
   const start = value.startBackground ?? "theme";
-  if (start !== "theme" && start !== "aurora") return invalid("valeur incorrecte pour « startBackground »");
+  if (start !== "theme" && start !== "aurora") return invalid(t("themeShare.incorrectValueStartbackground"));
   theme.startBackground = start;
   return { ok: true, theme: theme as unknown as SharedTheme };
 }
@@ -114,15 +115,15 @@ export function encodeTheme(theme: SharedTheme): string {
 /** Decodes a theme code (surrounding spaces and line breaks tolerated). */
 export function decodeTheme(input: string): ThemeDecodeResult {
   const code = input.replace(/\s+/g, "");
-  if (code.length > MAX_THEME_CODE) return { ok: false, error: "Code de thème trop long." };
+  if (code.length > MAX_THEME_CODE) return { ok: false, error: t("themeShare.themeCodeTooLong") };
   const match = /^browser-theme:v(\d+):(.*)$/.exec(code);
-  if (!match) return { ok: false, error: "Ce n'est pas un code de thème Browser." };
-  if (Number(match[1]) !== THEME_VERSION) return { ok: false, error: "Version de thème non prise en charge : mettez Browser à jour." };
+  if (!match) return { ok: false, error: t("themeShare.isntBrowserThemeCode") };
+  if (Number(match[1]) !== THEME_VERSION) return { ok: false, error: t("themeShare.unsupportedThemeVersionUpdate") };
   let parsed: unknown;
   try {
     parsed = JSON.parse(utf8Decode(fromBase64Url(match[2])));
   } catch {
-    return { ok: false, error: "Code de thème illisible ou incomplet." };
+    return { ok: false, error: t("themeShare.themeCodeUnreadableIncomplete") };
   }
   return validateTheme(parsed);
 }
@@ -134,23 +135,23 @@ export function themeFile(theme: SharedTheme): string {
 
 /** Parses a `.browsertheme` file. */
 export function parseThemeFile(text: string): ThemeDecodeResult {
-  if (text.length > MAX_THEME_FILE) return { ok: false, error: "Fichier de thème trop volumineux." };
+  if (text.length > MAX_THEME_FILE) return { ok: false, error: t("themeShare.themeFileTooLarge") };
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
   } catch {
-    return { ok: false, error: "Fichier de thème illisible." };
+    return { ok: false, error: t("themeShare.themeFileUnreadable") };
   }
-  if (!isRecord(parsed) || parsed.format !== THEME_FILE_FORMAT) return { ok: false, error: "Ce n'est pas un fichier de thème Browser." };
-  if (parsed.version !== THEME_VERSION) return { ok: false, error: "Version de thème non prise en charge : mettez Browser à jour." };
-  if (Object.keys(parsed).some((key) => key !== "format" && key !== "version" && key !== "theme")) return { ok: false, error: "Thème invalide : champ inconnu." };
+  if (!isRecord(parsed) || parsed.format !== THEME_FILE_FORMAT) return { ok: false, error: t("themeShare.isntBrowserThemeFile") };
+  if (parsed.version !== THEME_VERSION) return { ok: false, error: t("themeShare.unsupportedThemeVersionUpdate") };
+  if (Object.keys(parsed).some((key) => key !== "format" && key !== "version" && key !== "theme")) return { ok: false, error: t("themeShare.invalidThemeUnknownField") };
   return validateTheme(parsed.theme);
 }
 
 /** Whatever was pasted or read: a code, or a file's contents. */
 export function parseThemeInput(text: string): ThemeDecodeResult {
   const trimmed = text.trim();
-  if (!trimmed) return { ok: false, error: "Collez un code de thème." };
+  if (!trimmed) return { ok: false, error: t("themeShare.pasteThemeCode") };
   return trimmed.startsWith("{") ? parseThemeFile(trimmed) : decodeTheme(trimmed);
 }
 
@@ -182,10 +183,10 @@ const preset = (theme: Partial<SharedTheme> & Pick<SharedTheme, "name" | "accent
 export const THEME_GALLERY: readonly SharedTheme[] = [
   preset({ name: "Browser", accent: base.accent, accent2: base.accent2 }),
   preset({ name: "Graphite", mode: "dark", accent: "#a1a1aa", accent2: "#52525b", background: "solid", radius: 6, density: "compact" }),
-  preset({ name: "Papier", mode: "light", accent: "#b45309", accent2: "#78716c", background: "solid", font: "serif", radius: 4, shadows: false }),
-  preset({ name: "Nuit polaire", mode: "dark", accent: "#38bdf8", accent2: "#6366f1", background: "mesh", startBackground: "aurora" }),
-  preset({ name: "Forêt", accent: "#16a34a", accent2: "#0d9488", background: "mesh", radius: 12, density: "spacious" }),
+  preset({ get name() { return t("themeShare.paper") }, mode: "light", accent: "#b45309", accent2: "#78716c", background: "solid", font: "serif", radius: 4, shadows: false }),
+  preset({ get name() { return t("themeShare.polarNight") }, mode: "dark", accent: "#38bdf8", accent2: "#6366f1", background: "mesh", startBackground: "aurora" }),
+  preset({ get name() { return t("themeShare.forest") }, accent: "#16a34a", accent2: "#0d9488", background: "mesh", radius: 12, density: "spacious" }),
   preset({ name: "Terminal", mode: "dark", accent: "#22c55e", accent2: "#15803d", background: "solid", font: "mono", radius: 2, density: "compact", shadows: false }),
-  preset({ name: "Corail", accent: "#ff6b6b", accent2: "#ffa94d", font: "rounded", radius: 16, startBackground: "aurora" }),
-  preset({ name: "Encre", mode: "light", accent: "#1d4ed8", accent2: "#0f172a", background: "solid", radius: 8 }),
+  preset({ get name() { return t("themeShare.coral") }, accent: "#ff6b6b", accent2: "#ffa94d", font: "rounded", radius: 16, startBackground: "aurora" }),
+  preset({ get name() { return t("themeShare.ink") }, mode: "light", accent: "#1d4ed8", accent2: "#0f172a", background: "solid", radius: 8 }),
 ];

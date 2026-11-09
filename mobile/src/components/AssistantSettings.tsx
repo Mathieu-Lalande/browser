@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { ASSISTANT_MODELS, PRIVACY_NOTICE } from "@shared/assistant";
 import { memo, useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
@@ -37,7 +38,7 @@ export const AssistantSettings = memo(function AssistantSettings() {
   const test = async () => {
     try {
       await testClaude(await assistantKey.get(), a.model);
-      setResult({ ok: true, message: "Fonctionne : la clé est acceptée." });
+      setResult({ ok: true, message: t("mobile.assistantSettings.worksKeyAccepted") });
     } catch (error) {
       setResult({ ok: false, message: errorMessage(error) });
     }
@@ -45,34 +46,34 @@ export const AssistantSettings = memo(function AssistantSettings() {
 
   return (
     <View>
-      <Text style={[styles.intro, { color: colors.textMuted }]}>Désactivé par défaut. {PRIVACY_NOTICE}</Text>
+      <Text style={[styles.intro, { color: colors.textMuted }]}>{t("mobile.assistantSettings.offDefault")} {PRIVACY_NOTICE}</Text>
       <Pressable
         accessibilityRole="switch"
         accessibilityState={{ checked: a.enabled }}
         onPress={() => actions.updateSettings({ assistant: { enabled: !a.enabled } })}
         style={[styles.row, border]}
       >
-        <Text style={[styles.label, { color: colors.text }]}>Activer l'assistant</Text>
-        <Text style={[styles.detail, { color: colors.accentText }]}>{a.enabled ? "Activé" : "Désactivé"}</Text>
+        <Text style={[styles.label, { color: colors.text }]}>{t("mobile.assistantSettings.turnAssistant")}</Text>
+        <Text style={[styles.detail, { color: colors.accentText }]}>{a.enabled ? t("mobile.assistantSettings.on") : t("mobile.assistantSettings.off")}</Text>
       </Pressable>
       <View style={[styles.row, border]}>
         <TextInput
           value={key}
           onChangeText={setKey}
-          placeholder={hasKey ? "Clé enregistrée (saisir pour remplacer)" : "Clé d'API Anthropic"}
+          placeholder={hasKey ? t("mobile.assistantSettings.keySavedTypeReplace") : t("mobile.assistantSettings.anthropicApiKey")}
           placeholderTextColor={colors.textFaint}
           secureTextEntry
           autoCapitalize="none"
           autoCorrect={false}
           style={[styles.input, { color: colors.text }]}
-          accessibilityLabel="Clé d'API Anthropic"
+          accessibilityLabel={t("mobile.assistantSettings.anthropicApiKey")}
         />
         {key.trim() ? (
           <Tap accessibilityRole="button" onPress={() => void saveKey(key)} style={styles.action}>
-            <Text style={[styles.detail, { color: colors.accentText }]}>Enregistrer</Text>
+            <Text style={[styles.detail, { color: colors.accentText }]}>{t("mobile.assistantSettings.save")}</Text>
           </Tap>
         ) : hasKey ? (
-          <Tap accessibilityRole="button" accessibilityLabel="Supprimer la clé" onPress={() => void saveKey("")} style={styles.action}>
+          <Tap accessibilityRole="button" accessibilityLabel={t("mobile.assistantSettings.deleteKey")} onPress={() => void saveKey("")} style={styles.action}>
             <Icon name="trash" size={18} color={colors.textMuted} />
           </Tap>
         ) : null}
@@ -95,7 +96,7 @@ export const AssistantSettings = memo(function AssistantSettings() {
       {hasKey && (
         <Tap accessibilityRole="button" onPress={() => void test()} style={[styles.row, border]}>
           <Icon name="sparkles" size={18} color={colors.accentText} />
-          <Text style={[styles.label, { color: colors.accentText }]}>Tester la clé</Text>
+          <Text style={[styles.label, { color: colors.accentText }]}>{t("mobile.assistantSettings.testKey")}</Text>
         </Tap>
       )}
       {result && <Text style={[styles.intro, { color: result.ok ? colors.textMuted : colors.danger }]}>{result.message}</Text>}

@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { cleanText } from "./types";
 
 /** Firefox files: `profiles.ini` (profile list). `places.sqlite` is read by main (SQLite). */
@@ -44,7 +45,7 @@ export function firefoxTime(value: unknown): number {
 /** French names of the Firefox bookmark roots (by GUID); null: never imported (tags). */
 export const FIREFOX_ROOTS: Readonly<Record<string, string | null>> = {
   toolbar_____: "Barre personnelle",
-  menu________: "Menu des marque-pages",
+  get menu________() { return t("importFirefox.bookmarksMenu") },
   unfiled_____: "Autres marque-pages",
   mobile______: "Marque-pages mobiles",
   tags________: null,

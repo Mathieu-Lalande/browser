@@ -4,6 +4,8 @@
  * `app.getAppMetrics()` and `webContents.getOSProcessId()` and does the killing.
  */
 
+import { t } from "./i18n";
+
 export type TaskKind = "browser" | "gpu" | "interface" | "tab" | "extension" | "utility" | "other";
 
 /** What main knows of one process (`ProcessMetric`, reduced). */
@@ -48,14 +50,14 @@ export const TASKS_REFRESH_MS = 2000;
 const KIND_TITLES: Record<TaskKind, string> = {
   browser: "Navigateur",
   gpu: "Processus GPU",
-  interface: "Interface du navigateur",
-  tab: "Onglet",
+  get interface() { return t("tasks.browserInterface") },
+  get tab() { return t("tasks.tab") },
   extension: "Extension",
   utility: "Service",
   other: "Processus",
 };
 
-const PREFIX: Record<ProcessOwner["kind"], string> = { tab: "Onglet", extension: "Extension", interface: "Interface" };
+const PREFIX: Record<ProcessOwner["kind"], string> = { get tab() { return t("tasks.tab") }, extension: "Extension", interface: "Interface" };
 
 function baseKind(sample: ProcessSample): TaskKind {
   if (sample.type === "Browser") return "browser";
@@ -82,7 +84,7 @@ export function buildTaskRows(samples: readonly ProcessSample[], owners: readonl
       pid: sample.pid,
       kind,
       title,
-      detail: others > 0 ? `et ${others} autre${others > 1 ? "s" : ""}` : "",
+      detail: others > 0 ? t("tasks.others", { others }) : "",
       cpu: Math.max(0, Math.round(sample.cpu * 10) / 10),
       memoryKb: Math.max(0, Math.round(sample.memoryKb)),
       killable: mine.some((owner) => owner.kind === "tab"),

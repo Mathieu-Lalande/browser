@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { readingTimeLabel } from "@shared/reader";
 import type { ReadingItem } from "@shared/reading-list";
 import { displayUrl } from "@shared/url";
@@ -53,24 +54,24 @@ export const ReadingListScreen = memo(function ReadingListScreen({ onClose, onRe
           </Text>
         </View>
       </Tap>
-      <IconButton icon="open" size={18} label={`Ouvrir ${item.title}`} color={colors.textMuted} onPress={() => onOpen(item.url)} />
+      <IconButton icon="open" size={18} label={t("mobile.readingListScreen.open", { title: item.title })} color={colors.textMuted} onPress={() => onOpen(item.url)} />
       <IconButton
         icon={item.readAt === null ? "check" : "undo"}
         size={18}
-        label={item.readAt === null ? `Marquer ${item.title} comme lue` : `Marquer ${item.title} comme non lue`}
+        label={item.readAt === null ? `Marquer ${item.title} comme lue` : t("mobile.readingListScreen.markUnread", { title: item.title })}
         color={colors.textMuted}
         onPress={() => setRead(item, item.readAt === null)}
       />
-      <IconButton icon="trash" size={18} label={`Retirer ${item.title}`} color={colors.textMuted} onPress={() => remove(item)} />
+      <IconButton icon="trash" size={18} label={t("mobile.readingListScreen.remove", { title: item.title })} color={colors.textMuted} onPress={() => remove(item)} />
     </View>
   );
 
   return (
     <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.bg, paddingTop: insets.top }]} accessibilityViewIsModal testID="reading-list">
       <View style={styles.toolbar}>
-        <IconButton icon="close" label="Fermer la liste de lecture" color={colors.text} onPress={onClose} />
+        <IconButton icon="close" label={t("mobile.readingListScreen.closeReadingList")} color={colors.text} onPress={onClose} />
         <Text style={[styles.heading, { color: colors.text }]} accessibilityRole="header">
-          Liste de lecture
+          {t("mobile.readingListScreen.readingList")}
         </Text>
       </View>
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}>
@@ -78,13 +79,13 @@ export const ReadingListScreen = memo(function ReadingListScreen({ onClose, onRe
           <View style={styles.empty}>
             <Icon name="bookMarked" size={28} color={colors.textMuted} />
             <Text style={[styles.detail, { color: colors.textMuted, textAlign: "center" }]}>
-              « Lire plus tard » (menu de la page) garde une page et son texte, lisible même hors ligne, sur tous vos appareils.
+              {t("mobile.readingListScreen.readLaterPageMenu")}
             </Text>
           </View>
         )}
-        {unread.length > 0 && <Text style={[styles.section, { color: colors.textMuted }]}>Non lues</Text>}
+        {unread.length > 0 && <Text style={[styles.section, { color: colors.textMuted }]}>{t("mobile.readingListScreen.unread")}</Text>}
         {unread.map(row)}
-        {read.length > 0 && <Text style={[styles.section, { color: colors.textMuted }]}>Lues</Text>}
+        {read.length > 0 && <Text style={[styles.section, { color: colors.textMuted }]}>{t("mobile.readingListScreen.read")}</Text>}
         {read.map(row)}
       </ScrollView>
     </View>

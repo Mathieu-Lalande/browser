@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { annotatedSites, COLOR_LABELS, HIGHLIGHT_SWATCHES, type AnnotationsList, type HighlightColor } from "@shared/annotations/model";
   import type { AnnotationExportFormat } from "@shared/annotations/export";
   import { displayUrl } from "@shared/url";
@@ -46,15 +47,15 @@
   }
 
   async function exportAs(format: AnnotationExportFormat): Promise<void> {
-    const result = await api.annotations.exportAs(format).catch(() => ({ ok: false as const, message: "L'exportation a échoué." }));
-    if (result) notice = result.ok ? { kind: "success", text: "Notes exportées." } : { kind: "error", text: result.message };
+    const result = await api.annotations.exportAs(format).catch(() => ({ ok: false as const, message: t("notesPage.exportFailed") }));
+    if (result) notice = result.ok ? { kind: "success", text: t("notesPage.notesExported") } : { kind: "error", text: result.message };
   }
 </script>
 
 <Page
   icon="notebook"
-  title="Notes et surlignages"
-  subtitle="Les passages surlignés et les notes de vos pages, retrouvés à chaque visite. Surlignez une sélection par clic droit ou Ctrl+Maj+H."
+  title={t("notesPage.notesHighlights")}
+  subtitle={t("notesPage.highlightedPassagesNotesFrom")}
   testid="notes-page"
 >
   {#snippet actions()}
@@ -71,14 +72,14 @@
     <p class="notice {notice.kind}" role={notice.kind === "error" ? "alert" : "status"}>
       <Icon name={notice.kind === "error" ? "warning" : "check"} size={14} />
       <span>{notice.text}</span>
-      <IconButton size="row" icon="close" iconSize={12} label="Fermer le message" onclick={() => (notice = null)} />
+      <IconButton size="row" icon="close" iconSize={12} label={t("notesPage.closeMessage")} onclick={() => (notice = null)} />
     </p>
   {/if}
 
   {#if total}
     <div class="filters">
-      <SearchField bind:value={query} label="Rechercher dans les notes" placeholder="Rechercher un passage, une note ou un site" />
-      <HighlightColors selected={colors} label="Filtrer par couleur" onpick={toggleColor} />
+      <SearchField bind:value={query} label={t("notesPage.searchNotes")} placeholder={t("notesPage.searchPassageNoteSite")} />
+      <HighlightColors selected={colors} label={t("notesPage.filterColor")} onpick={toggleColor} />
     </div>
     {#each sites as site (site.site)}
       <section class="site" aria-label={site.site}>
@@ -90,7 +91,7 @@
                 <span class="page-title">{page.title || displayUrl(page.url)}</span>
                 <span class="detail">{displayUrl(page.url)}</span>
               </button>
-              <ConfirmButton question="Supprimer toutes les notes de cette page ?" confirmLabel="Supprimer" title="Supprimer les notes de la page" onconfirm={() => api.annotations.removePage(page.url)}>
+              <ConfirmButton question={t("notesPage.deleteAllNotesPage")} confirmLabel={t("notesPage.delete")} title={t("notesPage.deletePagesNotes")} onconfirm={() => api.annotations.removePage(page.url)}>
                 <Icon name="trash" size={14} />
               </ConfirmButton>
             </ListRow>
@@ -108,18 +109,18 @@
                   {#if highlight.note}<span class="note">{highlight.note}</span>{/if}
                   <span class="detail">{dateFormat.format(highlight.createdAt)}</span>
                 </span>
-                <IconButton size="row" icon="copy-text" iconSize={14} label="Copier le passage" onclick={() => api.annotations.copy(highlight.id)} />
-                <IconButton size="row" icon="trash" iconSize={14} label="Supprimer le surlignage" onclick={() => api.annotations.remove(highlight.id)} />
+                <IconButton size="row" icon="copy-text" iconSize={14} label={t("notesPage.copyPassage")} onclick={() => api.annotations.copy(highlight.id)} />
+                <IconButton size="row" icon="trash" iconSize={14} label={t("notesPage.deleteHighlight")} onclick={() => api.annotations.remove(highlight.id)} />
               </ListRow>
             {/each}
           </Card>
         {/each}
       </section>
     {:else}
-      <EmptyState icon="search" title="Aucun résultat" hint="Essayez un autre mot ou retirez les filtres de couleur." compact />
+      <EmptyState icon="search" title={t("notesPage.noResults")} hint={t("notesPage.tryAnotherWordRemove")} compact />
     {/each}
   {:else if list}
-    <EmptyState icon="highlighter" title="Aucune note pour l'instant" hint="Sélectionnez du texte dans une page, puis clic droit, Surligner." />
+    <EmptyState icon="highlighter" title={t("notesPage.noNotesYet")} hint={t("notesPage.selectTextPageThen")} />
   {/if}
 </Page>
 

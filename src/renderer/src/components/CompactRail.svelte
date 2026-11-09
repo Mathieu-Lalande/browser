@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { api, browser } from "../lib/browser.svelte";
   import { platform } from "../lib/platform.svelte";
   import { previewsEnabled, tabPreview } from "../lib/tab-preview";
@@ -23,15 +24,15 @@
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<nav class="rail" aria-label="Barre latérale compacte" data-testid="compact-rail" oncontextmenu={onContextMenu}>
+<nav class="rail" aria-label={t("compactRail.compactSidebar")} data-testid="compact-rail" oncontextmenu={onContextMenu}>
   {#if browser.activeSpace}
     <span class="space" style:--dot={browser.activeSpace.color ?? "var(--accent)"} title={browser.activeSpace.name}>
       <Icon name={browser.activeSpace.icon} size={16} />
     </span>
   {/if}
-  <IconButton icon="plus" label="Nouvel onglet" command="new-tab" onclick={() => api.commands.run("new-tab")} />
+  <IconButton icon="plus" label={t("compactRail.newTab")} command="new-tab" onclick={() => api.commands.run("new-tab")} />
   <div class="divider"></div>
-  <div class="tabs" role="tablist" aria-orientation="vertical" aria-label="Onglets">
+  <div class="tabs" role="tablist" aria-orientation="vertical" aria-label={t("compactRail.tabs")}>
     {#each tabs as tab (tab.id)}
       <button
         class="tab"
@@ -52,7 +53,7 @@
   </div>
   <PanelStrip vertical />
   <MediaRailButton />
-  <IconButton icon="settings" label="Paramètres" title={platform.tip("Paramètres", "open-settings")} onclick={() => api.settings.open()} />
+  <IconButton icon="settings" label={t("compactRail.settings")} title={platform.tip(t("compactRail.settings"), "open-settings")} onclick={() => api.settings.open()} />
 </nav>
 
 <style>

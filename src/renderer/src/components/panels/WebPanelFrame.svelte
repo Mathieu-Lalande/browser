@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { PANEL_WIDTH, clampPanelWidth, panelLabel, type PanelView } from "@shared/panels";
   import { api } from "../../lib/browser.svelte";
   import IconButton from "../ui/IconButton.svelte";
@@ -83,7 +84,7 @@
   const label = $derived(panelLabel(panel));
 </script>
 
-<aside class="web-panel" class:right={side === "right"} style:width="{width}px" aria-label="Panneau {label}" data-testid="web-panel">
+<aside class="web-panel" class:right={side === "right"} style:width="{width}px" aria-label={t("webPanelFrame.panel", { label })} data-testid="web-panel">
   <header>
     <PanelIcon {panel} />
     <h2>{label}</h2>
@@ -91,12 +92,12 @@
       size="sm"
       icon="smartphone"
       iconSize={14}
-      label="Version mobile"
+      label={t("webPanelFrame.mobileSite")}
       pressed={panel.mobile}
       onclick={() => api.panels.setMobile(panel.id, !panel.mobile)}
     />
-    <IconButton size="sm" icon="reload" iconSize={14} label="Actualiser le panneau" onclick={() => api.panels.reload(panel.id)} />
-    <IconButton size="sm" icon="close" iconSize={14} label="Masquer le panneau" command="toggle-web-panel" onclick={() => api.panels.close()} />
+    <IconButton size="sm" icon="reload" iconSize={14} label={t("webPanelFrame.reloadPanel")} onclick={() => api.panels.reload(panel.id)} />
+    <IconButton size="sm" icon="close" iconSize={14} label={t("webPanelFrame.hidePanel")} command="toggle-web-panel" onclick={() => api.panels.close()} />
   </header>
   <div class="body" bind:this={body}></div>
   <!-- A focusable separator is the standard pattern for a resizable splitter (arrow keys resize it). -->
@@ -105,7 +106,7 @@
     class="handle"
     role="separator"
     aria-orientation="vertical"
-    aria-label="Largeur du panneau"
+    aria-label={t("webPanelFrame.panelWidth")}
     aria-valuenow={width}
     aria-valuemin={PANEL_WIDTH.min}
     aria-valuemax={PANEL_WIDTH.max}

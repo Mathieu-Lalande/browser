@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { Bounds } from "@shared/types";
   import { api } from "../lib/browser.svelte";
   import { downloads } from "../lib/downloads.svelte";
@@ -50,7 +51,7 @@
   bind:this={panel}
   class="panel"
   role="dialog"
-  aria-label="Téléchargements"
+  aria-label={t("downloadsPanel.downloads")}
   tabindex="-1"
   style:left="{position.left}px"
   style:bottom="{position.bottom}px"
@@ -59,8 +60,8 @@
   onkeydown={onKeydown}
 >
   <header>
-    <h2>Téléchargements</h2>
-    <button class="all" onclick={showAll}>Tout afficher <Icon name="arrow" size={12} /></button>
+    <h2>{t("downloadsPanel.downloads")}</h2>
+    <button class="all" onclick={showAll}>{t("downloadsPanel.showAll")} <Icon name="arrow" size={12} /></button>
   </header>
 
   {#if recent.length}
@@ -70,13 +71,13 @@
       {/each}
     </div>
     {#if more > 0}
-      <button class="more" onclick={showAll}>{more} autre{more > 1 ? "s" : ""} téléchargement{more > 1 ? "s" : ""}…</button>
+      <button class="more" onclick={showAll}>{t("downloadsPanel.otherDownloads", { more })}</button>
     {/if}
   {:else}
     <div class="empty">
       <span class="badge"><Icon name="download" size={20} /></span>
-      <p>Aucun téléchargement pour l'instant.</p>
-      <p class="hint">Les fichiers vont dans votre dossier Téléchargements, sans boîte de dialogue.</p>
+      <p>{t("downloadsPanel.noDownloadsYet")}</p>
+      <p class="hint">{t("downloadsPanel.filesGoDownloadsFolder")}</p>
     </div>
   {/if}
 </div>

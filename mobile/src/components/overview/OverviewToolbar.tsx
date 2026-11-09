@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { StyleSheet, Text } from "react-native";
 import Animated, { type AnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -28,13 +29,13 @@ export function OverviewToolbar({
   const insets = useSafeAreaInsets();
   return (
     <Animated.View style={[styles.bottom, { height: OVERVIEW_BAR + insets.bottom, paddingBottom: insets.bottom, borderTopColor: colors.hairline, backgroundColor: colors.bgElevated }, style]}>
-      <IconButton icon="search" label="Rechercher dans les onglets" onPress={onSearch} />
+      <IconButton icon="search" label={t("mobile.overviewToolbar.searchTabs")} onPress={onSearch} />
       <Text style={[styles.spaceName, { color: colors.textMuted }]} numberOfLines={1}>
         {spaceName}
       </Text>
       <Tap
         accessibilityRole="button"
-        accessibilityLabel={isPrivate ? "Nouvel onglet privé" : "Nouvel onglet"}
+        accessibilityLabel={isPrivate ? t("mobile.overviewToolbar.newPrivateTab") : t("mobile.overviewToolbar.newTab")}
         onPress={onNewTab}
         pressScale={0.88}
         style={[styles.plus, { backgroundColor: colors.accent }]}
@@ -47,7 +48,7 @@ export function OverviewToolbar({
         {spaceName}
       </Text>
       <Tap accessibilityRole="button" onPress={onDone} pressScale={0.9} style={styles.done}>
-        <Text style={[styles.doneText, { color: colors.accentText }]}>OK</Text>
+        <Text style={[styles.doneText, { color: colors.accentText }]}>{t("mobile.overviewToolbar.ok")}</Text>
       </Tap>
     </Animated.View>
   );

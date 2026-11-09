@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { Channels } from "@shared/ipc";
 import { MAX_PANEL_TITLE, isPanelId, type PanelAddResult } from "@shared/panels";
 import { isReadingId } from "@shared/reading-list";
@@ -14,7 +15,7 @@ export const panelHandlers = defineHandlers({
   [Channels.panelsAdd]: handle(
     [maxStr(4096), opt(maxStr(MAX_PANEL_TITLE * 4)), opt(bool)],
     (_c, url, title, mobile): PanelAddResult => appServices().panels.add({ url, title, mobile }),
-    { ...priv, fallback: { ok: false, message: "Indisponible." } },
+    { ...priv, fallback: { ok: false, get message() { return t("panels.unavailable") } } },
   ),
   [Channels.panelsRemove]: on([panelId], (_c, id) => appServices().panels.remove(id), priv),
   [Channels.panelsMove]: on([panelId, int], (_c, id, index) => appServices().panels.move(id, index), priv),

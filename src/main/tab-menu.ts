@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { Menu, type MenuItemConstructorOptions } from "electron";
 import { folderDepth, type TabFolder } from "@shared/folders";
 import { isFavoriteUrl } from "@shared/favorites";
@@ -31,20 +32,20 @@ export function buildTabMenu(c: BrowserController, tabId: TabId): Menu | null {
   const canAddToSplit = tabId !== activeTabId && !(splitVisible && split!.tabIds.length >= MAX_SPLIT_TABS);
 
   const template: MenuItemConstructorOptions[] = [
-    { id: "pin", label: tab.isPinned ? "Désépingler" : "Épingler", click: () => c.tabs.togglePin(tabId) },
-    { id: "duplicate", label: "Dupliquer", click: () => c.tabs.duplicate(tabId) },
+    { id: "pin", label: tab.isPinned ? t("tabMenu.unpin") : t("tabMenu.pin"), click: () => c.tabs.togglePin(tabId) },
+    { id: "duplicate", label: t("tabMenu.duplicate"), click: () => c.tabs.duplicate(tabId) },
     { type: "separator" },
     inSplit && splitVisible
-      ? { id: "exit-split", label: "Quitter la vue scindée", click: () => c.tabs.exitSplit() }
+      ? { id: "exit-split", label: t("tabMenu.leaveSplitView"), click: () => c.tabs.exitSplit() }
       : {
           id: "split",
-          label: "Ouvrir en vue scindée avec l'onglet actif",
+          label: t("tabMenu.openSplitViewActive"),
           enabled: canAddToSplit,
           click: () => c.tabs.openSplit(tabId),
         },
     {
       id: "move",
-      label: "Déplacer vers l'espace",
+      label: t("tabMenu.moveSpace"),
       enabled: others.length > 0,
       submenu: others.map((space) => ({
         id: `move-${space.id}`,
@@ -56,10 +57,10 @@ export function buildTabMenu(c: BrowserController, tabId: TabId): Menu | null {
     {
       // Keyboard alternative to dragging the tab onto a folder (ADR-022).
       id: "move-folder",
-      label: "Déplacer vers le dossier…",
+      label: t("tabMenu.moveFolder"),
       enabled: !tab.isPinned && (folders.length > 0 || !!tab.folderId),
       submenu: [
-        ...(tab.folderId ? [{ id: "folder-none", label: "Hors dossier", click: () => c.tabs.placeTab(tabId, null, null) }, { type: "separator" as const }] : []),
+        ...(tab.folderId ? [{ id: "folder-none", label: t("tabMenu.noFolder"), click: () => c.tabs.placeTab(tabId, null, null) }, { type: "separator" as const }] : []),
         ...folders.map((folder) => ({
           id: `folder-${folder.id}`,
           label: `${"    ".repeat(folderDepth(folders, folder.id) - 1)}${folder.name}`,
@@ -71,13 +72,13 @@ export function buildTabMenu(c: BrowserController, tabId: TabId): Menu | null {
     },
     {
       id: "new-folder",
-      label: "Nouveau dossier avec cet onglet",
+      label: t("tabMenu.newFolderTab"),
       enabled: !tab.isPinned,
       click: () => c.tabs.createFolder({}, tab.folderId && canNest(folders, tab.folderId) ? tab.folderId : null, [tabId]),
     },
     {
       id: "favorite",
-      label: tab.isFavorite ? "Retirer des favoris (tous les espaces)" : "Ajouter aux favoris (tous les espaces)",
+      label: tab.isFavorite ? t("tabMenu.removeFromFavoritesAll") : t("tabMenu.addFavoritesAllSpaces"),
       // The grid is the profile's: read-only from a private window (ADR-014).
       enabled: !c.isPrivate && isFavoriteUrl(tab.url),
       click: () => toggleFavorite(c, tabId),
@@ -85,15 +86,15 @@ export function buildTabMenu(c: BrowserController, tabId: TabId): Menu | null {
     { type: "separator" },
     {
       id: "sleep",
-      label: "Mettre en veille",
+      label: t("tabMenu.putSleep"),
       enabled: !tab.isAsleep && c.tabs.pageOf(tabId) !== null,
       click: () => void sleepTabNow(c.tabs, tabId),
     },
     { type: "separator" },
-    { id: "close", label: "Fermer", click: () => c.tabs.close(tabId) },
+    { id: "close", label: t("tabMenu.close"), click: () => c.tabs.close(tabId) },
     {
       id: "close-others",
-      label: "Fermer les autres onglets",
+      label: t("tabMenu.closeOtherTabs"),
       enabled: tabs.some((other) => other.id !== tabId && !other.isPinned),
       click: () => tabActions.closeOthers(c, tabId),
     },

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { formatSize, type ExtensionDetailsInfo, type ExtensionInfo } from "@shared/extensions";
   import { api, browser } from "../../lib/browser.svelte";
   import Icon from "../Icon.svelte";
@@ -31,7 +32,7 @@
     optionsMissing = !(await api.extensions.openOptions(extension.id).catch(() => false));
   }
 
-  const source = $derived(extension.webStoreId ? "Chrome Web Store" : extension.managed ? "Installée depuis un fichier" : "Dossier non empaqueté");
+  const source = $derived(extension.webStoreId ? "Chrome Web Store" : extension.managed ? t("extensionRow.installedFromFile") : t("extensionRow.unpackedFolder"));
   const when = (time: number) => new Date(time).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" });
 </script>
 
@@ -48,11 +49,11 @@
     {#if extension.description}<span class="detail">{extension.description}</span>{/if}
     <span class="detail source">
       {#if storeLink}
-        <button type="button" class="link" title="Ouvrir sa page sur le Chrome Web Store" onclick={() => api.tabs.create(storeLink)}>{source} <Icon name="open" size={12} /></button>
+        <button type="button" class="link" title={t("extensionRow.openPageChromeWeb")} onclick={() => api.tabs.create(storeLink)}>{source} <Icon name="open" size={12} /></button>
       {:else}
         {source}
       {/if}
-      · Manifest V{extension.manifestVersion}
+      {t("extensionRow.manifestV", { manifestVersion: extension.manifestVersion })}
     </span>
     {#if extension.error}
       <span class="error"><Icon name="warning" size={12} /> {extension.error}</span>
@@ -60,62 +61,61 @@
     {#if open}
       <div class="details" data-testid="extension-details">
         <section>
-          <h3>Accès aux sites</h3>
+          <h3>{t("extensionRow.siteAccess")}</h3>
           {#if details?.hosts.length}
             <ul class="chips">
               {#each details.hosts as host (host)}<li>{host}</li>{/each}
             </ul>
           {:else}
-            <p>Aucun site.</p>
+            <p>{t("extensionRow.noSites")}</p>
           {/if}
         </section>
         <section>
-          <h3>Autorisations</h3>
+          <h3>{t("extensionRow.permissions")}</h3>
           {#if extension.permissions.length}
             <ul class="plain">
               {#each extension.permissions as permission (permission)}<li><Icon name="check" size={12} /> {permission}</li>{/each}
             </ul>
           {:else}
-            <p>Aucune autorisation particulière.</p>
+            <p>{t("extensionRow.noParticularPermissions")}</p>
           {/if}
           {#if details?.apiPermissions.length}
-            <p class="faint">Déclarées : {details.apiPermissions.join(", ")}</p>
+            <p class="faint">{t("extensionRow.declared", { p: details.apiPermissions.join(", ") })}</p>
           {/if}
         </section>
         <section class="facts">
           {#if details}
-            <span>Taille : {formatSize(details.size)}</span>
+            <span>{t("extensionRow.size", { p: formatSize(details.size) })}</span>
             {#if extension.webStoreId}
               <span>
                 Mises à jour : {details.lastUpdateCheck ? `dernière vérification le ${when(details.lastUpdateCheck)}` : "jamais vérifiées"}
               </span>
             {:else}
-              <span>Mises à jour : manuelles (hors Chrome Web Store)</span>
+              <span>{t("extensionRow.updatesManualOutsideChrome")}</span>
             {/if}
-            {#if details.folder}<span class="path" title={details.folder}>Dossier : {details.folder}</span>{/if}
-            <span>Identifiant : {extension.webStoreId ?? extension.id}</span>
+            {#if details.folder}<span class="path" title={details.folder}>{t("extensionRow.folder", { folder: details.folder })}</span>{/if}
+            <span>{t("extensionRow.id", { p: extension.webStoreId ?? extension.id })}</span>
           {/if}
         </section>
         {#if !browser.isPrivate}
           <label class="private">
             <Toggle
-              label={`Autoriser ${extension.name} en navigation privée`}
+              label={t("extensionRow.allowPrivateBrowsing", { name: extension.name })}
               checked={extension.allowPrivate}
               onchange={(allowed) => api.extensions.setPrivateAllowed(extension.id, allowed)}
             />
             <span>
-              Autoriser en navigation privée
+              {t("extensionRow.allowPrivateBrowsing2")}
               <span class="faint">
-                Enregistré, mais sans effet aujourd'hui : une fenêtre privée garde tout en mémoire, et le moteur (Electron) ne sait pas
-                charger d'extension dans ce type de session. Aucune extension ne voit donc vos pages privées.
+                {t("extensionRow.savedButNoEffect")}
               </span>
             </span>
           </label>
         {/if}
         {#if details?.hasOptions && !browser.isPrivate}
           <div>
-            <Button size="sm" icon="settings" disabled={!extension.enabled} onclick={openOptions}>Ouvrir les options</Button>
-            {#if optionsMissing}<span class="faint">Activez l'extension pour ouvrir ses options.</span>{/if}
+            <Button size="sm" icon="settings" disabled={!extension.enabled} onclick={openOptions}>{t("extensionRow.openOptions")}</Button>
+            {#if optionsMissing}<span class="faint">{t("extensionRow.turnExtensionOpenOptions")}</span>{/if}
           </div>
         {/if}
       </div>
@@ -123,7 +123,7 @@
   </span>
   <span class="controls">
     <Button size="sm" variant="quiet" aria-expanded={open} onclick={() => (open = !open)}>
-      Détails <Icon name={open ? "chevron-up" : "chevron-down"} size={12} />
+      {t("extensionRow.details")} <Icon name={open ? "chevron-up" : "chevron-down"} size={12} />
     </Button>
     {#if !browser.isPrivate}
       {#if extension.action}
@@ -132,18 +132,18 @@
           icon="pin"
           iconSize={14}
           pressed={extension.pinned}
-          label={extension.pinned ? `Désépingler ${extension.name}` : `Épingler ${extension.name}`}
-          title={extension.pinned ? "Retirer son bouton de la barre latérale" : "Afficher son bouton dans la barre latérale"}
+          label={extension.pinned ? t("extensionRow.unpin", { name: extension.name }) : t("extensionRow.pin", { name: extension.name })}
+          title={extension.pinned ? t("extensionRow.removeButtonFromSidebar") : t("extensionRow.showButtonSidebar")}
           onclick={() => api.extensions.setPinned(extension.id, !extension.pinned)}
         />
       {/if}
       <Toggle
-        label={`${extension.enabled ? "Désactiver" : "Activer"} ${extension.name}`}
+        label={`${extension.enabled ? t("extensionRow.turnOff") : t("extensionRow.turn")} ${extension.name}`}
         checked={extension.enabled}
         onchange={(enabled) => api.extensions.setEnabled(extension.id, enabled)}
       />
-      <ConfirmButton question="Retirer cette extension ?" confirmLabel="Retirer" title={`Retirer ${extension.name}`} onconfirm={() => api.extensions.remove(extension.id)}>
-        <Icon name="trash" size={12} /> Retirer
+      <ConfirmButton question={t("extensionRow.removeExtension")} confirmLabel={t("extensionRow.remove")} title={t("extensionRow.remove2", { name: extension.name })} onconfirm={() => api.extensions.remove(extension.id)}>
+        <Icon name="trash" size={12} /> {t("extensionRow.remove")}
       </ConfirmButton>
     {/if}
   </span>

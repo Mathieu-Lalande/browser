@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { SPACE_COLORS, SPACE_ICON_LABELS, SPACE_ICONS } from "@shared/spaces";
 import type { SpaceInfo } from "@shared/types";
 import { memo, useState } from "react";
@@ -28,7 +29,7 @@ export const SpaceEditor = memo(function SpaceEditor({ space, onClose }: { space
   return (
     <View style={StyleSheet.absoluteFill}>
       <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: colors.scrim }]}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={save} accessibilityLabel="Fermer" />
+        <Pressable style={StyleSheet.absoluteFill} onPress={save} accessibilityLabel={t("mobile.spaceEditor.close")} />
       </Animated.View>
       <KeyboardAvoidingView behavior="padding" style={styles.avoid} pointerEvents="box-none">
         <Animated.View
@@ -38,10 +39,10 @@ export const SpaceEditor = memo(function SpaceEditor({ space, onClose }: { space
           <View style={[styles.grabber, { backgroundColor: colors.border }]} />
           <View style={styles.header}>
             <Text style={[styles.title, { color: colors.text }]} accessibilityRole="header">
-              Modifier l'espace
+              {t("mobile.spaceEditor.editSpace")}
             </Text>
             <Tap accessibilityRole="button" onPress={save} style={styles.ok} pressScale={0.9}>
-              <Text style={[styles.okText, { color: colors.accentText }]}>OK</Text>
+              <Text style={[styles.okText, { color: colors.accentText }]}>{t("mobile.spaceEditor.ok")}</Text>
             </Tap>
           </View>
           <View style={[styles.field, { backgroundColor: colors.surface }]}>
@@ -54,14 +55,14 @@ export const SpaceEditor = memo(function SpaceEditor({ space, onClose }: { space
               onSubmitEditing={save}
               maxLength={40}
               style={[styles.input, { color: colors.text }]}
-              placeholder="Nom de l'espace"
+              placeholder={t("mobile.spaceEditor.spaceName")}
               placeholderTextColor={colors.textFaint}
               keyboardAppearance={dark ? "dark" : "light"}
               returnKeyType="done"
-              accessibilityLabel="Nom de l'espace"
+              accessibilityLabel={t("mobile.spaceEditor.spaceName")}
             />
           </View>
-          <View style={styles.grid} accessibilityRole="radiogroup" accessibilityLabel="Icône">
+          <View style={styles.grid} accessibilityRole="radiogroup" accessibilityLabel={t("mobile.spaceEditor.icon")}>
             {SPACE_ICONS.map((icon) => {
               const selected = icon === current.icon;
               return (
@@ -93,7 +94,7 @@ export const SpaceEditor = memo(function SpaceEditor({ space, onClose }: { space
           <View style={styles.colors}>
             <Tap
               accessibilityRole="radio"
-              accessibilityLabel="Couleur du thème"
+              accessibilityLabel={t("mobile.spaceEditor.themeColor")}
               accessibilityState={{ selected: current.color === null }}
               onPress={() => actions.updateSpace(space.id, { color: null })}
               pressScale={0.85}
@@ -122,10 +123,10 @@ export const SpaceEditor = memo(function SpaceEditor({ space, onClose }: { space
             <Pressable
               accessibilityRole="button"
               onPress={() =>
-                Alert.alert(`Supprimer « ${current.name} » ?`, "Les onglets de cet espace seront fermés.", [
-                  { text: "Annuler", style: "cancel" },
+                Alert.alert(t("mobile.spaceEditor.delete", { name: current.name }), t("mobile.spaceEditor.tabsSpaceWillClosed"), [
+                  { text: t("mobile.spaceEditor.cancel"), style: "cancel" },
                   {
-                    text: "Supprimer",
+                    text: t("mobile.spaceEditor.delete2"),
                     style: "destructive",
                     onPress: () => {
                       haptic("warning");
@@ -138,7 +139,7 @@ export const SpaceEditor = memo(function SpaceEditor({ space, onClose }: { space
               style={({ pressed }) => [styles.delete, pressed && { backgroundColor: colors.surface }]}
             >
               <Icon name="trash" size={20} color={colors.danger} />
-              <Text style={[styles.deleteText, { color: colors.danger }]}>Supprimer l'espace</Text>
+              <Text style={[styles.deleteText, { color: colors.danger }]}>{t("mobile.spaceEditor.deleteSpace")}</Text>
             </Pressable>
           )}
         </Animated.View>

@@ -4,6 +4,8 @@
  */
 
 /** A main-frame load that failed; the tab shows the error page instead of its (blank) view. */
+import { t } from "./i18n";
+
 export interface LoadError {
   /** Chromium net error code (negative), e.g. -105 for ERR_NAME_NOT_RESOLVED. */
   code: number;
@@ -31,59 +33,59 @@ export interface LoadErrorText {
 
 const TEXTS: Record<LoadErrorFamily, Omit<LoadErrorText, "family">> = {
   crashed: {
-    title: "Cette page a planté",
-    message: "Le processus qui affichait {host} s'est arrêté. Le reste du navigateur n'est pas touché.",
-    advice: "Actualisez la page pour la recharger. Si elle plante encore, elle consomme peut-être trop de mémoire.",
+    get title() { return t("loadError.pageCrashed") },
+    get message() { return t("loadError.processShowingStoppedRest") },
+    get advice() { return t("loadError.reloadPageIfCrashes") },
   },
   dns: {
-    title: "Site introuvable",
-    message: "L'adresse de {host} n'a pas pu être trouvée.",
-    advice: "Vérifiez l'orthographe de l'adresse, ou réessayez dans un instant.",
+    get title() { return t("loadError.siteNotFound") },
+    get message() { return t("loadError.addressCouldntFound") },
+    get advice() { return t("loadError.checkSpellingAddressTry") },
   },
   offline: {
-    title: "Pas de connexion Internet",
-    message: "L'appareil n'est connecté à aucun réseau.",
-    advice: "Vérifiez le Wi-Fi ou le câble réseau, puis actualisez la page.",
+    get title() { return t("loadError.noInternetConnection") },
+    get message() { return t("loadError.deviceIsntConnectedAny") },
+    get advice() { return t("loadError.checkWiFiNetwork") },
   },
   refused: {
-    title: "Connexion refusée",
-    message: "{host} a refusé la connexion.",
-    advice: "Le site est peut-être arrêté, ou n'accepte pas les connexions sur cette adresse.",
+    get title() { return t("loadError.connectionRefused") },
+    get message() { return t("loadError.refusedConnection") },
+    get advice() { return t("loadError.siteMayDownDoesnt") },
   },
   reset: {
-    title: "Connexion interrompue",
-    message: "La connexion à {host} a été coupée avant la fin du chargement.",
-    advice: "Actualisez la page. Si le problème persiste, un pare-feu ou un proxy bloque peut-être le site.",
+    get title() { return t("loadError.connectionInterrupted") },
+    get message() { return t("loadError.connectionWasCutBefore") },
+    get advice() { return t("loadError.reloadPageIfProblem") },
   },
   timeout: {
-    title: "Le site met trop de temps à répondre",
-    message: "{host} n'a pas répondu à temps.",
-    advice: "Le site est peut-être surchargé. Réessayez dans un instant.",
+    get title() { return t("loadError.siteTakingTooLong") },
+    get message() { return t("loadError.didntRespondTime") },
+    get advice() { return t("loadError.siteMayOverloadedTry") },
   },
   certificate: {
-    title: "Connexion non sécurisée",
-    message: "Le certificat de {host} n'est pas valide : la connexion a été bloquée pour vous protéger.",
-    advice: "Quelqu'un tente peut-être d'intercepter vos données. Réessayez plus tard ou depuis un autre réseau.",
+    get title() { return t("loadError.notSecureConnection") },
+    get message() { return t("loadError.certificateIsntValidConnection") },
+    get advice() { return t("loadError.someoneMayTryingIntercept") },
   },
   redirects: {
-    title: "Trop de redirections",
-    message: "{host} redirige en boucle.",
-    advice: "Effacer les cookies du site résout souvent le problème.",
+    get title() { return t("loadError.tooManyRedirects") },
+    get message() { return t("loadError.redirectsLoop") },
+    get advice() { return t("loadError.clearingSitesCookiesOften") },
   },
   unreachable: {
-    title: "Site inaccessible",
-    message: "Impossible de joindre {host}.",
-    advice: "Vérifiez votre connexion, ou réessayez dans un instant.",
+    get title() { return t("loadError.siteUnreachable") },
+    get message() { return t("loadError.cantReach") },
+    get advice() { return t("loadError.checkConnectionTryAgain") },
   },
   blocked: {
-    title: "Adresse bloquée",
-    message: "Le navigateur n'ouvre pas {host} : ce port ou cette adresse est bloqué pour votre sécurité.",
-    advice: "Vérifiez l'adresse. Les ports réservés à d'autres services (messagerie, partage de fichiers…) ne sont jamais ouverts.",
+    get title() { return t("loadError.addressBlocked") },
+    get message() { return t("loadError.browserDoesntOpenPort") },
+    get advice() { return t("loadError.checkAddressPortsReserved") },
   },
   other: {
-    title: "Impossible d'afficher la page",
-    message: "Le chargement de {host} a échoué.",
-    advice: "Actualisez la page, ou réessayez plus tard.",
+    get title() { return t("loadError.cantShowPage") },
+    get message() { return t("loadError.loadingFailed") },
+    get advice() { return t("loadError.reloadPageTryAgain") },
   },
 };
 

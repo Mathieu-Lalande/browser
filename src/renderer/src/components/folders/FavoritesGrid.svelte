@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { displayUrl } from "@shared/url";
   import { api, browser } from "../../lib/browser.svelte";
   import { settings } from "../../lib/settings.svelte";
@@ -20,7 +21,7 @@
 </script>
 
 {#if favorites.length || showHint || (dragActive && !browser.isPrivate)}
-  <div class="favorites" class:dropping class:floating={!favorites.length && !showHint} role="list" aria-label="Favoris" data-drop="favorites">
+  <div class="favorites" class:dropping class:floating={!favorites.length && !showHint} role="list" aria-label={t("favoritesGrid.favorites")} data-drop="favorites">
     {#each favorites as favorite (favorite.url)}
       <div role="listitem">
         <button
@@ -42,18 +43,18 @@
     {#if showHint}
       <div class="empty-hint" role="listitem" data-testid="favorites-hint">
         <Icon name="star" size={16} />
-        <span class="hint-text">Glissez un onglet ici pour l'épingler dans tous les espaces</span>
+        <span class="hint-text">{t("favoritesGrid.dragTabHerePin")}</span>
         <button
           class="dismiss"
-          aria-label="Masquer l'astuce des favoris"
-          title="Masquer"
+          aria-label={t("favoritesGrid.hideFavoritesTip")}
+          title={t("favoritesGrid.hide")}
           onclick={() => settings.update({ layout: { favoritesHintDismissed: true } })}
         >
           <Icon name="close" size={14} />
         </button>
       </div>
     {:else if dragActive && !browser.isPrivate}
-      <div class="drop-hint" role="listitem">{favorites.length ? "" : "Déposez un onglet ici pour l'ajouter aux favoris"}</div>
+      <div class="drop-hint" role="listitem">{favorites.length ? "" : t("favoritesGrid.dropTabHereAdd")}</div>
     {/if}
   </div>
 {/if}

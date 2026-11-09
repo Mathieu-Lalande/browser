@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { api } from "../../lib/browser.svelte";
   import { downloads } from "../../lib/downloads.svelte";
   import Icon from "../Icon.svelte";
@@ -14,10 +15,10 @@
   const waiting = $derived(downloads.awaiting.length > 0);
   const label = $derived(
     waiting
-      ? "Téléchargements : un fichier attend votre confirmation"
+      ? t("downloadsButton.downloadsFileWaitingConfirmation")
       : running
         ? `Téléchargements : ${downloads.active.length} en cours${progress === null ? "" : `, ${Math.round(progress * 100)} %`}`
-        : "Téléchargements",
+        : t("downloadsButton.downloads"),
   );
 
   function open(): void {

@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { createHash, createPublicKey, createVerify } from "node:crypto";
 import { UnpackError } from "./unpack";
 
@@ -47,7 +48,7 @@ interface Field {
 /** The top-level fields of a protobuf message (only what CRX headers use). */
 function readFields(message: Buffer): Field[] {
   const fail = (): never => {
-    throw new UnpackError("L'en-tête du fichier .crx est illisible.");
+    throw new UnpackError(t("extensionsCrx.crxFileHeaderUnreadable"));
   };
   const fields: Field[] = [];
   let at = 0;
@@ -112,18 +113,18 @@ function verifies(proof: Proof, signedHeaderData: Buffer, zip: Buffer): boolean 
 
 /** Checks a store package for `expectedId`; returns its ZIP and developer key, or throws (French message). */
 export function verifyCrx(data: Buffer, expectedId: string): VerifiedCrx {
-  if (data.length < 12 || data.toString("latin1", 0, 4) !== "Cr24") throw new UnpackError("Le Chrome Web Store n'a pas renvoyé d'extension .crx.");
-  if (data.readUInt32LE(4) !== 3) throw new UnpackError("Format .crx obsolète refusé : seules les extensions CRX3 signées sont installées depuis le Web Store.");
+  if (data.length < 12 || data.toString("latin1", 0, 4) !== "Cr24") throw new UnpackError(t("extensionsCrx.chromeWebStoreDidnt"));
+  if (data.readUInt32LE(4) !== 3) throw new UnpackError(t("extensionsCrx.obsoleteCrxFormatRefused"));
   const headerSize = data.readUInt32LE(8);
-  if (headerSize > MAX_HEADER_SIZE || 12 + headerSize >= data.length) throw new UnpackError("Le fichier .crx est tronqué.");
+  if (headerSize > MAX_HEADER_SIZE || 12 + headerSize >= data.length) throw new UnpackError(t("extensionsCrx.crxFileTruncated"));
   const header = data.subarray(12, 12 + headerSize);
   const zip = data.subarray(12 + headerSize);
   const { proofs, signedHeaderData } = proofsOf(header);
   const crxId = signedHeaderData ? readFields(signedHeaderData).find((field) => field.number === 1)?.bytes : undefined;
-  if (!signedHeaderData || !crxId || crxId.length !== 16) throw new UnpackError("Le fichier .crx n'indique pas l'identifiant de l'extension.");
-  if (idFromBytes(crxId) !== expectedId) throw new UnpackError("Le paquet reçu ne correspond pas à l'extension demandée : installation refusée.");
+  if (!signedHeaderData || !crxId || crxId.length !== 16) throw new UnpackError(t("extensionsCrx.crxFileDoesntGive"));
+  if (idFromBytes(crxId) !== expectedId) throw new UnpackError(t("extensionsCrx.packageReceivedDoesntMatch"));
   const developer = proofs.find((proof) => extensionIdFromKey(proof.key) === expectedId);
-  if (!developer) throw new UnpackError("Aucune clé du paquet ne correspond à l'identifiant de l'extension : installation refusée.");
-  if (!proofs.every((proof) => verifies(proof, signedHeaderData, zip))) throw new UnpackError("La signature de l'extension est invalide : installation refusée.");
+  if (!developer) throw new UnpackError(t("extensionsCrx.noKeyPackageMatches"));
+  if (!proofs.every((proof) => verifies(proof, signedHeaderData, zip))) throw new UnpackError(t("extensionsCrx.extensionsSignatureInvalidInstallation"));
   return { zip: Buffer.from(zip), publicKey: Buffer.from(developer.key) };
 }

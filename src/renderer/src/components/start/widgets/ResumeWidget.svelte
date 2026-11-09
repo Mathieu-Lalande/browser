@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { ArchivedTab } from "@shared/archive";
   import { displayUrl } from "@shared/url";
   import { api } from "../../../lib/browser.svelte";
@@ -18,10 +19,10 @@
   const recent = $derived(archived.slice(0, widget.options.count));
 </script>
 
-<h2 class="widget-title">Reprendre</h2>
-<Button size="sm" icon="undo" onclick={() => api.commands.run("reopen-closed-tab")}>Rouvrir l'onglet fermé</Button>
+<h2 class="widget-title">{t("resumeWidget.resume")}</h2>
+<Button size="sm" icon="undo" onclick={() => api.commands.run("reopen-closed-tab")}>{t("resumeWidget.reopenClosedTab")}</Button>
 {#if recent.length}
-  <ul aria-label="Onglets archivés récemment">
+  <ul aria-label={t("resumeWidget.recentlyArchivedTabs")}>
     {#each recent as tab (tab.id)}
       <li>
         <button title={tab.url} onclick={() => api.archive.restore(tab.id)}>
@@ -32,7 +33,7 @@
     {/each}
   </ul>
 {:else}
-  <p class="widget-empty">Les onglets inactifs archivés apparaîtront ici.</p>
+  <p class="widget-empty">{t("resumeWidget.archivedInactiveTabsWill")}</p>
 {/if}
 
 <style>

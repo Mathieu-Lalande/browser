@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { release } from "node:os";
 import { join } from "node:path";
 import { micaSupported } from "@shared/desktop";
@@ -30,7 +31,7 @@ export class WindowChrome {
       minWidth: 640,
       minHeight: 420,
       show: false,
-      title: isPrivate ? "Browser — Navigation privée" : "Browser",
+      title: isPrivate ? t("windowPartsWindowChrome.browserPrivateBrowsing") : "Browser",
       // The theme's own background: no white flash while the UI loads or on resize.
       backgroundColor: background,
       titleBarStyle: "hidden",

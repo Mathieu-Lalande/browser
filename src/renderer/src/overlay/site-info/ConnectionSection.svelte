@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { SiteInfo } from "@shared/site-info";
   import Icon from "../../components/Icon.svelte";
 
@@ -9,28 +10,28 @@
   const date = (ms: number) => dateFormat.format(new Date(ms));
 </script>
 
-<section class="kit-section" aria-label="Connexion">
+<section class="kit-section" aria-label={t("connectionSection.connection")}>
   {#if secure}
-    <p class="note">Les informations échangées avec ce site (mots de passe, cartes bancaires) sont chiffrées.</p>
+    <p class="note">{t("connectionSection.informationExchangedSitePasswords")}</p>
     {#if certificate}
       <details class="certificate">
-        <summary><Icon name="certificate" size={12} /> Certificat</summary>
+        <summary><Icon name="certificate" size={12} /> {t("connectionSection.certificate")}</summary>
         <dl>
-          <dt>Délivré à</dt>
+          <dt>{t("connectionSection.issued")}</dt>
           <dd>{certificate.subject}</dd>
-          <dt>Délivré par</dt>
+          <dt>{t("connectionSection.issued2")}</dt>
           <dd>{certificate.issuer}</dd>
-          <dt>Validité</dt>
-          <dd>du {date(certificate.validFrom)} au {date(certificate.validTo)}</dd>
-          <dt>Empreinte</dt>
+          <dt>{t("connectionSection.validity")}</dt>
+          <dd>{t("connectionSection.from", { p: date(certificate.validFrom), p2: date(certificate.validTo) })}</dd>
+          <dt>{t("connectionSection.fingerprint")}</dt>
           <dd class="kit-code wrap">{certificate.fingerprint}</dd>
         </dl>
       </details>
     {:else}
-      <p class="kit-hint">Détails du certificat indisponibles pour cette connexion (établie avant leur enregistrement).</p>
+      <p class="kit-hint">{t("connectionSection.certificateDetailsUnavailableConnection")}</p>
     {/if}
   {:else}
-    <p class="note warn">Ne saisissez pas d'informations sensibles sur ce site : elles pourraient être lues ou modifiées par d'autres.</p>
+    <p class="note warn">{t("connectionSection.dontEnterSensitiveInformation")}</p>
   {/if}
 </section>
 

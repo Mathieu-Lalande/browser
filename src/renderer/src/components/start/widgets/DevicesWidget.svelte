@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { displayUrl } from "@shared/url";
   import { sync } from "../../../lib/sync.svelte";
   import Icon from "../../Icon.svelte";
@@ -8,7 +9,7 @@
   const devices = $derived((sync.status?.devices ?? []).filter((device) => device.tabs.length > 0));
 </script>
 
-<h2 class="widget-title">Autres appareils</h2>
+<h2 class="widget-title">{t("devicesWidget.otherDevices")}</h2>
 {#if devices.length}
   <div class="devices">
     {#each devices as device (device.id)}
@@ -24,7 +25,7 @@
   </div>
 {:else}
   <p class="widget-empty">
-    {sync.status?.configured ? "Aucun onglet ouvert sur vos autres appareils." : "Activez la synchronisation dans les paramètres pour retrouver ici les onglets de vos autres appareils."}
+    {sync.status?.configured ? t("devicesWidget.noTabsOpenOther") : t("devicesWidget.turnSyncSettingsFind")}
   </p>
 {/if}
 

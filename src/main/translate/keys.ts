@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { join } from "node:path";
 import { app, safeStorage } from "electron";
 import { TRANSLATE_PROVIDERS, type TranslateProviderId } from "@shared/translate/providers";
@@ -15,7 +16,7 @@ const MAX_KEY_LENGTH = 500;
 
 type Keys = Partial<Record<TranslateProviderId, string>>;
 
-const UNAVAILABLE = "Le chiffrement du système n'est pas disponible : les clés d'API ne peuvent pas être enregistrées sur cet appareil.";
+const UNAVAILABLE = t("translateKeys.systemEncryptionIsntAvailable");
 
 /** Same test hook as the password vault (unpackaged app only, ADR-018). */
 const TEST_PLAIN_KEYCHAIN = !app.isPackaged && process.env.BROWSER_TEST_PLAIN_KEYCHAIN === "1";
@@ -76,7 +77,7 @@ export class TranslateKeyStore {
     } catch {
       return { ok: false, message: UNAVAILABLE };
     }
-    if (!this.file!.save({ ciphertext })) return { ok: false, message: "Le fichier des clés n'a pas pu être écrit." };
+    if (!this.file!.save({ ciphertext })) return { ok: false, message: t("translateKeys.keyFileCouldntWritten") };
     this.keys = keys;
     return { ok: true };
   }

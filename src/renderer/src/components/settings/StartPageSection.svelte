@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { LIMITS, type SettingsPatch, type StartBackground } from "@shared/settings";
   import { LAYOUT_PRESETS, applyPreset } from "@shared/start-widgets";
   import { settings } from "../../lib/settings.svelte";
@@ -24,22 +25,22 @@
   }
 </script>
 
-<Row anchor="name" label="Prénom" hint="Pour un accueil personnalisé : « Bonjour, Mathieu. »" id="greeting-name">
+<Row anchor="name" label={t("startPageSection.firstName")} hint={t("startPageSection.personalGreetingHelloMathieu")} id="greeting-name">
   <input
     id="greeting-name"
     class="ui-field"
     value={s.startPage.greetingName}
     maxlength={LIMITS.greetingName}
-    placeholder="Votre prénom"
+    placeholder={t("startPageSection.firstName2")}
     autocomplete="off"
     oninput={(event) => update({ startPage: { greetingName: event.currentTarget.value } })}
   />
 </Row>
 <Row
   anchor="widgets"
-  label="Widgets"
-  hint="Horloge, recherche, sites fréquents, notes, météo… Bouton « Personnaliser » de la page d'accueil pour les ajouter, les déplacer et les régler."
-  keywords="horloge sites fréquents notes météo tâches calendrier disposition"
+  label={t("startPageSection.widgets")}
+  hint={t("startPageSection.clockSearchTopSites")}
+  keywords={t("startPageSection.clockTopSitesNotes")}
 >
   <div class="actions">
     {#each LAYOUT_PRESETS as preset (preset.id)}
@@ -47,16 +48,16 @@
     {/each}
   </div>
 </Row>
-<Row anchor="background" label="Fond" hint={s.startPage.background === "image" ? "Adresse https d'une image." : undefined}>
+<Row anchor="background" label={t("startPageSection.background")} hint={s.startPage.background === "image" ? t("startPageSection.httpsAddressImage") : undefined}>
   <div class="stack">
     <Segmented
-      label="Fond de la page d'accueil"
+      label={t("startPageSection.startPageBackground")}
       value={s.startPage.background}
       options={[
-        { value: "theme" as StartBackground, label: "Thème" },
-        { value: "aurora" as StartBackground, label: "Aurore" },
-        { value: "dynamic" as StartBackground, label: "Dynamique" },
-        { value: "image" as StartBackground, label: "Image" },
+        { value: "theme" as StartBackground, label: t("startPageSection.theme") },
+        { value: "aurora" as StartBackground, label: t("startPageSection.aurora") },
+        { value: "dynamic" as StartBackground, label: t("startPageSection.dynamic") },
+        { value: "image" as StartBackground, label: t("startPageSection.image") },
       ]}
       onchange={(background) => update({ startPage: { background } })}
     />
@@ -67,7 +68,7 @@
         type="url"
         value={imageDraft ?? s.startPage.backgroundImage}
         placeholder="https://…/image.jpg"
-        aria-label="Adresse de l'image de fond"
+        aria-label={t("startPageSection.backgroundImageAddress")}
         aria-invalid={imageError}
         spellcheck="false"
         oninput={(event) => ((imageDraft = event.currentTarget.value), (imageError = false))}

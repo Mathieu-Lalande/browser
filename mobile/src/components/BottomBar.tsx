@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { BlurView } from "expo-blur";
 import { memo, useEffect } from "react";
 import { Platform, StyleSheet, Text, View, useWindowDimensions } from "react-native";
@@ -150,7 +151,7 @@ export const BottomBar = memo(function BottomBar(props: Props) {
       <Animated.View style={[styles.mini, mini]} pointerEvents={collapsed && interactive ? "box-none" : "none"}>
         <Tap
           accessibilityRole="button"
-          accessibilityLabel="Afficher la barre d'outils"
+          accessibilityLabel={t("mobile.bottomBar.showToolbar")}
           onPress={props.onExpand}
           hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
           style={styles.miniTap}
@@ -168,8 +169,8 @@ export const BottomBar = memo(function BottomBar(props: Props) {
           <Animated.View style={[styles.pillRow, pill]}>
             <Tap
               accessibilityRole="search"
-              accessibilityLabel={label ? `Adresse : ${label}. Toucher pour rechercher` : "Rechercher ou saisir une adresse"}
-              accessibilityHint="Balayer vers la gauche ou la droite pour changer d'onglet"
+              accessibilityLabel={label ? t("mobile.bottomBar.addressTapSearch", { label }) : t("mobile.bottomBar.searchEnterAddress")}
+              accessibilityHint={t("mobile.bottomBar.swipeLeftRightSwitch")}
               onPress={props.onOpenSearch}
               onLongPress={() => {
                 haptic("medium");
@@ -204,15 +205,15 @@ export const BottomBar = memo(function BottomBar(props: Props) {
                 </View>
               )}
               <Text style={[styles.pillText, { color: label ? colors.text : colors.textMuted }]} numberOfLines={1}>
-                {label || (isPrivate ? "Recherche privée" : "Rechercher ou saisir une adresse")}
+                {label || (isPrivate ? t("mobile.bottomBar.privateSearch") : t("mobile.bottomBar.searchEnterAddress"))}
               </Text>
               {props.hasPasswords && (
-                <IconButton icon="key" label="Remplir un mot de passe enregistré" size={17} color={colors.accentText} onPress={props.onPasswords} style={styles.pillAction} testID="passwords" />
+                <IconButton icon="key" label={t("mobile.bottomBar.fillSavedPassword")} size={17} color={colors.accentText} onPress={props.onPasswords} style={styles.pillAction} testID="passwords" />
               )}
               {tab?.url ? (
                 <IconButton
                   icon={loading ? "close" : "reload"}
-                  label={loading ? "Arrêter le chargement" : "Actualiser"}
+                  label={loading ? t("mobile.bottomBar.stopLoading") : "Actualiser"}
                   size={17}
                   color={colors.textMuted}
                   onPress={loading ? props.onStop : props.onReload}
@@ -231,13 +232,13 @@ export const BottomBar = memo(function BottomBar(props: Props) {
         </GestureDetector>
 
         <Animated.View style={[styles.toolRow, tools]}>
-          <IconButton icon="back" label="Page précédente" onPress={props.onBack} disabled={!tab?.canGoBack} size={24} />
-          <IconButton icon="forward" label="Page suivante" onPress={props.onForward} disabled={!tab?.canGoForward} size={24} />
-          <IconButton icon="share" label="Partager la page" onPress={props.onShare} disabled={!tab?.url} />
+          <IconButton icon="back" label={t("mobile.bottomBar.previousPage")} onPress={props.onBack} disabled={!tab?.canGoBack} size={24} />
+          <IconButton icon="forward" label={t("mobile.bottomBar.nextPage")} onPress={props.onForward} disabled={!tab?.canGoForward} size={24} />
+          <IconButton icon="share" label={t("mobile.bottomBar.sharePage")} onPress={props.onShare} disabled={!tab?.url} />
           <Tap
             accessibilityRole="button"
-            accessibilityLabel={`Onglets (${tabCount})`}
-            accessibilityHint="Maintenir pour plus d'options"
+            accessibilityLabel={t("mobile.bottomBar.tabs", { tabCount })}
+            accessibilityHint={t("mobile.bottomBar.holdMoreOptions")}
             onPress={props.onTabs}
             onLongPress={() => {
               haptic("medium");
@@ -253,7 +254,7 @@ export const BottomBar = memo(function BottomBar(props: Props) {
               </Text>
             </View>
           </Tap>
-          <IconButton icon="more" label="Plus d'actions" onPress={props.onMenu} size={24} testID="menu-button" />
+          <IconButton icon="more" label={t("mobile.bottomBar.moreActions")} onPress={props.onMenu} size={24} testID="menu-button" />
         </Animated.View>
       </View>
     </Animated.View>

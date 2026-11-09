@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { api } from "../../lib/browser.svelte";
   import { settings } from "../../lib/settings.svelte";
   import Icon from "../Icon.svelte";
@@ -13,20 +14,20 @@
   }
 </script>
 
-<Row anchor="folder" label="Dossier" hint={s.folder ? undefined : "Dossier Téléchargements du système."}>
+<Row anchor="folder" label={t("downloadsSection.folder")} hint={s.folder ? undefined : t("downloadsSection.systemDownloadsFolder")}>
   <!-- Long paths are cut on the left: the end of a path is the part that matters. -->
   {#if s.folder}<span class="path" title={s.folder}><bdi>{s.folder}</bdi></span>{/if}
   {#if s.folder}
-    <button class="secondary" onclick={() => settings.update({ downloads: { folder: "" } })}>Par défaut</button>
+    <button class="secondary" onclick={() => settings.update({ downloads: { folder: "" } })}>{t("downloadsSection.default")}</button>
   {/if}
-  <button class="secondary" onclick={choose}><Icon name="folder" size={12} /> Modifier…</button>
+  <button class="secondary" onclick={choose}><Icon name="folder" size={12} /> {t("downloadsSection.change")}</button>
 </Row>
-<Row anchor="ask-where" label="Toujours demander où enregistrer" hint="Sinon, les fichiers sont enregistrés directement, sans boîte de dialogue.">
-  <Toggle label="Toujours demander où enregistrer" checked={s.askWhere} onchange={(askWhere) => settings.update({ downloads: { askWhere } })} />
+<Row anchor="ask-where" label={t("downloadsSection.alwaysAskWhereSave")} hint={t("downloadsSection.otherwiseFilesAreSaved")}>
+  <Toggle label={t("downloadsSection.alwaysAskWhereSave")} checked={s.askWhere} onchange={(askWhere) => settings.update({ downloads: { askWhere } })} />
 </Row>
-<Row anchor="executables" label="Fichiers exécutables" hint="Programmes, installeurs et scripts (.exe, .dmg, .sh…) attendent votre confirmation avant d'arriver dans le dossier. Rien n'est jamais ouvert automatiquement.">
+<Row anchor="executables" label={t("downloadsSection.executableFiles")} hint={t("downloadsSection.programsInstallersScriptsExe")}>
   <!-- A fixed safeguard, not a setting: plain status text, nothing to click. -->
-  <span class="status">Toujours activé</span>
+  <span class="status">{t("downloadsSection.always")}</span>
 </Row>
 
 <style>

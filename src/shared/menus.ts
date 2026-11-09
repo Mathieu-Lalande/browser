@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import { getCommand, type CommandIcon, type CommandId } from "./commands";
 import type { ProfileIcon, ProfilesView } from "./profiles";
 import type { ClosedLists } from "./recovery";
@@ -178,7 +179,7 @@ function profilesNode(view: ProfilesView, isPrivate: boolean): MenuNode {
     .map((profile) => ({
       kind: "action",
       id: `profile-open-${profile.id}`,
-      label: `Ouvrir ${profile.name}`,
+      label: t("menus.open", { name: profile.name }),
       icon: profile.icon,
       color: profile.color,
     }));
@@ -190,14 +191,14 @@ function profilesNode(view: ProfilesView, isPrivate: boolean): MenuNode {
           label: current.name,
           icon: current.icon,
           color: current.color,
-          hint: "Profil actuel",
+          hint: t("menus.currentProfile"),
         },
       ]
     : [];
   return {
     kind: "submenu",
     id: "profiles",
-    label: current ? `Profil : ${current.name}` : "Profils",
+    label: current ? t("menus.profile", { name: current.name }) : t("menus.profiles"),
     icon: current?.icon ?? "users",
     color: current?.color,
     children: tidy([
@@ -205,11 +206,11 @@ function profilesNode(view: ProfilesView, isPrivate: boolean): MenuNode {
       separator,
       ...others,
       separator,
-      command("open-profiles", { label: "Gérer les profils…" }),
+      command("open-profiles", { label: t("menus.manageProfiles") }),
       // Profiles are not changed from a private window (ADR-042).
       ...(isPrivate
         ? []
-        : [command("new-profile", { label: "Nouveau profil…" })]),
+        : [command("new-profile", { label: t("menus.newProfile") })]),
     ]),
   };
 }
@@ -234,7 +235,7 @@ function closedNodes(closed: ClosedLists | undefined): MenuNode[] {
     .map((entry) => ({
       kind: "action",
       id: `closed-window-${entry.index}`,
-      label: `${entry.title} (${entry.tabCount} onglet${(entry.tabCount ?? 0) > 1 ? "s" : ""})`,
+      label: t("menus.tabs", { title: entry.title, tabCount: entry.tabCount }),
       icon: "window",
     }));
   const tabs: MenuNode[] = closed.tabs
@@ -242,7 +243,7 @@ function closedNodes(closed: ClosedLists | undefined): MenuNode[] {
     .map((entry) => ({
       kind: "action",
       id: `closed-tab-${entry.index}`,
-      label: entry.title || entry.url || "Onglet",
+      label: entry.title || entry.url || t("menus.tab"),
       icon: "undo",
     }));
   if (!windows.length && !tabs.length) return [];
@@ -284,8 +285,8 @@ export function buildAppMenu(context: AppMenuContext): MenuNode[] {
   const bookmarks: MenuNode[] = [
     command("toggle-bookmark", {
       label: tab?.isBookmarked
-        ? "Retirer cette page des favoris"
-        : "Ajouter cette page aux favoris",
+        ? t("menus.removePageFromBookmarks")
+        : t("menus.bookmarkPage"),
     }),
     separator,
     ...links("favorite", context.favorites, APP_MENU_BOOKMARKS),
@@ -298,15 +299,15 @@ export function buildAppMenu(context: AppMenuContext): MenuNode[] {
     command("screenshot-element"),
     command("record-video", {
       label: context.recording
-        ? "Arrêter l'enregistrement"
-        : "Enregistrer une vidéo de l'onglet",
+        ? t("menus.stopRecording")
+        : t("menus.recordVideoTab"),
     }),
     separator,
     command("toggle-reader", {
-      label: tab?.reader ? "Quitter le mode lecture" : "Mode lecture",
+      label: tab?.reader ? t("menus.exitReaderMode") : t("menus.readerMode"),
     }),
     command("toggle-mobile-site", {
-      label: tab?.mobileSite ? "Version pour ordinateur" : "Version mobile",
+      label: tab?.mobileSite ? t("menus.desktopSite") : t("menus.mobileSite"),
     }),
     command("zap-elements"),
     separator,
@@ -315,7 +316,7 @@ export function buildAppMenu(context: AppMenuContext): MenuNode[] {
     command("devtools"),
   ];
   const library: MenuNode[] = libraryMore(context.isPrivate).map((id) =>
-    command(id, id === "import-data" ? { label: "Importer des données…" } : {}),
+    command(id, id === "import-data" ? { label: t("menus.importData") } : {}),
   );
   const help: MenuNode[] = [
     command("keyboard-shortcuts"),
@@ -338,14 +339,14 @@ export function buildAppMenu(context: AppMenuContext): MenuNode[] {
       {
         kind: "submenu",
         id: "history",
-        label: "Historique",
+        label: t("menus.history"),
         icon: "history",
         children: tidy(history),
       },
       {
         kind: "submenu",
         id: "bookmarks",
-        label: "Favoris",
+        label: t("menus.bookmarks"),
         icon: "star",
         children: tidy(bookmarks),
       },
@@ -354,13 +355,13 @@ export function buildAppMenu(context: AppMenuContext): MenuNode[] {
       ...LIBRARY_MAIN.map((id) =>
         command(
           id,
-          id === "open-extensions" ? { label: "Extensions et thèmes" } : {},
+          id === "open-extensions" ? { label: t("menus.extensionsThemes") } : {},
         ),
       ),
       {
         kind: "submenu",
         id: "library",
-        label: "Bibliothèque",
+        label: t("menus.library"),
         icon: "library",
         children: library,
       },
@@ -368,7 +369,7 @@ export function buildAppMenu(context: AppMenuContext): MenuNode[] {
       command("print"),
       command("save-page"),
       command("translate-page", {
-        label: tab?.translated ? "Afficher l'original" : "Traduire la page",
+        label: tab?.translated ? t("menus.showOriginal") : t("menus.translatePage"),
       }),
       command("toggle-assistant"),
       command("find"),
@@ -378,14 +379,14 @@ export function buildAppMenu(context: AppMenuContext): MenuNode[] {
       {
         kind: "submenu",
         id: "tools",
-        label: "Plus d'outils",
+        label: t("menus.moreTools"),
         icon: "code",
         children: tidy(tools),
       },
       {
         kind: "submenu",
         id: "help",
-        label: "Aide",
+        label: t("menus.help"),
         icon: "help",
         children: help,
       },
@@ -418,11 +419,11 @@ export function buildSidebarMenu(context: SidebarMenuContext): MenuNode[] {
       command("new-tab"),
       command("new-folder"),
       separator,
-      command("reload", { label: "Actualiser l'onglet sélectionné" }),
+      command("reload", { label: t("menus.reloadSelectedTab") }),
       command("toggle-bookmark", {
         label: tab?.isBookmarked
-          ? "Retirer l'onglet des favoris"
-          : "Ajouter l'onglet aux favoris",
+          ? t("menus.removeTabFromFavorites")
+          : t("menus.addTabFavorites"),
       }),
       command("select-all-tabs", { enabled: context.tabCount > 0 }),
       command("reopen-closed-tab", { enabled: context.canReopen }),
@@ -430,8 +431,8 @@ export function buildSidebarMenu(context: SidebarMenuContext): MenuNode[] {
       command("toggle-sidebar-position", {
         label:
           context.sidebarPosition === "left"
-            ? "Barre latérale à droite"
-            : "Barre latérale à gauche",
+            ? t("menus.sidebarRight")
+            : t("menus.sidebarLeft"),
       }),
       // A private window has a single ephemeral space (ADR-014): nothing to theme.
       ...(context.isPrivate ? [] : [command("edit-space")]),
@@ -455,25 +456,25 @@ export type SpaceUiAction = (typeof SPACE_UI_ACTIONS)[number];
 /** Right click on a space chip. */
 export function buildSpaceMenu(context: SpaceMenuContext): MenuNode[] {
   return [
-    { kind: "action", id: "space-rename", label: "Renommer…", icon: "pencil" },
+    { kind: "action", id: "space-rename", label: t("menus.rename"), icon: "pencil" },
     {
       kind: "action",
       id: "space-edit",
-      label: "Icône et couleur…",
+      label: t("menus.iconColor"),
       icon: "palette",
     },
     separator,
     {
       kind: "action",
       id: "space-move-left",
-      label: "Déplacer à gauche",
+      label: t("menus.moveLeft"),
       icon: "back",
       enabled: context.index > 0,
     },
     {
       kind: "action",
       id: "space-move-right",
-      label: "Déplacer à droite",
+      label: t("menus.moveRight"),
       icon: "forward",
       enabled: context.index < context.count - 1,
     },
@@ -481,7 +482,7 @@ export function buildSpaceMenu(context: SpaceMenuContext): MenuNode[] {
     {
       kind: "action",
       id: "space-delete",
-      label: "Supprimer l'espace…",
+      label: t("menus.deleteSpace"),
       icon: "trash",
       enabled: context.count > 1,
     },

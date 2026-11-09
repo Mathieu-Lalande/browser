@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { api } from "../../lib/browser.svelte";
   import { media } from "../../lib/media.svelte";
   import IconButton from "../ui/IconButton.svelte";
@@ -15,7 +16,7 @@
     icon={top.playing ? "pause" : "play"}
     on={top.playing}
     disabled={!top.controllable}
-    label="{top.playing ? 'Mettre en pause' : 'Lire'} : {top.title}"
+    label="{top.playing ? t("mediaRailButton.pause") : t("mediaRailButton.play")} : {top.title}"
     data-testid="media-rail"
     onclick={() => api.media.action(top.tabId, "toggle")}
   />

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { OmniboxTab } from "@shared/omnibox/types";
   import { api } from "../lib/browser.svelte";
   import Icon from "../components/Icon.svelte";
@@ -20,13 +21,13 @@
   }
 </script>
 
-<div class="panel" role="dialog" aria-label="Tous les onglets">
+<div class="panel" role="dialog" aria-label={t("tabOverviewPanel.allTabs")}>
   <header>
     <div>
-      <h1>Tous les onglets</h1>
-      <p>{tabs.length} onglet{tabs.length === 1 ? "" : "s"} dans tous les espaces</p>
+      <h1>{t("tabOverviewPanel.allTabs")}</h1>
+      <p>{t("tabOverviewPanel.tabsAllSpaces", { tabsCount: tabs.length })}</p>
     </div>
-    <button class="close" type="button" aria-label="Fermer" title="Fermer" onclick={() => api.overlay.close(true)}>
+    <button class="close" type="button" aria-label={t("tabOverviewPanel.close")} title={t("tabOverviewPanel.close")} onclick={() => api.overlay.close(true)}>
       <Icon name="close" size={18} />
     </button>
   </header>
@@ -35,13 +36,13 @@
       {#each tabs as tab (tab.id)}
         <button class="tab" type="button" onclick={() => show(tab)}>
           {#if tab.favicon}<img src={tab.favicon} alt="" />{:else}<Icon name="globe" size={18} />{/if}
-          <span class="text"><strong>{tab.title || tab.url}</strong><small>{tab.spaceName ?? "Espace actuel"} · {tab.url}</small></span>
+          <span class="text"><strong>{tab.title || tab.url}</strong><small>{tab.spaceName ?? t("tabOverviewPanel.currentSpace")} · {tab.url}</small></span>
           <Icon name="arrow" size={16} />
         </button>
       {/each}
     </div>
   {:else}
-    <p class="empty">Aucun onglet ouvert.</p>
+    <p class="empty">{t("tabOverviewPanel.noOpenTabs")}</p>
   {/if}
 </div>
 

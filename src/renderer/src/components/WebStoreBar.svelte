@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { extensionsUi } from "../lib/extensions.svelte";
   import Button from "./ui/Button.svelte";
   import IconButton from "./ui/IconButton.svelte";
@@ -21,8 +22,8 @@
   <div class="store-bar" role="alert" aria-label="Chrome Web Store" data-testid="webstore-bar">
     <Icon name="warning" size={15} />
     <p>{failure}</p>
-    <Button size="sm" icon="reload" onclick={() => extensionsUi.installFromStore(webStoreId)}>Réessayer</Button>
-    <IconButton size="row" icon="close" iconSize={14} label="Masquer" onclick={() => (dismissed = failure)} />
+    <Button size="sm" icon="reload" onclick={() => extensionsUi.installFromStore(webStoreId)}>{t("webStoreBar.tryAgain")}</Button>
+    <IconButton size="row" icon="close" iconSize={14} label={t("webStoreBar.hide")} onclick={() => (dismissed = failure)} />
   </div>
 {/if}
 

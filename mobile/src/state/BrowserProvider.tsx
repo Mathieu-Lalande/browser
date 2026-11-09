@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { autofill } from "./autofill";
 import { passwords } from "./passwords";
 import type { AnnotationsData } from "@shared/annotations/model";
@@ -148,7 +149,7 @@ async function syncAttempt(action: () => Promise<void>): Promise<SyncResult> {
     await action();
     return { ok: true };
   } catch (error) {
-    return { ok: false, message: error instanceof SyncError ? error.message : "La synchronisation a échoué." };
+    return { ok: false, message: error instanceof SyncError ? error.message : t("mobile.browserProvider.syncFailed") };
   }
 }
 
@@ -547,10 +548,10 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
     for (const tab of syncStatus?.received ?? []) {
       if (announced.current.has(tab.id)) continue;
       announced.current.add(tab.id);
-      Alert.alert(`Onglet reçu de ${tab.fromName}`, tab.title || displayUrl(tab.url), [
-        { text: "Plus tard", style: "cancel" },
+      Alert.alert(t("mobile.browserProvider.tabReceivedFrom", { fromName: tab.fromName }), tab.title || displayUrl(tab.url), [
+        { text: t("mobile.browserProvider.later"), style: "cancel" },
         {
-          text: "Ouvrir",
+          text: t("mobile.browserProvider.open"),
           onPress: () => {
             actions.openUrl(tab.url);
             actions.sync.dismissReceived(tab.id);

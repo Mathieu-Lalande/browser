@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { untrack } from "svelte";
   import { BOOST_FONTS, FILTER_RANGES, MAX_BOOST_CSS, MAX_BOOST_SCRIPT, type BoostFont, type BoostInput, type FilterAmount } from "@shared/boosts";
   import Icon from "../Icon.svelte";
@@ -20,26 +21,26 @@
     error = await onsave($state.snapshot(draft));
   }
 
-  const FILTER_LABELS: Record<FilterAmount, string> = { grayscale: "Niveaux de gris", sepia: "Sépia", brightness: "Luminosité", contrast: "Contraste" };
+  const FILTER_LABELS: Record<FilterAmount, string> = { grayscale: t("boostEditor.grayscale"), sepia: t("boostEditor.sepia"), brightness: t("boostEditor.brightness"), contrast: "Contraste" };
 </script>
 
-<Card as="form" class="editor" aria-label="Modifier le boost" onsubmit={(event) => (event.preventDefault(), void save())}>
+<Card as="form" class="editor" aria-label={t("boostEditor.editBoost")} onsubmit={(event) => (event.preventDefault(), void save())}>
   <div class="fields">
     <label class="field">
-      <span>Site</span>
-      <input class="ui-field" bind:value={draft.match} placeholder="exemple.fr ou *.exemple.fr" spellcheck="false" autocomplete="off" data-testid="boost-match" />
+      <span>{t("boostEditor.site")}</span>
+      <input class="ui-field" bind:value={draft.match} placeholder={t("boostEditor.exampleComExampleCom")} spellcheck="false" autocomplete="off" data-testid="boost-match" />
     </label>
     <label class="field">
-      <span>Nom</span>
-      <input class="ui-field" bind:value={draft.name} placeholder="Facultatif" maxlength="80" />
+      <span>{t("boostEditor.name")}</span>
+      <input class="ui-field" bind:value={draft.name} placeholder={t("boostEditor.optional")} maxlength="80" />
     </label>
   </div>
 
   <fieldset>
-    <legend>Couleurs</legend>
+    <legend>{t("boostEditor.colors")}</legend>
     <div class="kit-line">
-      <span class="kit-label">Inverser les couleurs</span>
-      <Toggle label="Inverser les couleurs" checked={draft.filters.invert} onchange={(value) => (draft.filters.invert = value)} />
+      <span class="kit-label">{t("boostEditor.invertColors")}</span>
+      <Toggle label={t("boostEditor.invertColors")} checked={draft.filters.invert} onchange={(value) => (draft.filters.invert = value)} />
     </div>
     {#each Object.keys(FILTER_LABELS) as FilterAmount[] as key (key)}
       <div class="kit-line">
@@ -57,33 +58,33 @@
   </fieldset>
 
   <fieldset>
-    <legend>Police</legend>
-    <select class="ui-field" aria-label="Police" value={draft.font ?? ""} onchange={(event) => (draft.font = (event.currentTarget.value || null) as BoostFont | null)}>
-      <option value="">Police du site</option>
+    <legend>{t("boostEditor.font")}</legend>
+    <select class="ui-field" aria-label={t("boostEditor.font")} value={draft.font ?? ""} onchange={(event) => (draft.font = (event.currentTarget.value || null) as BoostFont | null)}>
+      <option value="">{t("boostEditor.siteFont")}</option>
       {#each Object.entries(BOOST_FONTS) as [id, font] (id)}<option value={id}>{font.label}</option>{/each}
     </select>
   </fieldset>
 
   <fieldset>
-    <legend>Éléments masqués</legend>
+    <legend>{t("boostEditor.hiddenElements")}</legend>
     {#if draft.zaps.length}
       <ul class="kit-list">
         {#each draft.zaps as selector (selector)}
           <li>
             <code class="kit-code selector">{selector}</code>
             <Button variant="quiet" size="sm" onclick={() => (draft.zaps = draft.zaps.filter((item) => item !== selector))}>
-              <Icon name="undo" size={12} /> Réafficher
+              <Icon name="undo" size={12} /> {t("boostEditor.showAgain")}
             </Button>
           </li>
         {/each}
       </ul>
     {:else}
-      <p class="kit-hint">Aucun. Ouvrez le site puis « Masquer des éléments ».</p>
+      <p class="kit-hint">{t("boostEditor.noneOpenSiteThen")}</p>
     {/if}
   </fieldset>
 
   <fieldset>
-    <legend>CSS personnalisé</legend>
+    <legend>{t("boostEditor.customCss")}</legend>
     <textarea
       class="ui-field code"
       bind:value={draft.css}
@@ -91,36 +92,35 @@
       spellcheck="false"
       maxlength={MAX_BOOST_CSS}
       placeholder={"body {\n  max-width: 900px;\n}"}
-      aria-label="CSS personnalisé"
+      aria-label={t("boostEditor.customCss")}
     ></textarea>
   </fieldset>
 
   <fieldset>
     <legend>JavaScript</legend>
     <div class="kit-line">
-      <span class="kit-label">Exécuter un script sur ce site</span>
-      <Toggle label="Exécuter un script sur ce site" checked={draft.script.enabled} onchange={(value) => (draft.script.enabled = value)} />
+      <span class="kit-label">{t("boostEditor.runScriptSite")}</span>
+      <Toggle label={t("boostEditor.runScriptSite")} checked={draft.script.enabled} onchange={(value) => (draft.script.enabled = value)} />
     </div>
     {#if draft.script.enabled}
       <p class="notice" role="note">
         <Icon name="warning" size={14} />
         <span>
-          Un script peut lire et modifier tout ce que la page affiche, y compris ce que vous y saisissez. N'ajoutez que du code que vous
-          comprenez. Il s'exécute isolé des scripts de la page, au chargement, et il est synchronisé avec vos appareils.
+          {t("boostEditor.scriptCanReadChange")}
         </span>
       </p>
-      <textarea class="ui-field code" bind:value={draft.script.code} rows="8" spellcheck="false" maxlength={MAX_BOOST_SCRIPT} aria-label="Script"></textarea>
+      <textarea class="ui-field code" bind:value={draft.script.code} rows="8" spellcheck="false" maxlength={MAX_BOOST_SCRIPT} aria-label={t("boostEditor.script")}></textarea>
       <div class="kit-line">
-        <span class="kit-label">Aussi en navigation privée</span>
-        <Toggle label="Exécuter aussi en navigation privée" checked={draft.script.allowPrivate} onchange={(value) => (draft.script.allowPrivate = value)} />
+        <span class="kit-label">{t("boostEditor.alsoPrivateBrowsing")}</span>
+        <Toggle label={t("boostEditor.alsoRunPrivateBrowsing")} checked={draft.script.allowPrivate} onchange={(value) => (draft.script.allowPrivate = value)} />
       </div>
     {/if}
   </fieldset>
 
   {#if error}<p class="notice error" role="alert"><Icon name="warning" size={14} /> {error}</p>{/if}
   <div class="kit-actions">
-    <Button onclick={oncancel}>Annuler</Button>
-    <Button variant="primary" type="submit">Enregistrer</Button>
+    <Button onclick={oncancel}>{t("boostEditor.cancel")}</Button>
+    <Button variant="primary" type="submit">{t("boostEditor.save")}</Button>
   </div>
 </Card>
 

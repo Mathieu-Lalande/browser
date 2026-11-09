@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import Card from "../ui/Card.svelte";
   import { isActiveDownload, type DownloadEntry } from "@shared/downloads";
   import { api } from "../../lib/browser.svelte";
@@ -44,12 +45,12 @@
   });
 </script>
 
-<Page icon="download" title="Téléchargements" subtitle="Retirer un téléchargement de la liste ne supprime pas le fichier.">
+<Page icon="download" title={t("downloadsPage.downloads")} subtitle={t("downloadsPage.removingDownloadFromList")}>
   {#snippet actions()}
-    <Button icon="list-x" disabled={!clearable} onclick={() => api.downloads.clear()}>Effacer la liste</Button>
+    <Button icon="list-x" disabled={!clearable} onclick={() => api.downloads.clear()}>{t("downloadsPage.clearList")}</Button>
   {/snippet}
 
-  <SearchField bind:value={query} label="Rechercher dans les téléchargements" />
+  <SearchField bind:value={query} label={t("downloadsPage.searchDownloads")} />
 
   {#if groups.length}
     {#each groups as group (group.label)}
@@ -63,9 +64,9 @@
       </section>
     {/each}
   {:else if downloads.entries.length}
-    <EmptyState icon="search" title="Aucun résultat" hint="Aucun téléchargement ne correspond à cette recherche." />
+    <EmptyState icon="search" title={t("downloadsPage.noResults")} hint={t("downloadsPage.noDownloadMatchesSearch")} />
   {:else}
-    <EmptyState icon="download" title="Aucun téléchargement pour l'instant" hint="Les fichiers que vous téléchargez apparaîtront ici, classés par jour." />
+    <EmptyState icon="download" title={t("downloadsPage.noDownloadsYet")} hint={t("downloadsPage.filesYouDownloadWill")} />
   {/if}
 </Page>
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { IMPORT_ITEM_LABELS, type ImportItem, type ImportSource, type ImportSummary, type PasswordImportSummary } from "@shared/import/types";
   import { api, browser } from "../../lib/browser.svelte";
   import Icon from "../Icon.svelte";
@@ -55,13 +56,13 @@
     if (!profileId || !items.size) return;
     busy = true;
     summary = null;
-    summary = await api.import.run(profileId, [...items]).catch(() => ({ ok: false, message: "L'import a échoué." }));
+    summary = await api.import.run(profileId, [...items]).catch(() => ({ ok: false, message: t("importPage.importFailed") }));
     progress = null;
     busy = false;
   }
 
   async function importPasswords(): Promise<void> {
-    passwords = await api.import.passwordsCsv().catch(() => ({ ok: false, message: "L'import a échoué.", added: 0, updated: 0, skipped: 0, invalid: 0 }));
+    passwords = await api.import.passwordsCsv().catch(() => ({ ok: false, message: t("importPage.importFailed"), added: 0, updated: 0, skipped: 0, invalid: 0 }));
   }
 
   $effect(() => {
@@ -72,16 +73,16 @@
   const plural = (count: number, word: string) => `${count} ${word}${count > 1 ? "s" : ""}`;
 </script>
 
-<Page icon="import" title="Importer des données" subtitle="Favoris, historique et mots de passe d'un autre navigateur, sans doublons." testid="import-page">
+<Page icon="import" title={t("importPage.importData")} subtitle={t("importPage.bookmarksHistoryPasswordsFrom")} testid="import-page">
   {#if browser.isPrivate}
-    <EmptyState icon="mask" title="Import indisponible en navigation privée" hint="Ouvrez une fenêtre normale pour importer vos données." />
+    <EmptyState icon="mask" title={t("importPage.importUnavailablePrivateBrowsing")} hint={t("importPage.openNormalWindowImport")} />
   {:else}
     <section class="ui-section">
-      <h2 class="ui-section-title">Navigateur</h2>
+      <h2 class="ui-section-title">{t("importPage.browser")}</h2>
       {#if sources === null}
-        <p class="hint">Recherche des navigateurs installés…</p>
+        <p class="hint">{t("importPage.lookingInstalledBrowsers")}</p>
       {:else if sources.length}
-        <Card as="ul" role="radiogroup" aria-label="Navigateur source">
+        <Card as="ul" role="radiogroup" aria-label={t("importPage.sourceBrowser")}>
           {#each sources as candidate (candidate.id)}
             <ListRow dense class="source" data-source={candidate.id}>
               <button class="pick" role="radio" aria-checked={candidate.id === sourceId} onclick={() => choose(candidate)}>
@@ -93,17 +94,17 @@
           {/each}
         </Card>
       {:else}
-        <EmptyState compact icon="search" title="Aucun navigateur trouvé" hint="Chrome, Edge, Brave, Vivaldi, Opera, Firefox et Arc sont reconnus. Les mots de passe s'importent depuis un fichier CSV, ci-dessous." />
+        <EmptyState compact icon="search" title={t("importPage.noBrowserFound")} hint={t("importPage.chromeEdgeBraveVivaldi")} />
       {/if}
     </section>
 
     {#if source}
       <section class="ui-section">
-        <h2 class="ui-section-title">Profil et contenu</h2>
+        <h2 class="ui-section-title">{t("importPage.profileContent")}</h2>
         {#if source.profiles.length > 1}
           <label class="field">
-            <span>Profil</span>
-            <select class="ui-field" value={profileId} onchange={(event) => pickProfile(event.currentTarget.value)} aria-label="Profil">
+            <span>{t("importPage.profile")}</span>
+            <select class="ui-field" value={profileId} onchange={(event) => pickProfile(event.currentTarget.value)} aria-label={t("importPage.profile")}>
               {#each source.profiles as candidate (candidate.id)}<option value={candidate.id}>{candidate.name}</option>{/each}
             </select>
           </label>
@@ -116,7 +117,7 @@
           </div>
         {/if}
         <div class="actions">
-          <Button variant="primary" icon="import" disabled={busy || !items.size} onclick={run}>Importer</Button>
+          <Button variant="primary" icon="import" disabled={busy || !items.size} onclick={run}>{t("importPage.import")}</Button>
           {#if progress}<span class="hint" role="status">{progress}</span>{/if}
         </div>
         {#if summary}
@@ -126,7 +127,7 @@
               {#if summary.bookmarks}<li>{plural(summary.bookmarks.added, "favori")} importé{summary.bookmarks.added > 1 ? "s" : ""}{summary.bookmarks.skipped ? `, ${summary.bookmarks.skipped} déjà présent${summary.bookmarks.skipped > 1 ? "s" : ""}` : ""}</li>{/if}
               {#if summary.history}<li>{plural(summary.history.added, "page")} ajoutée{summary.history.added > 1 ? "s" : ""} à l'historique{summary.history.merged ? `, ${summary.history.merged} déjà connue${summary.history.merged > 1 ? "s" : ""}` : ""}</li>{/if}
               {#if summary.favorites}<li>{plural(summary.favorites.added, "page")} dans la grille des favoris</li>{/if}
-              {#if summary.searchEngine !== undefined}<li>{summary.searchEngine ? `Moteur de recherche : ${summary.searchEngine}` : "Moteur de recherche non reconnu, inchangé"}</li>{/if}
+              {#if summary.searchEngine !== undefined}<li>{summary.searchEngine ? t("importPage.searchEngine", { searchEngine: summary.searchEngine }) : t("importPage.searchEngineNotRecognized")}</li>{/if}
               {#if summary.message}<li>{summary.message}</li>{/if}
             </ul>
           </div>
@@ -135,14 +136,12 @@
     {/if}
 
     <section class="ui-section">
-      <h2 class="ui-section-title">Mots de passe</h2>
+      <h2 class="ui-section-title">{t("importPage.passwords")}</h2>
       <p class="hint">
-        Les navigateurs chiffrent leurs mots de passe avec une clé du système (ou leur propre coffre) qu'aucune autre application ne devrait lire.
-        Exportez-les plutôt en CSV depuis l'autre navigateur (Chrome, Edge : Gestionnaire de mots de passe, Paramètres, Exporter ; Firefox :
-        Mots de passe, menu « … », Exporter), importez le fichier ici, puis supprimez-le.
+        {t("importPage.browsersEncryptTheirPasswords")}
       </p>
       <div class="actions">
-        <Button icon="file-spreadsheet" onclick={importPasswords}>Choisir un fichier CSV…</Button>
+        <Button icon="file-spreadsheet" onclick={importPasswords}>{t("importPage.chooseCsvFile")}</Button>
       </div>
       {#if passwords && !passwords.cancelled}
         <div class="summary" class:error={!passwords.ok} role="status">

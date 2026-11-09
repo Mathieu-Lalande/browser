@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { dialog, type BaseWindow } from "electron";
 import type { DroppedExtension, ExtensionDetailsInfo, ExtensionInfo, ExtensionInstallResult, ExtensionReview, ExtensionUpdateResult } from "@shared/extensions";
 import type { StoreInstall } from "@shared/webstore-page";
@@ -70,11 +71,11 @@ export async function removeFromStorePage(c: ExtensionWindow, webStoreId: string
   if (!extension) return;
   const { response } = await dialog.showMessageBox(c.window, {
     type: "question",
-    buttons: ["Supprimer", "Annuler"],
+    buttons: [t("extensionsIndex.delete"), t("extensionsIndex.cancel")],
     defaultId: 1,
     cancelId: 1,
-    message: `Supprimer « ${extension.name} » ?`,
-    detail: "L'extension et ses données seront retirées de Browser.",
+    message: t("extensionsIndex.delete2", { name: extension.name }),
+    detail: t("extensionsIndex.extensionDataWillRemoved"),
   });
   if (response === 0) await extensions().remove(extension.id);
 }

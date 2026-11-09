@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { CARD_BRAND_LABELS, maskCardNumber, type AutofillPrompt, type AutofillSuggestions } from "@shared/autofill";
   import type { Bounds, TabId } from "@shared/types";
   import { api } from "../lib/browser.svelte";
@@ -48,15 +49,15 @@
 
   const title = $derived.by(() => {
     if (!prompt) return "";
-    if (prompt.address && prompt.card) return "Enregistrer cette adresse et cette carte ?";
-    if (prompt.card) return prompt.card.update ? "Mettre à jour cette carte ?" : "Enregistrer cette carte ?";
-    return prompt.address?.update ? "Mettre à jour cette adresse ?" : "Enregistrer cette adresse ?";
+    if (prompt.address && prompt.card) return t("autofillPanel.saveAddressCard");
+    if (prompt.card) return prompt.card.update ? t("autofillPanel.updateCard") : t("autofillPanel.saveCard");
+    return prompt.address?.update ? t("autofillPanel.updateAddress") : t("autofillPanel.saveAddress");
   });
 
   async function answer(choice: "save" | "later"): Promise<void> {
     if (!captureId || busy) return;
     busy = true;
-    const result = await api.autofill.answer(captureId, choice).catch(() => ({ ok: false as const, message: "Rien n'a été enregistré." }));
+    const result = await api.autofill.answer(captureId, choice).catch(() => ({ ok: false as const, message: t("autofillPanel.nothingWasSaved") }));
     busy = false;
     if (result.ok) onClose(false);
     else error = result.message;
@@ -68,7 +69,7 @@
     const filled = await api.autofill.fill(tabId, id).catch(() => false);
     busy = false;
     if (filled) onClose(false);
-    else error = "Ce formulaire n'a pas pu être rempli.";
+    else error = t("autofillPanel.formCouldntFilled");
   }
 
   /** Arrow keys move between the entries (the list is a menu). */
@@ -93,7 +94,7 @@
   use:dismiss={{ onDismiss: () => onClose(true) }}
   class="panel"
   role="dialog"
-  aria-label={kind === "save" ? "Enregistrer pour les formulaires" : "Remplir le formulaire"}
+  aria-label={kind === "save" ? t("autofillPanel.saveForms") : t("autofillPanel.fillForm")}
   tabindex="-1"
   onkeydown={onKeydown}
   style:left="{position.left}px"
@@ -115,14 +116,14 @@
         <span>{CARD_BRAND_LABELS[prompt.card.brand]} {maskCardNumber(prompt.card.last4)} · {expiry(prompt.card.expMonth, prompt.card.expYear)}</span>
       </p>
     {/if}
-    <p class="hint">Chiffré et enregistré sur cet appareil. Le code de sécurité n'est jamais enregistré.</p>
+    <p class="hint">{t("autofillPanel.encryptedSavedDeviceSecurity")}</p>
     {#if error}<p class="error" role="alert"><Icon name="warning" size={12} /> {error}</p>{/if}
     <div class="buttons">
-      <Button variant="quiet" size="sm" disabled={busy} onclick={() => answer("later")}>Plus tard</Button>
-      <Button variant="primary" size="sm" disabled={busy} onclick={() => answer("save")}>Enregistrer</Button>
+      <Button variant="quiet" size="sm" disabled={busy} onclick={() => answer("later")}>{t("autofillPanel.later")}</Button>
+      <Button variant="primary" size="sm" disabled={busy} onclick={() => answer("save")}>{t("autofillPanel.save")}</Button>
     </div>
   {:else if kind === "fill" && suggestions}
-    <ul class="entries" aria-label={suggestions.section === "card" ? "Cartes enregistrées" : "Adresses enregistrées"}>
+    <ul class="entries" aria-label={suggestions.section === "card" ? t("autofillPanel.savedCards") : t("autofillPanel.savedAddresses")}>
       {#each suggestions.addresses as address (address.id)}
         <li>
           <button disabled={busy} onclick={() => fill(address.id)}>
@@ -145,10 +146,10 @@
     </ul>
     {#if error}<p class="error" role="alert"><Icon name="warning" size={12} /> {error}</p>{/if}
     <div class="buttons">
-      <Button variant="quiet" size="sm" onclick={() => (api.commands.run("open-settings"), onClose(false))}>Gérer les adresses et cartes</Button>
+      <Button variant="quiet" size="sm" onclick={() => (api.commands.run("open-settings"), onClose(false))}>{t("autofillPanel.manageAddressesCards")}</Button>
     </div>
   {:else if loaded}
-    <p class="hint">Cette demande n'est plus disponible.</p>
+    <p class="hint">{t("autofillPanel.requestNoLongerAvailable")}</p>
   {/if}
 </div>
 

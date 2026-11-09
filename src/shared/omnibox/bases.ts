@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { fold } from "../fuzzy";
 
 /** "255 en hexa", "0xff en binaire", "0b1010 en décimal": integers between number bases. */
@@ -17,7 +18,7 @@ const BASE_NAMES: Record<string, Base> = {
   dec: 10,
 };
 
-export const BASE_LABELS: Record<Base, string> = { 2: "binaire", 8: "octal", 10: "décimal", 16: "hexadécimal" };
+export const BASE_LABELS: Record<Base, string> = { 2: "binaire", 8: "octal", get 10() { return t("omniboxBases.decimal") }, get 16() { return t("omniboxBases.hexadecimal") } };
 
 const PATTERN = /^(-?)(0x[\da-f]+|0b[01]+|0o[0-7]+|\d+)\s+(?:en|in|to|vers|→|->)\s+([a-z]+)\s*$/;
 

@@ -8,6 +8,8 @@
  * Modifiers as stored. "Cmd" is macOS's Command key, "Super" the Windows/Meta key elsewhere
  * (Electron maps it to Command on macOS), "CmdOrCtrl" is Command on macOS and Ctrl elsewhere.
  */
+import { t } from "./i18n";
+
 export type Modifier = "CmdOrCtrl" | "Cmd" | "Super" | "Ctrl" | "Alt" | "Shift";
 
 export interface ParsedAccelerator {
@@ -145,14 +147,14 @@ const KEY_NAMES: Record<string, string> = {
   Up: "↑",
   Down: "↓",
   Enter: "↵",
-  Escape: "Échap",
-  Space: "Espace",
-  Backspace: "Retour arrière",
+  get Escape() { return t("accelerators.esc") },
+  get Space() { return t("accelerators.space") },
+  get Backspace() { return t("accelerators.backspace") },
   Delete: "Suppr",
   Insert: "Inser",
-  PageUp: "Page préc.",
+  get PageUp() { return t("accelerators.pageUp") },
   PageDown: "Page suiv.",
-  Home: "Début",
+  get Home() { return t("accelerators.home") },
   End: "Fin",
   Tab: "Tab",
 };

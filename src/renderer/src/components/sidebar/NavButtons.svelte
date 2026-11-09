@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { api, browser } from "../../lib/browser.svelte";
   import IconButton from "../ui/IconButton.svelte";
 
@@ -11,26 +12,26 @@
 </script>
 
 <nav class="nav">
-  <IconButton icon="back" label="Précédent" command="back" disabled={!tab?.canGoBack} onclick={() => tab && api.tabs.back(tab.id)} />
-  <IconButton icon="forward" label="Suivant" command="forward" disabled={!tab?.canGoForward} onclick={() => tab && api.tabs.forward(tab.id)} />
+  <IconButton icon="back" label={t("navButtons.back")} command="back" disabled={!tab?.canGoBack} onclick={() => tab && api.tabs.back(tab.id)} />
+  <IconButton icon="forward" label={t("navButtons.forward")} command="forward" disabled={!tab?.canGoForward} onclick={() => tab && api.tabs.forward(tab.id)} />
   {#if tab?.isLoading}
-    <IconButton icon="stop" label="Arrêter" title="Arrêter le chargement" onclick={() => tab && api.tabs.stop(tab.id)} />
+    <IconButton icon="stop" label={t("navButtons.stop")} title={t("navButtons.stopLoading")} onclick={() => tab && api.tabs.stop(tab.id)} />
   {:else}
-    <IconButton icon="reload" label="Actualiser" command="reload" disabled={!tab?.url} onclick={() => tab && api.tabs.reload(tab.id)} />
+    <IconButton icon="reload" label={t("navButtons.reload")} command="reload" disabled={!tab?.url} onclick={() => tab && api.tabs.reload(tab.id)} />
   {/if}
   <div class="spacer"></div>
   <IconButton
     icon="split"
     on={split}
-    label={split ? "Quitter la vue scindée" : "Vue scindée"}
-    title={split ? "Quitter la vue scindée" : "Vue scindée : afficher deux onglets côte à côte"}
+    label={split ? t("navButtons.leaveSplitView") : t("navButtons.splitView")}
+    title={split ? t("navButtons.leaveSplitView") : t("navButtons.splitViewShowTwo")}
     command="toggle-split"
     onclick={() => api.commands.run("toggle-split")}
   />
   <IconButton
     icon="command"
-    label="Barre universelle"
-    title="Barre universelle : onglets, pages, actions, réglages et calculs"
+    label={t("navButtons.universalBar")}
+    title={t("navButtons.universalBarTabsPages")}
     command="command-palette"
     onclick={() => api.commands.run("command-palette")}
   />

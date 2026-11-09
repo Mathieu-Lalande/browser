@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { api } from "../../lib/browser.svelte";
   import Icon from "../../components/Icon.svelte";
 
@@ -20,11 +21,11 @@
   <span class="badge" class:warn={!secure}><Icon name={secure ? "lock" : "warning"} size={16} /></span>
   <div class="heading">
     <h2>{host}</h2>
-    <p class:warn-text={!secure}>{secure ? "Connexion sécurisée" : "Connexion non sécurisée"}</p>
+    <p class:warn-text={!secure}>{secure ? t("siteInfoHeader.secureConnection") : t("siteInfoHeader.notSecureConnection")}</p>
   </div>
-  <button class="copy" class:done={copied} onclick={copyLink} aria-label={copied ? "Lien copié" : "Copier le lien"} title={copied ? "Lien copié" : "Copier le lien"}>
+  <button class="copy" class:done={copied} onclick={copyLink} aria-label={copied ? t("siteInfoHeader.linkCopied") : t("siteInfoHeader.copyLink")} title={copied ? t("siteInfoHeader.linkCopied") : t("siteInfoHeader.copyLink")}>
     {#key copied}<span class="glyph"><Icon name={copied ? "check" : "link"} size={14} /></span>{/key}
-    <span>{copied ? "Lien copié" : "Copier le lien"}</span>
+    <span>{copied ? t("siteInfoHeader.linkCopied") : t("siteInfoHeader.copyLink")}</span>
   </button>
 </header>
 

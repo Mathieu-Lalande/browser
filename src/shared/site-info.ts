@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import type { PermissionKind } from "./types";
 
 /**
@@ -98,16 +99,16 @@ export function cookieCount(count: number): string {
 
 /** French names of the permissions, for the site info popover. */
 export const PERMISSION_LABELS: Record<PermissionKind, string> = {
-  camera: "Caméra",
+  get camera() { return t("siteInfo.camera") },
   microphone: "Micro",
   geolocation: "Position",
   notifications: "Notifications",
   midi: "Appareils MIDI",
-  "midi-sysex": "Appareils MIDI (contrôle complet)",
-  "clipboard-read": "Lecture du presse-papiers",
-  "display-capture": "Capture d'écran",
-  "idle-detection": "Détection d'inactivité",
-  "window-management": "Gestion des fenêtres",
-  "storage-access": "Accès au stockage",
-  "local-fonts": "Polices installées",
+  get "midi-sysex"() { return t("siteInfo.midiDevicesFullControl") },
+  get "clipboard-read"() { return t("siteInfo.clipboardReading") },
+  get "display-capture"() { return t("siteInfo.screenCapture") },
+  get "idle-detection"() { return t("siteInfo.idleDetection") },
+  get "window-management"() { return t("siteInfo.windowManagement") },
+  get "storage-access"() { return t("siteInfo.storageAccess") },
+  get "local-fonts"() { return t("siteInfo.installedFonts") },
 };

@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { memo, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
@@ -21,7 +22,7 @@ export const FolderNameSheet = memo(function FolderNameSheet({ initial, onSave, 
   return (
     <View style={StyleSheet.absoluteFill}>
       <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: colors.scrim }]}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Annuler" />
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel={t("mobile.folderNameSheet.cancel")} />
       </Animated.View>
       <KeyboardAvoidingView behavior="padding" style={styles.avoid} pointerEvents="box-none">
         <Animated.View
@@ -31,10 +32,10 @@ export const FolderNameSheet = memo(function FolderNameSheet({ initial, onSave, 
           <View style={[styles.grabber, { backgroundColor: colors.border }]} />
           <View style={styles.header}>
             <Text style={[styles.title, { color: colors.text }]} accessibilityRole="header">
-              Renommer le dossier
+              {t("mobile.folderNameSheet.renameFolder")}
             </Text>
             <Tap accessibilityRole="button" onPress={save} style={styles.ok} pressScale={0.9}>
-              <Text style={[styles.okText, { color: colors.accentText }]}>OK</Text>
+              <Text style={[styles.okText, { color: colors.accentText }]}>{t("mobile.folderNameSheet.ok")}</Text>
             </Tap>
           </View>
           <View style={[styles.field, { backgroundColor: colors.surface }]}>
@@ -47,9 +48,9 @@ export const FolderNameSheet = memo(function FolderNameSheet({ initial, onSave, 
               autoFocus
               selectTextOnFocus
               style={[styles.input, { color: colors.text }]}
-              placeholder="Nom du dossier"
+              placeholder={t("mobile.folderNameSheet.folderName")}
               placeholderTextColor={colors.textFaint}
-              accessibilityLabel="Nom du dossier"
+              accessibilityLabel={t("mobile.folderNameSheet.folderName")}
               returnKeyType="done"
             />
           </View>

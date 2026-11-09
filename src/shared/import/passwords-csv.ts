@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { MAX_PASSWORD, MAX_USERNAME, passwordOrigin, type PasswordCapture } from "../passwords";
 
 /**
@@ -78,7 +79,7 @@ export function parsePasswordCsv(text: string): PasswordCsv {
   const url = column(COLUMNS.url);
   const username = column(COLUMNS.username);
   const password = column(COLUMNS.password);
-  if (url === -1 || password === -1) return { entries: [], invalid: 0, error: "Ce fichier n'est pas un export de mots de passe (colonnes « url » et « password » introuvables)." };
+  if (url === -1 || password === -1) return { entries: [], invalid: 0, error: t("importPasswordsCsv.fileIsntPasswordExport") };
   const found = new Map<string, PasswordCapture>();
   let invalid = 0;
   for (const cells of rows) {

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { LIMITS, addTodo, clearDoneTodos, removeTodo, toggleTodo, type TodoItem } from "@shared/start-widgets";
   import Checkbox from "../../ui/Checkbox.svelte";
   import IconButton from "../../ui/IconButton.svelte";
@@ -21,20 +22,20 @@
   }
 </script>
 
-<h2 class="widget-title">À faire {#if items.length}<span class="count">{done}/{items.length}</span>{/if}</h2>
+<h2 class="widget-title">{t("todoWidget.do")} {#if items.length}<span class="count">{done}/{items.length}</span>{/if}</h2>
 <form onsubmit={submit}>
-  <input class="ui-field" bind:value={draft} maxlength={LIMITS.todoText} placeholder="Ajouter une tâche" aria-label="Nouvelle tâche" disabled={items.length >= LIMITS.todoItems} />
+  <input class="ui-field" bind:value={draft} maxlength={LIMITS.todoText} placeholder={t("todoWidget.addTask")} aria-label={t("todoWidget.newTask")} disabled={items.length >= LIMITS.todoItems} />
 </form>
 <ul>
   {#each shown as item (item.id)}
     <li class:done={item.done}>
       <Checkbox checked={item.done} onchange={() => save(toggleTodo(items, item.id))}>{item.text}</Checkbox>
-      <IconButton icon="close" size="sm" label="Supprimer « {item.text} »" onclick={() => save(removeTodo(items, item.id))} />
+      <IconButton icon="close" size="sm" label={t("todoWidget.delete", { text: item.text })} onclick={() => save(removeTodo(items, item.id))} />
     </li>
   {/each}
 </ul>
 {#if done > 0}
-  <button class="clear" onclick={() => save(clearDoneTodos(items))}>Effacer les tâches terminées</button>
+  <button class="clear" onclick={() => save(clearDoneTodos(items))}>{t("todoWidget.clearCompletedTasks")}</button>
 {/if}
 
 <style>

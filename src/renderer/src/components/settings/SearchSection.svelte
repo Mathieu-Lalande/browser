@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { SettingsPatch } from "@shared/settings";
   import { SEARCH_ENGINES } from "@shared/url";
   import { settings } from "../../lib/settings.svelte";
@@ -10,8 +11,8 @@
   const update = (patch: SettingsPatch) => settings.update(patch);
 </script>
 
-<Row anchor="engine" label="Moteur de recherche" hint="Utilisé quand le texte saisi n'est pas une adresse." keywords="google duckduckgo bing qwant ecosia" stacked>
-<div class="engines" role="radiogroup" aria-label="Moteur de recherche">
+<Row anchor="engine" label={t("searchSection.searchEngine")} hint={t("searchSection.usedWhenTextYou")} keywords={t("searchSection.googleDuckduckgoBingQwant")} stacked>
+<div class="engines" role="radiogroup" aria-label={t("searchSection.searchEngine")}>
   {#each SEARCH_ENGINES as engine (engine.id)}
     <button
       class="engine"

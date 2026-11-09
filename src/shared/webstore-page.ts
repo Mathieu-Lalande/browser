@@ -12,15 +12,17 @@
  */
 
 /** Steps of a store install, shown on the page's button, the address bar and the store bar. */
+import { t } from "./i18n";
+
 export type StoreInstallPhase = "download" | "verify" | "review" | "install";
 
 /** A store install in progress, or the last one that failed (cleared by the next attempt). */
 export type StoreInstall = { webStoreId: string; phase: StoreInstallPhase } | { webStoreId: string; phase: "error"; message: string };
 
 export const STORE_PHASE_LABELS: Record<StoreInstallPhase, string> = {
-  download: "Téléchargement…",
-  verify: "Vérification…",
-  review: "En attente de votre accord…",
+  get download() { return t("webstorePage.downloading") },
+  get verify() { return t("webstorePage.verifying") },
+  get review() { return t("webstorePage.waitingApproval") },
   install: "Installation…",
 };
 
@@ -37,7 +39,7 @@ export interface StoreButtonState {
 
 export function storeButtonState(id: string, installed: boolean, progress: StoreInstall | null | undefined): StoreButtonState {
   if (progress && progress.phase !== "error") return { id, action: null, label: STORE_PHASE_LABELS[progress.phase], message: null };
-  if (installed) return { id, action: "remove", label: "Supprimer de Browser", message: null };
+  if (installed) return { id, action: "remove", label: t("webstorePage.removeFromBrowser"), message: null };
   if (progress?.phase === "error") return { id, action: "install", label: "Réessayer", message: progress.message };
   return { id, action: "install", label: "Ajouter à Browser", message: null };
 }

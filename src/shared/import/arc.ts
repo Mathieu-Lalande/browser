@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { cleanText, isImportableUrl, MAX_FOLDER_DEPTH, MAX_IMPORTED_BOOKMARKS, type ImportedBookmark, type ImportedFavorite } from "./types";
 
 /**
@@ -54,7 +55,7 @@ export function parseArcSidebar(data: unknown): ArcSidebar {
 
   const spaces: ArcSidebar["spaces"] = [];
   for (const space of objects<Space>(container.spaces)) {
-    const title = cleanText(space.title) || "Espace";
+    const title = cleanText(space.title) || t("importArc.space");
     const containerIds = Array.isArray(space.containerIDs) ? space.containerIDs : [];
     const pinnedAt = containerIds.indexOf("pinned");
     const pinned = pinnedAt >= 0 ? containerIds[pinnedAt + 1] : undefined;

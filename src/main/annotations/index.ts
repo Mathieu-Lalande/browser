@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { randomUUID } from "node:crypto";
 import { writeFile } from "node:fs/promises";
 import { clipboard, dialog, type WebContents } from "electron";
@@ -84,8 +85,8 @@ export function setProfileAnnotations(next: AnnotationsData): void {
   profileBook.save(next);
 }
 
-const PRIVATE_NOTICE = "Fenêtre privée : ces notes restent en mémoire et disparaîtront à la fermeture de la fenêtre.";
-const NO_SELECTION = "Sélectionnez du texte dans la page pour le surligner.";
+const PRIVATE_NOTICE = t("annotationsIndex.privateWindowTheseNotes");
+const NO_SELECTION = t("annotationsIndex.selectTextPageHighlight");
 
 /** The color of the next highlight made without choosing one (the shortcut): the last one chosen. */
 let lastColor: HighlightColor = "yellow";
@@ -152,12 +153,12 @@ export class PageAnnotator {
   /** "Surligner" (page menu, shortcut, notes panel): the tab's selection becomes a highlight. */
   async highlightSelection(tabId: TabId, color: HighlightColor = lastColor): Promise<AnnotationResult> {
     const page = this.page(tabId);
-    if (!page) return { ok: false, message: "Cette page ne peut pas être annotée." };
+    if (!page) return { ok: false, message: t("annotationsIndex.pageCantAnnotated") };
     const captured = await captureSelection(page.contents);
     if (!captured) return { ok: false, message: NO_SELECTION };
     const id = randomUUID();
     const next = addHighlight(this.book.data, { id, url: page.url, title: page.title, quote: captured.quote, color, now: Date.now() });
-    if (!next) return { ok: false, message: "Trop de surlignages : supprimez-en dans browser://notes." };
+    if (!next) return { ok: false, message: t("annotationsIndex.tooManyHighlightsDelete") };
     lastColor = color;
     this.book.save(next);
     // The selection is drawn now: deselect so the highlight shows.
@@ -247,7 +248,7 @@ export class PageAnnotator {
   async exportAs(format: AnnotationExportFormat): Promise<AnnotationResult | null> {
     const markdown = format === "markdown";
     const { canceled, filePath } = await dialog.showSaveDialog(this.c.window, {
-      title: "Exporter les notes",
+      title: t("annotationsIndex.exportNotes"),
       defaultPath: markdown ? "notes.md" : "notes.json",
       filters: markdown ? [{ name: "Markdown", extensions: ["md"] }] : [{ name: "JSON", extensions: ["json"] }],
     });
@@ -256,7 +257,7 @@ export class PageAnnotator {
       await writeFile(filePath, markdown ? annotationsToMarkdown(this.book.data) : annotationsToJson(this.book.data), "utf8");
       return { ok: true, id: "" };
     } catch {
-      return { ok: false, message: "L'exportation a échoué." };
+      return { ok: false, message: t("annotationsIndex.exportFailed") };
     }
   }
 }

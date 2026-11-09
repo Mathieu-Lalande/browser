@@ -1,3 +1,4 @@
+import { t as tr } from "@shared/i18n";
 import {
   EMPTY_AUTOFILL,
   fillPlan,
@@ -71,7 +72,7 @@ export class AutofillStore {
   private commit(next: AutofillData): Promise<void> {
     this.data = next;
     for (const listener of this.listeners) listener();
-    this.writing = this.writing.then(() => writeChunks(this.store, PREFIX, next, this.options, "Trop d'adresses et de cartes enregistrées.")).catch(() => {});
+    this.writing = this.writing.then(() => writeChunks(this.store, PREFIX, next, this.options, tr("mobile.autofill.tooManyAddressesCards"))).catch(() => {});
     return this.writing;
   }
 

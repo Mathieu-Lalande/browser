@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { crashSizeText, type CrashReportsInfo } from "@shared/diagnostics";
   import { api, browser } from "../../lib/browser.svelte";
   import { settings } from "../../lib/settings.svelte";
@@ -30,14 +31,14 @@
   const date = (ms: number) => new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(ms));
   const hint = $derived(
     info && !info.endpointHost
-      ? "Cette version n'a pas de serveur de rapports : les plantages restent sur cet appareil."
+      ? t("diagnosticsSection.versionHasNoReport")
       : `Envoie le rapport technique d'un plantage${info?.endpointHost ? ` à ${info.endpointHost}` : ""}. Désactivé par défaut.`,
   );
 </script>
 
-<Row anchor="crash-reports" label="Envoyer les rapports de plantage" {hint} keywords="crash plantage rapport minidump sentry bug diagnostic">
+<Row anchor="crash-reports" label={t("diagnosticsSection.sendCrashReports")} {hint} keywords={t("diagnosticsSection.crashReportMinidumpSentry")}>
   <Toggle
-    label="Envoyer les rapports de plantage"
+    label={t("diagnosticsSection.sendCrashReports")}
     checked={enabled}
     onchange={(crashReports) => settings.update({ diagnostics: { crashReports } })}
   />
@@ -48,27 +49,27 @@
   identifiant n'y est ajouté, et rien n'est envoyé sans votre accord.{info?.uploading ? " Envoi activé." : ""}
 </p>
 
-<Row anchor="crashes" label="Derniers plantages" hint="Conservés sur cet appareil, même sans envoi." stacked keywords="crash plantage historique">
+<Row anchor="crashes" label={t("diagnosticsSection.recentCrashes")} hint={t("diagnosticsSection.keptDeviceEvenWithout")} stacked keywords={t("diagnosticsSection.crashHistory")}>
   {#if info?.crashes.length}
     <ul class="crashes" data-testid="crash-list">
       {#each info.crashes as crash (crash.id)}
         <li>
           <span>{date(crash.date)}</span>
-          <span class="muted">{crashSizeText(crash.sizeBytes)}{crash.state === "pending" ? " · en attente" : ""}</span>
+          <span class="muted">{crashSizeText(crash.sizeBytes)}{crash.state === "pending" ? t("diagnosticsSection.pending") : ""}</span>
         </li>
       {/each}
     </ul>
     <div class="actions">
-      {#if info.uploadedCount}<span class="muted">{info.uploadedCount} rapport{info.uploadedCount > 1 ? "s" : ""} envoyé{info.uploadedCount > 1 ? "s" : ""}</span>{/if}
-      <Button variant="quiet" icon="trash" disabled={browser.isPrivate} onclick={clear}>Effacer les rapports</Button>
+      {#if info.uploadedCount}<span class="muted">{t("diagnosticsSection.reportsSent", { uploadedCount: info.uploadedCount })}</span>{/if}
+      <Button variant="quiet" icon="trash" disabled={browser.isPrivate} onclick={clear}>{t("diagnosticsSection.clearReports")}</Button>
     </div>
   {:else}
-    <p class="muted" data-testid="crash-list-empty">Aucun plantage enregistré.</p>
+    <p class="muted" data-testid="crash-list-empty">{t("diagnosticsSection.noCrashesRecorded")}</p>
   {/if}
 </Row>
 
-<Row anchor="report-issue" label="Signaler un problème" hint="Ouvre le formulaire sur GitHub, prérempli avec la version et le système (rien d'autre).">
-  <Button icon="bug" onclick={() => api.commands.run("report-issue")}>Signaler un problème</Button>
+<Row anchor="report-issue" label={t("diagnosticsSection.reportProblem")} hint={t("diagnosticsSection.opensFormGithubPrefilled")}>
+  <Button icon="bug" onclick={() => api.commands.run("report-issue")}>{t("diagnosticsSection.reportProblem")}</Button>
 </Row>
 
 <style>

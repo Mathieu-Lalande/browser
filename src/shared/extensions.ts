@@ -4,6 +4,8 @@
  */
 
 /** An installed extension, as `browser://extensions` lists it. */
+import { t } from "./i18n";
+
 export interface ExtensionInfo {
   /** Our own Chrome-style id (32 letters a–p), stable across launches. */
   id: string;
@@ -92,19 +94,19 @@ function bestIcon(icons: unknown): string | null {
  */
 export function validateManifest(raw: unknown, messages: Record<string, unknown> | null = null): ManifestCheck {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
-    return { ok: false, message: "Le fichier manifest.json de l'extension est illisible." };
+    return { ok: false, message: t("extensions.extensionsManifestJsonFile") };
   }
   const manifest = raw as Record<string, unknown>;
   const manifestVersion = manifest.manifest_version;
   if (manifestVersion !== 2 && manifestVersion !== 3) {
-    return { ok: false, message: "Version de manifeste non prise en charge : seules les extensions Manifest V2 et V3 sont acceptées." };
+    return { ok: false, message: t("extensions.unsupportedManifestVersionOnly") };
   }
   const name = typeof manifest.name === "string" ? localizeMessage(manifest.name, messages).trim() : "";
-  if (!name || name.startsWith("__MSG_")) return { ok: false, message: "Le manifeste de l'extension ne donne pas de nom." };
-  if (name.length > MAX_NAME_LENGTH) return { ok: false, message: "Le nom de l'extension est trop long." };
+  if (!name || name.startsWith("__MSG_")) return { ok: false, message: t("extensions.extensionsManifestDoesntGive") };
+  if (name.length > MAX_NAME_LENGTH) return { ok: false, message: t("extensions.extensionsNameTooLong") };
   const version = typeof manifest.version === "string" ? manifest.version.trim() : "";
   if (!isVersion(version)) {
-    return { ok: false, message: "Le manifeste de l'extension n'a pas de version valide (par exemple « 1.2.0 »)." };
+    return { ok: false, message: t("extensions.extensionsManifestHasNo") };
   }
   const description = typeof manifest.description === "string" ? localizeMessage(manifest.description, messages).trim() : "";
   return {
@@ -183,37 +185,37 @@ export function manifestAction(raw: unknown, messages: Record<string, unknown> |
 /** Host patterns meaning "every site". */
 const ALL_SITES = new Set(["<all_urls>", "*://*/*", "http://*/*", "https://*/*", "*://*/", "http://*/", "https://*/"]);
 const MAX_LISTED_HOSTS = 3;
-const ALL_SITES_LABEL = "Lire et modifier toutes vos données sur tous les sites";
+const ALL_SITES_LABEL = t("extensions.readChangeAllData");
 
 /** Chrome's permission warnings, in French; permissions without a warning (storage, alarms…) are absent. */
 const PERMISSION_LABELS: Record<string, string> = {
-  tabs: "Lire votre historique de navigation",
-  history: "Lire et modifier votre historique de navigation",
-  topSites: "Lire la liste de vos sites les plus visités",
-  bookmarks: "Lire et modifier vos favoris",
-  downloads: "Gérer vos téléchargements",
-  "downloads.open": "Ouvrir les fichiers téléchargés",
-  clipboardRead: "Lire les données copiées dans le presse-papiers",
-  clipboardWrite: "Modifier les données copiées dans le presse-papiers",
-  notifications: "Afficher des notifications",
-  geolocation: "Connaître votre position géographique",
-  webRequest: "Observer le trafic des pages",
-  webRequestBlocking: "Bloquer ou modifier les requêtes des pages",
-  declarativeNetRequest: "Bloquer du contenu sur n'importe quelle page",
-  declarativeNetRequestFeedback: "Lire votre historique de navigation",
-  management: "Gérer vos applications, extensions et thèmes",
-  nativeMessaging: "Communiquer avec des applications installées sur l'ordinateur",
-  privacy: "Modifier vos paramètres de confidentialité",
+  get tabs() { return t("extensions.readBrowsingHistory") },
+  get history() { return t("extensions.readChangeBrowsingHistory") },
+  get topSites() { return t("extensions.readListMostVisited") },
+  get bookmarks() { return t("extensions.readChangeBookmarks") },
+  get downloads() { return t("extensions.manageDownloads") },
+  get "downloads.open"() { return t("extensions.openDownloadedFiles") },
+  get clipboardRead() { return t("extensions.readDataCopiedClipboard") },
+  get clipboardWrite() { return t("extensions.changeDataCopiedClipboard") },
+  get notifications() { return t("extensions.showNotifications") },
+  get geolocation() { return t("extensions.knowGeographicLocation") },
+  get webRequest() { return t("extensions.observePagesTraffic") },
+  get webRequestBlocking() { return t("extensions.blockChangePagesRequests") },
+  get declarativeNetRequest() { return t("extensions.blockContentAnyPage") },
+  get declarativeNetRequestFeedback() { return t("extensions.readBrowsingHistory") },
+  get management() { return t("extensions.manageAppsExtensionsThemes") },
+  get nativeMessaging() { return t("extensions.communicateAppsInstalledComputer") },
+  get privacy() { return t("extensions.changePrivacySettings") },
   proxy: ALL_SITES_LABEL,
   pageCapture: ALL_SITES_LABEL,
-  debugger: "Accéder au débogueur des pages",
-  contentSettings: "Modifier les autorisations des sites (cookies, JavaScript, caméra…)",
-  desktopCapture: "Capturer le contenu de votre écran",
-  "identity.email": "Connaître votre adresse e-mail",
-  ttsEngine: "Lire tout le texte prononcé par synthèse vocale",
-  sessions: "Lire votre historique de navigation",
-  readingList: "Lire et modifier les entrées de votre liste de lecture",
-  favicon: "Lire les icônes des sites que vous visitez",
+  get debugger() { return t("extensions.accessPagesDebugger") },
+  get contentSettings() { return t("extensions.changeSitePermissionsCookies") },
+  get desktopCapture() { return t("extensions.captureContentScreen") },
+  get "identity.email"() { return t("extensions.knowEmailAddress") },
+  get ttsEngine() { return t("extensions.readAllTextSpoken") },
+  get sessions() { return t("extensions.readBrowsingHistory") },
+  get readingList() { return t("extensions.readChangeReadingList") },
+  get favicon() { return t("extensions.readIconsSitesYou") },
 };
 
 /** The host of a match pattern (`*://*.example.com/*` → `example.com`), or null when it is not a host pattern. */
@@ -247,7 +249,7 @@ export function permissionLabels(raw: unknown): string[] {
     const hosts = [...new Set(patterns.map(patternHost).filter((host): host is string => !!host))].sort();
     const more = hosts.length - MAX_LISTED_HOSTS;
     if (hosts.length) {
-      const others = more > 0 ? ` et ${more} autre${more > 1 ? "s" : ""} site${more > 1 ? "s" : ""}` : "";
+      const others = more > 0 ? t("extensions.otherSites", { more }) : "";
       labels.add(`Lire et modifier vos données sur ${hosts.slice(0, MAX_LISTED_HOSTS).join(", ")}${others}`);
     }
   }
@@ -273,7 +275,7 @@ export function manifestHosts(raw: unknown): string[] {
       if (typeof script === "object" && script !== null) patterns.push(...strings((script as Record<string, unknown>).matches));
     }
   }
-  if (patterns.some((pattern) => ALL_SITES.has(pattern))) return ["Tous les sites"];
+  if (patterns.some((pattern) => ALL_SITES.has(pattern))) return [t("extensions.allSites")];
   return [...new Set(patterns.map(patternHost).filter((host): host is string => !!host))].sort();
 }
 

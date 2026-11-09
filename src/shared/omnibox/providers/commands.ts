@@ -1,3 +1,4 @@
+import { t } from "../../i18n";
 import { COMMANDS, commandLabel, isCommandAvailable } from "../../commands";
 import { settingUrl } from "../settings-index";
 import type { Provider, QueryContext, Suggestion } from "../types";
@@ -21,7 +22,7 @@ export class CommandsProvider implements Provider {
             detail: "",
             icon: "command",
             shortcut: context.shortcut?.(command.id) ?? [],
-            verb: "Exécuter",
+            verb: t("providersCommands.run"),
             completion: commandLabel(command, context.commandContext),
             action: { type: "command", command },
           },
@@ -47,9 +48,9 @@ export class SettingsProvider implements Provider {
           {
             key: `setting:${entry.anchor}`,
             title: entry.label,
-            detail: `Paramètres › ${entry.section}`,
+            detail: t("providersCommands.settings", { section: entry.section }),
             icon: "settings",
-            verb: "Afficher le réglage",
+            verb: t("providersCommands.showSetting"),
             completion: entry.label,
             action: { type: "open", url: settingUrl(entry) },
           },

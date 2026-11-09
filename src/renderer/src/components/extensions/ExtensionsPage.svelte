@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import Card from "../ui/Card.svelte";
   import type { DroppedExtension, ExtensionInfo, ExtensionInstallResult } from "@shared/extensions";
   import { api, browser } from "../../lib/browser.svelte";
@@ -47,7 +48,7 @@
 
   function report(result: ExtensionInstallResult): void {
     if (!result) return;
-    notice = result.ok ? { kind: "success", text: `« ${result.extension.name} » est installée.` } : { kind: "error", text: result.message };
+    notice = result.ok ? { kind: "success", text: t("extensionsPage.installed", { name: result.extension.name }) } : { kind: "error", text: result.message };
     void refresh();
   }
 
@@ -55,7 +56,7 @@
     busy = true;
     notice = null;
     const result = await (kind === "folder" ? api.extensions.installFromFolder() : api.extensions.installFromFile()).catch(
-      (): ExtensionInstallResult => ({ ok: false, message: "L'installation a échoué." }),
+      (): ExtensionInstallResult => ({ ok: false, message: t("extensionsPage.installationFailed") }),
     );
     busy = false;
     report(result);
@@ -71,7 +72,7 @@
   async function checkUpdates(): Promise<void> {
     busy = true;
     notice = null;
-    const result = await api.extensions.checkUpdates().catch(() => ({ ok: false, message: "La vérification des mises à jour a échoué." }));
+    const result = await api.extensions.checkUpdates().catch(() => ({ ok: false, message: t("extensionsPage.checkingUpdatesFailed") }));
     busy = false;
     notice = { kind: result.ok ? "success" : "error", text: result.message };
     void refresh();
@@ -89,12 +90,12 @@
     try {
       dropped = await readDrop(event.dataTransfer);
     } catch {
-      dropped = "Impossible de lire ce qui a été déposé.";
+      dropped = t("extensionsPage.cantReadWhatWas");
     }
     const result: ExtensionInstallResult =
       typeof dropped === "string"
         ? { ok: false, message: dropped }
-        : await api.extensions.installDropped(dropped).catch((): ExtensionInstallResult => ({ ok: false, message: "L'installation a échoué." }));
+        : await api.extensions.installDropped(dropped).catch((): ExtensionInstallResult => ({ ok: false, message: t("extensionsPage.installationFailed") }));
     busy = false;
     report(result);
   }
@@ -105,12 +106,9 @@
 
 {#snippet subtitle()}
   {#if browser.isPrivate}
-    Les extensions se gèrent depuis une fenêtre normale. Elles ne s'appliquent pas aux fenêtres privées.
+    {t("extensionsPage.extensionsAreManagedFrom")}
   {:else}
-    Extensions Chrome (Manifest V2 ou V3) appliquées aux pages de tous vos espaces. Pour en ajouter une, ouvrez sa page sur le
-    Chrome Web Store puis « Ajouter à Browser », ou déposez ici un fichier .crx, .zip ou un dossier. Les scripts de contenu, les
-    fenêtres des boutons d'extension et la plupart des extensions simples fonctionnent ; les badges et les clics sans fenêtre ne sont
-    pas transmis.
+    {t("extensionsPage.chromeExtensionsManifestV2")}
   {/if}
 {/snippet}
 
@@ -130,37 +128,37 @@
   ondrop={drop}
   data-testid="extensions-drop"
 >
-  <Page icon="extension" title="Extensions" {subtitle} testid="extensions-page">
+  <Page icon="extension" title={t("extensionsPage.extensions")} {subtitle} testid="extensions-page">
     {#snippet actions()}
       {#if !browser.isPrivate}
         {#if fromStore}
-          <Button icon="download" disabled={busy} onclick={checkUpdates} title="Installer les nouvelles versions publiées sur le Chrome Web Store">
-            Mettre à jour les extensions
+          <Button icon="download" disabled={busy} onclick={checkUpdates} title={t("extensionsPage.installNewVersionsPublished")}>
+            {t("extensionsPage.updateExtensions")}
           </Button>
         {/if}
-        <Button icon="folder-open" disabled={busy} onclick={() => install("folder")} title="Extension non empaquetée (dossier contenant manifest.json)">
-          Charger un dossier
+        <Button icon="folder-open" disabled={busy} onclick={() => install("folder")} title={t("extensionsPage.unpackedExtensionFolderContaining")}>
+          {t("extensionsPage.loadFolder")}
         </Button>
-        <Button variant="primary" icon="file-archive" disabled={busy} onclick={() => install("file")} title="Archive .zip ou extension .crx">
-          Installer un fichier
+        <Button variant="primary" icon="file-archive" disabled={busy} onclick={() => install("file")} title={t("extensionsPage.zipArchiveCrxExtension")}>
+          {t("extensionsPage.installFile")}
         </Button>
       {/if}
     {/snippet}
 
     {#if extensions.length > 1}
-      <SearchField bind:value={query} label="Rechercher une extension" />
+      <SearchField bind:value={query} label={t("extensionsPage.searchExtension")} />
     {/if}
 
     {#if notice}
       <p class="notice {notice.kind}" role={notice.kind === "error" ? "alert" : "status"}>
         <Icon name={notice.kind === "error" ? "warning" : "check"} size={14} />
         <span>{notice.text}</span>
-        <IconButton size="row" icon="close" iconSize={14} label="Fermer le message" onclick={() => (notice = null)} />
+        <IconButton size="row" icon="close" iconSize={14} label={t("extensionsPage.closeMessage")} onclick={() => (notice = null)} />
       </p>
     {/if}
 
     {#if dragging}
-      <p class="drop-hint" aria-hidden="true"><Icon name="download" size={16} /> Déposez un fichier .crx, .zip ou un dossier pour l'installer</p>
+      <p class="drop-hint" aria-hidden="true"><Icon name="download" size={16} /> {t("extensionsPage.dropCrxZipFile")}</p>
     {/if}
 
     {#if shown.length}
@@ -170,29 +168,28 @@
         {/each}
       </Card>
     {:else if extensions.length}
-      <EmptyState icon="search" title="Aucune extension ne correspond" />
+      <EmptyState icon="search" title={t("extensionsPage.noExtensionMatches")} />
     {:else if loaded}
       <EmptyState
         icon="extension"
-        title="Aucune extension installée"
+        title={t("extensionsPage.noExtensionsInstalled")}
         hint={browser.isPrivate
           ? undefined
-          : "Ouvrez une extension sur le Chrome Web Store puis « Ajouter à Browser », chargez le dossier d'une extension (contenant manifest.json) ou déposez ici une archive .zip ou .crx."}
+          : t("extensionsPage.openExtensionChromeWeb")}
       />
     {/if}
 
     {#if fromStore && !browser.isPrivate}
       <label class="auto-update">
         <Toggle
-          label="Mettre à jour automatiquement les extensions du Chrome Web Store"
+          label={t("extensionsPage.automaticallyUpdateChromeWeb")}
           checked={settings.current.extensions.autoUpdate}
           onchange={(autoUpdate) => settings.update({ extensions: { autoUpdate } })}
         />
         <span>
-          Vérifier chaque jour les nouvelles versions sur le Chrome Web Store (une version qui demande de nouvelles autorisations attend votre
-          accord).
+          {t("extensionsPage.checkChromeWebStore")}
           <span class="faint" data-testid="extensions-last-check">
-            {lastCheck ? `Dernière vérification : ${when(lastCheck)}.` : "Aucune vérification pour l'instant."}
+            {lastCheck ? t("extensionsPage.lastCheck", { p: when(lastCheck) }) : t("extensionsPage.noCheckYet")}
           </span>
         </span>
       </label>

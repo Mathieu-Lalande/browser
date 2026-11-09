@@ -1,3 +1,4 @@
+import { t as tr } from "@shared/i18n";
 import { LANGUAGES, normalizeServerUrl, testTranslation, TRANSLATE_PROVIDERS, type TranslateProviderChoice } from "@shared/translate";
 import { memo, useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
@@ -8,7 +9,7 @@ import { translateKeys } from "../state/translate";
 import { Icon } from "./Icon";
 import { Tap } from "./ui";
 
-const CHOICES: { id: TranslateProviderChoice; label: string }[] = [{ id: "none", label: "Désactivée" }, ...TRANSLATE_PROVIDERS];
+const CHOICES: { id: TranslateProviderChoice; label: string }[] = [{ id: "none", get label() { return tr("mobile.translateSettings.off") } }, ...TRANSLATE_PROVIDERS];
 
 /**
  * "Traduction" in the settings (ADR-036): the provider (off by default: the page's text is sent to
@@ -45,10 +46,10 @@ export const TranslateSettings = memo(function TranslateSettings() {
 
   const saveServer = () => {
     const url = server.trim() ? normalizeServerUrl(server) : "";
-    if (url === null) return setResult({ ok: false, message: "Adresse invalide (http:// ou https://)." });
+    if (url === null) return setResult({ ok: false, message: tr("mobile.translateSettings.invalidAddressHttpHttps") });
     actions.updateSettings({ translate: { libreUrl: url } });
     setServer(url);
-    setResult({ ok: true, message: "Adresse enregistrée." });
+    setResult({ ok: true, message: tr("mobile.translateSettings.addressSaved") });
   };
 
   const test = async () => {
@@ -57,9 +58,9 @@ export const TranslateSettings = memo(function TranslateSettings() {
     setBusy(true);
     try {
       const sample = await testTranslation(translatorFor(config), t.target || "fr");
-      setResult({ ok: true, message: `Fonctionne : « ${sample} »` });
+      setResult({ ok: true, message: tr("mobile.translateSettings.works", { sample }) });
     } catch (error) {
-      setResult({ ok: false, message: error instanceof Error ? error.message : "Le test a échoué." });
+      setResult({ ok: false, message: error instanceof Error ? error.message : tr("mobile.translateSettings.testFailed") });
     } finally {
       setBusy(false);
     }
@@ -68,8 +69,7 @@ export const TranslateSettings = memo(function TranslateSettings() {
   return (
     <View>
       <Text style={[styles.intro, { color: colors.textMuted }]}>
-        Désactivée par défaut. Pour traduire (menu de la page), le texte de la page est envoyé au service choisi : une confirmation est demandée la
-        première fois, et à chaque session pour les onglets privés.
+        {tr("mobile.translateSettings.offDefaultTranslatePage")}
       </Text>
       {CHOICES.map((choice) => (
         <Pressable
@@ -90,7 +90,7 @@ export const TranslateSettings = memo(function TranslateSettings() {
           onPress={() => actions.updateSettings({ translate: { deeplPlan: t.deeplPlan === "pro" ? "free" : "pro" } })}
           style={[styles.row, border]}
         >
-          <Text style={[styles.label, { color: colors.text }]}>Formule DeepL</Text>
+          <Text style={[styles.label, { color: colors.text }]}>{tr("mobile.translateSettings.deeplPlan")}</Text>
           <Text style={[styles.detail, { color: colors.accentText }]}>{t.deeplPlan === "pro" ? "Pro" : "Free"}</Text>
         </Pressable>
       )}
@@ -105,10 +105,10 @@ export const TranslateSettings = memo(function TranslateSettings() {
             autoCorrect={false}
             keyboardType="url"
             style={[styles.input, { color: colors.text }]}
-            accessibilityLabel="Serveur LibreTranslate"
+            accessibilityLabel={tr("mobile.translateSettings.libretranslateServer")}
           />
           <Tap accessibilityRole="button" onPress={saveServer} style={styles.action}>
-            <Text style={[styles.detail, { color: colors.accentText }]}>Enregistrer</Text>
+            <Text style={[styles.detail, { color: colors.accentText }]}>{tr("mobile.translateSettings.save")}</Text>
           </Tap>
         </View>
       )}
@@ -117,20 +117,20 @@ export const TranslateSettings = memo(function TranslateSettings() {
           <TextInput
             value={key}
             onChangeText={setKey}
-            placeholder={hasKey ? "Clé enregistrée (saisir pour remplacer)" : needsKey(provider) ? "Clé d'API" : "Clé d'API (facultative)"}
+            placeholder={hasKey ? tr("mobile.translateSettings.keySavedTypeReplace") : needsKey(provider) ? tr("mobile.translateSettings.apiKey") : tr("mobile.translateSettings.apiKeyOptional")}
             placeholderTextColor={colors.textFaint}
             secureTextEntry
             autoCapitalize="none"
             autoCorrect={false}
             style={[styles.input, { color: colors.text }]}
-            accessibilityLabel="Clé d'API"
+            accessibilityLabel={tr("mobile.translateSettings.apiKey")}
           />
           {key.trim() ? (
             <Tap accessibilityRole="button" onPress={() => void saveKey(key)} style={styles.action}>
-              <Text style={[styles.detail, { color: colors.accentText }]}>Enregistrer</Text>
+              <Text style={[styles.detail, { color: colors.accentText }]}>{tr("mobile.translateSettings.save")}</Text>
             </Tap>
           ) : hasKey ? (
-            <Tap accessibilityRole="button" accessibilityLabel="Supprimer la clé" onPress={() => void saveKey("")} style={styles.action}>
+            <Tap accessibilityRole="button" accessibilityLabel={tr("mobile.translateSettings.deleteKey")} onPress={() => void saveKey("")} style={styles.action}>
               <Icon name="trash" size={18} color={colors.textMuted} />
             </Tap>
           ) : null}
@@ -139,14 +139,14 @@ export const TranslateSettings = memo(function TranslateSettings() {
       {provider && (
         <Tap accessibilityRole="button" onPress={() => void test()} disabled={busy} style={[styles.row, border]}>
           <Icon name="languages" size={18} color={colors.accentText} />
-          <Text style={[styles.label, { color: colors.accentText }]}>Tester le service</Text>
+          <Text style={[styles.label, { color: colors.accentText }]}>{tr("mobile.translateSettings.testService")}</Text>
         </Tap>
       )}
       {result && <Text style={[styles.intro, { color: result.ok ? colors.textMuted : colors.danger }]}>{result.message}</Text>}
       <View style={[styles.row, styles.languages, border]}>
-        <Text style={[styles.label, { color: colors.text }]}>Traduire vers</Text>
+        <Text style={[styles.label, { color: colors.text }]}>{tr("mobile.translateSettings.translate")}</Text>
         <View style={styles.chips}>
-          {[{ code: "", name: "Langue du téléphone" }, ...LANGUAGES.slice(0, 8)].map((language) => (
+          {[{ code: "", name: tr("mobile.translateSettings.phoneLanguage") }, ...LANGUAGES.slice(0, 8)].map((language) => (
             <Tap
               key={language.code}
               accessibilityRole="radio"

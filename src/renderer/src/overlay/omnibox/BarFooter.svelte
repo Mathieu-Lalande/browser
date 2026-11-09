@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { platform } from "../../lib/platform.svelte";
 
   /** Keyboard hints. The less common ones hide on a narrow window. */
@@ -7,14 +8,14 @@
 </script>
 
 <footer>
-  <span><kbd>↑</kbd><kbd>↓</kbd> Naviguer</span>
-  <span><kbd>↵</kbd> Ouvrir</span>
-  <span><kbd>Tab</kbd> Compléter</span>
-  <span class="wide"><kbd>{mod}</kbd><kbd>↵</kbd> Nouvel onglet</span>
-  <span class="wide"><kbd>Maj</kbd><kbd>↵</kbd> Côte à côte</span>
-  <span class="wide"><kbd>{alt}</kbd><kbd>↵</kbd> Arrière-plan</span>
+  <span><kbd>↑</kbd><kbd>↓</kbd> {t("barFooter.navigate")}</span>
+  <span><kbd>↵</kbd> {t("barFooter.open")}</span>
+  <span><kbd>{t("barFooter.tab")}</kbd> {t("barFooter.complete")}</span>
+  <span class="wide"><kbd>{mod}</kbd><kbd>↵</kbd> {t("barFooter.newTab")}</span>
+  <span class="wide"><kbd>{t("barFooter.shift")}</kbd><kbd>↵</kbd> {t("barFooter.sideSide")}</span>
+  <span class="wide"><kbd>{alt}</kbd><kbd>↵</kbd> {t("barFooter.background")}</span>
   <span class="spacer"></span>
-  <span><kbd>Échap</kbd></span>
+  <span><kbd>{t("barFooter.esc")}</kbd></span>
 </footer>
 
 <style>

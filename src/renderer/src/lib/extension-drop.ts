@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { MAX_DROPPED_FILES, MAX_DROPPED_SIZE, type DroppedExtension } from "@shared/extensions";
 
 /**
@@ -7,12 +8,12 @@ import { MAX_DROPPED_FILES, MAX_DROPPED_SIZE, type DroppedExtension } from "@sha
  */
 export async function readDrop(transfer: DataTransfer): Promise<DroppedExtension | string> {
   const entries = [...transfer.items].map((item) => item.webkitGetAsEntry()).filter((entry): entry is FileSystemEntry => !!entry);
-  if (entries.length !== 1) return "Déposez une seule extension à la fois.";
+  if (entries.length !== 1) return t("extensionDrop.dropOnlyOneExtension");
   const [entry] = entries;
   if (entry.isDirectory) return readFolder(entry as FileSystemDirectoryEntry);
   const file = transfer.files[0];
-  if (!file || !/\.(crx|zip)$/i.test(file.name)) return "Déposez un fichier .crx ou .zip, ou le dossier d'une extension.";
-  if (file.size > MAX_DROPPED_SIZE) return "Ce fichier est trop volumineux pour une extension.";
+  if (!file || !/\.(crx|zip)$/i.test(file.name)) return t("extensionDrop.dropCrxZipFile");
+  if (file.size > MAX_DROPPED_SIZE) return t("extensionDrop.fileTooLargeExtension");
   return { kind: "file", name: file.name, data: new Uint8Array(await file.arrayBuffer()) };
 }
 
@@ -42,7 +43,7 @@ async function readFolder(root: FileSystemDirectoryEntry): Promise<DroppedExtens
       }
       const file = await fileOf(entry as FileSystemFileEntry);
       total += file.size;
-      if (files.length >= MAX_DROPPED_FILES || total > MAX_DROPPED_SIZE) return "Ce dossier est trop volumineux pour une extension.";
+      if (files.length >= MAX_DROPPED_FILES || total > MAX_DROPPED_SIZE) return t("extensionDrop.folderTooLargeExtension");
       files.push({ path, data: new Uint8Array(await file.arrayBuffer()) });
     }
     return null;

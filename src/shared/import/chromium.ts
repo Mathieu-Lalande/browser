@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { SEARCH_ENGINES } from "../url";
 import { cleanText, isImportableUrl, MAX_FOLDER_DEPTH, MAX_IMPORTED_BOOKMARKS, type ImportedBookmark } from "./types";
 
@@ -23,9 +24,9 @@ export function chromiumTime(value: unknown): number {
 
 /** French names of the bookmark roots, as the user sees them in their browser. */
 const ROOT_NAMES: Record<string, string> = {
-  bookmark_bar: "Barre de favoris",
-  other: "Autres favoris",
-  synced: "Favoris sur mobile",
+  get bookmark_bar() { return t("importChromium.bookmarksBar") },
+  get other() { return t("importChromium.otherBookmarks") },
+  get synced() { return t("importChromium.mobileBookmarks") },
 };
 
 type Node = { type?: unknown; name?: unknown; url?: unknown; children?: unknown; date_added?: unknown };

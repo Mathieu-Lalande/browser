@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { CommandDefinition } from "@shared/commands";
   import Icon from "../../components/Icon.svelte";
 
@@ -13,7 +14,7 @@
   <div class="buttons">
     <!-- The safe choice has the focus: Enter never destroys by accident. -->
     <!-- svelte-ignore a11y_autofocus -->
-    <button class="button" autofocus onclick={onCancel}>Annuler</button>
+    <button class="button" autofocus onclick={onCancel}>{t("confirmPanel.cancel")}</button>
     <button class="button danger" onclick={onConfirm}>{command.confirm?.action}</button>
   </div>
 </div>

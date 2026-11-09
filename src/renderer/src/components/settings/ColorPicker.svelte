@@ -1,4 +1,5 @@
 <script lang="ts" generics="S extends { name: string; color: string; gradient?: string }">
+  import { t } from "@shared/i18n";
   import { normalizeHex } from "@shared/settings";
   import Icon from "../Icon.svelte";
 
@@ -40,10 +41,10 @@
     <label
       class="swatch custom"
       class:active={!isPreset}
-      title="Couleur personnalisée"
+      title={t("colorPicker.customColor")}
       style:--swatch={isPreset ? undefined : value}
     >
-      <input type="color" {value} aria-label="{label} : couleur personnalisée" oninput={(event) => onchange(event.currentTarget.value)} />
+      <input type="color" {value} aria-label={t("colorPicker.customColor2", { label })} oninput={(event) => onchange(event.currentTarget.value)} />
       {#if !isPreset}<Icon name="check" size={12} />{/if}
     </label>
   </div>
@@ -54,7 +55,7 @@
     maxlength="7"
     spellcheck="false"
     autocomplete="off"
-    aria-label="{label} (hexadécimal)"
+    aria-label={t("colorPicker.hexadecimal", { label })}
     oninput={onHexInput}
     onblur={() => (draft = null)}
   />

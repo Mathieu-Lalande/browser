@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { boostHostOf, type Boost } from "@shared/boosts";
 import type { MenuItem, MenuSpec } from "../components/ActionSheet";
 import { QUICK_FILTERS, ensureSiteBoost, filterOn, fontLabel, nextFont, removeZap, siteBoost, toggleFilter, upsertBoost } from "../lib/boosts";
@@ -44,13 +45,13 @@ export function useSiteMenus({
     const off = shieldOffFor(info.host, shieldsOff);
     const counts = site ? privacySummary(site).totals : null;
     const shieldNote = !blocker
-      ? "Bloqueur de pubs et traqueurs désactivé dans les réglages."
+      ? t("mobile.useSiteMenus.adTrackerBlockerTurned")
       : off
-        ? `Bouclier désactivé sur ${site} : publicités, traqueurs et bandeaux cookies ne sont plus bloqués ici.`
+        ? t("mobile.useSiteMenus.shieldTurnedOffAds", { site })
         : [
-            counts && counts.trackers ? `${counts.trackers} traqueur${counts.trackers > 1 ? "s" : ""} bloqué${counts.trackers > 1 ? "s" : ""} sur ce site en 30 jours.` : "",
-            counts && counts.cookieBanners ? `Bandeaux cookies refusés : ${counts.cookieBanners}.` : "",
-            nativeBlocking ? "" : `${SHIELD_UNAVAILABLE_NOTE} ; ici, seuls les éléments publicitaires sont masqués.`,
+            counts && counts.trackers ? t("mobile.useSiteMenus.trackersBlockedSite30", { trackers: counts.trackers }) : "",
+            counts && counts.cookieBanners ? t("mobile.useSiteMenus.cookieBannersRefused", { cookieBanners: counts.cookieBanners }) : "",
+            nativeBlocking ? "" : t("mobile.useSiteMenus.hereOnlyAdElements", { SHIELD_UNAVAILABLE_NOTE }),
           ]
             .filter(Boolean)
             .join(" ");
@@ -59,7 +60,7 @@ export function useSiteMenus({
         ? [
             {
               key: "shield",
-              label: off ? "Réactiver le bouclier sur ce site" : "Désactiver le bouclier sur ce site",
+              label: off ? t("mobile.useSiteMenus.turnShieldBackSite") : t("mobile.useSiteMenus.turnOffShieldSite"),
               icon: off ? "shield" : "shield-off",
               onPress: () => {
                 actions.updateMobileSettings({ shieldsOff: toggleShieldSite(shieldsOff, site, !off) });
@@ -77,19 +78,19 @@ export function useSiteMenus({
       note: shieldNote ? `${shieldNote}\n\n${SITE_DATA_NOTE}` : SITE_DATA_NOTE,
       items: [
         ...shieldItem,
-        { key: "copy", label: "Copier le lien", icon: "link", onPress: () => copy(url) },
+        { key: "copy", label: t("mobile.useSiteMenus.copyLink"), icon: "link", onPress: () => copy(url) },
         {
           key: "clear",
-          label: "Effacer les données du site",
+          label: t("mobile.useSiteMenus.clearSiteData"),
           icon: "trash",
           destructive: true,
           onPress: () => ({
-            title: `Effacer les données de ${info.host} ?`,
-            subtitle: "Vous pourriez être déconnecté de ce site. La page sera rechargée.",
+            title: t("mobile.useSiteMenus.clearData", { host: info.host }),
+            subtitle: t("mobile.useSiteMenus.youMaySignedOut"),
             items: [
               {
                 key: "confirm",
-                label: "Effacer et recharger",
+                label: t("mobile.useSiteMenus.clearReload"),
                 icon: "trash",
                 destructive: true,
                 onPress: () => {
@@ -97,7 +98,7 @@ export function useSiteMenus({
                   haptic("success");
                 },
               },
-              { key: "cancel", label: "Annuler", icon: "close", onPress: () => {} },
+              { key: "cancel", label: t("mobile.useSiteMenus.cancel"), icon: "close", onPress: () => {} },
             ],
           }),
         },
@@ -127,22 +128,22 @@ export function useSiteMenus({
       haptic("selection");
       return boostMenu(next);
     };
-    const on = (value: boolean) => (value ? " : activé" : "");
+    const on = (value: boolean) => (value ? t("mobile.useSiteMenus.on") : "");
     const items: MenuItem[] = [];
     if (boost) {
-      items.push({ key: "enabled", label: boost.enabled ? "Désactiver le boost" : "Activer le boost", icon: "rocket", onPress: () => change((b) => ({ ...b, enabled: !b.enabled, updatedAt: Date.now() })) ?? undefined });
+      items.push({ key: "enabled", label: boost.enabled ? t("mobile.useSiteMenus.turnOffBoost") : t("mobile.useSiteMenus.turnBoost"), icon: "rocket", onPress: () => change((b) => ({ ...b, enabled: !b.enabled, updatedAt: Date.now() })) ?? undefined });
     }
     for (const filter of QUICK_FILTERS) {
       items.push({ key: filter.key, label: `${filter.label}${on(!!boost && filterOn(boost, filter.key))}`, icon: "palette", onPress: () => change((b) => toggleFilter(b, filter.key, Date.now())) ?? undefined });
     }
-    items.push({ key: "font", label: `Police : ${fontLabel(boost?.font ?? null)}`, icon: "textSize", onPress: () => change((b) => ({ ...b, font: nextFont(b.font), updatedAt: Date.now() })) ?? undefined });
+    items.push({ key: "font", label: t("mobile.useSiteMenus.font", { p: fontLabel(boost?.font ?? null) }), icon: "textSize", onPress: () => change((b) => ({ ...b, font: nextFont(b.font), updatedAt: Date.now() })) ?? undefined });
     for (const selector of boost?.zaps ?? []) {
-      items.push({ key: `zap:${selector}`, label: `Réafficher ${selector}`, icon: "undo", onPress: () => change((b) => removeZap(b, selector, Date.now())) ?? undefined });
+      items.push({ key: `zap:${selector}`, label: t("mobile.useSiteMenus.showAgain", { selector }), icon: "undo", onPress: () => change((b) => removeZap(b, selector, Date.now())) ?? undefined });
     }
     return {
-      title: `Boost de ${host}`,
-      subtitle: boost ? (boost.enabled ? boost.match : `${boost.match} · désactivé`) : "Aucun boost pour ce site",
-      note: "Pour masquer des éléments d'une page, utilisez l'outil de la version ordinateur : les boosts sont synchronisés.",
+      title: t("mobile.useSiteMenus.boost", { host }),
+      subtitle: boost ? (boost.enabled ? boost.match : t("mobile.useSiteMenus.off", { match: boost.match })) : t("mobile.useSiteMenus.noBoostSite"),
+      note: t("mobile.useSiteMenus.hideElementsPageUse"),
       items,
     };
   });

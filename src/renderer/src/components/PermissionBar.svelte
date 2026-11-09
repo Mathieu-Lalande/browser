@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { PermissionKind, PermissionPrompt, TabId } from "@shared/types";
   import { api, browser } from "../lib/browser.svelte";
   import Checkbox from "./ui/Checkbox.svelte";
@@ -7,18 +8,18 @@
   let { tabId, prompt }: { tabId: TabId; prompt: PermissionPrompt } = $props();
 
   const LABELS: Record<PermissionKind, string> = {
-    camera: "utiliser votre caméra",
-    microphone: "utiliser votre micro",
-    geolocation: "connaître votre position",
-    notifications: "vous envoyer des notifications",
-    midi: "accéder à vos appareils MIDI",
-    "midi-sysex": "contrôler entièrement vos appareils MIDI",
-    "clipboard-read": "lire votre presse-papiers",
-    "display-capture": "capturer votre écran",
-    "idle-detection": "savoir quand vous êtes inactif",
-    "window-management": "gérer les fenêtres sur vos écrans",
-    "storage-access": "utiliser ses cookies sur d'autres sites",
-    "local-fonts": "lister les polices installées",
+    camera: t("permissionBar.useCamera"),
+    microphone: t("permissionBar.useMicrophone"),
+    geolocation: t("permissionBar.knowLocation"),
+    notifications: t("permissionBar.sendYouNotifications"),
+    midi: t("permissionBar.accessMidiDevices"),
+    "midi-sysex": t("permissionBar.fullyControlMidiDevices"),
+    "clipboard-read": t("permissionBar.readClipboard"),
+    "display-capture": t("permissionBar.captureScreen"),
+    "idle-detection": t("permissionBar.knowWhenYoureIdle"),
+    "window-management": t("permissionBar.manageWindowsScreens"),
+    "storage-access": t("permissionBar.useCookiesOtherSites"),
+    "local-fonts": t("permissionBar.listInstalledFonts"),
   };
 
   let remember = $state(false);
@@ -45,15 +46,15 @@
   }
 </script>
 
-<div class="permission-bar" role="alertdialog" aria-label="Demande d'autorisation">
+<div class="permission-bar" role="alertdialog" aria-label={t("permissionBar.permissionRequest")}>
   <Icon name="shield" size={16} />
-  <p><strong>{host}</strong>{#if embedder}&nbsp;<span class="embedder">(intégré dans {embedder})</span>{/if} souhaite {request}.</p>
+  <p><strong>{host}</strong>{#if embedder}&nbsp;<span class="embedder">{t("permissionBar.embedded", { embedder })}</span>{/if} {t("permissionBar.wants", { request })}</p>
   <!-- Private window: decisions last as long as the window, nothing is remembered (ADR-014). -->
   {#if !browser.isPrivate}
-    <span class="remember"><Checkbox checked={remember} onchange={(value) => (remember = value)}>Se souvenir pour ce site</Checkbox></span>
+    <span class="remember"><Checkbox checked={remember} onchange={(value) => (remember = value)}>{t("permissionBar.rememberSite")}</Checkbox></span>
   {/if}
-  <button class="secondary" onclick={() => answer(false)}>Bloquer</button>
-  <button class="primary" onclick={() => answer(true)}>Autoriser</button>
+  <button class="secondary" onclick={() => answer(false)}>{t("permissionBar.block")}</button>
+  <button class="primary" onclick={() => answer(true)}>{t("permissionBar.allow")}</button>
 </div>
 
 <style>

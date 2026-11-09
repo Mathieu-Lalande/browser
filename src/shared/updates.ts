@@ -4,6 +4,8 @@
  * in tests) lives in `src/main/updates/`.
  */
 
+import { t } from "./i18n";
+
 export const RELEASES_URL = "https://github.com/Mathieu-Lalande/browser/releases";
 
 /** Where to download a version by hand (macOS without a signature, Linux .deb, portable zip). */
@@ -101,7 +103,7 @@ export function reduceUpdateStatus(state: UpdateStatus, event: UpdateEvent, now:
     case "error":
       // A failed check after a download keeps the downloaded update.
       if (ready) return { ...state, lastCheck: now };
-      return { ...state, phase: "error", percent: 0, lastCheck: state.phase === "checking" ? now : state.lastCheck, error: event.message || "La mise à jour a échoué." };
+      return { ...state, phase: "error", percent: 0, lastCheck: state.phase === "checking" ? now : state.lastCheck, error: event.message || t("updates.updateFailed") };
   }
 }
 
@@ -109,23 +111,23 @@ export function reduceUpdateStatus(state: UpdateStatus, event: UpdateEvent, now:
 export function updateStatusText(status: UpdateStatus): string {
   switch (status.phase) {
     case "disabled":
-      return "Mises à jour automatiques indisponibles dans cette version.";
+      return t("updates.automaticUpdatesUnavailableVersion");
     case "idle":
-      return "Pas encore vérifié.";
+      return t("updates.notCheckedYet");
     case "checking":
-      return "Recherche de mises à jour…";
+      return t("updates.checkingUpdates");
     case "up-to-date":
-      return `Browser est à jour (version ${status.currentVersion}).`;
+      return t("updates.browserUpDateVersion", { currentVersion: status.currentVersion });
     case "available":
       return `Version ${status.version} disponible.`;
     case "downloading":
       return `Téléchargement${status.version ? ` de la version ${status.version}` : ""} : ${status.percent} %`;
     case "ready":
-      return `Version ${status.version} prête : redémarrez pour l'installer.`;
+      return t("updates.versionReadyRestartInstall", { version: status.version });
     case "manual":
-      return `Version ${status.version} disponible : mise à jour manuelle requise.`;
+      return t("updates.versionAvailableManualUpdate", { version: status.version });
     case "error":
-      return status.error ?? "La mise à jour a échoué.";
+      return status.error ?? t("updates.updateFailed");
   }
 }
 

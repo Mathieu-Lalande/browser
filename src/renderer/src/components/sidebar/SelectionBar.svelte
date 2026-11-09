@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { assistantPanel } from "../../lib/assistant.svelte";
   import { browser } from "../../lib/browser.svelte";
   import { settings } from "../../lib/settings.svelte";
@@ -13,17 +14,17 @@
 </script>
 
 {#if count}
-  <div class="selection" role="toolbar" aria-label="Onglets sélectionnés" data-testid="tab-selection">
-    <span class="selection-count">{count} sélectionné{count > 1 ? "s" : ""}</span>
-    <IconButton size="sm" icon="folder-plus" label="Nouveau dossier avec les onglets sélectionnés" onclick={() => selection.toFolder()} />
+  <div class="selection" role="toolbar" aria-label={t("selectionBar.selectedTabs")} data-testid="tab-selection">
+    <span class="selection-count">{t("selectionBar.selected", { count })}</span>
+    <IconButton size="sm" icon="folder-plus" label={t("selectionBar.newFolderSelectedTabs")} onclick={() => selection.toFolder()} />
     {#each otherSpaces as space (space.id)}
-      <IconButton size="sm" icon={space.icon} label="Déplacer vers {space.name}" onclick={() => selection.moveTo(space.id)} />
+      <IconButton size="sm" icon={space.icon} label={t("selectionBar.move", { name: space.name })} onclick={() => selection.moveTo(space.id)} />
     {/each}
     {#if count >= 2 && settings.current.assistant.enabled}
-      <IconButton size="sm" icon="sparkles" label="Comparer avec l'assistant" onclick={() => assistantPanel.compareTabs(selection.ids.slice(0, 6))} />
+      <IconButton size="sm" icon="sparkles" label={t("selectionBar.compareAssistant")} onclick={() => assistantPanel.compareTabs(selection.ids.slice(0, 6))} />
     {/if}
-    <IconButton size="sm" icon="trash" label="Fermer les onglets sélectionnés" onclick={() => selection.close()} />
-    <IconButton size="sm" icon="close" label="Annuler la sélection" onclick={() => selection.clear()} />
+    <IconButton size="sm" icon="trash" label={t("selectionBar.closeSelectedTabs")} onclick={() => selection.close()} />
+    <IconButton size="sm" icon="close" label={t("selectionBar.cancelSelection")} onclick={() => selection.clear()} />
   </div>
 {/if}
 

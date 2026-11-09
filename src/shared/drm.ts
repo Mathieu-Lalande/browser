@@ -9,6 +9,8 @@
  * - `unavailable`: no CDM (stock Electron build, download failed, unsupported platform);
  * - `disabled`: the user turned protected content off.
  */
+import { t } from "./i18n";
+
 export type WidevineState = "ready" | "installing" | "unavailable" | "disabled";
 
 export interface WidevineStatus {
@@ -58,11 +60,11 @@ export function widevineLabel(status: WidevineStatus | null): string {
   if (!status) return "…";
   switch (status.state) {
     case "ready":
-      return status.restartNeeded ? `Widevine ${status.version} (actif au prochain démarrage)` : `Widevine ${status.version}`;
+      return status.restartNeeded ? t("drm.widevineActiveNextStartup", { version: status.version }) : `Widevine ${status.version}`;
     case "installing":
-      return "Widevine : installation en cours…";
+      return t("drm.widevineInstalling");
     case "disabled":
-      return "Désactivé";
+      return t("drm.off");
     default:
       return "Widevine indisponible";
   }

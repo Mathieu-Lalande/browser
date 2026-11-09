@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { SCOPES } from "@shared/omnibox/scopes";
   import type { ScopeId } from "@shared/omnibox/types";
   import Icon from "../../components/Icon.svelte";
@@ -8,11 +9,11 @@
   let { onPick }: { onPick: (scope: ScopeId) => void } = $props();
 </script>
 
-<div class="chips" role="toolbar" aria-label="Filtres">
+<div class="chips" role="toolbar" aria-label={t("scopeChips.filters")}>
   {#each SCOPES as scope (scope.id)}
     <button
       class="chip"
-      title="{scope.label} : tapez @{scope.names[0]} ou @{scope.names[1]}"
+      title={t("scopeChips.type", { label: scope.label, p: scope.names[0], p2: scope.names[1] })}
       onmousedown={(event) => event.preventDefault()}
       onclick={() => onPick(scope.id)}
     >

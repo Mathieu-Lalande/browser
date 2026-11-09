@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { canOpenFile, downloadStatus, isActiveDownload, isOpenable, type DownloadEntry } from "@shared/downloads";
   import { displayUrl } from "@shared/url";
   import { api } from "../../lib/browser.svelte";
@@ -38,9 +39,9 @@
     {#if entry.awaitingConfirmation}
       <div class="confirm">
         {#if entry.state === "completed"}
-          <button class="keep" onclick={() => api.downloads.keep(entry.id)}>Conserver</button>
+          <button class="keep" onclick={() => api.downloads.keep(entry.id)}>{t("downloadRow.keep")}</button>
         {/if}
-        <button class="discard" onclick={() => api.downloads.cancel(entry.id)}>Supprimer</button>
+        <button class="discard" onclick={() => api.downloads.cancel(entry.id)}>{t("downloadRow.delete")}</button>
       </div>
     {/if}
   </div>
@@ -49,29 +50,29 @@
     {#if entry.awaitingConfirmation}
       <!-- Decided with the buttons below the name. -->
     {:else if entry.state === "progressing"}
-      <button aria-label="Mettre en pause {entry.filename}" title="Mettre en pause" onclick={() => api.downloads.pause(entry.id)}>
+      <button aria-label={t("downloadRow.pause", { filename: entry.filename })} title={t("downloadRow.pause2")} onclick={() => api.downloads.pause(entry.id)}>
         <Icon name="pause" size={16} />
       </button>
-      <button aria-label="Annuler {entry.filename}" title="Annuler" onclick={() => api.downloads.cancel(entry.id)}>
+      <button aria-label={t("downloadRow.cancel", { filename: entry.filename })} title={t("downloadRow.cancel2")} onclick={() => api.downloads.cancel(entry.id)}>
         <Icon name="close" size={16} />
       </button>
     {:else if entry.state === "paused" || (entry.state === "interrupted" && entry.canResume)}
-      <button aria-label="Reprendre {entry.filename}" title="Reprendre" onclick={() => api.downloads.resume(entry.id)}>
+      <button aria-label={t("downloadRow.resume", { filename: entry.filename })} title={t("downloadRow.resume2")} onclick={() => api.downloads.resume(entry.id)}>
         <Icon name="play" size={16} />
       </button>
-      <button aria-label="Annuler {entry.filename}" title="Annuler" onclick={() => api.downloads.cancel(entry.id)}>
+      <button aria-label={t("downloadRow.cancel", { filename: entry.filename })} title={t("downloadRow.cancel2")} onclick={() => api.downloads.cancel(entry.id)}>
         <Icon name="close" size={16} />
       </button>
     {:else}
       {#if launchable}
-        <button aria-label="Ouvrir {entry.filename}" title="Ouvrir" onclick={() => api.downloads.open(entry.id)}>
+        <button aria-label={t("downloadRow.open", { filename: entry.filename })} title={t("downloadRow.open2")} onclick={() => api.downloads.open(entry.id)}>
           <Icon name="open" size={16} />
         </button>
       {/if}
       {#if openable}
         <button
-          aria-label="Afficher {entry.filename} dans le dossier"
-          title="Afficher dans le dossier"
+          aria-label={t("downloadRow.showFolder", { filename: entry.filename })}
+          title={t("downloadRow.showFolder2")}
           onclick={() => api.downloads.showInFolder(entry.id)}
         >
           <Icon name="folder" size={16} />
@@ -79,12 +80,12 @@
       {/if}
       {#if failed && /^https?:/i.test(entry.url)}
         <!-- Starts over from the original address, in the same session. -->
-        <button aria-label="Réessayer {entry.filename}" title="Réessayer" onclick={() => api.downloads.retry(entry.id)}>
+        <button aria-label={t("downloadRow.retry", { filename: entry.filename })} title={t("downloadRow.retry2")} onclick={() => api.downloads.retry(entry.id)}>
           <Icon name="reload" size={16} />
         </button>
       {/if}
       <!-- Only forgets the entry: the file stays on disk (hence no trash can). -->
-      <button aria-label="Retirer {entry.filename} de la liste" title="Retirer de la liste" onclick={() => api.downloads.remove(entry.id)}>
+      <button aria-label={t("downloadRow.removeFromList", { filename: entry.filename })} title={t("downloadRow.removeFromList2")} onclick={() => api.downloads.remove(entry.id)}>
         <Icon name="list-x" size={16} />
       </button>
     {/if}

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { CommandId } from "@shared/commands";
   import type { StartBackground } from "@shared/settings";
   import { LAYOUT_PRESETS, WIDGET_CATALOG, visibleWidgets, type WidgetKind } from "@shared/start-widgets";
@@ -56,10 +57,10 @@
 
   /** Shortcut hints, from the command registry (keys as on the keyboard of this platform). */
   const HINTS: { id: CommandId; label: string }[] = [
-    { id: "command-palette", label: "palette de commandes" },
-    { id: "focus-address", label: "barre d'adresse" },
-    { id: "new-tab", label: "nouvel onglet" },
-    { id: "toggle-sidebar", label: "barre latérale" },
+    { id: "command-palette", label: t("startPage.commandPalette") },
+    { id: "focus-address", label: t("startPage.addressBar") },
+    { id: "new-tab", label: t("startPage.newTab") },
+    { id: "toggle-sidebar", label: t("startPage.sidebar") },
   ];
   const hints = $derived(
     HINTS.map((hint) => ({ ...hint, keys: platform.keys(hint.id) })).filter((hint) => hint.keys.length > 0),
@@ -104,7 +105,7 @@
     if (!target) return;
     const kind = widgets[shown].kind;
     layout.move(id, layout.widgets.findIndex((widget) => widget.id === target.id));
-    announcement = `${WIDGET_CATALOG[kind].label} : position ${shown + delta + 1} sur ${widgets.length}.`;
+    announcement = t("startPage.position", { p: WIDGET_CATALOG[kind].label, p2: shown + delta + 1, widgetsCount: widgets.length });
     void focusWidget(id);
   }
 
@@ -112,7 +113,7 @@
     const id = layout.add(kind);
     galleryOpen = false;
     if (id) {
-      announcement = `${WIDGET_CATALOG[kind].label} ajouté.`;
+      announcement = t("startPage.added", { p: WIDGET_CATALOG[kind].label });
       void focusWidget(id);
     }
   }
@@ -127,10 +128,10 @@
   }
 
   const BACKGROUNDS: { value: StartBackground; label: string }[] = [
-    { value: "theme", label: "Thème" },
-    { value: "aurora", label: "Aurore" },
-    { value: "dynamic", label: "Dynamique" },
-    { value: "image", label: "Image" },
+    { value: "theme", label: t("startPage.theme") },
+    { value: "aurora", label: t("startPage.aurora") },
+    { value: "dynamic", label: t("startPage.dynamic") },
+    { value: "image", label: t("startPage.image") },
   ];
 </script>
 
@@ -146,38 +147,38 @@
 >
   <div class="top">
     {#if editing}
-      <div class="toolbar" role="toolbar" aria-label="Personnaliser la page d'accueil">
-        <Button variant="primary" size="sm" icon="plus" onclick={() => (galleryOpen = true)}>Ajouter un widget</Button>
-        <span class="group" role="group" aria-label="Dispositions">
+      <div class="toolbar" role="toolbar" aria-label={t("startPage.customizeStartPage")}>
+        <Button variant="primary" size="sm" icon="plus" onclick={() => (galleryOpen = true)}>{t("startPage.addWidget")}</Button>
+        <span class="group" role="group" aria-label={t("startPage.layouts")}>
           {#each LAYOUT_PRESETS as preset (preset.id)}
             <Button size="sm" onclick={() => layout.preset(preset.id)}>{preset.label}</Button>
           {/each}
-          <Button size="sm" variant="ghost" icon="reset" onclick={() => layout.reset()}>Réinitialiser</Button>
+          <Button size="sm" variant="ghost" icon="reset" onclick={() => layout.reset()}>{t("startPage.reset")}</Button>
         </span>
         {#if !browser.isPrivate}
-          <Segmented label="Fond de la page d'accueil" value={options.background} options={BACKGROUNDS} onchange={(value) => settings.update({ startPage: { background: value } })} />
+          <Segmented label={t("startPage.startPageBackground")} value={options.background} options={BACKGROUNDS} onchange={(value) => settings.update({ startPage: { background: value } })} />
         {/if}
-        <Button size="sm" icon="check" onclick={stopEditing}>Terminé</Button>
+        <Button size="sm" icon="check" onclick={stopEditing}>{t("startPage.done")}</Button>
       </div>
     {:else}
-      <Button bind:element={customize} size="sm" variant="ghost" icon="layout-dashboard" onclick={() => (editing = true)}>Personnaliser</Button>
+      <Button bind:element={customize} size="sm" variant="ghost" icon="layout-dashboard" onclick={() => (editing = true)}>{t("startPage.customize")}</Button>
     {/if}
   </div>
 
   {#if browser.isPrivate}
     <div class="private-hero">
       <span class="mask"><Icon name="mask" size={32} /></span>
-      <h1>Navigation privée</h1>
+      <h1>{t("startPage.privateBrowsing")}</h1>
     </div>
   {:else if !hasHeading}
-    <h1 class="visually-hidden">Nouvel onglet</h1>
+    <h1 class="visually-hidden">{t("startPage.newTab2")}</h1>
   {/if}
 
   <RestoreSessionCard />
   <DefaultBrowserPrompt />
 
   <div class="board" bind:this={board}>
-    <div class="grid" role="list" aria-label="Widgets de la page d'accueil">
+    <div class="grid" role="list" aria-label={t("startPage.startPageWidgets")}>
       {#each widgets as widget, index (widget.id)}
         <div class="cell size-{widget.size}" animate:flip={{ duration: flipDuration }}>
           <WidgetCard
@@ -200,20 +201,20 @@
       {/each}
     </div>
     {#if editing && widgets.length === 0}
-      <p class="empty">Page vide : ajoutez un widget ou choisissez une disposition.</p>
+      <p class="empty">{t("startPage.emptyPageAddWidget")}</p>
     {/if}
   </div>
 
   {#if browser.isPrivate}
-    <ul class="private" aria-label="Ce que la navigation privée conserve">
-      <li><Icon name="check" size={16} /> Ni historique, ni sites fréquents, ni session restaurée</li>
-      <li><Icon name="check" size={16} /> Cookies, cache et données de sites effacés à la fermeture de la fenêtre</li>
-      <li><Icon name="check" size={16} /> Autorisations accordées pour cette fenêtre seulement</li>
-      <li class="kept"><Icon name="star" size={16} /> Les favoris ajoutés et les fichiers téléchargés sont conservés</li>
+    <ul class="private" aria-label={t("startPage.whatPrivateBrowsingKeeps")}>
+      <li><Icon name="check" size={16} /> {t("startPage.noHistoryNoTop")}</li>
+      <li><Icon name="check" size={16} /> {t("startPage.cookiesCacheSiteData")}</li>
+      <li><Icon name="check" size={16} /> {t("startPage.permissionsGrantedWindowOnly")}</li>
+      <li class="kept"><Icon name="star" size={16} /> {t("startPage.bookmarksYouAddFiles")}</li>
     </ul>
   {/if}
   {#if !editing}
-    <ul class="hints" aria-label="Raccourcis clavier">
+    <ul class="hints" aria-label={t("startPage.keyboardShortcuts")}>
       {#each hints as hint (hint.id)}
         <li>
           <span class="keys">{#each hint.keys as key, index (index)}<kbd>{key}</kbd>{/each}</span>

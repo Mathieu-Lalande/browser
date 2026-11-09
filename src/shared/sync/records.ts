@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { sanitizeSettings, type Settings, type SettingsPatch } from "../settings";
 import { isSpaceId, sanitizeSpace } from "../spaces";
 import { withLocalContent, withoutLocalContent } from "../start-widgets";
@@ -147,7 +148,7 @@ export function sanitizeSyncedBookmark(value: unknown, localId: string): SyncedB
   if (!isRecord(value)) return null;
   if (value.kind === "folder") {
     if (!localId.startsWith("f:") || localId.length > 80) return null;
-    return { kind: "folder", name: text(value.name, 128) || "Dossier", createdAt: time(value.createdAt) };
+    return { kind: "folder", name: text(value.name, 128) || t("syncRecords.folder"), createdAt: time(value.createdAt) };
   }
   if (value.kind !== "bookmark" || !isWebUrl(value.url) || localId !== bookmarkLocalId(value.url)) return null;
   const folderId = typeof value.folderId === "string" && /^[\w-]{1,64}$/.test(value.folderId) ? value.folderId : undefined;

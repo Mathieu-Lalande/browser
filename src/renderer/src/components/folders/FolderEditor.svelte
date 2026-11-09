@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { MAX_FOLDER_DEPTH, folderDepth, type FolderInput, type TabFolder } from "@shared/folders";
   import { SPACE_ICON_LABELS, SPACE_ICONS } from "@shared/spaces";
   import { api, browser } from "../../lib/browser.svelte";
@@ -62,16 +63,16 @@
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<div class="editor" role="dialog" aria-label="Modifier le dossier" tabindex="-1" onkeydown={onKeydown} data-testid="folder-editor">
+<div class="editor" role="dialog" aria-label={t("folderEditor.editFolder")} tabindex="-1" onkeydown={onKeydown} data-testid="folder-editor">
   {#if confirming}
     <div class="confirm">
       <p>
-        Supprimer le dossier <strong>« {folder.name} »</strong> ? Il contient {count} onglet{count > 1 ? "s" : ""}.
+        {t("folderEditor.deleteFolder")} <strong>« {folder.name} »</strong> ? Il contient {count} onglet{count > 1 ? "s" : ""}.
       </p>
       <div class="choices">
-        <button class="danger" onclick={() => remove(true)}>Supprimer et fermer les onglets</button>
-        <button class="secondary" onclick={() => remove(false)}>Supprimer, garder les onglets</button>
-        <button class="plain" bind:this={cancelButton} onclick={() => (confirming = false)}>Annuler</button>
+        <button class="danger" onclick={() => remove(true)}>{t("folderEditor.deleteCloseTabs")}</button>
+        <button class="secondary" onclick={() => remove(false)}>{t("folderEditor.deleteKeepTabs")}</button>
+        <button class="plain" bind:this={cancelButton} onclick={() => (confirming = false)}>{t("folderEditor.cancel")}</button>
       </div>
     </div>
   {:else}
@@ -80,7 +81,7 @@
       <input
         bind:this={nameInput}
         bind:value={name}
-        aria-label="Nom du dossier"
+        aria-label={t("folderEditor.folderName")}
         maxlength="40"
         spellcheck="false"
         onchange={commitName}
@@ -88,7 +89,7 @@
       />
     </div>
 
-    <div class="icons" role="radiogroup" aria-label="Icône">
+    <div class="icons" role="radiogroup" aria-label={t("folderEditor.icon")}>
       {#each SPACE_ICONS as icon (icon)}
         <button
           role="radio"
@@ -102,11 +103,11 @@
     </div>
 
     <div class="actions">
-      <button class="delete" onclick={deleteFolder}><Icon name="trash" size={12} /> Supprimer</button>
+      <button class="delete" onclick={deleteFolder}><Icon name="trash" size={12} /> {t("folderEditor.delete")}</button>
       <button class="secondary" disabled={!canNest} onclick={() => (api.folders.create({}, folder.id), onClose())}>
-        <Icon name="folder-plus" size={12} /> Sous-dossier
+        <Icon name="folder-plus" size={12} /> {t("folderEditor.subfolder")}
       </button>
-      <button class="primary" onclick={() => (commitName(), onClose())}>Terminé</button>
+      <button class="primary" onclick={() => (commitName(), onClose())}>{t("folderEditor.done")}</button>
     </div>
   {/if}
 </div>

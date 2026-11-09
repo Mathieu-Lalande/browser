@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { markdownToNodes, type AssistantTurnView } from "@shared/assistant";
   import { api } from "../../lib/browser.svelte";
   import Icon from "../Icon.svelte";
@@ -14,10 +15,10 @@
 
   const nodes = $derived(turn.role === "assistant" ? markdownToNodes(turn.text) : []);
   const streaming = $derived(turn.status === "streaming");
-  const STATUS: Partial<Record<NonNullable<AssistantTurnView["status"]>, string>> = { stopped: "Réponse arrêtée." };
+  const STATUS: Partial<Record<NonNullable<AssistantTurnView["status"]>, string>> = { stopped: t("assistantTurn.responseStopped") };
 
   async function insertNote(): Promise<void> {
-    const result = await api.assistant.insertNote(tabId, turn.id).catch(() => ({ ok: false, message: "La note n'a pas été enregistrée." }));
+    const result = await api.assistant.insertNote(tabId, turn.id).catch(() => ({ ok: false, message: t("assistantTurn.noteWasntSaved") }));
     onmessage(result.message);
   }
 </script>
@@ -26,12 +27,12 @@
   <li class="user" data-testid="assistant-question">
     <p class="asked">{turn.text}</p>
     {#if turn.reusedContext}
-      <p class="sent">Page déjà envoyée plus haut</p>
+      <p class="sent">{t("assistantTurn.pageAlreadySentAbove")}</p>
     {:else if turn.sent?.length}
       <p class="sent">
-        Envoyé à Anthropic :
+        {t("assistantTurn.sentAnthropic")}
         {#each turn.sent as source, index (index)}{index ? ", " : " "}<span class:empty={source.empty} title={source.url}
-            >{source.title || source.url}{source.truncated && !source.empty ? " (tronqué)" : ""}{source.empty ? " (illisible, non envoyé)" : ""}</span
+            >{source.title || source.url}{source.truncated && !source.empty ? t("assistantTurn.truncated") : ""}{source.empty ? t("assistantTurn.unreadableNotSent") : ""}</span
           >{/each}
       </p>
     {/if}
@@ -41,15 +42,15 @@
     {#if turn.text}
       <div class="markdown"><ReaderNodes {nodes} onlink={(href) => api.tabs.create(href)} /></div>
     {:else if streaming}
-      <p class="muted"><Icon name="sparkles" size={13} /> Réflexion…</p>
+      <p class="muted"><Icon name="sparkles" size={13} /> {t("assistantTurn.thinking")}</p>
     {/if}
     {#if turn.error || STATUS[turn.status!]}
       <p class="status" class:error={turn.status === "error" || turn.status === "refused"} role="status">{turn.error ?? STATUS[turn.status!]}</p>
     {/if}
     {#if !streaming && turn.text.trim()}
       <div class="tools">
-        <IconButton size="row" icon="copy-text" iconSize={13} label="Copier la réponse" onclick={() => (api.assistant.copy(tabId, turn.id), onmessage("Réponse copiée."))} />
-        <IconButton size="row" icon="notebook-pen" iconSize={13} label="Ajouter aux notes de la page" onclick={insertNote} />
+        <IconButton size="row" icon="copy-text" iconSize={13} label={t("assistantTurn.copyAnswer")} onclick={() => (api.assistant.copy(tabId, turn.id), onmessage(t("assistantTurn.answerCopied")))} />
+        <IconButton size="row" icon="notebook-pen" iconSize={13} label={t("assistantTurn.addPageNotes")} onclick={insertNote} />
       </div>
     {/if}
   </li>

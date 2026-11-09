@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import type { PackedSource } from "./context";
 
 /**
@@ -13,11 +14,11 @@ export const isAssistantAction = (value: unknown): value is AssistantAction => A
 
 /** Labels of the quick actions (and of the user's turn when one is used). */
 export const ACTION_LABELS: Record<Exclude<AssistantAction, "ask">, string> = {
-  summarize: "Résumer la page",
-  "key-points": "Points clés",
-  "explain-selection": "Expliquer la sélection",
-  "translate-selection": "Traduire la sélection",
-  "compare-tabs": "Comparer les onglets sélectionnés",
+  get summarize() { return t("assistantPrompts.summarizePage") },
+  get "key-points"() { return t("assistantPrompts.keyPoints") },
+  get "explain-selection"() { return t("assistantPrompts.explainSelection") },
+  get "translate-selection"() { return t("assistantPrompts.translateSelection") },
+  get "compare-tabs"() { return t("assistantPrompts.compareSelectedTabs") },
 };
 
 export const QUESTION_MAX_LENGTH = 4000;
@@ -59,15 +60,15 @@ export interface PromptInput {
 function task(input: PromptInput): string {
   switch (input.action) {
     case "summarize":
-      return "Résume cette page en quelques paragraphes courts : son sujet, ses idées principales et sa conclusion.";
+      return t("assistantPrompts.summarizePageFewShort");
     case "key-points":
-      return "Donne les points clés de cette page sous forme de liste à puces (cinq à dix points), du plus important au moins important.";
+      return t("assistantPrompts.giveKeyPointsPage");
     case "explain-selection":
-      return "Explique le passage sélectionné de façon simple et précise, en t'aidant du reste de la page si elle est fournie.";
+      return t("assistantPrompts.explainSelectedPassageSimply");
     case "translate-selection":
       return `Traduis le passage sélectionné en ${input.language || "français"}. Donne seulement la traduction, en gardant la mise en forme.`;
     case "compare-tabs":
-      return "Compare ces pages : ce qu'elles ont en commun, leurs différences importantes (un tableau si c'est utile), puis une courte conclusion.";
+      return t("assistantPrompts.compareThesePagesWhat");
     case "ask":
       return (input.question ?? "").trim();
   }

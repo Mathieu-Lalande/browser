@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import type { AssistantTurnView } from "./conversation";
 import type { AssistantModelId } from "./models";
 
@@ -35,6 +36,6 @@ export interface AssistantResult {
 }
 
 export const PRIVACY_NOTICE =
-  "Le texte des pages que vous choisissez (titre, adresse, contenu, sélection) et vos questions sont envoyés à Anthropic avec votre clé d'API pour produire la réponse. Rien n'est envoyé sans une action de votre part ; les conversations restent en mémoire et ne sont jamais synchronisées.";
+  t("assistantState.textPagesYouChoose");
 
-export const PRIVATE_NOTICE = "Fenêtre privée : l'assistant est désactivé tant que vous n'avez pas confirmé l'envoi pour cette fenêtre. Rien n'est conservé.";
+export const PRIVATE_NOTICE = t("assistantState.privateWindowAssistantTurned");

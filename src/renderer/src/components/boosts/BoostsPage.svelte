@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { DEFAULT_FILTERS, type Boost, type BoostInput } from "@shared/boosts";
   import { api, browser } from "../../lib/browser.svelte";
   import "../../styles/kit.css";
@@ -48,7 +49,7 @@
   const edit = (boost: Boost | null) => (editing = boost ? structuredClone($state.snapshot(boost)) : blank());
 
   async function save(input: BoostInput): Promise<string | null> {
-    const result = await api.boosts.save(input).catch(() => ({ ok: false as const, message: "Le boost n'a pas été enregistré." }));
+    const result = await api.boosts.save(input).catch(() => ({ ok: false as const, message: t("boostsPage.boostWasntSaved") }));
     if (!result.ok) return result.message;
     editing = null;
     return null;
@@ -57,18 +58,17 @@
 
 {#snippet subtitle()}
   {#if browser.isPrivate}
-    Les boosts s'appliquent aussi aux fenêtres privées (sans leur JavaScript, sauf autorisation), mais se modifient depuis une fenêtre normale.
+    {t("boostsPage.boostsAlsoApplyPrivate")}
   {:else}
-    Personnalisez des sites : filtres de couleur, police, éléments masqués et CSS. Pour masquer un élément d'une page, utilisez
-    « Masquer des éléments » dans la palette de commandes ou les infos sur le site.
+    {t("boostsPage.customizeSitesColorFilters")}
   {/if}
 {/snippet}
 
 <div class="kit">
-  <Page icon="rocket" title="Boosts" {subtitle} testid="boosts-page">
+  <Page icon="rocket" title={t("boostsPage.boosts")} {subtitle} testid="boosts-page">
     {#snippet actions()}
       {#if !browser.isPrivate && !editing}
-        <Button variant="primary" icon="plus" onclick={() => edit(null)}>Nouveau boost</Button>
+        <Button variant="primary" icon="plus" onclick={() => edit(null)}>{t("boostsPage.newBoost")}</Button>
       {/if}
     {/snippet}
 
@@ -85,7 +85,7 @@
         {/each}
       </Card>
     {:else if loaded && !editing}
-      <EmptyState icon="rocket" title="Aucun boost" hint="Un boost change l'apparence d'un site : couleurs, police, éléments masqués ou CSS." />
+      <EmptyState icon="rocket" title={t("boostsPage.noBoosts")} hint={t("boostsPage.boostChangesHowSite")} />
     {/if}
   </Page>
 </div>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { displayUrl } from "@shared/url";
   import { api, browser } from "../../../lib/browser.svelte";
   import Favicon from "../../Favicon.svelte";
@@ -8,7 +9,7 @@
   const favorites = $derived((browser.state.favorites ?? []).slice(0, widget.options.count));
 </script>
 
-<h2 class="widget-title">Favoris</h2>
+<h2 class="widget-title">{t("favoritesWidget.favorites")}</h2>
 {#if favorites.length}
   <div class="grid">
     {#each favorites as favorite (favorite.url)}
@@ -19,7 +20,7 @@
     {/each}
   </div>
 {:else}
-  <p class="widget-empty">Glissez un onglet sur la grille des favoris, en haut de la barre latérale.</p>
+  <p class="widget-empty">{t("favoritesWidget.dragTabOntoFavorites")}</p>
 {/if}
 
 <style>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { internalPageOf } from "@shared/internal";
   import {
     WELCOME_STEPS,
@@ -73,9 +74,9 @@
 <svelte:window {onkeydown} />
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-<div class="welcome" data-testid="welcome-page" data-step={flow.step} tabindex="-1" bind:this={root} role="region" aria-label="Bienvenue dans Browser">
+<div class="welcome" data-testid="welcome-page" data-step={flow.step} tabindex="-1" bind:this={root} role="region" aria-label={t("welcomePage.welcomeBrowser")}>
   <div class="inner">
-    <ol class="dots" aria-label="Étapes">
+    <ol class="dots" aria-label={t("welcomePage.steps")}>
       {#each WELCOME_STEPS as step, position (step)}
         <li>
           <button
@@ -94,41 +95,41 @@
       <section class="step" class:back={direction < 0} aria-labelledby="welcome-title">
         {#if flow.step === "hello"}
           <span class="badge"><Icon name="sparkle" size={28} /></span>
-          <h1 id="welcome-title">Bienvenue dans Browser</h1>
+          <h1 id="welcome-title">{t("welcomePage.welcomeBrowser")}</h1>
           <p class="lead">
-            Un navigateur rapide, privé et à votre image. Quatre petites étapes pour le régler, une minute en tout ; chacune peut être passée.
+            {t("welcomePage.fastPrivateBrowserMade")}
           </p>
           <ul class="promises">
-            <li><Icon name="shield" size={16} /> Publicités et pisteurs bloqués d'office</li>
-            <li><Icon name="layers" size={16} /> Des espaces pour séparer travail et perso</li>
-            <li><Icon name="cloud-off" size={16} /> Vos données restent sur cet appareil</li>
+            <li><Icon name="shield" size={16} /> {t("welcomePage.adsTrackersBlockedOut")}</li>
+            <li><Icon name="layers" size={16} /> {t("welcomePage.spacesSeparateWorkPersonal")}</li>
+            <li><Icon name="cloud-off" size={16} /> {t("welcomePage.dataStaysDevice")}</li>
           </ul>
         {:else if flow.step === "theme"}
-          <h1 id="welcome-title">Choisissez un thème</h1>
-          <p class="lead">Il s'applique tout de suite. Couleurs, police et densité se règlent ensuite dans les paramètres.</p>
+          <h1 id="welcome-title">{t("welcomePage.chooseTheme")}</h1>
+          <p class="lead">{t("welcomePage.appliesRightAwayColors")}</p>
           <WelcomeTheme />
         {:else if flow.step === "import"}
-          <h1 id="welcome-title">Importer depuis votre navigateur</h1>
-          <p class="lead">Favoris, historique et moteur de recherche, sans doublons. Rien ne quitte votre ordinateur.</p>
+          <h1 id="welcome-title">{t("welcomePage.importFromBrowser")}</h1>
+          <p class="lead">{t("welcomePage.bookmarksHistorySearchEngine")}</p>
           <WelcomeImport />
         {:else if flow.step === "default"}
-          <h1 id="welcome-title">Navigateur par défaut</h1>
-          <p class="lead">Les liens ouverts depuis vos autres applications, et les fichiers HTML et PDF, s'ouvriront ici.</p>
+          <h1 id="welcome-title">{t("welcomePage.defaultBrowser")}</h1>
+          <p class="lead">{t("welcomePage.linksOpenedFromOther")}</p>
           <WelcomeDefault />
         {:else}
-          <h1 id="welcome-title">L'essentiel</h1>
-          <p class="lead">Quatre gestes qui changent tout. Les retrouver plus tard : Aide, Visite guidée.</p>
+          <h1 id="welcome-title">{t("welcomePage.essentials")}</h1>
+          <p class="lead">{t("welcomePage.fourGesturesThatChange")}</p>
           <WelcomeEssentials />
         {/if}
       </section>
     {/key}
 
     <footer>
-      <Button variant="quiet" onclick={finish} data-testid="welcome-skip">Passer</Button>
+      <Button variant="quiet" onclick={finish} data-testid="welcome-skip">{t("welcomePage.skip")}</Button>
       <span class="spacer"></span>
-      {#if index > 0}<Button onclick={previous}>Retour</Button>{/if}
+      {#if index > 0}<Button onclick={previous}>{t("welcomePage.back")}</Button>{/if}
       <Button variant="primary" onclick={next} data-testid="welcome-next">
-        {isLastStep(flow) ? "Commencer à naviguer" : index === 0 ? "C'est parti" : "Suivant"}
+        {isLastStep(flow) ? t("welcomePage.startBrowsing") : index === 0 ? t("welcomePage.letsGo") : t("welcomePage.next")}
         <Icon name="chevron-right" size={14} />
       </Button>
     </footer>

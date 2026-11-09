@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { getCommand, type CommandId } from "@shared/commands";
   import { buildAppMenu, closedEntryOf, profileEntryOf, type MenuNode, type PageLink } from "@shared/menus";
   import type { ProfilesView } from "@shared/profiles";
@@ -111,17 +112,17 @@
 
   const syncText = $derived.by(() => {
     const status = sync.status;
-    if (browser.isPrivate) return "Rien n'est synchronisé en navigation privée";
-    if (!status?.configured) return "Désactivée";
+    if (browser.isPrivate) return t("appMenuPanel.nothingSyncedPrivateBrowsing");
+    if (!status?.configured) return t("appMenuPanel.off");
     switch (status.phase) {
       case "syncing":
         return "Synchronisation…";
       case "error":
-        return "Erreur de synchronisation";
+        return t("appMenuPanel.syncError");
       case "offline":
         return "Hors ligne";
       default:
-        return status.lastSync ? `À jour, ${new Date(status.lastSync).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}` : "Activée";
+        return status.lastSync ? `À jour, ${new Date(status.lastSync).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}` : t("appMenuPanel.on");
     }
   });
 </script>
@@ -140,7 +141,7 @@
   style:width="{Math.min(WIDTH, innerWidth - 2 * MARGIN)}px"
   onkeydown={onKeydown}
 >
-  <MenuList {nodes} label="Menu de l'application" onRun={run} autofocus {special} />
+  <MenuList {nodes} label={t("appMenuPanel.appMenu")} onRun={run} autofocus {special} />
 </div>
 
 {#snippet special(node: MenuNode)}
@@ -148,39 +149,39 @@
     <div class="sync">
       <span class="sync-icon"><Icon name={sync.status?.phase === "error" ? "cloud-off" : "cloud"} size={16} /></span>
       <span class="sync-text">
-        <span class="sync-title">Synchronisation</span>
+        <span class="sync-title">{t("appMenuPanel.sync")}</span>
         <span class="sync-state">{syncText}</span>
       </span>
       {#if !browser.isPrivate}
         {#if sync.status?.configured}
-          <button class="pill" onclick={() => runCommand("sync-now", true)} disabled={sync.status.phase === "syncing"}>Synchroniser</button>
+          <button class="pill" onclick={() => runCommand("sync-now", true)} disabled={sync.status.phase === "syncing"}>{t("appMenuPanel.sync2")}</button>
         {:else}
-          <button class="pill" onclick={() => runCommand("open-sync")}>Se connecter</button>
+          <button class="pill" onclick={() => runCommand("open-sync")}>{t("appMenuPanel.sign")}</button>
         {/if}
       {/if}
     </div>
   {:else if node.kind === "zoom"}
-    <div class="zoom" role="group" aria-label="Zoom">
+    <div class="zoom" role="group" aria-label={t("appMenuPanel.zoom")}>
       <Icon name="zoom-in" size={16} />
-      <span class="label">Zoom</span>
-      <button class="round" aria-label="Zoom arrière" title={platform.tip("Zoom arrière", "zoom-out")} disabled={!tab} onclick={() => runCommand("zoom-out", true)}>
+      <span class="label">{t("appMenuPanel.zoom")}</span>
+      <button class="round" aria-label={t("appMenuPanel.zoomOut")} title={platform.tip(t("appMenuPanel.zoomOut"), "zoom-out")} disabled={!tab} onclick={() => runCommand("zoom-out", true)}>
         <Icon name="minimize" size={14} />
       </button>
       <button
         class="value"
         class:changed={!!tab && tab.zoom !== defaultZoom}
-        aria-label="Zoom {tab?.zoom ?? defaultZoom} %, revenir à {defaultZoom} %"
-        title={platform.tip(`Revenir à ${defaultZoom} %`, "zoom-reset")}
+        aria-label={t("appMenuPanel.zoomBack", { p: tab?.zoom ?? defaultZoom, defaultZoom })}
+        title={platform.tip(t("appMenuPanel.back", { defaultZoom }), "zoom-reset")}
         data-testid="app-menu-zoom"
         disabled={!tab}
         onclick={() => runCommand("zoom-reset", true)}
       >
         {tab?.zoom ?? defaultZoom}&#8239;%
       </button>
-      <button class="round" aria-label="Zoom avant" title={platform.tip("Zoom avant", "zoom-in")} disabled={!tab} onclick={() => runCommand("zoom-in", true)}>
+      <button class="round" aria-label={t("appMenuPanel.zoom2")} title={platform.tip("Zoom avant", "zoom-in")} disabled={!tab} onclick={() => runCommand("zoom-in", true)}>
         <Icon name="plus" size={14} />
       </button>
-      <IconButton size="sm" icon="maximize" label="Plein écran" command="toggle-fullscreen" onclick={() => runCommand("toggle-fullscreen", true)} />
+      <IconButton size="sm" icon="maximize" label={t("appMenuPanel.fullScreen")} command="toggle-fullscreen" onclick={() => runCommand("toggle-fullscreen", true)} />
     </div>
   {/if}
 {/snippet}

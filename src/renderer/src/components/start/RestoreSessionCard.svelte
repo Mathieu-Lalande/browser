@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { api, browser } from "../../lib/browser.svelte";
   import Icon from "../Icon.svelte";
   import Button from "../ui/Button.svelte";
@@ -40,7 +41,7 @@
     <div class="head">
       <span class="badge"><Icon name="reset" size={18} /></span>
       <div class="text">
-        <h2 id="restore-title">Restaurer la session ?</h2>
+        <h2 id="restore-title">{t("restoreSessionCard.restoreSession")}</h2>
         <p>
           Le navigateur ne s'est pas fermé correctement. {plural(summary.windows.length, "fenêtre")}, {plural(summary.tabCount, "onglet")}
           peuvent être rouverts.
@@ -61,15 +62,15 @@
     {/if}
     <div class="actions">
       {#if choosing}
-        <Button size="sm" variant="primary" disabled={busy || chosen.size === 0} onclick={() => restore([...chosen])}>Restaurer la sélection</Button>
-        <Button size="sm" variant="quiet" onclick={() => (choosing = false)}>Retour</Button>
+        <Button size="sm" variant="primary" disabled={busy || chosen.size === 0} onclick={() => restore([...chosen])}>{t("restoreSessionCard.restoreSelection")}</Button>
+        <Button size="sm" variant="quiet" onclick={() => (choosing = false)}>{t("restoreSessionCard.back")}</Button>
       {:else}
-        <Button size="sm" variant="primary" icon="reset" disabled={busy} onclick={() => restore(null)}>Tout restaurer</Button>
+        <Button size="sm" variant="primary" icon="reset" disabled={busy} onclick={() => restore(null)}>{t("restoreSessionCard.restoreAll")}</Button>
         {#if summary.windows.length > 1}
-          <Button size="sm" onclick={() => (choosing = true)}>Choisir les fenêtres</Button>
+          <Button size="sm" onclick={() => (choosing = true)}>{t("restoreSessionCard.chooseWindows")}</Button>
         {/if}
       {/if}
-      <Button size="sm" variant="quiet" onclick={() => api.recovery.dismiss()}>Ignorer</Button>
+      <Button size="sm" variant="quiet" onclick={() => api.recovery.dismiss()}>{t("restoreSessionCard.ignore")}</Button>
     </div>
   </section>
 {/if}

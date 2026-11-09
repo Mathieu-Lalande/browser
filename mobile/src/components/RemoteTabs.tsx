@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { displayUrl } from "@shared/url";
 import { memo } from "react";
 import { StyleSheet, Text, View } from "react-native";
@@ -19,7 +20,7 @@ export const RemoteTabs = memo(function RemoteTabs({ onOpen }: { onOpen: (url: s
       <View style={styles.header}>
         <Icon name="cloud" size={14} color={colors.textMuted} strokeWidth={2.4} />
         <Text style={[styles.title, { color: colors.textMuted }]} accessibilityRole="header">
-          Autres appareils
+          {t("mobile.remoteTabs.otherDevices")}
         </Text>
       </View>
       {received.length > 0 && (
@@ -27,7 +28,7 @@ export const RemoteTabs = memo(function RemoteTabs({ onOpen }: { onOpen: (url: s
           <View style={styles.device}>
             <Icon name="send" size={16} color={colors.accentText} />
             <Text style={[styles.deviceName, { color: colors.text }]} numberOfLines={1}>
-              Reçus
+              {t("mobile.remoteTabs.received")}
             </Text>
             <Text style={[styles.count, { color: colors.textMuted }]}>{received.length}</Text>
           </View>
@@ -35,7 +36,7 @@ export const RemoteTabs = memo(function RemoteTabs({ onOpen }: { onOpen: (url: s
             <Tap
               key={tab.id}
               accessibilityRole="button"
-              accessibilityLabel={`Ouvrir ${tab.title || displayUrl(tab.url)}, envoyé par ${tab.fromName}`}
+              accessibilityLabel={t("mobile.remoteTabs.openSent", { p: tab.title || displayUrl(tab.url), fromName: tab.fromName })}
               onPress={() => {
                 onOpen(tab.url);
                 actions.sync.dismissReceived(tab.id);
@@ -69,7 +70,7 @@ export const RemoteTabs = memo(function RemoteTabs({ onOpen }: { onOpen: (url: s
             <Tap
               key={tab.url}
               accessibilityRole="button"
-              accessibilityLabel={`Ouvrir ${tab.title || displayUrl(tab.url)}`}
+              accessibilityLabel={t("mobile.remoteTabs.open", { p: tab.title || displayUrl(tab.url) })}
               onPress={() => onOpen(tab.url)}
               pressScale={0.98}
               style={[styles.row, { borderTopColor: colors.hairline }]}

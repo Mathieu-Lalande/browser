@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { mergeSuggestions, type Suggestion } from "@shared/search";
   import { internalPageOf } from "@shared/internal";
   import type { Bookmark } from "@shared/types";
@@ -47,7 +48,7 @@
   const zoomed = $derived(!!tab && (/^https?:|^data:/.test(tab.url) || isInternal) && !tab.interstitial && tab.zoom !== defaultZoom);
 
   const showShield = $derived(!!tab && /^https?:/.test(tab.url) && !tab.interstitial);
-  const shieldTitle = "Protections désactivées sur ce site. Cliquer pour les réactiver.";
+  const shieldTitle = t("addressBar.protectionsTurnedOffSite");
 
   /** Web pages get the site info popover. */
   const isWebPage = $derived(!!tab && /^https?:/.test(tab.url) && !tab.interstitial);
@@ -176,7 +177,7 @@
       <span
         class="status"
         class:secure={!open && isInternal}
-        title={open ? undefined : isInternal ? "Page du navigateur" : tab?.url ? "Connexion non chiffrée" : undefined}
+        title={open ? undefined : isInternal ? t("addressBar.browserPage") : tab?.url ? t("addressBar.unencryptedConnection") : undefined}
       >
         <!-- While typing, the icon says what Enter will do (search or go), not the current page's security. -->
         <Icon name={open ? (isSearch ? "search" : "globe") : !tab?.url ? "search" : isInternal ? "sparkle" : "warning"} size={14} />
@@ -191,10 +192,10 @@
         onfocus={onFocus}
         onblur={() => (focused = false)}
         onkeydown={onKeydown}
-        placeholder="Rechercher ou saisir une adresse"
+        placeholder={t("addressBar.searchEnterAddress")}
         spellcheck="false"
         autocomplete="off"
-        aria-label="Barre d'adresse"
+        aria-label={t("addressBar.addressBar")}
         role="combobox"
         aria-expanded={open}
         aria-controls="address-suggestions"
@@ -212,9 +213,9 @@
             type="button"
             class="star act"
             class:on={tab.isBookmarked}
-            aria-label={tab.isBookmarked ? "Retirer des favoris" : "Ajouter aux favoris"}
+            aria-label={tab.isBookmarked ? t("addressBar.removeFromBookmarks") : t("addressBar.addBookmarks")}
             aria-pressed={tab.isBookmarked}
-            title={platform.tip(tab.isBookmarked ? "Retirer des favoris" : "Ajouter aux favoris", "toggle-bookmark")}
+            title={platform.tip(tab.isBookmarked ? t("addressBar.removeFromBookmarks") : t("addressBar.addBookmarks"), "toggle-bookmark")}
             onclick={() => api.bookmarks.toggleActive()}
           >
             <Icon name="star" size={16} filled={tab.isBookmarked} />
@@ -225,9 +226,9 @@
               type="button"
               class="star act"
               class:on={tab.inReadingList}
-              aria-label={tab.inReadingList ? "Retirer de la liste de lecture" : "Lire plus tard"}
+              aria-label={tab.inReadingList ? t("addressBar.removeFromReadingList") : t("addressBar.readLater")}
               aria-pressed={!!tab.inReadingList}
-              title={platform.tip(tab.inReadingList ? "Retirer de la liste de lecture" : "Lire plus tard", "toggle-reading-list")}
+              title={platform.tip(tab.inReadingList ? t("addressBar.removeFromReadingList") : t("addressBar.readLater"), "toggle-reading-list")}
               onmousedown={(event) => event.preventDefault()}
               onclick={() => void api.reading.toggleTab(tab.id)}
             >
@@ -237,9 +238,9 @@
           <button
             type="button"
             class="star act"
-            aria-label="Options de la page"
+            aria-label={t("addressBar.pageOptions")}
             aria-haspopup="dialog"
-            title={platform.tip("Options de la page", "page-options")}
+            title={platform.tip(t("addressBar.pageOptions"), "page-options")}
             onmousedown={(event) => event.preventDefault()}
             onclick={showPageOptions}
           >
@@ -252,8 +253,8 @@
       <button
         type="button"
         class="zoom"
-        title="Zoom de ce site : {tab.zoom} %. Cliquer pour revenir à {defaultZoom} % ({platform.shortcut('zoom-reset')})."
-        aria-label="Zoom {tab.zoom} %, revenir à {defaultZoom} %"
+        title={t("addressBar.zoomSiteClickGo", { zoom: tab.zoom, defaultZoom, p: platform.shortcut('zoom-reset') })}
+        aria-label={t("addressBar.zoomBack", { zoom: tab.zoom, defaultZoom })}
         onclick={() => api.commands.run("zoom-reset")}
       >
         {tab.zoom}&#8239;%
@@ -267,8 +268,8 @@
         type="button"
         class="star on"
         class:busy={!!phase}
-        aria-label={phase ?? (install?.phase === "error" ? "Réessayer d'ajouter à Browser" : "Ajouter à Browser")}
-        title={phase ?? (install?.phase === "error" ? `${install.message} Cliquer pour réessayer.` : "Ajouter cette extension à Browser")}
+        aria-label={phase ?? (install?.phase === "error" ? t("addressBar.retryAddingBrowser") : t("addressBar.addBrowser"))}
+        title={phase ?? (install?.phase === "error" ? t("addressBar.clickTryAgain", { message: install.message }) : t("addressBar.addExtensionBrowser"))}
         data-store-phase={install?.phase ?? "idle"}
         disabled={!!phase}
         onmousedown={(event) => event.preventDefault()}
@@ -283,8 +284,8 @@
         type="button"
         class="star on"
         aria-pressed="true"
-        aria-label="Quitter le mode lecture"
-        title={platform.tip("Quitter le mode lecture", "toggle-reader")}
+        aria-label={t("addressBar.exitReaderMode")}
+        title={platform.tip(t("addressBar.exitReaderMode"), "toggle-reader")}
         onmousedown={(event) => event.preventDefault()}
         onclick={() => api.commands.run("toggle-reader")}
       >
@@ -296,8 +297,8 @@
       <button
         type="button"
         class="star on"
-        aria-label={tab?.translated ? "Page traduite" : "Traduction de la page"}
-        title={platform.tip(tab?.translated ? "Page traduite" : "Traduction de la page", "translate-page")}
+        aria-label={tab?.translated ? t("addressBar.pageTranslated") : t("addressBar.pageTranslation")}
+        title={platform.tip(tab?.translated ? "Page traduite" : t("addressBar.pageTranslation"), "translate-page")}
         onmousedown={(event) => event.preventDefault()}
         onclick={showTranslatePanel}
       >
@@ -319,14 +320,14 @@
     {/if}
     {#if recording}
       <!-- Always visible while the window records a tab: red dot, timer, stop. -->
-      <span class="recording" role="status" aria-label="Enregistrement en cours : {formatDuration(now - recording.startedAt)}">
+      <span class="recording" role="status" aria-label={t("addressBar.recording", { p: formatDuration(now - recording.startedAt) })}>
         <span class="dot" aria-hidden="true"></span>
         <span class="time" aria-hidden="true">{formatDuration(now - recording.startedAt)}</span>
         <button
           type="button"
           class="stop"
-          aria-label="Arrêter l'enregistrement"
-          title={platform.tip("Arrêter l'enregistrement", "record-video")}
+          aria-label={t("addressBar.stopRecording")}
+          title={platform.tip(t("addressBar.stopRecording"), "record-video")}
           onmousedown={(event) => event.preventDefault()}
           onclick={() => api.commands.run("record-video")}
         >

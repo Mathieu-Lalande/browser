@@ -4,6 +4,8 @@
  * postal code checks. Pure.
  */
 
+import { t } from "../i18n";
+
 export interface AddressFields {
   /** Full name, as written on a letter. */
   name: string;
@@ -34,21 +36,21 @@ export interface Country {
 }
 
 export const COUNTRIES: readonly Country[] = [
-  { code: "FR", name: "France", layout: "eu", postal: /^\d{5}$/, aliases: ["france", "fra"] },
-  { code: "BE", name: "Belgique", layout: "eu", postal: /^\d{4}$/, aliases: ["belgium", "belgië", "belgie", "bel"] },
-  { code: "CH", name: "Suisse", layout: "eu", postal: /^\d{4}$/, aliases: ["switzerland", "schweiz", "svizzera", "che"] },
-  { code: "LU", name: "Luxembourg", layout: "eu", postal: /^(L-?)?\d{4}$/, aliases: ["lux"] },
-  { code: "MC", name: "Monaco", layout: "eu", postal: /^980\d{2}$/, aliases: ["mco"] },
-  { code: "DE", name: "Allemagne", layout: "eu", postal: /^\d{5}$/, aliases: ["germany", "deutschland", "deu"] },
-  { code: "AT", name: "Autriche", layout: "eu", postal: /^\d{4}$/, aliases: ["austria", "österreich", "aut"] },
-  { code: "ES", name: "Espagne", layout: "eu", postal: /^\d{5}$/, aliases: ["spain", "españa", "espana", "esp"] },
-  { code: "IT", name: "Italie", layout: "eu", postal: /^\d{5}$/, aliases: ["italy", "italia", "ita"] },
-  { code: "PT", name: "Portugal", layout: "eu", postal: /^\d{4}-?\d{3}$/, aliases: ["prt"] },
-  { code: "NL", name: "Pays-Bas", layout: "eu", postal: /^\d{4}\s?[a-z]{2}$/i, aliases: ["netherlands", "nederland", "nld", "holland"] },
-  { code: "IE", name: "Irlande", layout: "uk", postal: null, aliases: ["ireland", "irl", "éire"] },
-  { code: "GB", name: "Royaume-Uni", layout: "uk", postal: /^[a-z]{1,2}\d[a-z\d]?\s?\d[a-z]{2}$/i, aliases: ["united kingdom", "uk", "great britain", "england", "gbr"] },
-  { code: "US", name: "États-Unis", layout: "us", postal: /^\d{5}(-\d{4})?$/, aliases: ["united states", "usa", "united states of america", "etats-unis"] },
-  { code: "CA", name: "Canada", layout: "us", postal: /^[a-z]\d[a-z]\s?\d[a-z]\d$/i, aliases: ["can"] },
+  { code: "FR", get name() { return t("autofillAddress.france") }, layout: "eu", postal: /^\d{5}$/, aliases: ["france", "fra"] },
+  { code: "BE", get name() { return t("autofillAddress.belgium") }, layout: "eu", postal: /^\d{4}$/, aliases: ["belgium", "belgië", "belgie", "bel"] },
+  { code: "CH", get name() { return t("autofillAddress.switzerland") }, layout: "eu", postal: /^\d{4}$/, aliases: ["switzerland", "schweiz", "svizzera", "che"] },
+  { code: "LU", get name() { return t("autofillAddress.luxembourg") }, layout: "eu", postal: /^(L-?)?\d{4}$/, aliases: ["lux"] },
+  { code: "MC", get name() { return t("autofillAddress.monaco") }, layout: "eu", postal: /^980\d{2}$/, aliases: ["mco"] },
+  { code: "DE", get name() { return t("autofillAddress.germany") }, layout: "eu", postal: /^\d{5}$/, aliases: ["germany", "deutschland", "deu"] },
+  { code: "AT", get name() { return t("autofillAddress.austria") }, layout: "eu", postal: /^\d{4}$/, aliases: ["austria", "österreich", "aut"] },
+  { code: "ES", get name() { return t("autofillAddress.spain") }, layout: "eu", postal: /^\d{5}$/, aliases: ["spain", "españa", "espana", "esp"] },
+  { code: "IT", get name() { return t("autofillAddress.italy") }, layout: "eu", postal: /^\d{5}$/, aliases: ["italy", "italia", "ita"] },
+  { code: "PT", get name() { return t("autofillAddress.portugal") }, layout: "eu", postal: /^\d{4}-?\d{3}$/, aliases: ["prt"] },
+  { code: "NL", get name() { return t("autofillAddress.netherlands") }, layout: "eu", postal: /^\d{4}\s?[a-z]{2}$/i, aliases: ["netherlands", "nederland", "nld", "holland"] },
+  { code: "IE", get name() { return t("autofillAddress.ireland") }, layout: "uk", postal: null, aliases: ["ireland", "irl", "éire"] },
+  { code: "GB", get name() { return t("autofillAddress.unitedKingdom") }, layout: "uk", postal: /^[a-z]{1,2}\d[a-z\d]?\s?\d[a-z]{2}$/i, aliases: ["united kingdom", "uk", "great britain", "england", "gbr"] },
+  { code: "US", get name() { return t("autofillAddress.unitedStates") }, layout: "us", postal: /^\d{5}(-\d{4})?$/, aliases: ["united states", "usa", "united states of america", "etats-unis"] },
+  { code: "CA", get name() { return t("autofillAddress.canada") }, layout: "us", postal: /^[a-z]\d[a-z]\s?\d[a-z]\d$/i, aliases: ["can"] },
 ];
 
 export const countryOf = (code: string): Country | undefined => COUNTRIES.find((country) => country.code === code);

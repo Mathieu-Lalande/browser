@@ -4,6 +4,7 @@
  * whether the page opens by itself at startup (`shouldOpenWelcome`).
  */
 
+import { t } from "./i18n";
 import type { CommandId } from "./commands";
 
 export const WELCOME_STEPS = ["hello", "theme", "import", "default", "essentials"] as const;
@@ -12,9 +13,9 @@ export type WelcomeStep = (typeof WELCOME_STEPS)[number];
 
 export const WELCOME_STEP_LABELS: Record<WelcomeStep, string> = {
   hello: "Bienvenue",
-  theme: "Thème",
-  import: "Importer",
-  default: "Navigateur par défaut",
+  get theme() { return t("onboarding.theme") },
+  get import() { return t("onboarding.import") },
+  get default() { return t("onboarding.defaultBrowser") },
   essentials: "L'essentiel",
 };
 
@@ -30,15 +31,15 @@ export interface WelcomeTipDefinition {
 }
 
 export const WELCOME_TIPS: readonly WelcomeTipDefinition[] = [
-  { id: "omnibox", title: "Barre universelle", text: "Onglets, historique, favoris, commandes et calculs au même endroit.", command: "command-palette" },
+  { id: "omnibox", get title() { return t("onboarding.universalBar") }, get text() { return t("onboarding.tabsHistoryBookmarksCommands") }, command: "command-palette" },
   {
     id: "spaces",
-    title: "Espaces",
-    text: "Un espace par contexte (travail, perso…). Glissez à deux doigts sur la barre latérale pour passer de l'un à l'autre.",
+    get title() { return t("onboarding.spaces") },
+    get text() { return t("onboarding.oneSpacePerContext") },
     gesture: "Deux doigts",
   },
-  { id: "peek", title: "Aperçu de lien", text: "Un lien s'ouvre dans une carte au-dessus de la page, sans la quitter.", gesture: "Maj + clic" },
-  { id: "compact", title: "Mode compact", text: "La barre latérale se replie en rail pour laisser toute la place aux pages.", command: "toggle-compact-mode" },
+  { id: "peek", get title() { return t("onboarding.linkPreview") }, get text() { return t("onboarding.linkOpensCardAbove") }, gesture: "Maj + clic" },
+  { id: "compact", get title() { return t("onboarding.compactMode") }, get text() { return t("onboarding.sidebarFoldsIntoRail") }, command: "toggle-compact-mode" },
 ];
 
 export type WelcomeTip = WelcomeTipDefinition["id"];

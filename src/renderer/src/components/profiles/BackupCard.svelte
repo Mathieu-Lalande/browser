@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { MIN_PASSPHRASE, type BackupMode, type BackupSection, type BackupSummary } from "@shared/backup";
   import { api } from "../../lib/browser.svelte";
   import Button from "../ui/Button.svelte";
@@ -13,15 +14,15 @@
    */
 
   const LABELS: Record<BackupSection | "passwords", string> = {
-    settings: "Réglages",
-    bookmarks: "Favoris",
-    favorites: "Grille des favoris",
-    history: "Pages de l'historique",
-    session: "Fenêtres de la session",
+    settings: t("backupCard.settings"),
+    bookmarks: t("backupCard.bookmarks"),
+    favorites: t("backupCard.favoritesGrid"),
+    history: t("backupCard.historyPages"),
+    session: t("backupCard.sessionWindows"),
     boosts: "Boosts",
-    annotations: "Notes et surlignages",
-    archive: "Onglets archivés",
-    passwords: "Mots de passe",
+    annotations: t("backupCard.notesHighlights"),
+    archive: t("backupCard.archivedTabs"),
+    passwords: t("backupCard.passwords"),
   };
 
   let withPasswords = $state(false);
@@ -37,15 +38,15 @@
 
   async function doExport(): Promise<void> {
     busy = true;
-    const result = await api.backup.export(withPasswords ? exportSecret : null).catch(() => ({ ok: false as const, message: "L'export a échoué." }));
+    const result = await api.backup.export(withPasswords ? exportSecret : null).catch(() => ({ ok: false as const, message: t("backupCard.exportFailed") }));
     busy = false;
-    message = result.ok ? "Sauvegarde enregistrée." : result.message;
+    message = result.ok ? t("backupCard.backupSaved") : result.message;
     if (result.ok) exportSecret = "";
   }
 
   async function pick(): Promise<void> {
     message = "";
-    const result = await api.backup.inspect().catch(() => ({ ok: false as const, message: "Le fichier n'a pas pu être lu." }));
+    const result = await api.backup.inspect().catch(() => ({ ok: false as const, message: t("backupCard.fileCouldntRead") }));
     if (result.ok) summary = result.summary;
     else message = result.message;
   }
@@ -53,12 +54,12 @@
   async function apply(): Promise<void> {
     busy = true;
     const secret = summary?.hasPasswords && importSecret ? importSecret : null;
-    const result = await api.backup.apply(mode, secret).catch(() => ({ ok: false as const, message: "L'import a échoué." }));
+    const result = await api.backup.apply(mode, secret).catch(() => ({ ok: false as const, message: t("backupCard.importFailed") }));
     busy = false;
     if (result.ok) {
       summary = null;
       importSecret = "";
-      message = "Sauvegarde importée.";
+      message = t("backupCard.backupImported");
     } else message = result.message;
   }
 
@@ -66,32 +67,32 @@
 </script>
 
 <section class="ui-section" aria-labelledby="backup-title">
-  <h2 class="ui-section-title" id="backup-title">Sauvegarde du profil</h2>
+  <h2 class="ui-section-title" id="backup-title">{t("backupCard.profileBackup")}</h2>
   <Card as="div" variant="section" data-testid="backup">
     <div class="body">
       <p class="ui-section-hint">
-        Exporte les réglages, favoris, historique, sessions, boosts, notes et la page d'accueil dans un fichier. Les cookies n'en font jamais partie.
+        {t("backupCard.exportsSettingsBookmarksHistory")}
       </p>
-      <Checkbox checked={withPasswords} onchange={(checked) => (withPasswords = checked)}>Inclure les mots de passe (chiffrés avec une phrase secrète)</Checkbox>
+      <Checkbox checked={withPasswords} onchange={(checked) => (withPasswords = checked)}>{t("backupCard.includePasswordsEncryptedPassphrase")}</Checkbox>
       {#if withPasswords}
         <input
           class="ui-field"
           type="password"
           autocomplete="new-password"
-          aria-label="Phrase secrète de la sauvegarde"
-          placeholder="Phrase secrète ({MIN_PASSPHRASE} caractères au moins)"
+          aria-label={t("backupCard.backupPassphrase")}
+          placeholder={t("backupCard.passphraseLeastCharacters", { MIN_PASSPHRASE })}
           bind:value={exportSecret}
         />
       {/if}
       <div class="buttons">
-        <Button variant="primary" icon="file-down" disabled={busy || !exportReady} onclick={doExport}>Exporter le profil…</Button>
-        <Button icon="file-up" disabled={busy} onclick={pick}>Importer une sauvegarde…</Button>
+        <Button variant="primary" icon="file-down" disabled={busy || !exportReady} onclick={doExport}>{t("backupCard.exportProfile")}</Button>
+        <Button icon="file-up" disabled={busy} onclick={pick}>{t("backupCard.importBackup")}</Button>
         {#if message}<span class="message" role="status">{message}</span>{/if}
       </div>
     </div>
 
     {#if summary}
-      <div class="body summary" aria-label="Contenu de la sauvegarde">
+      <div class="body summary" aria-label={t("backupCard.backupContent")}>
         <p>
           Sauvegarde{summary.profileName ? ` du profil « ${summary.profileName} »` : ""}{summary.createdAt ? `, ${dateFormat.format(summary.createdAt)}` : ""} :
         </p>
@@ -99,32 +100,32 @@
           {#each Object.entries(summary.counts) as [section, count] (section)}
             <li>{LABELS[section as BackupSection]} : {count}</li>
           {/each}
-          {#if summary.hasPasswords}<li>{LABELS.passwords} (chiffrés)</li>{/if}
+          {#if summary.hasPasswords}<li>{t("backupCard.encrypted", { passwords: LABELS.passwords })}</li>{/if}
         </ul>
         <Segmented
-          label="Import"
+          label={t("backupCard.import")}
           value={mode}
           options={[
-            { value: "merge" as BackupMode, label: "Fusionner" },
-            { value: "replace" as BackupMode, label: "Remplacer" },
+            { value: "merge" as BackupMode, label: t("backupCard.merge") },
+            { value: "replace" as BackupMode, label: t("backupCard.replace") },
           ]}
           onchange={(value) => (mode = value)}
         />
         <p class="ui-section-hint">
-          {mode === "merge" ? "Ajoute ce qui manque, garde vos réglages et vos données actuelles." : "Remplace les réglages et les données de ce profil par ceux de la sauvegarde."}
+          {mode === "merge" ? t("backupCard.addsWhatsMissingKeeps") : t("backupCard.replacesProfilesSettingsData")}
         </p>
         {#if summary.hasPasswords}
           <input
             class="ui-field"
             type="password"
             autocomplete="off"
-            aria-label="Phrase secrète pour les mots de passe"
-            placeholder="Phrase secrète (laisser vide pour ignorer les mots de passe)"
+            aria-label={t("backupCard.passphrasePasswords")}
+            placeholder={t("backupCard.passphraseLeaveEmptySkip")}
             bind:value={importSecret}
           />
         {/if}
         <div class="buttons end">
-          <Button variant="quiet" onclick={() => (summary = null)}>Annuler</Button>
+          <Button variant="quiet" onclick={() => (summary = null)}>{t("backupCard.cancel")}</Button>
           <Button variant={mode === "replace" ? "danger" : "primary"} disabled={busy} onclick={apply}>{mode === "merge" ? "Fusionner" : "Remplacer"}</Button>
         </div>
       </div>

@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { MAX_CLOSED_WINDOWS, RecentStack, pickWindows, summarizeSession, type ClosedEntry, type RecoverySummary } from "@shared/recovery";
 import type { WindowDirectory, WindowPort } from "../ports";
 import type { Session, SessionWindow } from "../storage/session";
@@ -62,7 +63,7 @@ export class RecoveryService {
     if (tabs.length === 0) return;
     const active = saved.spaces.find((space) => space.spaceId === saved.activeSpaceId) ?? saved.spaces[0];
     const shown = active.tabs[active.activeIndex] ?? tabs[0];
-    this.closed.push({ saved, title: shown.title || shown.url || "Nouvel onglet", tabCount: tabs.length });
+    this.closed.push({ saved, title: shown.title || shown.url || t("recoveryService.newTab"), tabCount: tabs.length });
   }
 
   closedWindows(): ClosedEntry[] {

@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { originLabel, searchPasswords, summarize } from "@shared/passwords";
 import * as Clipboard from "expo-clipboard";
 import { memo, useMemo, useState } from "react";
@@ -26,9 +27,9 @@ export const PasswordsSettings = memo(function PasswordsSettings() {
   const passwordOf = (id: string) => vault.entries.find((entry) => entry.id === id)?.password ?? "";
 
   const reveal = (id: string, site: string) =>
-    Alert.alert(`Afficher le mot de passe de ${site} ?`, "Assurez-vous que personne ne regarde votre écran.", [
-      { text: "Annuler", style: "cancel" },
-      { text: "Afficher", onPress: () => setRevealed((current) => ({ ...current, [id]: true })) },
+    Alert.alert(t("mobile.passwordsSettings.showPassword", { site }), t("mobile.passwordsSettings.makeSureNoOne"), [
+      { text: t("mobile.passwordsSettings.cancel"), style: "cancel" },
+      { text: t("mobile.passwordsSettings.show"), onPress: () => setRevealed((current) => ({ ...current, [id]: true })) },
     ]);
 
   const copy = (id: string) => {
@@ -42,20 +43,20 @@ export const PasswordsSettings = memo(function PasswordsSettings() {
   };
 
   const remove = (id: string, site: string) =>
-    Alert.alert(`Supprimer le mot de passe de ${site} ?`, "Il ne pourra plus être rempli.", [
-      { text: "Annuler", style: "cancel" },
-      { text: "Supprimer", style: "destructive", onPress: () => void passwords.remove(id) },
+    Alert.alert(t("mobile.passwordsSettings.deletePassword", { site }), t("mobile.passwordsSettings.canNoLongerFilled"), [
+      { text: t("mobile.passwordsSettings.cancel"), style: "cancel" },
+      { text: t("mobile.passwordsSettings.delete"), style: "destructive", onPress: () => void passwords.remove(id) },
     ]);
 
   // Opt-in (ADR-050): turning it on says plainly who can then read the passwords.
   const setSync = (sync: boolean) => {
     if (!sync) return actions.updateSettings({ passwords: { sync } });
     Alert.alert(
-      "Synchroniser les mots de passe ?",
-      "Ils sont chiffrés de bout en bout : le serveur ne voit rien. Mais tout appareil jumelé avec votre code de jumelage pourra les lire. Gardez ce code secret.",
+      t("mobile.passwordsSettings.syncPasswords"),
+      t("mobile.passwordsSettings.theyAreEndEnd"),
       [
-        { text: "Annuler", style: "cancel" },
-        { text: "Activer", onPress: () => actions.updateSettings({ passwords: { sync: true } }) },
+        { text: t("mobile.passwordsSettings.cancel"), style: "cancel" },
+        { text: t("mobile.passwordsSettings.turn"), onPress: () => actions.updateSettings({ passwords: { sync: true } }) },
       ],
     );
   };
@@ -65,19 +66,19 @@ export const PasswordsSettings = memo(function PasswordsSettings() {
   return (
     <View>
       <Text style={[styles.intro, { color: colors.textMuted }]}>
-        Proposés après une connexion, chiffrés dans le trousseau du téléphone. Touchez la clé de la barre d'adresse pour remplir un formulaire.
+        {t("mobile.passwordsSettings.offeredAfterSignEncrypted")}
       </Text>
       <View style={[styles.row, border(1)]}>
         <View style={styles.text}>
-          <Text style={[styles.site, { color: colors.text }]}>Synchroniser les mots de passe</Text>
-          <Text style={[styles.detail, { color: colors.textMuted }]}>Désactivé par défaut. Chiffrés de bout en bout, lisibles par tout appareil jumelé.</Text>
+          <Text style={[styles.site, { color: colors.text }]}>{t("mobile.passwordsSettings.syncPasswords2")}</Text>
+          <Text style={[styles.detail, { color: colors.textMuted }]}>{t("mobile.passwordsSettings.offDefaultEndEnd")}</Text>
         </View>
         <Switch
           value={settings.passwords.sync}
           onValueChange={setSync}
           trackColor={{ true: colors.accent, false: colors.surfaceActive }}
           thumbColor="#ffffff"
-          accessibilityLabel="Synchroniser les mots de passe"
+          accessibilityLabel={t("mobile.passwordsSettings.syncPasswords2")}
         />
       </View>
       {vault.entries.length > 0 && (
@@ -86,12 +87,12 @@ export const PasswordsSettings = memo(function PasswordsSettings() {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Rechercher un site ou un identifiant"
+            placeholder={t("mobile.passwordsSettings.searchSiteUsername")}
             placeholderTextColor={colors.textFaint}
             style={[styles.searchInput, { color: colors.text }]}
             autoCapitalize="none"
             autoCorrect={false}
-            accessibilityLabel="Rechercher dans les mots de passe"
+            accessibilityLabel={t("mobile.passwordsSettings.searchPasswords")}
           />
         </View>
       )}
@@ -111,19 +112,19 @@ export const PasswordsSettings = memo(function PasswordsSettings() {
               </Text>
             </View>
             {revealed[entry.id] ? (
-              <IconButton icon="eyeOff" label={`Masquer le mot de passe de ${site}`} size={20} onPress={() => setRevealed(({ [entry.id]: _hidden, ...rest }) => rest)} />
+              <IconButton icon="eyeOff" label={t("mobile.passwordsSettings.hidePassword", { site })} size={20} onPress={() => setRevealed(({ [entry.id]: _hidden, ...rest }) => rest)} />
             ) : (
-              <IconButton icon="eye" label={`Afficher le mot de passe de ${site}`} size={20} onPress={() => reveal(entry.id, site)} />
+              <IconButton icon="eye" label={t("mobile.passwordsSettings.showPassword2", { site })} size={20} onPress={() => reveal(entry.id, site)} />
             )}
-            <IconButton icon="copy" label={`Copier le mot de passe de ${site}`} size={20} onPress={() => copy(entry.id)} />
-            <IconButton icon="trash" label={`Supprimer le mot de passe de ${site}`} size={20} color={colors.danger} onPress={() => remove(entry.id, site)} />
+            <IconButton icon="copy" label={t("mobile.passwordsSettings.copyPassword", { site })} size={20} onPress={() => copy(entry.id)} />
+            <IconButton icon="trash" label={t("mobile.passwordsSettings.deletePassword2", { site })} size={20} color={colors.danger} onPress={() => remove(entry.id, site)} />
           </View>
         );
       })}
       {vault.entries.length === 0 && (
         <View style={[styles.row, border(1)]}>
           <Icon name="key" size={20} color={colors.textMuted} />
-          <Text style={[styles.detail, styles.text, { color: colors.textMuted }]}>Aucun mot de passe enregistré.</Text>
+          <Text style={[styles.detail, styles.text, { color: colors.textMuted }]}>{t("mobile.passwordsSettings.noSavedPasswords")}</Text>
         </View>
       )}
       {vault.never.map((origin, index) => (
@@ -133,10 +134,10 @@ export const PasswordsSettings = memo(function PasswordsSettings() {
             <Text style={[styles.site, { color: colors.text }]} numberOfLines={1}>
               {originLabel(origin)}
             </Text>
-            <Text style={[styles.detail, { color: colors.textMuted }]}>Jamais enregistré</Text>
+            <Text style={[styles.detail, { color: colors.textMuted }]}>{t("mobile.passwordsSettings.neverSaved")}</Text>
           </View>
-          <Tap accessibilityRole="button" accessibilityLabel={`Retirer ${originLabel(origin)} de la liste`} onPress={() => void passwords.removeNever(origin)} style={styles.action}>
-            <Text style={{ color: colors.accentText }}>Retirer</Text>
+          <Tap accessibilityRole="button" accessibilityLabel={t("mobile.passwordsSettings.removeFromList", { p: originLabel(origin) })} onPress={() => void passwords.removeNever(origin)} style={styles.action}>
+            <Text style={{ color: colors.accentText }}>{t("mobile.passwordsSettings.remove")}</Text>
           </Tap>
         </View>
       ))}

@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import { sanitizePlace, type TemperatureUnit, type WeatherPlace } from "./start-widgets";
 
 /**
@@ -81,15 +82,15 @@ export function parseForecast(json: unknown): Forecast | null {
 
 /** WMO weather code → French label and icon. */
 export function weatherCondition(code: number, isDay = true): { label: string; icon: WeatherIcon } {
-  if (code === 0) return { label: "Ciel dégagé", icon: isDay ? "sun" : "moon" };
-  if (code <= 2) return { label: "Partiellement nuageux", icon: isDay ? "cloud-sun" : "cloud-moon" };
-  if (code === 3) return { label: "Couvert", icon: "cloud" };
-  if (code === 45 || code === 48) return { label: "Brouillard", icon: "cloud-fog" };
-  if (code >= 51 && code <= 57) return { label: "Bruine", icon: "cloud-drizzle" };
-  if ((code >= 61 && code <= 67) || (code >= 80 && code <= 82)) return { label: "Pluie", icon: "cloud-rain" };
-  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return { label: "Neige", icon: "cloud-snow" };
-  if (code >= 95) return { label: "Orage", icon: "cloud-lightning" };
-  return { label: "Variable", icon: "cloud" };
+  if (code === 0) return { label: t("weather.clearSky"), icon: isDay ? "sun" : "moon" };
+  if (code <= 2) return { label: t("weather.partlyCloudy"), icon: isDay ? "cloud-sun" : "cloud-moon" };
+  if (code === 3) return { label: t("weather.overcast"), icon: "cloud" };
+  if (code === 45 || code === 48) return { label: t("weather.fog"), icon: "cloud-fog" };
+  if (code >= 51 && code <= 57) return { label: t("weather.drizzle"), icon: "cloud-drizzle" };
+  if ((code >= 61 && code <= 67) || (code >= 80 && code <= 82)) return { label: t("weather.rain"), icon: "cloud-rain" };
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return { label: t("weather.snow"), icon: "cloud-snow" };
+  if (code >= 95) return { label: t("weather.thunderstorm"), icon: "cloud-lightning" };
+  return { label: t("weather.variable"), icon: "cloud" };
 }
 
 /** "12°" (rounded, in the unit asked; the API answers in °C). */

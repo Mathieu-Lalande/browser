@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { join } from "node:path";
 import { app, safeStorage } from "electron";
 import type { AssistantKeyStatus } from "@shared/assistant/state";
@@ -12,7 +13,7 @@ import { JsonFile } from "../storage/json-file";
 
 const VERSION = 1;
 const MAX_KEY_LENGTH = 500;
-const UNAVAILABLE = "Le chiffrement du système n'est pas disponible : la clé d'API ne peut pas être enregistrée sur cet appareil.";
+const UNAVAILABLE = t("assistantKeys.systemEncryptionIsntAvailable");
 
 /** Same test hook as the password vault (unpackaged app only, ADR-018). */
 const TEST_PLAIN_KEYCHAIN = !app.isPackaged && process.env.BROWSER_TEST_PLAIN_KEYCHAIN === "1";
@@ -66,7 +67,7 @@ export class AssistantKeyStore {
     } catch {
       return { ok: false, message: UNAVAILABLE };
     }
-    if (!this.file!.save({ ciphertext })) return { ok: false, message: "Le fichier de la clé n'a pas pu être écrit." };
+    if (!this.file!.save({ ciphertext })) return { ok: false, message: t("assistantKeys.keyFileCouldntWritten") };
     this.key = clean;
     return { ok: true };
   }

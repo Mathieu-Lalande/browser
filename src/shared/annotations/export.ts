@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { ANNOTATIONS_VERSION, COLOR_LABELS, annotatedSites, type AnnotationFilter, type AnnotationsData } from "./model";
 
 /**
@@ -17,12 +18,12 @@ const quoteBlock = (text: string, prefix = "> ") =>
 const date = (time: number) => new Date(time).toISOString().slice(0, 10);
 
 export function annotationsToMarkdown(data: AnnotationsData, filter: AnnotationFilter = {}, now = Date.now()): string {
-  const lines = ["# Notes et surlignages", "", `Exporté le ${date(now)}.`];
+  const lines = [t("annotationsExport.notesHighlights"), "", t("annotationsExport.exported", { p: date(now) })];
   for (const site of annotatedSites(data, filter)) {
     lines.push("", `## ${inline(site.site)}`);
     for (const page of site.pages) {
       lines.push("", `### [${inline(page.title || page.url)}](<${page.url.replace(/>/g, "%3E")}>)`);
-      if (page.note) lines.push("", "**Note de la page :**", "", quoteBlock(page.note.text));
+      if (page.note) lines.push("", t("annotationsExport.pageNote"), "", quoteBlock(page.note.text));
       for (const highlight of page.highlights) {
         lines.push("", `${quoteBlock(highlight.exact)}`, "", `— ${COLOR_LABELS[highlight.color]}, ${date(highlight.createdAt)}`);
         if (highlight.note) lines.push("", quoteBlock(highlight.note, "- Note : "));

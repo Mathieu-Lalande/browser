@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { memo, useEffect } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { siteHost, siteHue } from "../lib/site";
@@ -32,7 +33,7 @@ export const WebTab = memo(function WebTab({ id, loadUrl, active, background, bo
       >
         <View style={[styles.hero, { backgroundColor: `hsl(${hue}, 70%, 42%)` }]}>
           <Text style={styles.kicker}>{host.toUpperCase()}</Text>
-          <Text style={styles.heroTitle}>Un navigateur pensé pour le pouce</Text>
+          <Text style={styles.heroTitle}>{t("mobile.webTabWeb.browserDesignedThumb")}</Text>
         </View>
         {Array.from({ length: 6 }, (_, index) => (
           <View key={index} style={styles.paragraph}>

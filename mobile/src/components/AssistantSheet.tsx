@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { PRIVACY_NOTICE, PRIVATE_NOTICE, type AssistantTurn } from "@shared/assistant";
 import { memo, useState } from "react";
 import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
@@ -54,21 +55,21 @@ export const AssistantSheet = memo(function AssistantSheet({ assistant, includeP
   };
 
   return (
-    <View style={[styles.sheet, { backgroundColor: colors.bgElevated, paddingBottom: insets.bottom + 8, paddingTop: insets.top + 8 }]} accessibilityLabel="Assistant IA">
+    <View style={[styles.sheet, { backgroundColor: colors.bgElevated, paddingBottom: insets.bottom + 8, paddingTop: insets.top + 8 }]} accessibilityLabel={t("mobile.assistantSheet.aiAssistant")}>
       <View style={styles.header}>
         <Icon name="sparkles" size={18} color={colors.accentText} />
-        <Text style={[styles.title, { color: colors.text }]}>Assistant</Text>
-        {assistant.turns.length > 0 && <IconButton icon="trash" label="Nouvelle conversation" onPress={assistant.clear} size={20} />}
-        <IconButton icon="close" label="Fermer l'assistant" onPress={assistant.close} size={20} />
+        <Text style={[styles.title, { color: colors.text }]}>{t("mobile.assistantSheet.assistant")}</Text>
+        {assistant.turns.length > 0 && <IconButton icon="trash" label={t("mobile.assistantSheet.newConversation")} onPress={assistant.clear} size={20} />}
+        <IconButton icon="close" label={t("mobile.assistantSheet.closeAssistant")} onPress={assistant.close} size={20} />
       </View>
       <ScrollView style={styles.list} contentContainerStyle={styles.content}>
         {assistant.waitingConsent && (
           <View style={[styles.notice, { backgroundColor: colors.surface }]}>
             {assistant.isPrivate && <Text style={[styles.small, { color: colors.text }]}>{PRIVATE_NOTICE}</Text>}
             <Text style={[styles.small, { color: colors.text }]}>{PRIVACY_NOTICE}</Text>
-            {assistant.pendingLabel ? <Text style={[styles.small, { color: colors.textMuted }]}>Demande en attente : {assistant.pendingLabel}</Text> : null}
+            {assistant.pendingLabel ? <Text style={[styles.small, { color: colors.textMuted }]}>{t("mobile.assistantSheet.pendingRequest")} {assistant.pendingLabel}</Text> : null}
             <Tap accessibilityRole="button" onPress={assistant.accept} style={[styles.button, { backgroundColor: colors.accent }]}>
-              <Text style={{ color: colors.onAccent, fontWeight: "600" }}>Accepter et envoyer</Text>
+              <Text style={{ color: colors.onAccent, fontWeight: "600" }}>{t("mobile.assistantSheet.acceptSend")}</Text>
             </Tap>
           </View>
         )}
@@ -78,18 +79,18 @@ export const AssistantSheet = memo(function AssistantSheet({ assistant, includeP
               <Text style={[styles.body, { color: colors.text }]}>{turn.text}</Text>
               <Text style={[styles.small, { color: colors.textMuted }]}>
                 {turn.reusedContext
-                  ? "Page déjà envoyée plus haut"
+                  ? t("mobile.assistantSheet.pageAlreadySentAbove")
                   : turn.sent?.length
                     ? `Envoyé à Anthropic : ${turn.sent.map((source) => `${source.title}${source.truncated ? " (tronqué)" : ""}`).join(", ")}`
-                    : "Sans la page"}
+                    : t("mobile.assistantSheet.withoutPage")}
               </Text>
             </View>
           ) : (
             <View key={turn.id} style={styles.answer}>
-              {turn.status === "streaming" && !turn.text ? <Text style={[styles.small, { color: colors.textMuted }]}>Réflexion…</Text> : answer(turn)}
+              {turn.status === "streaming" && !turn.text ? <Text style={[styles.small, { color: colors.textMuted }]}>{t("mobile.assistantSheet.thinking")}</Text> : answer(turn)}
               {turn.error || turn.status === "stopped" ? (
                 <Text style={[styles.small, { color: turn.status === "error" || turn.status === "refused" ? colors.danger : colors.textMuted }]}>
-                  {turn.error ?? "Réponse arrêtée."}
+                  {turn.error ?? t("mobile.assistantSheet.responseStopped")}
                 </Text>
               ) : null}
             </View>
@@ -105,7 +106,7 @@ export const AssistantSheet = memo(function AssistantSheet({ assistant, includeP
             onPress={() => assistant.run({ action, includePage: true })}
             style={[styles.chip, { backgroundColor: colors.surface }]}
           >
-            <Text style={{ color: colors.text, fontSize: 13 }}>{action === "summarize" ? "Résumer la page" : "Points clés"}</Text>
+            <Text style={{ color: colors.text, fontSize: 13 }}>{action === "summarize" ? t("mobile.assistantSheet.summarizePage") : t("mobile.assistantSheet.keyPoints")}</Text>
           </Tap>
         ))}
       </View>
@@ -114,16 +115,16 @@ export const AssistantSheet = memo(function AssistantSheet({ assistant, includeP
           value={question}
           onChangeText={setQuestion}
           onSubmitEditing={ask}
-          placeholder="Poser une question sur cette page…"
+          placeholder={t("mobile.assistantSheet.askQuestionAboutPage")}
           placeholderTextColor={colors.textFaint}
           returnKeyType="send"
           style={[styles.input, { color: colors.text }]}
-          accessibilityLabel="Question à l'assistant"
+          accessibilityLabel={t("mobile.assistantSheet.questionAssistant")}
         />
         {assistant.busy ? (
-          <IconButton icon="close" label="Arrêter la réponse" onPress={assistant.stop} size={22} />
+          <IconButton icon="close" label={t("mobile.assistantSheet.stopResponse")} onPress={assistant.stop} size={22} />
         ) : (
-          <IconButton icon="send" label="Envoyer la question" onPress={ask} disabled={!question.trim()} size={22} />
+          <IconButton icon="send" label={t("mobile.assistantSheet.sendQuestion")} onPress={ask} disabled={!question.trim()} size={22} />
         )}
       </View>
     </View>

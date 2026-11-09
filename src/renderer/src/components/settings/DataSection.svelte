@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { Bookmark } from "@shared/types";
   import { displayUrl } from "@shared/url";
   import { api } from "../../lib/browser.svelte";
@@ -29,21 +30,21 @@
   }
 </script>
 
-<Row anchor="import" label="Importer depuis un autre navigateur" hint="Favoris, historique, moteur de recherche et mots de passe (CSV) de Chrome, Edge, Brave, Vivaldi, Opera, Firefox ou Arc." keywords="import chrome firefox edge arc">
-  <Button icon="import" onclick={() => api.commands.run("import-data")}>Importer…</Button>
+<Row anchor="import" label={t("dataSection.importFromAnotherBrowser")} hint={t("dataSection.bookmarksHistorySearchEngine")} keywords={t("dataSection.importChromeFirefoxEdge")}>
+  <Button icon="import" onclick={() => api.commands.run("import-data")}>{t("dataSection.import")}</Button>
 </Row>
 
-<Row anchor="history" label="Historique de navigation" hint="Efface toutes les pages visitées, et les suggestions qui en découlent.">
-  <Button variant="quiet" icon="history" onclick={() => api.commands.run("open-history")}>Tout l'historique</Button>
-  {#if cleared}<span class="done"><Icon name="check" size={12} /> Historique effacé</span>{/if}
-  <ConfirmButton variant="outlined" question="Tout l'historique ?" confirmLabel="Effacer" onconfirm={clearHistory}>
-    <Icon name="trash" size={12} /> Effacer l'historique
+<Row anchor="history" label={t("dataSection.browsingHistory")} hint={t("dataSection.clearsAllVisitedPages")}>
+  <Button variant="quiet" icon="history" onclick={() => api.commands.run("open-history")}>{t("dataSection.allHistory")}</Button>
+  {#if cleared}<span class="done"><Icon name="check" size={12} /> {t("dataSection.historyCleared")}</span>{/if}
+  <ConfirmButton variant="outlined" question={t("dataSection.allHistory2")} confirmLabel={t("dataSection.clear")} onconfirm={clearHistory}>
+    <Icon name="trash" size={12} /> {t("dataSection.clearHistory")}
   </ConfirmButton>
 </Row>
 
-<Row anchor="bookmarks" label="Favoris" hint={bookmarks.length ? `${bookmarks.length} page${bookmarks.length > 1 ? "s" : ""} en favori.` : `Aucun favori pour l'instant : ${platform.shortcut("toggle-bookmark")} ajoute la page affichée.`} stacked={bookmarks.length > 0}>
+<Row anchor="bookmarks" label={t("dataSection.bookmarks")} hint={bookmarks.length ? t("dataSection.bookmarkedPages", { bookmarksCount: bookmarks.length }) : t("dataSection.noBookmarksYetAdds", { p: platform.shortcut("toggle-bookmark") })} stacked={bookmarks.length > 0}>
   {#if bookmarks.length}
-    <ul class="bookmarks" aria-label="Favoris">
+    <ul class="bookmarks" aria-label={t("dataSection.bookmarks")}>
       {#each bookmarks as bookmark (bookmark.id)}
         <li>
           <Favicon src={bookmark.favicon} />
@@ -51,7 +52,7 @@
             <span class="title">{bookmark.title}</span>
             <span class="url">{displayUrl(bookmark.url)}</span>
           </span>
-          <button class="remove" aria-label="Retirer {bookmark.title} des favoris" title="Retirer des favoris" onclick={() => remove(bookmark.id)}>
+          <button class="remove" aria-label={t("dataSection.removeFromBookmarks", { title: bookmark.title })} title={t("dataSection.removeFromBookmarks2")} onclick={() => remove(bookmark.id)}>
             <Icon name="close" size={12} />
           </button>
         </li>

@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { readFile, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { app, dialog } from "electron";
@@ -10,13 +11,13 @@ import type { BrowserController } from "./window";
  * Applying an imported theme is an ordinary settings update, after the user's "Appliquer".
  */
 
-const FILTERS = [{ name: "Thème Browser", extensions: ["browsertheme", "json"] }];
+const FILTERS = [{ get name() { return t("themeShare.browserTheme") }, extensions: ["browsertheme", "json"] }];
 
 export async function exportTheme(c: BrowserController, input: unknown): Promise<boolean> {
   const checked = validateTheme(input);
   if (!checked.ok) return false;
   const { canceled, filePath } = await dialog.showSaveDialog(c.window, {
-    title: "Exporter le thème",
+    title: t("themeShare.exportTheme"),
     defaultPath: join(app.getPath("documents"), themeFileName(checked.theme)),
     filters: FILTERS,
   });
@@ -30,13 +31,13 @@ export async function exportTheme(c: BrowserController, input: unknown): Promise
 }
 
 export async function importTheme(c: BrowserController): Promise<ThemeDecodeResult | null> {
-  const { canceled, filePaths } = await dialog.showOpenDialog(c.window, { title: "Importer un thème", filters: FILTERS, properties: ["openFile"] });
+  const { canceled, filePaths } = await dialog.showOpenDialog(c.window, { title: t("themeShare.importTheme"), filters: FILTERS, properties: ["openFile"] });
   if (canceled || !filePaths[0]) return null;
   try {
     // Checked before reading: a huge file is refused without loading it.
-    if ((await stat(filePaths[0])).size > MAX_THEME_FILE * 4) return { ok: false, error: "Fichier de thème trop volumineux." };
+    if ((await stat(filePaths[0])).size > MAX_THEME_FILE * 4) return { ok: false, error: t("themeShare.themeFileTooLarge") };
     return parseThemeFile(await readFile(filePaths[0], "utf8"));
   } catch {
-    return { ok: false, error: "Le fichier n'a pas pu être lu." };
+    return { ok: false, error: t("themeShare.fileCouldntRead") };
   }
 }

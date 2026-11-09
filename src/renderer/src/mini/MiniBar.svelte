@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { MiniAction } from "@shared/mini";
   import Icon from "../components/Icon.svelte";
   import Button from "../components/ui/Button.svelte";
@@ -34,15 +35,15 @@
     <IconButton
       icon="pin"
       size="sm"
-      label="Toujours au premier plan"
+      label={t("miniBar.alwaysTop")}
       pressed={bar?.alwaysOnTop ?? false}
       onclick={() => act("pin")}
     />
-    <IconButton icon={copied ? "check" : "copy"} size="sm" label={copied ? "Lien copié" : "Copier le lien"} onclick={() => act("copy")} />
+    <IconButton icon={copied ? "check" : "copy"} size="sm" label={copied ? t("miniBar.linkCopied") : t("miniBar.copyLink")} onclick={() => act("copy")} />
     <Button variant="primary" size="sm" icon="open" title={`Ouvrir dans le navigateur (${key("O")})`} onclick={() => act("promote")}>
-      Ouvrir dans le navigateur
+      {t("miniBar.openBrowser")}
     </Button>
-    <IconButton icon="close" size="sm" label="Fermer" title={`Fermer (${key("W")})`} onclick={() => act("close")} />
+    <IconButton icon="close" size="sm" label={t("miniBar.close")} title={`Fermer (${key("W")})`} onclick={() => act("close")} />
   </div>
 </header>
 

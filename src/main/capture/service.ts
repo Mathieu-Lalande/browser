@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { randomUUID } from "node:crypto";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -116,9 +117,9 @@ export class CaptureService {
     const kept = this.resultOf(c, id);
     if (!kept) return false;
     const { canceled, filePath } = await dialog.showSaveDialog(c.window, {
-      title: "Enregistrer la capture",
+      title: t("captureService.saveScreenshot"),
       defaultPath: join(this.deps.downloadsFolder(), kept.name),
-      filters: [{ name: "Image PNG", extensions: ["png"] }],
+      filters: [{ name: t("captureService.pngImage"), extensions: ["png"] }],
     });
     if (canceled || !filePath) return false;
     try {

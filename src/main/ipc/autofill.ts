@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { isAutofillAnswer, isAutofillId, isFieldSection, sanitizeAddressFields, sanitizeCardInput, type AddressFields, type CardInput } from "@shared/autofill";
 import { Channels } from "@shared/ipc";
 import { isDictionaryWord } from "@shared/spellcheck";
@@ -9,7 +10,7 @@ const spellcheck = () => appServices().spellcheck;
 
 const addressInput = custom<AddressFields>((value) => record(4000)(value) && sanitizeAddressFields(value) !== null);
 const cardInput = custom<CardInput>((value) => record(1000)(value) && !("error" in sanitizeCardInput(value, false)));
-const refused = { ok: false, message: "Les adresses et les cartes se gèrent depuis une fenêtre normale." } as const;
+const refused = { ok: false, get message() { return t("autofill.addressesCardsAreManaged") } } as const;
 
 /**
  * Addresses and cards (ADR-041): entries by id, tabs of the sender's own window (main reads their

@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { memo, type ReactElement } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { FOLDER_HEADER } from "../../lib/overviewLayout";
@@ -23,8 +24,8 @@ export const FolderHeader = memo(function FolderHeader({
     <Tap
       accessibilityRole="button"
       accessibilityState={{ expanded: !folder.collapsed }}
-      accessibilityLabel={`Dossier ${folder.name}, ${count} onglet${count > 1 ? "s" : ""}`}
-      accessibilityHint="Toucher pour replier ou déplier, maintenir pour plus d'options"
+      accessibilityLabel={t("mobile.folderGroup.folderTabs", { name: folder.name, count })}
+      accessibilityHint={t("mobile.folderGroup.tapCollapseExpandHold")}
       onPress={() => {
         haptic("selection");
         onToggle(folder.id);

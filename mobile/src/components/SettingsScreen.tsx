@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { ACCENT_PRESETS, ARCHIVE_DELAY_OPTIONS, LIMITS, type CloseTabActivates, type NewTabPosition, type TabArchiveDelay, type ThemeMode } from "@shared/settings";
 import { addWidget } from "@shared/start-widgets";
 import { displayUrl, SEARCH_ENGINES } from "@shared/url";
@@ -40,7 +41,7 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
 
   const confirm = (title: string, message: string, action: string, run: () => void) =>
     Alert.alert(title, message, [
-      { text: "Annuler", style: "cancel" },
+      { text: t("mobile.settingsScreen.cancel"), style: "cancel" },
       {
         text: action,
         style: "destructive",
@@ -58,19 +59,19 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
     >
       <View style={[styles.header, { borderBottomColor: colors.hairline }]}>
         <Text style={[styles.title, { color: colors.text }]} accessibilityRole="header">
-          Paramètres
+          {t("mobile.settingsScreen.settings")}
         </Text>
         <Tap accessibilityRole="button" onPress={onClose} style={styles.done} pressScale={0.9}>
-          <Text style={[styles.doneText, { color: colors.accentText }]}>OK</Text>
+          <Text style={[styles.doneText, { color: colors.accentText }]}>{t("mobile.settingsScreen.ok")}</Text>
         </Tap>
       </View>
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
-        <Group title="Recherche" icon="search">
+        <Group title={t("mobile.settingsScreen.search")} icon="search">
           {SEARCH_ENGINES.map((engine, index) => (
             <Choice
               key={engine.id}
               label={engine.name}
-              detail={engine.id === "duckduckgo" ? "Par défaut, respecte la vie privée" : undefined}
+              detail={engine.id === "duckduckgo" ? t("mobile.settingsScreen.defaultPrivacyFriendly") : undefined}
               selected={settings.search.engine === engine.id}
               first={index === 0}
               onPress={() => actions.updateSettings({ search: { engine: engine.id } })}
@@ -78,8 +79,8 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
           ))}
         </Group>
 
-        <Group title="Apparence" icon="sparkles">
-          <Row label="Thème" first>
+        <Group title={t("mobile.settingsScreen.appearance")} icon="sparkles">
+          <Row label={t("mobile.settingsScreen.theme")} first>
             <Segmented<ThemeMode>
               value={appearance.mode}
               options={[
@@ -91,7 +92,7 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
             />
           </Row>
           <View style={[styles.swatchRow, { borderTopColor: colors.hairline }]}>
-            <Text style={[styles.rowLabel, { color: colors.text }]}>Couleur d'accent</Text>
+            <Text style={[styles.rowLabel, { color: colors.text }]}>{t("mobile.settingsScreen.accentColor")}</Text>
             <View style={styles.swatches}>
               {ACCENT_PRESETS.map((preset) => {
                 const selected = preset.accent === appearance.accent;
@@ -119,31 +120,31 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
           </View>
           <ThemeSettings input={themeInput} onInput={setThemeInput} onScan={() => setScanningTheme(true)} />
           <Toggle
-            label="Couleur du site"
-            detail="L'accent suit la couleur annoncée par la page (jamais en navigation privée)"
+            label={t("mobile.settingsScreen.siteColor")}
+            detail={t("mobile.settingsScreen.accentFollowsColorAnnounced")}
             value={appearance.dynamicTheme}
             onChange={(dynamicTheme) => actions.updateSettings({ appearance: { dynamicTheme } })}
           />
           <Toggle
-            label="Réduire les animations"
-            detail="S'ajoute au réglage du système"
+            label={t("mobile.settingsScreen.reduceMotion")}
+            detail={t("mobile.settingsScreen.addsSystemSetting")}
             value={appearance.reduceMotion}
             onChange={(reduceMotion) => actions.updateSettings({ appearance: { reduceMotion } })}
           />
         </Group>
 
-        <Group title="Page d'accueil" icon="home">
-          <Row label="Prénom" first>
+        <Group title={t("mobile.settingsScreen.startPage")} icon="home">
+          <Row label={t("mobile.settingsScreen.firstName")} first>
             <TextInput
               value={startPage.greetingName}
               onChangeText={(greetingName) => actions.updateSettings({ startPage: { greetingName } })}
-              placeholder="Facultatif"
+              placeholder={t("mobile.settingsScreen.optional")}
               placeholderTextColor={colors.textFaint}
               maxLength={LIMITS.greetingName}
               style={[styles.input, { color: colors.text }]}
               keyboardAppearance={dark ? "dark" : "light"}
               returnKeyType="done"
-              accessibilityLabel="Prénom affiché dans le message d'accueil"
+              accessibilityLabel={t("mobile.settingsScreen.firstNameShownGreeting")}
             />
           </Row>
           {(["clock", "top-sites"] as const).map((kind) => {
@@ -151,8 +152,8 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
             return (
               <Toggle
                 key={kind}
-                label={kind === "clock" ? "Afficher l'heure" : "Sites fréquents"}
-                detail={kind === "clock" ? "Maintenez la page d'accueil pour la personnaliser" : undefined}
+                label={kind === "clock" ? t("mobile.settingsScreen.showTime") : t("mobile.settingsScreen.topSites")}
+                detail={kind === "clock" ? t("mobile.settingsScreen.holdStartPageCustomize") : undefined}
                 value={shown}
                 onChange={(show) =>
                   actions.updateSettings({
@@ -164,68 +165,68 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
           })}
         </Group>
 
-        <Group title="Onglets" icon="tabs">
+        <Group title={t("mobile.settingsScreen.tabs")} icon="tabs">
           <Toggle
-            label="Rouvrir les onglets au démarrage"
+            label={t("mobile.settingsScreen.reopenTabsStartup")}
             first
             value={behavior.restoreSession}
             onChange={(restoreSession) => actions.updateSettings({ behavior: { restoreSession } })}
           />
-          <Row label="Nouveaux onglets">
+          <Row label={t("mobile.settingsScreen.newTabs")}>
             <Segmented<NewTabPosition>
               value={behavior.newTabPosition}
               options={[
-                ["end", "À la fin"],
-                ["next", "À côté"],
+                ["end", t("mobile.settingsScreen.end")],
+                ["next", t("mobile.settingsScreen.next")],
               ]}
               onChange={(newTabPosition) => actions.updateSettings({ behavior: { newTabPosition } })}
             />
           </Row>
-          <Row label="Archiver les onglets inactifs après" vertical>
+          <Row label={t("mobile.settingsScreen.archiveInactiveTabsAfter")} vertical>
             <Segmented<TabArchiveDelay>
               value={behavior.archiveTabsAfter}
               options={ARCHIVE_DELAY_OPTIONS.map((option): [TabArchiveDelay, string] => [option.value, option.label])}
               onChange={(archiveTabsAfter) => actions.updateSettings({ behavior: { archiveTabsAfter } })}
             />
           </Row>
-          <Row label="Après fermeture" vertical>
+          <Row label={t("mobile.settingsScreen.afterClosing")} vertical>
             <Segmented<CloseTabActivates>
               value={behavior.closeTabActivates}
               options={[
-                ["next", "Suivant"],
-                ["previous", "Précédent"],
-                ["recent", "Récent"],
+                ["next", t("mobile.settingsScreen.next2")],
+                ["previous", t("mobile.settingsScreen.previous")],
+                ["recent", t("mobile.settingsScreen.recent")],
               ]}
               onChange={(closeTabActivates) => actions.updateSettings({ behavior: { closeTabActivates } })}
             />
           </Row>
           <Toggle
-            label="Masquer la barre en défilant"
+            label={t("mobile.settingsScreen.hideBarWhileScrolling")}
             value={mobile.collapseToolbar}
             onChange={(collapseToolbar) => actions.updateMobileSettings({ collapseToolbar })}
           />
           {Platform.OS !== "web" && (
-            <Toggle label="Retour haptique" value={mobile.haptics} onChange={(haptics) => actions.updateMobileSettings({ haptics })} />
+            <Toggle label={t("mobile.settingsScreen.hapticFeedback")} value={mobile.haptics} onChange={(haptics) => actions.updateMobileSettings({ haptics })} />
           )}
         </Group>
 
-        <Group title="Synchronisation" icon="cloud">
+        <Group title={t("mobile.settingsScreen.sync")} icon="cloud">
           <SyncSettings onScan={() => setScanning(true)} />
         </Group>
 
-        <Group title="Mots de passe" icon="key">
+        <Group title={t("mobile.settingsScreen.passwords")} icon="key">
           <PasswordsSettings />
         </Group>
 
-        <Group title="Traduction" icon="languages">
+        <Group title={t("mobile.settingsScreen.translation")} icon="languages">
           <TranslateSettings />
         </Group>
 
-        <Group title="Assistant IA" icon="sparkles">
+        <Group title={t("mobile.settingsScreen.aiAssistant")} icon="sparkles">
           <AssistantSettings />
         </Group>
 
-        <Group title="Notes et surlignages" icon="highlighter">
+        <Group title={t("mobile.settingsScreen.notesHighlights")} icon="highlighter">
           <NotesSettings
             onOpen={(url) => {
               void actions.openUrl(url, {});
@@ -234,55 +235,55 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
           />
         </Group>
 
-        <Group title="Boosts" icon="rocket">
+        <Group title={t("mobile.settingsScreen.boosts")} icon="rocket">
           <BoostsSettings />
         </Group>
 
-        <Group title="Confidentialité" icon="shield">
+        <Group title={t("mobile.settingsScreen.privacy")} icon="shield">
           <Info
             first
             icon="lock"
-            label="Mode HTTPS uniquement"
-            detail="Les adresses http:// sont ouvertes en https:// ; si le site ne le permet pas, vous choisissez."
-            status="Toujours activé"
+            label={t("mobile.settingsScreen.httpsOnlyMode")}
+            detail={t("mobile.settingsScreen.httpAddressesOpenHttps")}
+            status={t("mobile.settingsScreen.always")}
           />
           <Toggle
-            label="Bloqueur de pubs et traqueurs"
+            label={t("mobile.settingsScreen.adTrackerBlocker")}
             detail={
               ContentBlocker
                 ? `EasyList et EasyPrivacy. Désactivable par site : touchez le cadenas, puis « Bouclier ».${trackers ? ` ${trackers} traqueur${trackers > 1 ? "s" : ""} bloqué${trackers > 1 ? "s" : ""} en 30 jours.` : ""}`
-                : `Éléments publicitaires masqués. ${SHIELD_UNAVAILABLE_NOTE}.`
+                : t("mobile.settingsScreen.adElementsHidden", { SHIELD_UNAVAILABLE_NOTE })
             }
             value={mobile.contentBlocker}
             onChange={(contentBlocker) => actions.updateMobileSettings({ contentBlocker })}
           />
           <Toggle
-            label="Refuser les bandeaux cookies"
-            detail="Clique sur « Tout refuser » quand le site le propose, sinon masque le bandeau"
+            label={t("mobile.settingsScreen.refuseCookieBanners")}
+            detail={t("mobile.settingsScreen.clicksRejectAllWhen")}
             value={settings.privacy.cookieBanners}
             onChange={(cookieBanners) => actions.updateSettings({ privacy: { cookieBanners } })}
           />
           <Action
             icon="clock"
-            label="Effacer l'historique"
+            label={t("mobile.settingsScreen.clearHistory")}
             destructive
             onPress={() =>
-              confirm("Effacer tout l'historique ?", "Toutes les pages visitées seront oubliées. Les favoris et les onglets ouverts sont conservés.", "Effacer", () =>
+              confirm(t("mobile.settingsScreen.clearAllHistory"), t("mobile.settingsScreen.allVisitedPagesWill"), t("mobile.settingsScreen.clear"), () =>
                 actions.clearHistory(),
               )
             }
           />
           <Action
             icon="trash"
-            label="Effacer toutes les données"
+            label={t("mobile.settingsScreen.clearAllData")}
             destructive
             onPress={() =>
               confirm(
-                "Tout effacer ?",
+                t("mobile.settingsScreen.clearEverything"),
                 sync?.configured
-                  ? "Historique, favoris et onglets ouverts seront supprimés, aussi sur vos appareils synchronisés. Les cookies des sites restent gérés par le système."
-                  : "Historique, favoris et onglets ouverts seront supprimés. Les cookies des sites restent gérés par le système.",
-                "Tout effacer",
+                  ? t("mobile.settingsScreen.historyBookmarksOpenTabs")
+                  : t("mobile.settingsScreen.historyBookmarksOpenTabs2"),
+                t("mobile.settingsScreen.clearEverything2"),
                 () => void actions.clearAllData(),
               )
             }
@@ -290,7 +291,7 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
         </Group>
 
         {bookmarks.length > 0 && (
-          <Group title={`Favoris (${bookmarks.length})`} icon="star">
+          <Group title={t("mobile.settingsScreen.bookmarks", { bookmarksCount: bookmarks.length })} icon="star">
             {[...bookmarks].reverse().slice(0, 50).map((bookmark, index) => (
               <View key={bookmark.id} style={[styles.row, index > 0 && { borderTopColor: colors.hairline, borderTopWidth: StyleSheet.hairlineWidth }]}>
                 <SiteIcon url={bookmark.url} title={bookmark.title} size={24} />
@@ -302,34 +303,34 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
                     {displayUrl(bookmark.url)}
                   </Text>
                 </View>
-                <IconButton icon="trash" label="Retirer des favoris" size={20} color={colors.textMuted} onPress={() => actions.removeBookmark(bookmark.id)} />
+                <IconButton icon="trash" label={t("mobile.settingsScreen.removeFromBookmarks")} size={20} color={colors.textMuted} onPress={() => actions.removeBookmark(bookmark.id)} />
               </View>
             ))}
           </Group>
         )}
 
-        <Group title="À propos" icon="info">
+        <Group title={t("mobile.settingsScreen.about")} icon="info">
           <Info
             first
             icon="globe"
             label={`Browser ${APP_VERSION}`}
             detail={
               Platform.OS === "ios"
-                ? "Moteur WebKit (imposé par iOS). Code partagé avec la version de bureau."
-                : "Moteur Android System WebView (Chromium). Code partagé avec la version de bureau."
+                ? t("mobile.settingsScreen.webkitEngineRequiredIos")
+                : t("mobile.settingsScreen.androidSystemWebviewEngine")
             }
           />
         </Group>
         {/* Within thumb reach, unlike the header's "OK". */}
         <Tap accessibilityRole="button" onPress={onClose} pressScale={0.97} style={[styles.doneBottom, { backgroundColor: colors.accent }]} testID="settings-done">
-          <Text style={[styles.doneBottomText, { color: colors.onAccent }]}>Terminé</Text>
+          <Text style={[styles.doneBottomText, { color: colors.onAccent }]}>{t("mobile.settingsScreen.done")}</Text>
         </Tap>
       </ScrollView>
       {scanningTheme && (
         <PairingScanner
           prefix={THEME_QR_PREFIX}
-          hint="Visez le QR code du thème affiché dans Paramètres, Apparence, sur l'autre appareil."
-          purpose="Pour scanner le QR code d'un thème."
+          hint={t("mobile.settingsScreen.aimThemeQrCode")}
+          purpose={t("mobile.settingsScreen.scanThemeQrCode")}
           onClose={() => setScanningTheme(false)}
           onCode={(code) => {
             setScanningTheme(false);
@@ -343,7 +344,7 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
           onCode={(code) => {
             setScanning(false);
             void actions.sync.pair(code).then((result) =>
-              Alert.alert("Synchronisation", result.ok ? "Téléphone jumelé avec votre ordinateur." : result.message),
+              Alert.alert("Synchronisation", result.ok ? t("mobile.settingsScreen.phonePairedComputer") : result.message),
             );
           }}
         />

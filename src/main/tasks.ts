@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import type { ProcessMetric, WebContents } from "electron";
 import { buildTaskRows, type ProcessOwner, type ProcessSample, type TaskRow } from "@shared/tasks";
 import type { WindowDirectory } from "./ports";
@@ -43,7 +44,7 @@ export class TaskManagerService {
       window.spaces.allTabs().flatMap(({ manager, tab }) => {
         const contents = manager.pageOf(tab.id);
         if (!contents) return [];
-        const title = window.isPrivate ? "Onglet privé" : tab.title || tab.url;
+        const title = window.isPrivate ? t("tasks.privateTab") : tab.title || tab.url;
         return [{ contents, owner: { kind: "tab" as const, title, tabId: tab.id } }];
       }),
     );
@@ -51,7 +52,7 @@ export class TaskManagerService {
 
   owners(): ProcessOwner[] {
     const owners: ProcessOwner[] = this.tabPages().map(({ contents, owner }) => ({ ...owner, pid: pidOf(contents) }));
-    for (const window of this.deps.windows.all()) owners.push({ pid: pidOf(window.window.webContents), kind: "interface", title: "Barre latérale et onglets" });
+    for (const window of this.deps.windows.all()) owners.push({ pid: pidOf(window.window.webContents), kind: "interface", title: t("tasks.sidebarTabs") });
     for (const contents of this.deps.allContents()) {
       if (contents.isDestroyed() || contents.getType() !== "backgroundPage") continue;
       owners.push({ pid: pidOf(contents), kind: "extension", title: contents.getTitle() || contents.getURL() });

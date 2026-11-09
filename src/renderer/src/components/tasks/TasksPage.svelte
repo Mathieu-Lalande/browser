@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import { TASKS_REFRESH_MS, formatMemory, sortTaskRows, type TaskRow, type TaskSortKey } from "@shared/tasks";
   import { api } from "../../lib/browser.svelte";
   import Icon from "../Icon.svelte";
@@ -46,14 +47,14 @@
   }
 
   const COLUMNS: { key: TaskSortKey; label: string; numeric: boolean }[] = [
-    { key: "title", label: "Tâche", numeric: false },
-    { key: "memory", label: "Mémoire", numeric: true },
-    { key: "cpu", label: "Processeur", numeric: true },
-    { key: "pid", label: "ID du processus", numeric: true },
+    { key: "title", label: t("tasksPage.task"), numeric: false },
+    { key: "memory", label: t("tasksPage.memory"), numeric: true },
+    { key: "cpu", label: t("tasksPage.cpu"), numeric: true },
+    { key: "pid", label: t("tasksPage.processId"), numeric: true },
   ];
 </script>
 
-<Page icon="activity" title="Gestionnaire de tâches" subtitle="Ce que chaque processus du navigateur consomme, actualisé toutes les 2 secondes." testid="tasks-page">
+<Page icon="activity" title={t("tasksPage.taskManager")} subtitle={t("tasksPage.whatEachBrowserProcess")} testid="tasks-page">
   <Card as="div">
     <table>
       <thead>
@@ -66,7 +67,7 @@
               </button>
             </th>
           {/each}
-          <th><span class="sr-only">Action</span></th>
+          <th><span class="sr-only">{t("tasksPage.action")}</span></th>
         </tr>
       </thead>
       <tbody>
@@ -83,7 +84,7 @@
             <td class="numeric">{row.pid}</td>
             <td class="action">
               {#if row.killable}
-                <Button size="sm" variant="danger" onclick={() => kill(row.pid)}>Terminer le processus</Button>
+                <Button size="sm" variant="danger" onclick={() => kill(row.pid)}>{t("tasksPage.endProcess")}</Button>
               {/if}
             </td>
           </tr>
@@ -91,7 +92,7 @@
       </tbody>
       <tfoot>
         <tr>
-          <td>Total</td>
+          <td>{t("tasksPage.total")}</td>
           <td class="numeric">{formatMemory(totals.memory)}</td>
           <td class="numeric">{totals.cpu.toLocaleString("fr-FR")} %</td>
           <td colspan="2"></td>

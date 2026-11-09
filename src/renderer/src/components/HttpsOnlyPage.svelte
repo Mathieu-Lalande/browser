@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import type { TabState } from "@shared/types";
   import { api } from "../lib/browser.svelte";
   import Icon from "./Icon.svelte";
@@ -16,24 +17,22 @@
 
 <section class="interstitial">
   <span class="badge"><Icon name="warning" size={24} /></span>
-  <h1>Connexion sécurisée indisponible</h1>
+  <h1>{t("httpsOnlyPage.secureConnectionUnavailable")}</h1>
   <p>
-    Le mode HTTPS uniquement a tenté une connexion chiffrée à <strong>{host}</strong>, sans succès. Le site ne
-    prend peut-être pas en charge HTTPS.
+    {t("httpsOnlyPage.httpsOnlyModeTried")} <strong>{host}</strong>{t("httpsOnlyPage.withoutSuccessSiteMay")}
   </p>
   <p class="muted">
-    En HTTP, les informations échangées (mots de passe, formulaires, pages consultées) peuvent être lues ou
-    modifiées par des tiers sur le réseau.
+    {t("httpsOnlyPage.overHttpInformationExchanged")}
   </p>
   <div class="actions">
     {#if tab.canGoBack}
-      <button class="secondary" onclick={() => api.tabs.back(tab.id)}>Revenir en arrière</button>
+      <button class="secondary" onclick={() => api.tabs.back(tab.id)}>{t("httpsOnlyPage.goBack")}</button>
     {:else}
       <!-- Nothing to go back to (address typed in a new tab): offer a way out instead. -->
-      <button class="secondary" onclick={() => api.tabs.navigate(tab.id, "")}>Page d'accueil</button>
-      <button class="secondary" onclick={() => api.tabs.close(tab.id)}>Fermer l'onglet</button>
+      <button class="secondary" onclick={() => api.tabs.navigate(tab.id, "")}>{t("httpsOnlyPage.startPage")}</button>
+      <button class="secondary" onclick={() => api.tabs.close(tab.id)}>{t("httpsOnlyPage.closeTab")}</button>
     {/if}
-    <button class="primary" onclick={() => api.tabs.proceedHttp(tab.id)}>Continuer en HTTP</button>
+    <button class="primary" onclick={() => api.tabs.proceedHttp(tab.id)}>{t("httpsOnlyPage.continueOverHttp")}</button>
   </div>
 </section>
 

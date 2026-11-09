@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { highlightSegments, type Range } from "@shared/fuzzy";
 import { searchEngineOf } from "@shared/settings";
 import { memo, useDeferredValue, useMemo, useRef, useState, type ComponentRef } from "react";
@@ -113,7 +114,7 @@ export const SearchSheet = memo(function SearchSheet({ initialText, onSubmit, on
               value={text}
               onChangeText={setText}
               selectTextOnFocus
-              placeholder="Rechercher ou saisir une adresse"
+              placeholder={t("mobile.searchSheet.searchEnterAddress")}
               placeholderTextColor={colors.textFaint}
               style={[styles.input, { color: colors.text }]}
               autoCapitalize="none"
@@ -127,11 +128,11 @@ export const SearchSheet = memo(function SearchSheet({ initialText, onSubmit, on
               keyboardAppearance={dark ? "dark" : "light"}
               selectionColor={colors.accent}
               onSubmitEditing={() => onSubmit(text)}
-              accessibilityLabel="Adresse ou recherche"
+              accessibilityLabel={t("mobile.searchSheet.addressSearch")}
               testID="search-input"
             />
             {text.length > 0 && (
-              <Tap accessibilityRole="button" accessibilityLabel="Effacer" onPress={() => setText("")} style={styles.clear} pressScale={0.85}>
+              <Tap accessibilityRole="button" accessibilityLabel={t("mobile.searchSheet.clear")} onPress={() => setText("")} style={styles.clear} pressScale={0.85}>
                 <View style={[styles.clearDot, { backgroundColor: colors.textFaint }]}>
                   <Icon name="close" size={12} color={colors.bg} strokeWidth={2} />
                 </View>
@@ -139,7 +140,7 @@ export const SearchSheet = memo(function SearchSheet({ initialText, onSubmit, on
             )}
           </View>
           <Tap accessibilityRole="button" onPress={onClose} style={styles.cancel} pressScale={0.92} hitSlop={8}>
-            <Text style={[styles.cancelText, { color: colors.accentText }]}>Annuler</Text>
+            <Text style={[styles.cancelText, { color: colors.accentText }]}>{t("mobile.searchSheet.cancel")}</Text>
           </Tap>
         </Animated.View>
       </KeyboardAvoidingView>
@@ -181,7 +182,7 @@ const Row = memo(function Row({ item, first, onPick, onFill }: { item: SheetItem
   const accent = answer || item.section === "go" || item.section === "web";
   const siteUrl = item.action.type === "tab" ? (item.completion ?? null) : item.icon === "cloud" || item.favicon !== undefined ? itemUrl(item) : null;
   const fillValue = item.section === "bookmarks" || item.section === "history" ? itemUrl(item) : null;
-  const badge = item.section === "tabs" ? "Onglet" : item.section === "bookmarks" ? "Favori" : answer ? "Copier" : null;
+  const badge = item.section === "tabs" ? t("mobile.searchSheet.tab") : item.section === "bookmarks" ? "Favori" : answer ? t("mobile.searchSheet.copy") : null;
   return (
     <Tap
       accessibilityRole="button"
@@ -210,7 +211,7 @@ const Row = memo(function Row({ item, first, onPick, onFill }: { item: SheetItem
         </Text>
       )}
       {fillValue && (
-        <Tap accessibilityRole="button" accessibilityLabel="Modifier cette adresse" onPress={() => onFill(fillValue)} style={styles.fill} pressScale={0.85}>
+        <Tap accessibilityRole="button" accessibilityLabel={t("mobile.searchSheet.editAddress")} onPress={() => onFill(fillValue)} style={styles.fill} pressScale={0.85}>
           <Icon name="fill" size={20} color={colors.textFaint} />
         </Tap>
       )}

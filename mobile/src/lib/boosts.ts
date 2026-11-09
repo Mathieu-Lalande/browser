@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import {
   BOOST_FONTS,
   boostCss,
@@ -79,9 +80,9 @@ true;`;
 
 export type QuickFilter = "invert" | "grayscale" | "sepia";
 export const QUICK_FILTERS: readonly { key: QuickFilter; label: string }[] = [
-  { key: "invert", label: "Inverser les couleurs" },
-  { key: "grayscale", label: "Niveaux de gris" },
-  { key: "sepia", label: "Sépia" },
+  { key: "invert", get label() { return t("mobile.boosts.invertColors") } },
+  { key: "grayscale", get label() { return t("mobile.boosts.grayscale") } },
+  { key: "sepia", get label() { return t("mobile.boosts.sepia") } },
 ];
 
 export const filterOn = (boost: Boost, key: QuickFilter) => (key === "invert" ? boost.filters.invert : boost.filters[key] > 0);
@@ -98,7 +99,7 @@ export function nextFont(font: BoostFont | null): BoostFont | null {
   return index + 1 < fonts.length ? fonts[index + 1] : null;
 }
 
-export const fontLabel = (font: BoostFont | null) => (font ? BOOST_FONTS[font].label : "Police du site");
+export const fontLabel = (font: BoostFont | null) => (font ? BOOST_FONTS[font].label : t("mobile.boosts.siteFont"));
 
 /** The page's boost, created when it has none (null: not a web page). */
 export function ensureSiteBoost(boosts: readonly Boost[], url: string, host: string, id: string, now: number): { boosts: Boost[]; boost: Boost } {

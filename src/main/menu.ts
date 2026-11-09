@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { Menu, app, type MenuItemConstructorOptions } from "electron";
 import { commandMenuItems } from "./commands";
 import { onSettingsChanged, settings } from "./settings";
@@ -35,14 +36,14 @@ function withFocused(action: (controller: BrowserController) => void): () => voi
 export function installMenu(): void {
   const isMac = process.platform === "darwin";
   const tabNumbers: MenuItemConstructorOptions[] = Array.from({ length: 9 }, (_, i) => ({
-    label: i === 8 ? "Dernier onglet" : `Onglet ${i + 1}`,
+    label: i === 8 ? t("menu.lastTab") : t("menu.tab", { p: i + 1 }),
     accelerator: `CmdOrCtrl+${i + 1}`,
     click: withFocused((c) => c.tabs.activateIndex(i === 8 ? -1 : i)),
   }));
 
   const spaceNumbers: MenuItemConstructorOptions[] = Array.from({ length: 9 }, (_, i) => ({
     id: `space-${i + 1}`,
-    label: i === 8 ? "Dernier espace" : `Espace ${i + 1}`,
+    label: i === 8 ? t("menu.lastSpace") : t("menu.space", { p: i + 1 }),
     accelerator: `CmdOrCtrl+Alt+${i + 1}`,
     click: withFocused((c) => c.spaces.switchIndex(i === 8 ? -1 : i)),
   }));
@@ -50,7 +51,7 @@ export function installMenu(): void {
   const template: MenuItemConstructorOptions[] = [
     ...(isMac ? [{ role: "appMenu" as const }] : []),
     {
-      label: "Fichier",
+      label: t("menu.file"),
       submenu: [
         ...commandMenuItems("new-tab"),
         ...commandMenuItems("new-window"),
@@ -77,15 +78,15 @@ export function installMenu(): void {
       ],
     },
     {
-      label: "Édition",
+      label: t("menu.edit"),
       submenu: [
-        { role: "undo", label: "Annuler" },
-        { role: "redo", label: "Rétablir" },
+        { role: "undo", label: t("menu.undo") },
+        { role: "redo", label: t("menu.redo") },
         { type: "separator" },
-        { role: "cut", label: "Couper" },
-        { role: "copy", label: "Copier" },
-        { role: "paste", label: "Coller" },
-        { role: "selectAll", label: "Tout sélectionner" },
+        { role: "cut", label: t("menu.cut") },
+        { role: "copy", label: t("menu.copy") },
+        { role: "paste", label: t("menu.paste") },
+        { role: "selectAll", label: t("menu.selectAll") },
         { type: "separator" },
         ...commandMenuItems("copy-url"),
         { type: "separator" },
@@ -95,7 +96,7 @@ export function installMenu(): void {
       ],
     },
     {
-      label: "Affichage",
+      label: t("menu.view"),
       submenu: [
         ...commandMenuItems("command-palette"),
         ...commandMenuItems("app-menu"),
@@ -135,13 +136,13 @@ export function installMenu(): void {
       ],
     },
     {
-      label: "Navigation",
+      label: t("menu.navigation"),
       submenu: [
-        ...commandMenuItems("back", { label: "Précédent" }),
-        ...commandMenuItems("forward", { label: "Suivant" }),
+        ...commandMenuItems("back", { label: t("menu.back") }),
+        ...commandMenuItems("forward", { label: t("menu.forward") }),
         { type: "separator" },
-        { label: "Onglet suivant", accelerator: "Ctrl+Tab", click: withFocused((c) => c.tabs.cycle(1)) },
-        { label: "Onglet précédent", accelerator: "Ctrl+Shift+Tab", click: withFocused((c) => c.tabs.cycle(-1)) },
+        { label: t("menu.nextTab"), accelerator: "Ctrl+Tab", click: withFocused((c) => c.tabs.cycle(1)) },
+        { label: t("menu.previousTab"), accelerator: "Ctrl+Shift+Tab", click: withFocused((c) => c.tabs.cycle(-1)) },
         ...commandMenuItems("toggle-pin"),
         ...commandMenuItems("sleep-tab"),
         ...commandMenuItems("sleep-other-tabs"),
@@ -150,7 +151,7 @@ export function installMenu(): void {
       ],
     },
     {
-      label: "Espaces",
+      label: t("menu.spaces"),
       submenu: [
         ...commandMenuItems("new-space", { id: "space-new" }),
         ...commandMenuItems("edit-space"),
@@ -161,16 +162,16 @@ export function installMenu(): void {
       ],
     },
     {
-      label: "Favoris",
+      label: t("menu.bookmarks"),
       submenu: commandMenuItems("toggle-bookmark"),
     },
     {
-      label: "Aide",
+      label: t("menu.help"),
       submenu: [...commandMenuItems("keyboard-shortcuts"), ...commandMenuItems("open-welcome"), ...commandMenuItems("report-issue"), { type: "separator" }, ...commandMenuItems("about")],
     },
     ...(app.isPackaged
       ? []
-      : [{ label: "Dev", submenu: [{ role: "toggleDevTools" as const, label: "DevTools de l'interface", accelerator: "F12" }] }]),
+      : [{ label: "Dev", submenu: [{ role: "toggleDevTools" as const, label: t("menu.interfaceDevtools"), accelerator: "F12" }] }]),
   ];
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));

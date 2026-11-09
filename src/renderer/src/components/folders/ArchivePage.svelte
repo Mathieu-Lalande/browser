@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "@shared/i18n";
   import ListRow from "../ui/ListRow.svelte";
   import Card from "../ui/Card.svelte";
   import type { ArchivedTab } from "@shared/archive";
@@ -41,21 +42,20 @@
 
 {#snippet subtitle()}
   {#if delay === "never"}
-    L'archivage automatique est désactivé (Paramètres, Comportement).
+    {t("archivePage.automaticArchivingTurnedOff")}
   {:else}
-    Les onglets laissés de côté plus de {delayLabel[delay]} sont fermés et rangés ici. Les onglets épinglés, les favoris, les onglets qui
-    jouent du son et ceux d'une vue scindée ne sont jamais archivés.
+    {t("archivePage.tabsLeftAsideMore", { p: delayLabel[delay] })}
   {/if}
 {/snippet}
 
-<Page icon="archive" title="Onglets archivés" {subtitle} testid="archive-page">
+<Page icon="archive" title={t("archivePage.archivedTabs")} {subtitle} testid="archive-page">
   {#snippet actions()}
     {#if !browser.isPrivate}
-      <Button icon="list-x" disabled={!entries.length || query !== ""} onclick={() => api.archive.clear()}>Tout supprimer</Button>
+      <Button icon="list-x" disabled={!entries.length || query !== ""} onclick={() => api.archive.clear()}>{t("archivePage.deleteAll")}</Button>
     {/if}
   {/snippet}
 
-  <SearchField bind:value={query} label="Rechercher dans les onglets archivés" />
+  <SearchField bind:value={query} label={t("archivePage.searchArchivedTabs")} />
 
   {#if entries.length}
     <Card as="ul">
@@ -64,19 +64,19 @@
           <Favicon src={entry.favicon} />
           <span class="text">
             <span class="title">{entry.title}</span>
-            <span class="detail">{displayUrl(entry.url)} · archivé le {dateFormat.format(entry.archivedAt)}</span>
+            <span class="detail">{t("archivePage.archived", { p: displayUrl(entry.url), p2: dateFormat.format(entry.archivedAt) })}</span>
           </span>
-          <Button size="sm" icon="archive-restore" title="Rouvrir l'onglet" onclick={() => api.archive.restore(entry.id)}>Restaurer</Button>
+          <Button size="sm" icon="archive-restore" title={t("archivePage.reopenTab")} onclick={() => api.archive.restore(entry.id)}>{t("archivePage.restore")}</Button>
           {#if !browser.isPrivate}
-            <IconButton size="row" icon="trash" iconSize={16} label={`Supprimer ${entry.title}`} title="Supprimer de l'archive" onclick={() => api.archive.remove(entry.id)} />
+            <IconButton size="row" icon="trash" iconSize={16} label={t("archivePage.delete", { title: entry.title })} title={t("archivePage.removeFromArchive")} onclick={() => api.archive.remove(entry.id)} />
           {/if}
         </ListRow>
       {/each}
     </Card>
   {:else if query}
-    <EmptyState icon="search" title="Aucun résultat" hint="Aucun onglet archivé ne correspond à cette recherche." />
+    <EmptyState icon="search" title={t("archivePage.noResults")} hint={t("archivePage.noArchivedTabMatches")} />
   {:else}
-    <EmptyState icon="archive" title="Aucun onglet archivé pour l'instant" hint="Les onglets inactifs depuis longtemps viendront se ranger ici, prêts à être rouverts." />
+    <EmptyState icon="archive" title={t("archivePage.noArchivedTabsYet")} hint={t("archivePage.tabsInactiveLongTime")} />
   {/if}
 </Page>
 

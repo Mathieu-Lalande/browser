@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { join } from "node:path";
 import { release } from "node:os";
 import { app, dialog, type WebContents } from "electron";
@@ -55,11 +56,11 @@ export async function savePage(c: BrowserController, tabId?: TabId): Promise<boo
   const page = webPageOf(c, tabId);
   if (!page || isViewSourceUrl(page.url)) return false;
   const { canceled, filePath } = await dialog.showSaveDialog(c.window, {
-    title: "Enregistrer la page sous",
+    title: t("pageActions.savePage"),
     defaultPath: join(downloadsFolder(), pageFileName(page.title, page.url)),
     filters: [
-      { name: "Page web complète", extensions: ["html", "htm"] },
-      { name: "Page web, une seule archive (MHTML)", extensions: ["mhtml"] },
+      { name: t("pageActions.webPageComplete"), extensions: ["html", "htm"] },
+      { name: t("pageActions.webPageSingleArchive"), extensions: ["mhtml"] },
     ],
   });
   if (canceled || !filePath || page.contents.isDestroyed()) return false;
