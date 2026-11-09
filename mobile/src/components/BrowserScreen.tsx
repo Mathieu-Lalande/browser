@@ -33,6 +33,8 @@ import { usePageTranslation } from "../state/usePageTranslation";
 import { ActionSheet, type MenuSpec } from "./ActionSheet";
 import { BottomBar, COLLAPSED_HEIGHT, EXPANDED_HEIGHT } from "./BottomBar";
 import { FolderNameSheet } from "./FolderNameSheet";
+import { NoteSheet, type NoteTarget } from "./NoteSheet";
+import { siteAccentStore } from "../lib/siteColor";
 import { HttpsOnlyPage } from "./HttpsOnlyPage";
 import { MiniBar } from "./MiniBar";
 import { PeekSheet, type PeekRequest } from "./PeekSheet";
@@ -70,6 +72,11 @@ export function BrowserScreen() {
   const [menu, setMenu] = useState<MenuSpec | null>(null);
   const [editingSpace, setEditingSpace] = useState<SpaceInfo | null>(null);
   const [renamingFolder, setRenamingFolder] = useState<MobileFolder | null>(null);
+  const [noteTarget, setNoteTarget] = useState<NoteTarget | null>(null);
+  // Dynamic theme (ADR-050, off by default): each tab's site accent; the theme follows the active one.
+  const [siteColors, setSiteColors] = useState<Record<string, string | null>>({});
+  const dynamicTheme = settings.appearance.dynamicTheme;
+  const onThemeColor = useEvent((tabId: string, color: string | null) => setSiteColors((current) => (current[tabId] === color ? current : { ...current, [tabId]: color })));
   const [searchText, setSearchText] = useState("");
   /** "Version ordinateur" tabs (ADR-026), for this run of the app. */
   const [desktopTabs, setDesktopTabs] = useState<ReadonlySet<string>>(() => new Set());
@@ -79,6 +86,9 @@ export function BrowserScreen() {
   const [peek, setPeek] = useState<PeekRequest | null>(null);
 
   const tab = activeTab(model);
+  useEffect(() => {
+    siteAccentStore.set(dynamicTheme && tab && !isPrivateTab(tab) ? (siteColors[tab.id] ?? null) : null);
+  }, [dynamicTheme, tab, siteColors]);
   const tabs = useMemo(() => orderedTabs(model), [model]);
   const { copy, share } = useShareActions(haptic);
 
@@ -259,7 +269,8 @@ export function BrowserScreen() {
   const { shiftStyle, canSwipe, onSwipeTab } = usePageSwipe({ model, width, reduceMotion, haptic, onActivate: actions.activate, onNewTab: () => newTab(isPrivate) });
 
   const onLinkMenu = useLinkMenu({ busy: !!menu || !!peek || overlay !== "none", isPrivate, tabId: tab?.id, actions, haptic, setMenu, setPeek, copy, share });
-  const { onHighlight, onHighlightPress } = useHighlights({ model, annotations, activeId: tab?.id, busy: !!menu || overlay !== "none", actions, haptic, setMenu, copy });
+  const highlights = useHighlights({ model, annotations, activeId: tab?.id, busy: !!menu || overlay !== "none", actions, haptic, setMenu, copy, setNote: setNoteTarget });
+  const { onHighlight, onHighlightPress } = highlights;
   const mini = useMiniPlayer({ tab, shown: overlay === "none", actions });
   const passwordMenus = usePasswordMenus({ tab, model, busy: !!menu || overlay !== "none", actions, haptic, setMenu });
   const autofillMenus = useAutofillMenus(tab);
@@ -327,6 +338,7 @@ export function BrowserScreen() {
     autofillMenu: autofillMenus.menu,
     autofillSections: autofillMenus.sections,
     openReader: reader.open,
+    editPageNote: highlights.pageNote(tab),
     readLater: tab && !isPrivateTab(tab) ? readLater : null,
     inReadingList: !!tab && isInReadingList(reading, tab.url),
     openReadingList: () => setOverlay("reading"),
@@ -436,6 +448,7 @@ export function BrowserScreen() {
               onReaderArticle={reader.onArticle}
               boosts={isPrivateTab(candidate) ? privateBoosts : normalBoosts}
               onMedia={mini.onMedia}
+              onThemeColor={dynamicTheme && !isPrivateTab(candidate) ? onThemeColor : undefined}
               translateRequest={translation.requests[candidate.id] ?? null}
               autofillRequest={autofillMenus.requests[candidate.id] ?? null}
               onTranslateBatch={translation.batch}
@@ -555,6 +568,7 @@ export function BrowserScreen() {
             onClose={() => setRenamingFolder(null)}
           />
         )}
+        {noteTarget && <NoteSheet target={noteTarget} onSave={(text) => highlights.saveNote(noteTarget, text)} onClose={() => setNoteTarget(null)} />}
       </View>
     </View>
   );

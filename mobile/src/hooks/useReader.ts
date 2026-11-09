@@ -2,6 +2,7 @@ import type { ReaderArticle } from "@shared/reader";
 import { useState } from "react";
 import { Alert } from "react-native";
 import { readerToken } from "../lib/reader";
+import { withReaderImages, type FetchLike } from "../lib/readerImages";
 import type { MobileTab } from "../lib/tabs";
 import { useEvent } from "./useEvent";
 
@@ -34,8 +35,13 @@ export function useReader({
     if (purpose === "assistant") return onAssistantArticle?.(tabId, article);
     if (purpose === "reading") return onReadingArticle?.(tabId, article);
     if (tabId !== tab?.id) return;
-    if (article) setReader({ tabId, article });
-    else Alert.alert("Mode lecture indisponible", "Aucun article n'a été trouvé sur cette page.");
+    if (article) {
+      setReader({ tabId, article });
+      // Then its first images, fetched without credentials (ADR-050), if the reader still shows it.
+      void withReaderImages(article, fetch as unknown as FetchLike).then((full) => {
+        if (full !== article) setReader((current) => (current?.article === article ? { ...current, article: full } : current));
+      });
+    } else Alert.alert("Mode lecture indisponible", "Aucun article n'a été trouvé sur cette page.");
   });
 
   const close = useEvent(() => setReader(null));

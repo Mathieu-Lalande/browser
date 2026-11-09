@@ -179,6 +179,12 @@
   (`privacy-stats.json`, rien en privé), `browser://privacy` ; DoH `src/shared/secure-dns.ts` + `SecureDnsService` ;
   empreinte Standard/Strict (`fingerprint.ts`, limites dans l'ADR) ; `browser://site-settings` (`src/shared/site-settings.ts`,
   `src/main/site-info/site-settings.ts`, JavaScript coupé par CSP ajoutée, son coupé, lecture automatique `autoplayPolicyFor`).
+- Mots de passe synchronisés et parité mobile (ADR-050) : collection `passwords` facultative (`settings.passwords.sync`,
+  `src/shared/passwords-sync.ts`, clé = origine + identifiant, liste « Jamais » incluse) ; collections `SENSITIVE_COLLECTIONS`
+  (`records.ts`) : miroir du moteur scellé sur disque (`storedSyncState`, clé `local` dérivée de la clé de synchro), jamais
+  en clair ; mobile `lib/sync/passwords.ts` (vault lu avant toute comparaison, `PasswordStore.ready`). Mobile : `NoteSheet`
+  (note d'un passage, « Note de la page »), images du lecteur `lib/readerImages.ts` (fetch sans identifiants → `data:`,
+  12 × 2 Mo), thème dynamique `lib/siteColor.ts` (guetteur `theme-color` à nonce par document, `appearance.dynamicTheme`).
 - Panneaux web, lire plus tard, PiP automatique (ADR-047) : modèles purs `src/shared/panels.ts` (`panels.json`, collection
   `panels` facultative `settings.panels.sync`), `src/shared/reading-list.ts` (`reading-list.json`, texte du mode lecture en
   paragraphes, plafonné, collection `reading`), `src/shared/auto-pip.ts` (`settings.media.autoPictureInPicture`) ; main

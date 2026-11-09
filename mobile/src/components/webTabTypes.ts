@@ -34,6 +34,11 @@ export interface WebTabProps {
   boosts?: readonly BoostPayload[];
   /** The page's media state (ADR-035), null when a new document starts loading. Private tabs too: nothing is kept. */
   onMedia?: (tabId: string, probe: MediaProbe | null) => void;
+  /**
+   * Dynamic theme (ADR-050): the page's site accent from its `theme-color` (null: none, or a new
+   * document). Only given while the setting is on, never for a private tab: no watcher otherwise.
+   */
+  onThemeColor?: (tabId: string, color: string | null) => void;
   /** Autofill (ADR-041): a new `seq` fills the page's form with the chosen address or card (normal tabs only). */
   autofillRequest?: { seq: number; choice: AutofillChoice } | null;
   /** Page translation (ADR-036): a new `seq` starts translating the page, or restores the original. */

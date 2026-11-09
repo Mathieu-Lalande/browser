@@ -1,8 +1,9 @@
 import * as Haptics from "expo-haptics";
-import { createContext, use, useMemo, type ReactNode } from "react";
+import { createContext, use, useMemo, useSyncExternalStore, type ReactNode } from "react";
 import { Platform, useColorScheme } from "react-native";
 import { colorsFor, type AppColors } from "../lib/colors";
 import { useSystemReduceMotion } from "../lib/motion";
+import { siteAccentStore, withSiteAccent } from "../lib/siteColor";
 import { PRIVATE_SPACE_ID } from "../lib/tabs";
 import { useBrowserState } from "./BrowserProvider";
 
@@ -30,10 +31,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const isPrivate = model.activeSpaceId === PRIVATE_SPACE_ID;
   const spaceColor = model.spaces.find((space) => space.id === model.activeSpaceId)?.color ?? null;
 
-  const colors = useMemo(
-    () => colorsFor(settings, system === "dark" || system === "light" ? system : null, spaceColor, isPrivate),
-    [settings, system, spaceColor, isPrivate],
-  );
+  // Dynamic theme (ADR-050): the active tab's site accent, never in private mode.
+  const siteAccent = useSyncExternalStore(siteAccentStore.subscribe, siteAccentStore.get);
+  const site = settings.appearance.dynamicTheme && !isPrivate ? siteAccent : null;
+
+  const colors = useMemo(() => {
+    const base = colorsFor(settings, system === "dark" || system === "light" ? system : null, spaceColor, isPrivate);
+    return withSiteAccent(base, site, base.scheme);
+  }, [settings, system, spaceColor, isPrivate, site]);
   const reduceMotion = systemReduceMotion || settings.appearance.reduceMotion;
   const hapticsOn = mobile.haptics && Platform.OS !== "web";
 

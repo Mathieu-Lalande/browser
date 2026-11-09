@@ -26,6 +26,8 @@ export interface SyncKeys {
   enc: Uint8Array;
   /** Keyed hash of record ids. */
   id: Uint8Array;
+  /** Seals the local mirror of sensitive collections at rest (ADR-050); never leaves the device. */
+  local: Uint8Array;
   /** Short fingerprint of the sync key, to tell keys apart in the UI and in tests (not secret-bearing). */
   fingerprint: string;
 }
@@ -40,6 +42,7 @@ export function deriveKeys(syncKey: Uint8Array): SyncKeys {
   return {
     enc: derive("record-encryption"),
     id: derive("record-id"),
+    local: derive("local-state"),
     fingerprint: toHex(derive("fingerprint").subarray(0, 4)),
   };
 }
@@ -58,18 +61,31 @@ function associatedData(collection: string, rid: string): Uint8Array {
   return utf8Encode(`browser-sync/v1|${collection}|${rid}`);
 }
 
+function sealWith(key: Uint8Array, rng: RandomBytes, ad: Uint8Array, plaintext: string): string {
+  const nonce = randomBytesChecked(rng, NONCE_BYTES);
+  const sealed = xchacha20poly1305(key, nonce, ad).encrypt(utf8Encode(plaintext));
+  return toBase64Url(concatBytes(Uint8Array.of(ENVELOPE_VERSION), nonce, sealed));
+}
+
+function openWith(key: Uint8Array, ad: Uint8Array, envelope: string): string {
+  const bytes = fromBase64Url(envelope);
+  if (bytes.length < 1 + NONCE_BYTES + 16 || bytes[0] !== ENVELOPE_VERSION) throw new Error("Unsupported envelope");
+  const nonce = bytes.subarray(1, 1 + NONCE_BYTES);
+  return utf8Decode(xchacha20poly1305(key, nonce, ad).decrypt(bytes.subarray(1 + NONCE_BYTES)));
+}
+
 /** Encrypts a record's plaintext into a base64url envelope: version byte, nonce, ciphertext + tag. */
 export function seal(keys: SyncKeys, rng: RandomBytes, collection: string, rid: string, plaintext: string): string {
-  const nonce = randomBytesChecked(rng, NONCE_BYTES);
-  const sealed = xchacha20poly1305(keys.enc, nonce, associatedData(collection, rid)).encrypt(utf8Encode(plaintext));
-  return toBase64Url(concatBytes(Uint8Array.of(ENVELOPE_VERSION), nonce, sealed));
+  return sealWith(keys.enc, rng, associatedData(collection, rid), plaintext);
 }
 
 /** Decrypts an envelope made by `seal` for the same collection and record id; throws if anything was altered. */
 export function open(keys: SyncKeys, collection: string, rid: string, envelope: string): string {
-  const bytes = fromBase64Url(envelope);
-  if (bytes.length < 1 + NONCE_BYTES + 16 || bytes[0] !== ENVELOPE_VERSION) throw new Error("Unsupported envelope");
-  const nonce = bytes.subarray(1, 1 + NONCE_BYTES);
-  const plaintext = xchacha20poly1305(keys.enc, nonce, associatedData(collection, rid)).decrypt(bytes.subarray(1 + NONCE_BYTES));
-  return utf8Decode(plaintext);
+  return openWith(keys.enc, associatedData(collection, rid), envelope);
 }
+
+const localData = (collection: string) => utf8Encode(`browser-sync/v1|local|${collection}`);
+
+/** Seals a sensitive collection's local mirror (ADR-050): the key derives from the sync key, kept in the OS keychain. */
+export const sealLocal = (keys: SyncKeys, rng: RandomBytes, collection: string, plaintext: string): string => sealWith(keys.local, rng, localData(collection), plaintext);
+export const openLocal = (keys: SyncKeys, collection: string, envelope: string): string => openWith(keys.local, localData(collection), envelope);

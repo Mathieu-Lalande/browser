@@ -113,6 +113,12 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
           </View>
           <ThemeSettings input={themeInput} onInput={setThemeInput} onScan={() => setScanningTheme(true)} />
           <Toggle
+            label="Couleur du site"
+            detail="L'accent suit la couleur annoncée par la page (jamais en navigation privée)"
+            value={appearance.dynamicTheme}
+            onChange={(dynamicTheme) => actions.updateSettings({ appearance: { dynamicTheme } })}
+          />
+          <Toggle
             label="Réduire les animations"
             detail="S'ajoute au réglage du système"
             value={appearance.reduceMotion}

@@ -1187,10 +1187,7 @@ n'est pas sur l'origine pour laquelle le script a été injecté. Remplissage pa
 de l'origine côté app puis dans le script. Section « Mots de passe » des paramètres : recherche, afficher
 (confirmation), copier (presse-papiers vidé après 30 s), supprimer, liste « Jamais ».
 
-**Synchronisation : non incluse (suite possible).** Le moteur d'ADR-019 chiffrerait les mots de passe de
-bout en bout, mais son état local (`sync.json`, AsyncStorage) garde un *miroir* haché de chaque
-enregistrement synchronisé, hors du trousseau, et il faudrait une collection de plus côté serveur, bureau
-et mobile. À faire avec un miroir lui-même chiffré (ou des hachés à clé) et un réglage explicite.
+**Synchronisation : facultative depuis ADR-050** (miroir local scellé, réglage explicite désactivé par défaut).
 
 **Limites.** Pas de détection des connexions réussies (une invite peut suivre un mauvais mot de passe :
 « Plus tard ») ni des formulaires en plusieurs étapes (identifiant puis mot de passe sur deux pages) ;
@@ -1237,8 +1234,9 @@ l'onglet, boucliers, HTTPS-Only, `Sec-GPC`, image matricielle, 2 Mo et 5 s chacu
 session de l'onglet (fenêtre privée comprise).
 
 **Rendu téléphone.** Écran natif (`ReaderScreen`, `readerBlocks` pur et testé), sans WebView. Les images
-sont **remplacées par leur description** : un `Image` React Native les chargerait hors de la session (cookies,
-boucliers) de la WebView de l'onglet.
+étaient **remplacées par leur description** : un `Image` React Native les chargerait hors de la session (cookies,
+boucliers) de la WebView de l'onglet. Depuis ADR-050, les 12 premières sont récupérées sans identifiants et
+passées en `data:`.
 
 **Préférences** (`settings.reader`, validées par `sanitizeSettings`, partagées avec le téléphone, non
 synchronisées) : police serif / sans serif, taille 14–28 px, largeur des lignes (bureau), thème « Thème »
@@ -2431,3 +2429,64 @@ sous Linux : leurs règles sont pures et testées (`desktop.test.ts`, `glyphs.te
 (`energy`, `EnergyService`, `mini`, `desktop`, `LaunchRouter`), e2e `desktop.spec.ts` (mini-fenêtre promue sans
 rechargement puis fermée, réglage coupé, `--new-tab`/`--space`/`--private` par `second-instance`, indicateur
 d'énergie).
+
+## ADR-050 — Mots de passe synchronisés, notes, images du lecteur et thème dynamique sur le téléphone
+
+**Contexte.** ADR-025 laissait la synchronisation des mots de passe de côté : le moteur d'ADR-019 garde dans
+`sync.json` (AsyncStorage sur le téléphone) un *miroir* de chaque enregistrement (identifiant local, haché
+`cyrb53` des données, horloge), hors du trousseau. Pour des mots de passe, l'identifiant local et un haché rapide
+non salé suffiraient à tester des mots de passe candidats hors ligne. Côté téléphone manquaient l'écriture des
+notes (ADR-037), les images du mode lecture (ADR-026) et le thème dynamique (ADR-038).
+
+**Décision — miroir scellé des collections sensibles.** `SENSITIVE_COLLECTIONS` (`src/shared/sync/records.ts`,
+aujourd'hui `passwords`) : avant chaque écriture, `SyncController` passe l'état par `storedSyncState`, qui retire
+le miroir de ces collections de `collections` et le range dans `sealed.<nom>`, chiffré par XChaCha20-Poly1305
+avec une sous-clé HKDF `local-state` de la clé de synchronisation (données associées `browser-sync/v1|local|<nom>`).
+Cette clé n'est jamais envoyée et vit là où vit déjà la clé de synchronisation : `safeStorage` (bureau),
+`expo-secure-store` (téléphone). `loadSyncState` ouvre l'enveloppe ; illisible (autre clé, altérée) ou présente en
+clair, la collection repart de zéro (premier passage : la copie du compte gagne, les comptes locaux s'y ajoutent).
+Le miroir reste en mémoire en clair, comme le coffre. Un haché à clé seul a été écarté : l'identifiant local
+(origine + identifiant) resterait lisible. Testé en écrivant l'état dans un vrai fichier et en y cherchant mot de
+passe, identifiant, origine et hachés (`sensitive.test.ts`).
+
+**Décision — collection `passwords`** (`src/shared/passwords-sync.ts`, pur). Un enregistrement par compte,
+identifiant local `a:<origine>\n<identifiant>` (le même compte enregistré sur deux appareils est un seul
+enregistrement) : origine, identifiant, mot de passe, création, modification ; un par origine « Jamais »
+(`n:<origine>`). `lastUsedAt` et l'identifiant interne restent sur l'appareil. Validation : origine http(s)
+exacte (`isPasswordOrigin`), tailles d'ADR-025, identifiant local recalculé depuis le contenu (un enregistrement ne
+peut pas changer de compte). Conflit : dernier écrivain par compte (HLC), suppression = pierre tombale ; un
+renommage d'identifiant = suppression + ajout. Fusion `mergeSyncedPasswords` (compte existant mis à jour en
+gardant son id et sa dernière utilisation). **Facultatif** : `settings.passwords.sync` (faux par défaut, local à
+l'appareil), ligne « Synchroniser les mots de passe » dans Paramètres → Synchronisation avec l'avertissement « tout
+appareil jumelé avec votre code de jumelage pourra les lire » ; sur le téléphone, Paramètres → Mots de passe,
+confirmation à l'activation. Bureau : synchronisé seulement si le coffre est utilisable (`status().available`),
+les écritures passent par `PasswordVaultStore.write` (chiffrement `safeStorage`). Téléphone : seulement une fois le
+coffre lu depuis `expo-secure-store` (`PasswordStore.ready`) — un coffre non lu n'est pas un coffre vide, sinon tout
+serait supprimé ailleurs. Le serveur ne voit qu'une collection de plus (13 sur 16 permises), rien en clair.
+
+**Décision — notes sur le téléphone.** `NoteSheet` : la fiche d'un passage surligné offre « Ajouter / Modifier
+la note », le menu de la page « Note de la page » (onglets normaux, pages web) ; texte vide = note supprimée ;
+mêmes limites (`ANNOTATION_LIMITS`) et mêmes opérations pures (`updateHighlight`, `setPageNote`), donc la même
+collection `annotations` facultative.
+
+**Décision — images du lecteur sur le téléphone** (`mobile/src/lib/readerImages.ts`). Passer par la WebView
+(`fetch` ou canevas dans la page) échoue pour les images d'un autre domaine sans CORS, et un `Image` React Native
+donné l'URL utiliserait sur Android le pot à cookies partagé avec la WebView. L'application télécharge donc elle-même
+les 12 premières images **https** de l'article, `credentials: "omit"` (aucun cookie envoyé ni reçu, sur iOS
+`HTTPShouldHandleCookies` faux, sur Android pot vide), `cache: "no-store"`, sans référent, 5 s et 2 Mo chacune,
+redirection vers http refusée ; seules les images reconnues par leurs premiers octets (PNG, JPEG, GIF, WebP, jamais
+SVG) deviennent des `data:` dessinées par `ReaderScreen` ; les autres gardent leur description. L'article s'affiche
+tout de suite, les images arrivent ensuite. Coût : l'hôte des images voit l'adresse IP (comme la page elle-même).
+
+**Décision — thème dynamique sur le téléphone** (`mobile/src/lib/siteColor.ts`, réglage partagé
+`appearance.dynamicTheme`, « Couleur du site », désactivé par défaut). Guetteur injecté après chaque chargement du
+cadre principal avec un nonce aléatoire par document (comme ADR-035) : `meta[name=theme-color]` (celle dont le
+`media` correspond), surveillée par `MutationObserver` et le changement de thème du système. `ThemeColorGuard`
+exige le nonce et l'origine injectée, puis la valeur ne devient une couleur qu'à travers `site-color.ts`
+(`normalizeThemeColor`, `siteAccent` : chromatique, ni presque noire ni presque blanche) ; l'accent passe par
+`accentVariables` (texte d'accent AA sur les fonds). Pas d'icône du site sur le téléphone. Jamais en onglet privé
+(aucun guetteur injecté) ; le guetteur n'est injecté que réglage actif.
+
+**Conséquences.** Le format de `sync.json` gagne `sealed` (ancien état lisible : il n'avait pas de mots de passe).
+Tests : `src/shared/sync/sensitive.test.ts` (fichier sans clair, LWW, pierres tombales, enveloppe altérée),
+Jest `sync.test.ts` (téléphone ↔ téléphone, opt-in, coffre non lu), `readerImages.test.ts`, `siteColor.test.ts`.

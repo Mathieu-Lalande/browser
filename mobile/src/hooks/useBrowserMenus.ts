@@ -38,6 +38,8 @@ export interface BrowserMenusDeps {
   autofillSections: readonly ("address" | "card")[];
   /** Page tools of the page menu. */
   openReader: (tabId: string) => void;
+  /** "Note de la page" (ADR-050): null in a private tab or outside web pages. */
+  editPageNote: (() => void) | null;
   /** "Lire plus tard" (ADR-047): null in a private tab. */
   readLater: ((tabId: string) => void) | null;
   inReadingList: boolean;
@@ -81,6 +83,7 @@ export function useBrowserMenus(deps: BrowserMenusDeps) {
           onPress: () => deps.autofillMenu(section) ?? undefined,
         })),
         { key: "reader", label: "Mode lecture", icon: "reader", onPress: () => deps.openReader(tab.id) },
+        ...(deps.editPageNote ? [{ key: "page-note", label: "Note de la page", icon: "notebook" as const, onPress: deps.editPageNote }] : []),
         ...(deps.readLater && /^https?:/i.test(tab.url)
           ? [
               {

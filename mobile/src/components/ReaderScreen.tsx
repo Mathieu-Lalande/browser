@@ -1,7 +1,7 @@
 import { READER_THEME_LABELS, readerColors, readingTimeLabel, type ReaderArticle, type ReaderColors } from "@shared/reader";
 import { LIMITS, type ReaderFont, type ReaderTheme } from "@shared/settings";
-import { memo, useMemo } from "react";
-import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { memo, useEffect, useMemo, useState } from "react";
+import { Image, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { readerBlocks, type ReaderBlock, type ReaderSpan } from "../lib/reader";
 import { useBrowserActions, useBrowserState } from "../state/BrowserProvider";
@@ -141,12 +141,29 @@ function Block({ block, colors, family, size, onOpenLink }: BlockProps) {
       );
     case "rule":
       return <View style={[styles.rule, { backgroundColor: colors.rule }]} />;
+    case "image":
+      return <ReaderImage src={block.src} alt={block.alt} />;
     default:
       return <Text style={[body, styles.paragraph]}>{spans(block.spans)}</Text>;
   }
 }
 
+/** An inlined (`data:`) article image at the column's width, keeping its proportions. */
+function ReaderImage({ src, alt }: { src: string; alt: string }) {
+  const [ratio, setRatio] = useState<number | null>(null);
+  useEffect(() => {
+    let live = true;
+    Image.getSize(src, (width, height) => live && width > 0 && height > 0 && setRatio(width / height), () => {});
+    return () => {
+      live = false;
+    };
+  }, [src]);
+  if (!ratio) return null;
+  return <Image source={{ uri: src }} style={[styles.image, { aspectRatio: ratio }]} resizeMode="contain" accessible={!!alt} accessibilityLabel={alt || undefined} />;
+}
+
 const styles = StyleSheet.create({
+  image: { width: "100%", borderRadius: 6, marginBottom: 14 },
   toolbar: { flexDirection: "row", alignItems: "center", paddingHorizontal: 8, borderBottomWidth: StyleSheet.hairlineWidth },
   options: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth },
   spacer: { flex: 1 },

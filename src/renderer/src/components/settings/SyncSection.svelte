@@ -255,6 +255,14 @@
     />
   </Row>
   <Row
+    label="Mots de passe"
+    anchor="passwords"
+    keywords="mots de passe passwords identifiants trousseau"
+    hint="Facultatif et désactivé par défaut. Vos mots de passe et la liste « Jamais pour ce site » sont chiffrés de bout en bout : le serveur ne voit rien. Attention : toute personne qui jumelle un appareil avec votre code de jumelage pourra les lire. Gardez ce code secret et ne l'activez que sur vos appareils."
+  >
+    <Toggle label="Synchroniser les mots de passe" checked={settings.current.passwords.sync} onchange={(sync) => settings.update({ passwords: { sync } })} />
+  </Row>
+  <Row
     label="Panneaux web"
     anchor="panels"
     keywords="panneaux panels whatsapp spotify"

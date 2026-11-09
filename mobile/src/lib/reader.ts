@@ -6,8 +6,8 @@ import { READER_EXTRACT_SCRIPT, sanitizeReaderArticle, type ReaderArticle, type 
  * any page can imitate. The message is therefore untrusted: it must carry the token of the
  * request the user just made, is size-checked, and goes through the shared sanitizer with the
  * tab's own URL (never one the message names). The article is drawn natively (`Text`), not as
- * HTML: images are left out (an RN `Image` would fetch them outside the tab's WebView session),
- * their description is kept as text.
+ * HTML. Images are drawn only once the app inlined them as `data:` (`readerImages.ts`, fetched
+ * without credentials); any other image is replaced by its description.
  */
 
 export const READER_MESSAGE = "browser-reader";
@@ -70,7 +70,11 @@ export type ReaderBlock =
   | { kind: "heading"; level: 2 | 3 | 4; spans: ReaderSpan[] }
   | { kind: "pre"; text: string }
   | { kind: "item"; marker: string; depth: number; spans: ReaderSpan[] }
-  | { kind: "rule" };
+  | { kind: "rule" }
+  /** Only `data:` images (inlined by `withReaderImages`). */
+  | { kind: "image"; src: string; alt: string };
+
+const isInlined = (src: string | undefined): src is string => !!src && src.startsWith("data:image/");
 
 type Style = Omit<ReaderSpan, "text">;
 
@@ -79,7 +83,7 @@ const BLOCK_TAGS = new Set(["p", "h2", "h3", "h4", "h5", "h6", "blockquote", "pr
 /**
  * Flattens a validated reader tree into native blocks: headings, paragraphs, quotes, list items
  * (with their marker and depth), code blocks and rules; inline styles become spans. Table cells
- * are read row by row. Images become their description (see above).
+ * are read row by row. Inlined images are blocks; the others become their description.
  */
 export function readerBlocks(nodes: readonly ReaderNode[]): ReaderBlock[] {
   const blocks: ReaderBlock[] = [];
@@ -102,7 +106,10 @@ export function readerBlocks(nodes: readonly ReaderNode[]): ReaderBlock[] {
       return;
     }
     if (node.tag === "img") {
-      if (node.alt) spans.push({ ...style, italic: true, text: `[${node.alt}]` });
+      if (isInlined(node.src)) {
+        flush();
+        blocks.push({ kind: "image", src: node.src, alt: node.alt ?? "" });
+      } else if (node.alt) spans.push({ ...style, italic: true, text: `[${node.alt}]` });
       return;
     }
     const next: Style = { ...style };
@@ -127,7 +134,8 @@ export function readerBlocks(nodes: readonly ReaderNode[]): ReaderBlock[] {
         return;
       case "img":
         flush();
-        if (node.alt) blocks.push({ kind: "caption", spans: [{ italic: true, text: node.alt }] });
+        if (isInlined(node.src)) blocks.push({ kind: "image", src: node.src, alt: node.alt ?? "" });
+        else if (node.alt) blocks.push({ kind: "caption", spans: [{ italic: true, text: node.alt }] });
         return;
       case "pre": {
         flush();

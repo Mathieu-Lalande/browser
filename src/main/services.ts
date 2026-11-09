@@ -210,12 +210,15 @@ export class AppServices {
         const stopProfile = config.profile().onChange(() => listener());
         // Saved addresses sync too when allowed (ADR-041); cards never do.
         const stopAutofill = this.autofill.onChanged(() => listener());
+        // Passwords too, only once the user opted in (ADR-050).
+        const stopPasswords = this.passwords.onChanged(() => listener());
         return () => {
           stopProfile();
           stopAutofill();
+          stopPasswords();
         };
       },
-      adapters: () => config.syncAdapters({ windows, boosts: this.boosts, autofill: this.autofill, panels: this.panels, reading: this.reading }),
+      adapters: () => config.syncAdapters({ windows, boosts: this.boosts, autofill: this.autofill, panels: this.panels, reading: this.reading, passwords: { vault: this.passwords, newId: newPasswordId } }),
     });
     this.defaultBrowser = new DefaultBrowserService(config.defaultClient);
     const testSource = config.testHooks?.importChromiumDir;

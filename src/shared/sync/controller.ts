@@ -1,7 +1,7 @@
 import { randomBytesChecked, toBase64Url, toHex, type RandomBytes } from "./bytes";
 import { SyncClient, SyncError, type SyncErrorKind, type Transport } from "./client";
 import { generateSyncKey } from "./crypto";
-import { SyncEngine, createSyncState, keyFingerprint, loadSyncState, type CollectionAdapter, type SyncState } from "./engine";
+import { SyncEngine, createSyncState, keyFingerprint, loadSyncState, storedSyncState, type CollectionAdapter, type SyncState } from "./engine";
 import { decodeHlc } from "./hlc";
 import { decodePairingCode, encodePairingCode, normalizeServerUrl, type SyncCredentials } from "./pairing";
 import {
@@ -163,7 +163,7 @@ export class SyncController {
     const tab = sanitizeSentTab({ to: deviceId, from: state.deviceId, fromName: this.platform.deviceName(), url, title, sentAt: this.now() });
     if (!tab) return false;
     state.sentTabs = { ...state.sentTabs, [toHex(randomBytesChecked(this.platform.rng, 8))]: tab };
-    this.platform.saveState(state);
+    this.saveState(state);
     await this.syncNow();
     return true;
   }
@@ -174,7 +174,7 @@ export class SyncController {
     const tab = state?.sentTabs?.[id] ? sanitizeSentTab(state.sentTabs[id]) : null;
     if (!state?.sentTabs || !tab || tab.to !== state.deviceId) return;
     delete state.sentTabs[id];
-    this.platform.saveState(state);
+    this.saveState(state);
     this.publish({});
     this.notifyChange();
   }
@@ -231,7 +231,7 @@ export class SyncController {
     const previous = this.state?.deviceId;
     await this.platform.saveCredentials(credentials);
     this.attach(credentials, null, previous);
-    this.platform.saveState(this.state);
+    this.saveState(this.state);
     this.failures = 0;
     this.publish({ error: null });
     await this.syncNow();
@@ -244,9 +244,14 @@ export class SyncController {
     this.state = null;
     this.failures = 0;
     await this.platform.saveCredentials(null);
-    this.platform.saveState(null);
+    this.saveState(null);
     this.status = this.idleStatus();
     this.publish({ phase: "off" });
+  }
+
+  /** Writes the state through the platform, sensitive collections sealed (ADR-050). */
+  private saveState(state: SyncState | null): void {
+    this.platform.saveState(state && this.credentials ? storedSyncState(state, this.credentials, this.platform.rng) : state);
   }
 
   private attach(credentials: SyncCredentials, savedState: unknown, deviceId?: string): void {
@@ -264,7 +269,7 @@ export class SyncController {
       state,
       adapters: [...this.platform.adapters(), this.clientsAdapter(state), this.sentAdapter(state)],
       now: () => this.now(),
-      persist: (current) => this.platform.saveState(current),
+      persist: (current) => this.saveState(current),
     });
   }
 

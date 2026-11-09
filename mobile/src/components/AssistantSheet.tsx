@@ -38,6 +38,9 @@ export const AssistantSheet = memo(function AssistantSheet({ assistant, includeP
           return <Text key={index} style={[styles.body, styles.code, text]}>{block.text}</Text>;
         case "rule":
           return <View key={index} style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.hairline }} />;
+        case "image":
+          // Answers never carry inlined images.
+          return null;
         default:
           return <Text key={index} style={[styles.body, text]}>{spans(block.spans)}</Text>;
       }

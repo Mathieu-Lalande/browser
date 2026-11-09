@@ -1,12 +1,12 @@
 import { randomBytesChecked, toHex, type RandomBytes } from "./bytes";
 import { SyncClient, SyncError, type Transport } from "./client";
-import { deriveKeys, open, recordId, seal, type SyncKeys } from "./crypto";
+import { deriveKeys, open, openLocal, recordId, seal, sealLocal, type SyncKeys } from "./crypto";
 import { hashValue } from "./hash";
 import { compareHlc, createClock, decodeHlc, encodeHlc, isDeviceId, isHlc, receive, tick, type Hlc } from "./hlc";
 import { fromBase64Url } from "./bytes";
 import type { SyncCredentials } from "./pairing";
 import { MAX_BATCH_RECORDS, MAX_BODY_BYTES, type PushRecord } from "./protocol";
-import type { CollectionName, RemoteDevice } from "./records";
+import { SENSITIVE_COLLECTIONS, type CollectionName, type RemoteDevice } from "./records";
 
 /**
  * The sync engine (ADR-019): per-record last-writer-wins with hybrid logical clock timestamps,
@@ -57,6 +57,8 @@ export interface SyncState {
   devices?: Record<string, RemoteDevice>;
   /** Sent tabs known here, to or from this device (validated again when read, ADR-033). */
   sentTabs?: Record<string, unknown>;
+  /** On disk only: the sensitive collections' mirrors, sealed (ADR-050, `storedSyncState`). */
+  sealed?: Partial<Record<CollectionName, string>>;
 }
 
 export interface RecordChange<T> {
@@ -131,6 +133,41 @@ function isMirrorItem(value: unknown): value is MirrorItem {
   return typeof m.rid === "string" && isHlc(m.hlc) && typeof m.hash === "string" && typeof m.base === "number";
 }
 
+/**
+ * The form of `state` written to disk (ADR-050): each sensitive collection's mirror (local ids,
+ * hashes, timestamps) is sealed with the local key, so the state file holds nothing about it in clear.
+ */
+export function storedSyncState(state: SyncState, credentials: SyncCredentials, rng: RandomBytes): SyncState {
+  const { sealed: _previous, ...rest } = state;
+  const collections = { ...state.collections };
+  const sealed: NonNullable<SyncState["sealed"]> = {};
+  let keys: SyncKeys | null = null;
+  for (const name of SENSITIVE_COLLECTIONS) {
+    const collection = collections[name];
+    if (!collection) continue;
+    delete collections[name];
+    keys ??= deriveKeys(fromBase64Url(credentials.syncKey));
+    sealed[name] = sealLocal(keys, rng, name, JSON.stringify(collection));
+  }
+  return keys ? { ...rest, collections, sealed } : { ...rest, collections };
+}
+
+/** The stored collections, sealed ones opened; a sensitive collection in clear, or unreadable, is dropped (resynced). */
+function storedCollections(v: Partial<SyncState>, credentials: SyncCredentials): Record<string, unknown> {
+  const collections: Record<string, unknown> = { ...(typeof v.collections === "object" && v.collections !== null ? v.collections : {}) };
+  for (const name of SENSITIVE_COLLECTIONS) {
+    delete collections[name];
+    const envelope = v.sealed?.[name];
+    if (typeof envelope !== "string") continue;
+    try {
+      collections[name] = JSON.parse(openLocal(deriveKeys(fromBase64Url(credentials.syncKey)), name, envelope));
+    } catch {
+      // Another key, or tampered with: this collection starts over (the account's copy wins).
+    }
+  }
+  return collections;
+}
+
 /** Validates a stored state; a state for other credentials (or garbage) gives a fresh one. */
 export function loadSyncState(value: unknown, credentials: SyncCredentials, rng: RandomBytes): SyncState {
   const v = (typeof value === "object" && value !== null ? value : {}) as Partial<SyncState>;
@@ -139,7 +176,7 @@ export function loadSyncState(value: unknown, credentials: SyncCredentials, rng:
     return createSyncState(credentials, rng, deviceId);
   }
   const collections: SyncState["collections"] = {};
-  for (const [name, collection] of Object.entries(v.collections ?? {}) as [CollectionName, CollectionState][]) {
+  for (const [name, collection] of Object.entries(storedCollections(v, credentials)) as [CollectionName, CollectionState][]) {
     if (typeof collection?.cursor !== "number" || typeof collection.items !== "object" || collection.items === null) continue;
     const items: Record<string, MirrorItem> = {};
     for (const [id, item] of Object.entries(collection.items)) if (isMirrorItem(item)) items[id] = item;

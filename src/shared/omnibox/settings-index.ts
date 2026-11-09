@@ -106,6 +106,7 @@ export const SETTINGS_INDEX: readonly SettingEntry[] = [
   entry("data", "bookmarks", "Favoris", ["bookmarks", "signets"]),
   entry("sync", null, "Synchronisation", ["appareils", "sync", "jumelage", "compte"]),
   entry("sync", "annotations", "Synchroniser les notes et surlignages", ["notes", "surlignages", "annotations", "highlights"]),
+  entry("sync", "passwords", "Synchroniser les mots de passe", ["mots de passe", "passwords", "identifiants", "trousseau"]),
   entry("sync", "panels", "Synchroniser les panneaux web", ["panneaux", "panels", "whatsapp", "spotify"]),
   entry("updates", null, "Mises à jour", ["version", "update", "mettre à jour"]),
   entry("updates", "beta", "Programme bêta", ["beta", "bêta", "préversion", "canal", "tester"]),

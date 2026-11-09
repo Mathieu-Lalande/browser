@@ -1,7 +1,8 @@
 import { originLabel, searchPasswords, summarize } from "@shared/passwords";
 import * as Clipboard from "expo-clipboard";
 import { memo, useMemo, useState } from "react";
-import { Alert, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { useBrowserActions, useBrowserState } from "../state/BrowserProvider";
 import { passwords, usePasswords } from "../state/passwords";
 import { useTheme } from "../state/theme";
 import { Icon } from "./Icon";
@@ -17,6 +18,8 @@ const CLIPBOARD_CLEAR_MS = 30_000;
 export const PasswordsSettings = memo(function PasswordsSettings() {
   const { colors, haptic } = useTheme();
   const vault = usePasswords();
+  const { settings } = useBrowserState();
+  const actions = useBrowserActions();
   const [query, setQuery] = useState("");
   const [revealed, setRevealed] = useState<Record<string, true>>({});
   const shown = useMemo(() => searchPasswords(vault.entries.map(summarize), query), [vault, query]);
@@ -44,6 +47,19 @@ export const PasswordsSettings = memo(function PasswordsSettings() {
       { text: "Supprimer", style: "destructive", onPress: () => void passwords.remove(id) },
     ]);
 
+  // Opt-in (ADR-050): turning it on says plainly who can then read the passwords.
+  const setSync = (sync: boolean) => {
+    if (!sync) return actions.updateSettings({ passwords: { sync } });
+    Alert.alert(
+      "Synchroniser les mots de passe ?",
+      "Ils sont chiffrés de bout en bout : le serveur ne voit rien. Mais tout appareil jumelé avec votre code de jumelage pourra les lire. Gardez ce code secret.",
+      [
+        { text: "Annuler", style: "cancel" },
+        { text: "Activer", onPress: () => actions.updateSettings({ passwords: { sync: true } }) },
+      ],
+    );
+  };
+
   const border = (index: number) => index > 0 && { borderTopColor: colors.hairline, borderTopWidth: StyleSheet.hairlineWidth };
 
   return (
@@ -51,6 +67,19 @@ export const PasswordsSettings = memo(function PasswordsSettings() {
       <Text style={[styles.intro, { color: colors.textMuted }]}>
         Proposés après une connexion, chiffrés dans le trousseau du téléphone. Touchez la clé de la barre d'adresse pour remplir un formulaire.
       </Text>
+      <View style={[styles.row, border(1)]}>
+        <View style={styles.text}>
+          <Text style={[styles.site, { color: colors.text }]}>Synchroniser les mots de passe</Text>
+          <Text style={[styles.detail, { color: colors.textMuted }]}>Désactivé par défaut. Chiffrés de bout en bout, lisibles par tout appareil jumelé.</Text>
+        </View>
+        <Switch
+          value={settings.passwords.sync}
+          onValueChange={setSync}
+          trackColor={{ true: colors.accent, false: colors.surfaceActive }}
+          thumbColor="#ffffff"
+          accessibilityLabel="Synchroniser les mots de passe"
+        />
+      </View>
       {vault.entries.length > 0 && (
         <View style={[styles.search, { backgroundColor: colors.surface, borderTopColor: colors.hairline }]}>
           <Icon name="search" size={16} color={colors.textMuted} />

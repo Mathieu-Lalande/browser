@@ -11,6 +11,7 @@ import { LINK_MENU_COOLDOWN_MS, linkMenuScript, parseLinkMenuMessage, type LinkM
 import { decideNavigation, decideOpenWindow, isHttpsUpgradeFailure } from "../lib/navigation";
 import { PASSWORD_PROMPT_COOLDOWN_MS, PasswordCaptureGuard, captureNonce } from "../lib/passwords";
 import { MediaWatchGuard, newMediaNonce } from "../lib/media";
+import { ThemeColorGuard, newThemeColorNonce } from "../lib/siteColor";
 import { desktopUserAgent, parseReaderMessage, readerScript } from "../lib/reader";
 import { TranslateBridge, translateNonce } from "../lib/translate";
 import { AnnotateBridge, annotateNonce, marksFor } from "../lib/annotations";
@@ -27,6 +28,7 @@ const INJECTED = linkMenuScript(Platform.OS);
 const NO_BOOSTS: readonly BoostPayload[] = [];
 const newCaptureNonce = () => captureNonce(getRandomBytes);
 const newWatchNonce = () => newMediaNonce(getRandomBytes);
+const newColorNonce = () => newThemeColorNonce(getRandomBytes);
 const newTranslateNonce = () => translateNonce(getRandomBytes);
 const newAnnotateNonce = () => annotateNonce(getRandomBytes);
 const newAutofillNonce = () => autofillNonce(getRandomBytes);
@@ -68,6 +70,7 @@ export const WebTab = memo(function WebTab({
   annotations,
   onHighlight,
   onHighlightPress,
+  onThemeColor,
 }: WebTabProps) {
   const actions = useBrowserActions();
   const ref = useRef<WebViewHandle | null>(null);
@@ -126,6 +129,9 @@ export const WebTab = memo(function WebTab({
   // Media watcher (ADR-035): same nonce-per-document rule, private tabs included (nothing is stored).
   const mediaGuard = useRef<MediaWatchGuard | null>(null);
   mediaGuard.current ??= new MediaWatchGuard(newWatchNonce);
+  // Dynamic theme (ADR-050): `theme-color` watcher, nonce per document, only while `onThemeColor` is given.
+  const colorGuard = useRef<ThemeColorGuard | null>(null);
+  colorGuard.current ??= new ThemeColorGuard(newColorNonce);
   // Translation (ADR-036): a nonce per request, messages accepted from this document only.
   const translateBridge = useRef<TranslateBridge | null>(null);
   translateBridge.current ??= new TranslateBridge(newTranslateNonce);
@@ -164,6 +170,8 @@ export const WebTab = memo(function WebTab({
     captureGuard.current?.loadStarted();
     mediaGuard.current?.loadStarted();
     onMedia?.(id, null);
+    colorGuard.current?.loadStarted();
+    onThemeColor?.(id, null);
   });
   const onLoadEnd = useEvent((event: { nativeEvent: { url: string } }) => {
     const { url } = event.nativeEvent;
@@ -175,6 +183,8 @@ export const WebTab = memo(function WebTab({
     if (capture) ref.current?.injectJavaScript(capture);
     const watch = mediaGuard.current?.loadEnded(url);
     if (watch) ref.current?.injectJavaScript(watch);
+    const colors = onThemeColor && !isPrivate ? colorGuard.current?.loadEnded(url) : null;
+    if (colors) ref.current?.injectJavaScript(colors);
     if (!isPrivate && annotationsRef.current) {
       drawnAnnotations.current = annotationsRef.current;
       const annotate = annotateBridge.current?.loadEnded(url, marksFor(annotationsRef.current, url));
@@ -284,6 +294,11 @@ export const WebTab = memo(function WebTab({
     const media = mediaGuard.current?.parse(event.nativeEvent.data, event.nativeEvent.url, currentUrl.current);
     if (media !== undefined) {
       onMedia?.(id, media);
+      return;
+    }
+    const color = onThemeColor && !isPrivate ? colorGuard.current?.parse(event.nativeEvent.data, event.nativeEvent.url, currentUrl.current) : undefined;
+    if (color !== undefined) {
+      onThemeColor?.(id, color);
       return;
     }
     // A login capture: from this document's script (nonce), credited to this tab's page, never to

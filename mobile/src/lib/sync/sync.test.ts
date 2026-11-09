@@ -14,6 +14,7 @@ import { bookmarkLocalId, type SyncedBookmark } from "@shared/sync/records";
 import type { Bookmark } from "@shared/types";
 // The desktop's own RNG adapter (Node crypto), to prove both platforms interoperate.
 import { nodeRandomBytes } from "../../../../src/main/sync/random";
+import { PasswordStore, type SecretStore } from "../passwords";
 import { initialTabsModel, tabsReducer, type TabsModel } from "../tabs";
 import type { BookmarkFolder, MobileSyncStore } from "./adapters";
 import { createMobileSync, expoRandomBytes } from "./platform";
@@ -39,7 +40,15 @@ function phone(server: MemorySyncServer) {
     deleted: new Set<string>(),
   };
   let id = 0;
+  const secrets = new Map<string, string>();
+  const secretStore: SecretStore = {
+    getItemAsync: async (key) => secrets.get(key) ?? null,
+    setItemAsync: async (key, value) => void secrets.set(key, value),
+    deleteItemAsync: async (key) => void secrets.delete(key),
+  };
+  const passwords = new PasswordStore(secretStore, undefined, Date.now, () => `p${++id}`);
   const store: MobileSyncStore = {
+    passwords,
     settings: () => data.settings,
     setSettings: (next) => void (data.settings = next),
     model: () => data.model,
@@ -72,7 +81,7 @@ function phone(server: MemorySyncServer) {
     credentials: { load: async () => credentials, save: async (value) => void (credentials = value) },
     state: { load: async () => state, save: (value) => void (state = value) },
   });
-  return { data, store, sync, statuses, open: (url: string, isPrivate = false) => store.dispatch({ type: "open", id: store.newId(), url, now: Date.now(), spaceId: isPrivate ? "private" : undefined }) };
+  return { data, store, sync, statuses, passwords, open: (url: string, isPrivate = false) => store.dispatch({ type: "open", id: store.newId(), url, now: Date.now(), spaceId: isPrivate ? "private" : undefined }) };
 }
 
 /** A minimal desktop: the shared controller with Node's RNG and plain bookmark/tab adapters. */
@@ -216,6 +225,35 @@ describe("mobile sync adapters", () => {
     await b.sync.syncNow();
     expect(b.data.annotations.highlights).toMatchObject([{ id: "hl-00000001", exact: "secret passage", color: "blue" }]);
     expect(server.dump()).not.toContain("secret passage");
+  });
+
+  it("syncs passwords (ADR-050) only once opted in and the vault is read, with tombstones", async () => {
+    const server = new MemorySyncServer();
+    const a = phone(server);
+    await a.passwords.load();
+    await a.passwords.save({ origin: "https://bank.example", username: "alice", password: "hunter2-secret" });
+    await a.passwords.never("https://never.example");
+    await a.sync.createAccount("https://sync.example.org");
+    const b = phone(server);
+    await b.sync.pair(a.sync.pairingCode()!);
+    expect(server.dump()).not.toContain("passwords");
+
+    for (const device of [a, b]) device.data.settings = mergeSettings(device.data.settings, { passwords: { sync: true } });
+    await a.sync.syncNow();
+    // B's vault is not read yet: nothing is compared (an unread vault is not an empty one).
+    await b.sync.syncNow();
+    expect(b.passwords.current.entries).toEqual([]);
+    await b.passwords.load();
+    await b.sync.syncNow();
+    expect(b.passwords.current.entries).toMatchObject([{ origin: "https://bank.example", username: "alice", password: "hunter2-secret" }]);
+    expect(b.passwords.current.never).toEqual(["https://never.example"]);
+    expect(server.dump()).not.toContain("hunter2");
+
+    await b.passwords.remove(b.passwords.current.entries[0]!.id);
+    await b.sync.syncNow();
+    await a.sync.syncNow();
+    expect(a.passwords.current.entries).toEqual([]);
+    expect(a.passwords.current.never).toEqual(["https://never.example"]);
   });
 
   it("history pruned on a full phone is not deleted elsewhere, a cleared history is", async () => {

@@ -209,6 +209,12 @@ export interface AnnotationSettings {
   sync: boolean;
 }
 
+/** Saved passwords (ADR-050). */
+export interface PasswordSettings {
+  /** Opt-in: the `passwords` sync collection (end-to-end encrypted, local mirror sealed). */
+  sync: boolean;
+}
+
 /** Addresses and payment cards (ADR-041). */
 export interface AutofillSettings {
   /** Offer to save addresses from submitted forms, and suggest them. */
@@ -272,6 +278,7 @@ export interface Settings {
   translate: TranslateSettings;
   assistant: AssistantSettings;
   annotations: AnnotationSettings;
+  passwords: PasswordSettings;
   autofill: AutofillSettings;
   notifications: NotificationSettings;
   spellcheck: SpellcheckSettings;
@@ -386,6 +393,7 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   assistant: { enabled: false, model: DEFAULT_ASSISTANT_MODEL, acknowledged: false, keepConversations: false, includePage: true },
   annotations: { sync: false },
+  passwords: { sync: false },
   autofill: { addresses: true, cards: true, syncAddresses: false },
   notifications: { doNotDisturb: false },
   spellcheck: { enabled: true, languages: [] },
@@ -558,6 +566,7 @@ const schema: Schema = {
     includePage: bool,
   },
   annotations: { sync: bool },
+  passwords: { sync: bool },
   autofill: { addresses: bool, cards: bool, syncAddresses: bool },
   notifications: { doNotDisturb: bool },
   spellcheck: { enabled: bool, languages: sanitizeSpellLanguages },

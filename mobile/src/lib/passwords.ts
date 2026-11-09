@@ -1,3 +1,4 @@
+import { mergeSyncedPasswords, type SyncedPassword } from "@shared/passwords-sync";
 import {
   EMPTY_VAULT,
   MAX_PASSWORD,
@@ -83,6 +84,7 @@ export class PasswordStore {
   private vault: PasswordVault = EMPTY_VAULT;
   private listeners = new Set<() => void>();
   private loading: Promise<void> | null = null;
+  private loaded = false;
   /** Writes in order: a later save never lands before an earlier one. */
   private writing: Promise<void> = Promise.resolve();
 
@@ -96,6 +98,7 @@ export class PasswordStore {
   load(): Promise<void> {
     this.loading ??= loadVault(this.store).then((vault) => {
       this.vault = vault;
+      this.loaded = true;
       this.emit();
     });
     return this.loading;
@@ -103,6 +106,16 @@ export class PasswordStore {
 
   get current(): PasswordVault {
     return this.vault;
+  }
+
+  /** Read from the secure store: only then may sync compare it (an unread vault is not an empty one). */
+  get ready(): boolean {
+    return this.loaded;
+  }
+
+  /** Remote winners from sync (ADR-050): accounts and "never" sites, ids and last use kept. */
+  applySynced(upserts: readonly { id: string; data: SyncedPassword }[], deletes: readonly string[]): Promise<void> {
+    return this.commit(mergeSyncedPasswords(this.vault, upserts, deletes, this.newId));
   }
 
   subscribe(listener: () => void): () => void {

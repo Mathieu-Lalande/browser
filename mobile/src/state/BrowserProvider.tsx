@@ -1,4 +1,5 @@
 import { autofill } from "./autofill";
+import { passwords } from "./passwords";
 import type { AnnotationsData } from "@shared/annotations/model";
 import type { ArchivedTab } from "@shared/archive";
 import type { Boost } from "@shared/boosts";
@@ -248,6 +249,7 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
       setAnnotations: (next) => stores.annotations.set(next),
       reading: { list: stores.reading.get, set: (next) => stores.reading.set(next) },
       autofill,
+      passwords,
       history: () => stores.history.history,
       historyChanged: () => stores.history.changed(),
       historyDeleted: (url) => stores.history.isDeleted(url),
@@ -258,7 +260,11 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
     syncRef.current = controller;
     setSyncStatus(controller.getStatus());
     void controller.init();
+    // Password sync (ADR-050, opt-in) compares the vault only once it was read from the secure store.
+    passwords.load().catch(() => {});
+    const stopPasswords = passwords.subscribe(() => controller.notifyChange());
     return () => {
+      stopPasswords();
       controller.dispose();
       syncRef.current = null;
     };

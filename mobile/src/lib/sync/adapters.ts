@@ -32,6 +32,7 @@ import {
 } from "@shared/sync/records";
 import type { Bookmark } from "@shared/types";
 import { MAX_BOOKMARKS } from "../bookmarks";
+import { passwordsAdapter, type PasswordSyncStore } from "./passwords";
 import { isPrivateTab, type TabsAction, type TabsModel } from "../tabs";
 
 /**
@@ -48,6 +49,8 @@ export interface BookmarkFolder {
 }
 
 export interface MobileSyncStore {
+  /** Saved passwords (ADR-050, opt-in): synced only once the secure store was read. */
+  passwords?: PasswordSyncStore;
   /** Saved addresses (ADR-041, opt-in): cards are never handed to sync. */
   autofill?: { current: AutofillData; replace(next: AutofillData): unknown };
   settings(): Settings;
@@ -225,6 +228,7 @@ function addressesAdapter(store: MobileSyncStore, autofill: NonNullable<MobileSy
 
 export function mobileAdapters(store: MobileSyncStore): CollectionAdapter[] {
   return [
+    ...(store.passwords ? [passwordsAdapter(store, store.passwords)] : []),
     ...(store.autofill ? [addressesAdapter(store, store.autofill)] : []),
     ...(store.reading ? [readingAdapter(store.reading)] : []),
     settingsAdapter(store),

@@ -85,8 +85,11 @@ barre d'adresse, page d'accueil, raccourcis, durcissement sécurité, tests unit
   nouvelle clé.
 - (fait) Relais auto-hébergé (`server/`, Node 22 sans dépendance, Docker, guides VPS + Caddy, Fly.io,
   Render). Aucun serveur fourni : la synchronisation reste désactivée tant qu'il n'est pas déployé.
-- Reste : révoquer un seul appareil sans tout réinitialiser, fusion fine des titres, favicons,
-  synchronisation des mots de passe (avec une clé dérivée séparée), test sur un vrai iPhone.
+- (fait, ADR-050) Synchronisation facultative des mots de passe et de la liste « Jamais pour ce site » (bureau et
+  téléphone), désactivée par défaut ; l'état local du moteur pour cette collection est scellé par une clé dérivée
+  de la clé de synchronisation (trousseau du système), plus aucun haché en clair sur le disque.
+- Reste : révoquer un seul appareil sans tout réinitialiser, fusion fine des titres, favicons, test sur un vrai
+  iPhone.
 
 ## Mobile (iOS et Android) — voir ADR-016 et `mobile/README.md`
 

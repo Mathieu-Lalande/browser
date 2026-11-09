@@ -1,14 +1,29 @@
-import { addHighlight, annotationUrl, COLOR_LABELS, HIGHLIGHT_COLORS, removeHighlight, updateHighlight, type AnnotationsData, type HighlightColor, type TextQuote } from "@shared/annotations/model";
+import {
+  addHighlight,
+  ANNOTATION_LIMITS,
+  annotationUrl,
+  COLOR_LABELS,
+  HIGHLIGHT_COLORS,
+  noteFor,
+  removeHighlight,
+  setPageNote,
+  updateHighlight,
+  type AnnotationsData,
+  type HighlightColor,
+  type TextQuote,
+} from "@shared/annotations/model";
 import { useRef } from "react";
 import type { MenuItem, MenuSpec } from "../components/ActionSheet";
-import { isPrivateTab, type TabsModel } from "../lib/tabs";
+import type { NoteTarget } from "../components/NoteSheet";
+import { isPrivateTab, type MobileTab, type TabsModel } from "../lib/tabs";
 import { newId, type BrowserActions } from "../state/BrowserProvider";
 import type { Theme } from "../state/theme";
 import { useEvent } from "./useEvent";
 
 /**
  * Highlights (ADR-037): "Surligner" in the page's selection menu adds one (normal tabs only, in
- * the last color used); a tap on one opens its sheet (color, copy, delete) unless `busy`.
+ * the last color used); a tap on one opens its sheet (color, note, copy, delete) unless `busy`.
+ * Notes on a highlight and the page's note are written in the note sheet (`setNote`, ADR-050).
  */
 export function useHighlights({
   model,
@@ -19,6 +34,7 @@ export function useHighlights({
   haptic,
   setMenu,
   copy,
+  setNote,
 }: {
   model: TabsModel;
   annotations: AnnotationsData;
@@ -28,6 +44,7 @@ export function useHighlights({
   haptic: Theme["haptic"];
   setMenu: (menu: MenuSpec) => void;
   copy: (text: string) => void;
+  setNote: (target: NoteTarget) => void;
 }) {
   const lastColor = useRef<HighlightColor>("yellow");
 
@@ -54,11 +71,31 @@ export function useHighlights({
         ...HIGHLIGHT_COLORS.filter((color) => color !== highlight.color).map(
           (color): MenuItem => ({ key: color, label: `Surligner en ${COLOR_LABELS[color].toLowerCase()}`, icon: "highlighter", onPress: () => setColor(color) }),
         ),
+        {
+          key: "note",
+          label: highlight.note ? "Modifier la note" : "Ajouter une note",
+          icon: "edit",
+          onPress: () => setNote({ kind: "highlight", id, context: highlight.exact, initial: highlight.note, maxLength: ANNOTATION_LIMITS.note }),
+        },
         { key: "copy", label: "Copier le passage", icon: "copy", onPress: () => copy(highlight.exact) },
         { key: "delete", label: "Supprimer le surlignage", icon: "trash", destructive: true, onPress: () => actions.setAnnotations((data) => removeHighlight(data, id)) },
       ],
     });
   });
 
-  return { onHighlight, onHighlightPress };
+  /** "Note de la page" of the page menu: normal tabs on a web page only. */
+  const pageNote = (tab: MobileTab | null): (() => void) | null => {
+    const key = tab && !isPrivateTab(tab) ? annotationUrl(tab.url) : null;
+    if (!tab || !key) return null;
+    return () => setNote({ kind: "page", id: tab.url, context: tab.title, initial: noteFor(annotations, key)?.text ?? "", maxLength: ANNOTATION_LIMITS.pageNote });
+  };
+
+  /** Saves what the note sheet returns (an empty text removes the note). */
+  const saveNote = useEvent((target: NoteTarget, text: string) => {
+    const now = Date.now();
+    if (target.kind === "highlight") actions.setAnnotations((data) => updateHighlight(data, target.id, { note: text }, now));
+    else actions.setAnnotations((data) => setPageNote(data, target.id, target.context, text, now));
+  });
+
+  return { onHighlight, onHighlightPress, pageNote, saveNote };
 }

@@ -3,6 +3,7 @@ import { annotationRecords, mergeAnnotations, sanitizeSyncedAnnotation, type Syn
 import { boostRecord, mergeBoosts, sanitizeSyncedBoost, type SyncedBoost } from "@shared/boosts";
 import { favoriteLocalId, favoriteRecord, mergeFavorites, sanitizeSyncedFavorite, type SyncedFavorite } from "@shared/favorites";
 import { MAX_SPACES } from "@shared/spaces";
+import { mergeSyncedPasswords, passwordRecords, sanitizeSyncedPassword, type SyncedPassword } from "@shared/passwords-sync";
 import { mergePanels, panelRecord, sanitizeSyncedPanel, type SyncedPanel } from "@shared/panels";
 import { mergeReadingList, readingRecord, sanitizeSyncedReading, type SyncedReading } from "@shared/reading-list";
 import type { CollectionAdapter } from "@shared/sync/engine";
@@ -36,6 +37,7 @@ import type { AutofillService } from "../autofill/service";
 import type { BoostService } from "../boosts/service";
 import type { WindowDirectory } from "../ports";
 import type { PanelService } from "../panels/service";
+import type { PasswordVaultStore } from "../passwords/vault";
 import type { ReadingListService } from "../reading/service";
 
 /**
@@ -53,6 +55,8 @@ export interface AdapterDeps {
   /** Web panels (ADR-047, opt-in) and the reading list (ADR-047). */
   panels?: Pick<PanelService, "list" | "replace">;
   reading?: Pick<ReadingListService, "replace">;
+  /** Saved passwords (ADR-050, opt-in): synced only while the keychain vault is usable. */
+  passwords?: { vault: Pick<PasswordVaultStore, "current" | "write" | "status">; newId: () => string };
   now?: () => number;
 }
 
@@ -193,11 +197,25 @@ function readingAdapter(reading: NonNullable<AdapterDeps["reading"]>): Collectio
   };
 }
 
+/** Saved passwords and "never" sites (ADR-050), opt-in (`settings.passwords.sync`); the mirror is sealed at rest. */
+function passwordsAdapter({ vault, newId }: NonNullable<AdapterDeps["passwords"]>): CollectionAdapter<SyncedPassword> {
+  return {
+    name: "passwords",
+    enabled: () => settings().passwords.sync && vault.status().available,
+    snapshot: () => passwordRecords(vault.current()),
+    sanitize: (value, id) => sanitizeSyncedPassword(value, id),
+    apply: ({ upserts, deletes }) => {
+      vault.write(mergeSyncedPasswords(vault.current(), upserts, deletes, newId));
+    },
+  };
+}
+
 export function desktopAdapters(deps: AdapterDeps): CollectionAdapter[] {
   const now = deps.now ?? Date.now;
   const adapters: CollectionAdapter<never>[] = [settingsAdapter(), spacesAdapter(), bookmarksAdapter(deps), historyAdapter(now), favoritesAdapter(deps), boostsAdapter(deps), annotationsAdapter()] as CollectionAdapter<never>[];
   if (deps.autofill) adapters.push(addressesAdapter(deps.autofill) as CollectionAdapter<never>);
   if (deps.panels) adapters.push(panelsAdapter(deps.panels) as CollectionAdapter<never>);
   if (deps.reading) adapters.push(readingAdapter(deps.reading) as CollectionAdapter<never>);
+  if (deps.passwords) adapters.push(passwordsAdapter(deps.passwords) as CollectionAdapter<never>);
   return adapters as CollectionAdapter[];
 }

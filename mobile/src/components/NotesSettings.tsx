@@ -10,7 +10,8 @@ import { IconButton } from "./ui";
 /**
  * "Notes et surlignages" (ADR-037): every highlight and page note of the phone (made here with
  * "Surligner" in the selection menu, or synced from the desktop when opted in), searched, opened
- * or deleted. Notes are written on the desktop; the phone shows them.
+ * or deleted. Notes are written in the page (a highlight's sheet, or "Note de la page" of the page
+ * menu, ADR-050) and shown here.
  */
 export const NotesSettings = memo(function NotesSettings({ onOpen }: { onOpen: (url: string) => void }) {
   const { colors, dark } = useTheme();
@@ -23,7 +24,7 @@ export const NotesSettings = memo(function NotesSettings({ onOpen }: { onOpen: (
   return (
     <View>
       <Text style={[styles.intro, { color: colors.textMuted }]}>
-        Sélectionnez du texte dans une page puis « Surligner ». Touchez un passage surligné pour changer sa couleur ou le supprimer.
+        Sélectionnez du texte dans une page puis « Surligner ». Touchez un passage surligné pour changer sa couleur, y ajouter une note ou le supprimer ; « Note de la page » est dans le menu de la page.
       </Text>
       <View style={[styles.row, border]}>
         <View style={styles.text}>

@@ -11,8 +11,14 @@ import { isDeviceId } from "./hlc";
  * value decrypted from another device.
  */
 
-export const COLLECTIONS = ["settings", "spaces", "bookmarks", "history", "clients", "favorites", "boosts", "sent", "annotations", "addresses", "panels", "reading"] as const;
+export const COLLECTIONS = ["settings", "spaces", "bookmarks", "history", "clients", "favorites", "boosts", "sent", "annotations", "addresses", "panels", "reading", "passwords"] as const;
 export type CollectionName = (typeof COLLECTIONS)[number];
+
+/**
+ * Collections whose local mirror (ids, hashes, timestamps) is sealed before it is written to disk
+ * (ADR-050), with a key derived from the sync key that lives in the OS keychain.
+ */
+export const SENSITIVE_COLLECTIONS: readonly CollectionName[] = ["passwords"];
 
 const MAX_TEXT = 512;
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
