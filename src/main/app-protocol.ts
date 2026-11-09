@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { app, protocol } from "electron";
-import { APP_SCHEME, CHROME_PAGE, OVERLAY_PAGE, mimeTypeOf, resolveAppFile } from "./app-files";
+import { APP_SCHEME, CHROME_PAGE, MINI_PAGE, OVERLAY_PAGE, mimeTypeOf, resolveAppFile } from "./app-files";
 import { uiSession } from "./ui-session";
 
 /**
@@ -38,8 +38,8 @@ export function serveAppScheme(): void {
  * Where the chrome UI (or the overlay) loads from: the bundle, or the Vite dev server in
  * development only — a packaged app never honors `ELECTRON_RENDERER_URL` (audit MEDIUM-2).
  */
-export function uiUrl(page: "index" | "overlay"): string {
+export function uiUrl(page: "index" | "overlay" | "mini"): string {
   const dev = !app.isPackaged ? process.env.ELECTRON_RENDERER_URL : undefined;
-  if (dev) return page === "index" ? dev : `${dev}/overlay.html`;
-  return page === "index" ? CHROME_PAGE : OVERLAY_PAGE;
+  if (dev) return page === "index" ? dev : `${dev}/${page}.html`;
+  return page === "index" ? CHROME_PAGE : page === "overlay" ? OVERLAY_PAGE : MINI_PAGE;
 }

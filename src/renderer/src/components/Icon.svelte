@@ -127,6 +127,7 @@
   import Hourglass from "@lucide/svelte/icons/hourglass";
   import LayersPlus from "@lucide/svelte/icons/layers-plus";
   import Leaf from "@lucide/svelte/icons/leaf";
+  import BatteryLow from "@lucide/svelte/icons/battery-low";
   import ListX from "@lucide/svelte/icons/list-x";
   import Minus from "@lucide/svelte/icons/minus";
   import Repeat from "@lucide/svelte/icons/repeat";
@@ -238,6 +239,8 @@
     check: Check,
     reset: RotateCcw,
     zen: Leaf,
+    "energy-battery": BatteryLow,
+    "energy-always": Sprout,
     minimize: Minus,
     maximize: Square,
     restore: Copy,

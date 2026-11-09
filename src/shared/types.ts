@@ -1,3 +1,4 @@
+import type { EnergyState } from "./energy";
 import type { RecoverySummary } from "./recovery";
 import type { PrintPreviewInfo } from "./print";
 import type { CaptureResult, RecordingState } from "./capture";
@@ -152,6 +153,10 @@ export interface BrowserState extends TabsState {
   peeks?: SpacePeek[];
   /** The window is recording a tab (ADR-031): the address bar shows it, whatever tab is on screen. */
   recording?: RecordingState | null;
+  /** Energy saver (ADR-048): the window bar's indicator; the UIs stop animating while it is on. */
+  energy?: EnergyState;
+  /** Windows 11 Mica shows behind this window (ADR-048): the UI's backgrounds let it through. */
+  mica?: boolean;
 }
 
 /** Tabs and folders of a space not on screen (see `BrowserState.peeks`). */

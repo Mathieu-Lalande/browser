@@ -4,6 +4,7 @@ import type { AnnotationResult, AnnotationsList, Highlight, HighlightColor, High
 import type { Boost, BoostInput, BoostResult } from "./boosts";
 import type { CommandId } from "./commands";
 import type { DefaultBrowserStatus } from "./default-browser";
+import type { MiniAction, MiniState } from "./mini";
 import type { WidevineStatus } from "./drm";
 import type { HistoryClearRange, HistoryCursor, HistoryPage } from "./history";
 import type { ImportItem, ImportProgress, ImportSource, ImportSummary, PasswordImportSummary } from "./import/types";
@@ -111,6 +112,8 @@ export const Channels = {
   windowMaximized: "window:maximized",
   windowTopBar: "window:top-bar",
   windowTopBarLeft: "window:top-bar-left",
+  miniState: "mini:state",
+  miniAction: "mini:action",
   historySearch: "history:search",
   historyTopSites: "history:top-sites",
   historyClear: "history:clear",
@@ -629,6 +632,11 @@ export interface BrowserApi {
      */
     watchTopBar(height: number): void;
     onTopBarLeft(listener: () => void): () => void;
+  };
+  /** ADR-048: the bar of a mini window (its own page, `mini.html`); no other UI may call it. */
+  mini: {
+    onState(listener: (state: MiniState) => void): () => void;
+    act(action: MiniAction): void;
   };
   history: {
     /** Entries matching `query` (url + title), best first by match quality × frecency. */

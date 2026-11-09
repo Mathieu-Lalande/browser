@@ -4,7 +4,9 @@
 </script>
 
 <script lang="ts">
-  import { api } from "../lib/browser.svelte";
+  import { energyTooltip } from "@shared/energy";
+  import { api, browser } from "../lib/browser.svelte";
+  import Icon from "./Icon.svelte";
   import { platform } from "../lib/platform.svelte";
   import SidebarModeSwitch from "./SidebarModeSwitch.svelte";
   import WindowControls from "./WindowControls.svelte";
@@ -20,6 +22,10 @@
   let { mode, onMode }: { mode: SidebarMode; onMode: (mode: Exclude<SidebarMode, "hidden">) => void } = $props();
 
   type Mode = Exclude<SidebarMode, "hidden">;
+
+  /** Energy saver on (ADR-048): a battery (on battery) or a sprout (always) after the modes. */
+  const energy = $derived(browser.state.energy);
+  const energyTip = $derived(energy ? energyTooltip(energy) : null);
   const modes = $derived<{ value: Mode; label: string; title: string; icon: "sidebar" | "sidebar-compact" | "zen" }[]>([
     { value: "full", label: "Complète", icon: "sidebar", title: "Barre latérale complète : onglets, adresse, espaces" },
     {
@@ -125,6 +131,11 @@
   {#if revealed}
     <div class="start">
       <SidebarModeSwitch value={mode === "hidden" ? null : mode} options={modes} label="Barre latérale" onchange={choose} />
+      {#if energy && energyTip}
+        <span class="energy" role="img" aria-label={energyTip} title={energyTip} data-testid="energy-indicator">
+          <Icon name={energy.reason === "battery" ? "energy-battery" : "energy-always"} />
+        </span>
+      {/if}
     </div>
     <span class="drag-area drag"></span>
     {#if !platform.isMac}<WindowControls />{/if}
@@ -156,6 +167,14 @@
     display: flex;
     align-items: center;
     animation: appear var(--motion-fast) var(--ease);
+  }
+  .energy {
+    display: grid;
+    place-items: center;
+    width: var(--hit-min);
+    height: var(--hit-min);
+    margin-left: var(--space-1);
+    color: var(--accent-text);
   }
   .drag-area {
     flex: 1;

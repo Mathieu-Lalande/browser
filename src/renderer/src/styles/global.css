@@ -265,7 +265,15 @@ button {
   }
 }
 
-/* "Réduire les animations" setting: same effect as the OS preference. */
+/*
+ * Mica (Windows 11, ADR-048): the native window is transparent behind the UI; the backdrop lets the
+ * desktop's tint through while panels (sidebar rows, cards) keep their own surfaces.
+ */
+:root[data-mica] body {
+  background: color-mix(in oklab, var(--bg) 62%, transparent);
+}
+
+/* "Réduire les animations" setting (and the energy saver, ADR-048): same effect as the OS preference. */
 :root[data-reduce-motion] {
   --motion-fast: 0ms;
   --motion-base: 0ms;

@@ -1,4 +1,6 @@
+import { release } from "node:os";
 import { join } from "node:path";
+import { micaSupported } from "@shared/desktop";
 import { BrowserWindow, screen, type Session } from "electron";
 import type { Settings } from "@shared/settings";
 
@@ -17,6 +19,8 @@ export interface WindowChromeOptions {
 export class WindowChrome {
   readonly window: BrowserWindow;
   private topBarTimer: ReturnType<typeof setInterval> | undefined;
+  /** Mica is drawn behind the UI (Windows 11 and "Effet Mica", ADR-048). */
+  micaApplied = false;
 
   constructor({ isPrivate, background, uiSession }: WindowChromeOptions) {
     const isMac = process.platform === "darwin";
@@ -47,11 +51,23 @@ export class WindowChrome {
     if (isMac) this.window.setWindowButtonVisibility(false);
   }
 
-  /** The settings' native effects: background and shadow. */
+  /**
+   * The settings' native effects: background and shadow, and Mica on Windows 11 (ADR-048): the
+   * window turns transparent behind the UI, whose backgrounds let it show (`data-mica`). Windows 10
+   * and other systems keep the theme's opaque background.
+   */
   applySettings(current: Settings, background: string): void {
     if (this.window.isDestroyed()) return;
-    this.window.setBackgroundColor(background);
+    const mica = current.appearance.mica && micaSupported(process.platform, release());
+    if (mica !== this.micaApplied && process.platform === "win32") this.window.setBackgroundMaterial(mica ? "mica" : "none");
+    this.micaApplied = mica;
+    this.window.setBackgroundColor(this.background(background));
     this.window.setHasShadow(current.appearance.shadows);
+  }
+
+  /** The native background: the theme's, or transparent behind Mica. */
+  background(theme: string): string {
+    return this.micaApplied ? "#00000000" : theme;
   }
 
   /**

@@ -88,6 +88,7 @@
             <li><a href="#mobile">Application mobile</a></li>
             <li><a href="#premiers-pas">Premiers pas</a></li>
             <li><a href="#principal">Navigateur principal, historique, import</a></li>
+            <li><a href="#mini-fenetre">Mini-fenêtre, énergie, Windows</a></li>
             <li><a href="#onglets">Onglets</a></li>
             <li><a href="#menus">Menus et gestes</a></li>
             <li><a href="#espaces">Espaces et gestes</a></li>
@@ -254,8 +255,10 @@
             liens <code>http</code> et <code>https</code>.
           </p>
           <p>
-            Un lien cliqué dans une autre application, ou un fichier HTML ou PDF ouvert depuis l'explorateur, s'ouvre
-            dans un nouvel onglet de la dernière fenêtre normale utilisée (jamais dans une fenêtre privée).
+            Un lien cliqué dans une autre application s'ouvre, quand Browser tourne déjà, dans une
+            <a href="#mini-fenetre">mini-fenêtre</a> ; un fichier HTML ou PDF ouvert depuis l'explorateur (ou un lien,
+            réglage coupé) s'ouvre dans un nouvel onglet de la dernière fenêtre normale utilisée (jamais dans une fenêtre
+            privée).
           </p>
           <h3>Lecteur PDF</h3>
           <p>
@@ -284,6 +287,38 @@
             Exporter ; Firefox : Mots de passe, « … », Exporter), choisissez le fichier dans la page d'import, puis
             supprimez-le. Safari n'est pas importé.
           </p>
+        </section>
+
+        <!-- Mini window, energy saver, Windows (ADR-048) -->
+        <section class="doc-section" id="mini-fenetre" aria-labelledby="t-mini-fenetre">
+          <h2 id="t-mini-fenetre"><i data-icon="picture-in-picture-2"></i>Mini-fenêtre, économie d'énergie, Windows</h2>
+          <h3>Mini-fenêtre</h3>
+          <p>
+            Un lien ouvert depuis une autre application (messagerie, e-mail…) s'affiche dans une petite fenêtre sans
+            cadre : le site et le titre de la page, puis « Toujours au premier plan », « Copier le lien »,
+            <strong>« Ouvrir dans le navigateur »</strong> (<kbd>Ctrl</kbd> <kbd>O</kbd>, <kbd>⌘</kbd> <kbd>O</kbd>) et
+            « Fermer » (<kbd>Ctrl</kbd> <kbd>W</kbd>). « Ouvrir dans le navigateur » déplace la page, telle quelle et sans
+            la recharger, dans un onglet de la dernière fenêtre utilisée ; fermer la mini-fenêtre oublie la page (rien
+            dans l'historique). Paramètres, Comportement, <strong>« Ouvrir les liens externes dans une
+            mini-fenêtre »</strong> (activé par défaut).
+          </p>
+          <h3>Économiseur d'énergie</h3>
+          <p>
+            Paramètres, Comportement, <strong>Économiseur d'énergie</strong> : désactivé, sur batterie (par défaut) ou
+            toujours. Actif, il met en veille les onglets inactifs au bout de 5 minutes au plus, ralentit les pages en
+            arrière-plan, espace les aperçus des onglets, ne suit plus les médias des onglets cachés et coupe les
+            animations. Une icône (batterie ou pousse) le signale dans la barre de fenêtre.
+          </p>
+          <h3>Windows et macOS</h3>
+          <ul>
+            <li><strong>Liste de raccourcis</strong> (clic droit sur l'icône de la barre des tâches) : Nouvel onglet,
+              Nouvelle fenêtre privée, vos espaces et les fichiers récents.</li>
+            <li><strong>Barre des tâches</strong> : progression des téléchargements et pastille tant qu'ils
+              tournent ; boutons Précédent, Suivant et Nouvel onglet sous l'aperçu de la fenêtre.</li>
+            <li><strong>Effet Mica</strong> (Windows 11, Paramètres, Apparence, activé par défaut) : le fond du bureau
+              transparaît derrière la barre latérale. Sans effet sous Windows 10.</li>
+            <li><strong>macOS</strong> : le menu de l'icône du Dock propose les mêmes raccourcis.</li>
+          </ul>
         </section>
 
         <!-- Tabs -->

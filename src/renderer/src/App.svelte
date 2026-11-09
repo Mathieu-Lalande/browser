@@ -105,7 +105,7 @@
   }
 
   // Theme: every setting maps to CSS variables on :root, re-applied live.
-  $effect(() => applyTheme(settings.current, settings.mode, browser.isPrivate));
+  $effect(() => applyTheme(settings.current, settings.mode, browser.isPrivate, { energySaver: browser.state.energy?.active, mica: browser.state.mica }));
   // Tab recording (ADR-031): main starts and stops the recorder that lives in this page.
   $effect(() => installRecorder());
 

@@ -40,6 +40,12 @@ Windows, macOS et Linux, avec son application iPhone et Android.
 **Navigateur principal** (ADR-039)
 - Navigateur par défaut (liens `http`/`https`, fichiers HTML et PDF) : réglage et proposition unique au premier
   lancement ; liens et fichiers venus du système ouverts dans la dernière fenêtre normale.
+- Mini-fenêtre pour les liens venus d'autres applications : « Ouvrir dans le navigateur » (`Ctrl+O`) en fait un
+  onglet sans recharger, la fermer l'oublie (ADR-048).
+- Économiseur d'énergie (désactivé, sur batterie, toujours) : veille plus rapide, pages en arrière-plan ralenties,
+  aperçus espacés, animations coupées, indicateur dans la barre de fenêtre (ADR-048).
+- Windows : liste de raccourcis (nouvel onglet, fenêtre privée, espaces, fichiers récents), téléchargements dans la
+  barre des tâches, boutons sous l'aperçu, effet Mica sous Windows 11 ; macOS : menu du Dock (ADR-048).
 - Lecteur PDF intégré de Chromium dans l'onglet (pièces jointes toujours téléchargées).
 - Historique `browser://history` (`Ctrl+H`, `⌘Y`) : jour par jour, recherche, suppression d'une page, d'une
   sélection ou d'une période (dernière heure, aujourd'hui, 7 jours, tout).

@@ -10,6 +10,8 @@ export const APP_SCHEME = "app";
 export const APP_HOST = "browser";
 export const CHROME_PAGE = `${APP_SCHEME}://${APP_HOST}/index.html`;
 export const OVERLAY_PAGE = `${APP_SCHEME}://${APP_HOST}/overlay.html`;
+/** The bar of a mini window (ADR-048). */
+export const MINI_PAGE = `${APP_SCHEME}://${APP_HOST}/mini.html`;
 
 const MIME_TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",

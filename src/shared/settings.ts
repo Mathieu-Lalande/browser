@@ -8,6 +8,7 @@ import { sanitizeSiteKeys } from "./translate/rules";
 import { ASSISTANT_MODELS, DEFAULT_ASSISTANT_MODEL, type AssistantModelId } from "./assistant/models";
 import { SECURE_DNS_CHOICES, normalizeDohTemplate, normalizeNextDnsId, type SecureDnsChoice } from "./secure-dns";
 import { DEFAULT_SEARCH_ENGINE, SEARCH_ENGINES, type SearchEngine } from "./url";
+import { ENERGY_SAVER_MODES, type EnergySaverMode } from "./energy";
 
 /** User preferences, persisted as `settings.json` and applied live in every window. */
 
@@ -45,6 +46,8 @@ export interface AppearanceSettings {
   pageZoom: number;
   /** The accent follows the site on screen (`theme-color`, else its favicon), ADR-038. */
   dynamicTheme: boolean;
+  /** Windows 11: Mica shows through the chrome's backgrounds (ADR-048); no effect elsewhere. */
+  mica: boolean;
 }
 
 export interface LayoutSettings {
@@ -88,6 +91,10 @@ export interface BehaviorSettings {
   archiveTabsAfter: TabArchiveDelay;
   /** The start page's one-time "make it the default browser" card was answered (ADR-039). */
   defaultBrowserPromptDismissed: boolean;
+  /** Links from other apps open in a mini window (ADR-048) instead of a tab. */
+  externalLinksInMiniWindow: boolean;
+  /** Energy saver (ADR-048): never, on battery, or always. */
+  energySaver: EnergySaverMode;
 }
 
 /** Fingerprinting protection (ADR-046). */
@@ -311,6 +318,7 @@ export const DEFAULT_SETTINGS: Settings = {
     pointerCursor: true,
     pageZoom: 100,
     dynamicTheme: false,
+    mica: true,
   },
   layout: {
     sidebarPosition: "left",
@@ -323,7 +331,16 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   search: { engine: DEFAULT_SEARCH_ENGINE.id },
   startPage: { widgets: defaultWidgets(), greetingName: "", background: "theme", backgroundImage: "" },
-  behavior: { restoreSession: true, newTabPosition: "end", closeTabActivates: "next", sleepTabsAfter: "30m", archiveTabsAfter: "7d", defaultBrowserPromptDismissed: false },
+  behavior: {
+    restoreSession: true,
+    newTabPosition: "end",
+    closeTabActivates: "next",
+    sleepTabsAfter: "30m",
+    archiveTabsAfter: "7d",
+    defaultBrowserPromptDismissed: false,
+    externalLinksInMiniWindow: true,
+    energySaver: "battery",
+  },
   privacy: {
     normalizeAcceptLanguage: false,
     blockThirdPartyCookies: false,
@@ -455,6 +472,7 @@ const schema: Schema = {
     pointerCursor: bool,
     pageZoom: oneOfNumbers(PAGE_ZOOM_LEVELS),
     dynamicTheme: bool,
+    mica: bool,
   },
   layout: {
     sidebarPosition: oneOf("left", "right"),
@@ -479,6 +497,8 @@ const schema: Schema = {
     sleepTabsAfter: oneOf("never", "15m", "30m", "1h", "2h"),
     archiveTabsAfter: oneOf("never", "12h", "24h", "7d", "30d"),
     defaultBrowserPromptDismissed: bool,
+    externalLinksInMiniWindow: bool,
+    energySaver: oneOf(...ENERGY_SAVER_MODES),
   },
   privacy: {
     normalizeAcceptLanguage: bool,

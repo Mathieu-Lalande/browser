@@ -92,6 +92,11 @@
 >
   <Toggle label="Thème dynamique" checked={s.appearance.dynamicTheme} onchange={(dynamicTheme) => update({ appearance: { dynamicTheme } })} />
 </Row>
+{#if window.platform === "win32"}
+  <Row anchor="mica" label="Effet Mica" hint="Windows 11 : le fond du bureau transparaît, discrètement, derrière la barre latérale. Sans effet sous Windows 10.">
+    <Toggle label="Effet Mica" checked={s.appearance.mica} onchange={(mica) => update({ appearance: { mica } })} />
+  </Row>
+{/if}
 <Row anchor="background" label="Arrière-plan" hint="Fond de la fenêtre, autour de la page.">
   <div class="tiles" role="radiogroup" aria-label="Arrière-plan">
     {#each BACKGROUNDS as option (option.value)}

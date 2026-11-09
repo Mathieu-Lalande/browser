@@ -1,4 +1,4 @@
-import { app, BrowserWindow, nativeTheme, session, type Session, type WebContents } from "electron";
+import { app, BrowserWindow, nativeTheme, session, type Session, type WebContents, type WebContentsView } from "electron";
 import { internalPageOf, internalUrl, type InternalPage } from "@shared/internal";
 import { Channels } from "@shared/ipc";
 import { PRIVATE_SPACE, privateSettings } from "@shared/private";
@@ -33,6 +33,7 @@ import type { WindowDirectory } from "./ports";
 import { appServices } from "./app-services-ref";
 import type { AppServices } from "./services";
 import { WindowRegistry } from "./window-registry";
+import { Emitter } from "@shared/emitter";
 import { ChromeBridge } from "./window-parts/chrome-bridge";
 import { PageHooks } from "./window-parts/page-hooks";
 import { WindowChrome } from "./window-parts/window-chrome";
@@ -90,7 +91,7 @@ onSettingsChanged((current) => {
 });
 // The OS switched light/dark: windows following the system need their native background updated.
 nativeTheme.on("updated", () => {
-  for (const controller of windows.all()) controller.window.setBackgroundColor(controller.background());
+  for (const controller of windows.all()) controller.window.setBackgroundColor(controller.nativeBackground());
 });
 
 export interface WindowOptions {
@@ -100,6 +101,8 @@ export interface WindowOptions {
 
 /** One browser window: the chrome UI (sidebar, address bar…) plus the spaces and tabs of its pages. */
 export class BrowserController {
+  /** A window showed for the first time (the taskbar's thumbnail toolbar, ADR-048). */
+  static readonly shown = new Emitter<BrowserController>();
   readonly window: BrowserWindow;
   /** One TabManager per space; only the active space's pages are shown. */
   readonly spaces: SpaceManager;
@@ -229,7 +232,10 @@ export class BrowserController {
 
     this.frame.onMaximizedChange((maximized) => this.bridge.toChrome(Channels.windowMaximized, maximized));
     // Pre-warm the overlay once the window is up, so the first Ctrl+K opens instantly.
-    this.frame.showWhenReady(() => this.overlay.warm());
+    this.frame.showWhenReady(() => {
+      this.overlay.warm();
+      BrowserController.shown.emit(this);
+    });
     this.window.on("focus", () => windows.focused(chromeId));
     this.window.on("closed", () => {
       this.frame.watchTopBar(0, () => {});
@@ -270,6 +276,9 @@ export class BrowserController {
       recording: appServices().capture.recorder.stateOf(this),
       // The "Restaurer la session ?" card (ADR-042), never in a private window.
       recovery: this.isPrivate ? null : appServices().recovery.summary(),
+      // ADR-048: the window bar's indicator and motion; Mica behind the UI on Windows 11.
+      energy: appServices().energy.state,
+      mica: this.frame.micaApplied,
     };
   }
 
@@ -313,11 +322,40 @@ export class BrowserController {
     }
   }
 
+  /**
+   * "Ouvrir dans le navigateur" of a mini window (ADR-048): its live page (default session) becomes
+   * a tab without reloading, in the shown space when it uses that session, else in the first space
+   * that does; otherwise `url` opens again in a new tab.
+   */
+  adoptExternalPage(view: WebContentsView, url: string, favicons: string[]): void {
+    const shared = spaces.list().find((space) => !space.isolated);
+    if (!this.isPrivate && spaces.get(this.spaces.activeSpaceId)?.isolated && shared) this.spaces.switchTo(shared.id);
+    const empty = this.emptyTab();
+    const id = this.tabs.adoptPage(view, { favicons });
+    if (!id) {
+      if (!view.webContents.isDestroyed()) view.webContents.close();
+      this.openUrl(url);
+    } else if (empty) {
+      this.tabs.close(empty);
+    }
+    this.focus();
+  }
+
+  /** Shows a space of this window (Jump List, Dock menu: ADR-048); unknown ids are ignored. */
+  showSpace(id: string): void {
+    this.spaces.switchTo(id);
+  }
+
   /** Brings the window to the front (restored if minimized). */
   focus(): void {
     if (this.window.isMinimized()) this.window.restore();
     this.window.show();
     this.window.focus();
+  }
+
+  /** False while the energy saver is on (ADR-048): the media hub polls the tab on screen only. */
+  pollsBackgroundMedia(): boolean {
+    return appServices().energy.policy.pollBackgroundMedia;
   }
 
   /** Toggles the bookmark of the active tab's page, then refreshes `isBookmarked` everywhere. */
@@ -374,6 +412,11 @@ export class BrowserController {
     const { tabs, activeTabId } = this.tabs.getState();
     const empty = tabs.filter((tab) => !tab.url && !tab.isPinned);
     return (empty.find((tab) => tab.id === activeTabId) ?? empty[0])?.id;
+  }
+
+  /** What the native window draws behind the UI: the theme's background, or none behind Mica (ADR-048). */
+  nativeBackground(): string {
+    return this.frame.background(this.background());
   }
 
   /** Native background color behind the UI: the theme's, or the private theme's (always dark). */

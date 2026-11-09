@@ -155,6 +155,16 @@
   seul, réducteur d'événements, Markdown → arbre du lecteur assaini), main `src/main/assistant/` (SDK `@anthropic-ai/sdk`
   en flux, `PageAssistant` par fenêtre, monde isolé 1017, crochet `BROWSER_TEST_ANTHROPIC_URL`), panneau `AssistantPanel`
   (`Ctrl+Alt+A`), `@ia`, section `AssistantSection` ; mobile `AssistantSheet` + `mobile/src/lib/assistant*.ts`.
+- Mini-fenêtre, énergie, intégration au système (ADR-048) : `src/shared/mini.ts` (mise en page, raccourcis `Ctrl+O`/`Ctrl+W`,
+  `opensInMiniWindow`), `src/main/mini/` (`MiniWindows`/`MiniWindow` : `BaseWindow` sans cadre, barre `mini.html` avec son
+  propre contrôle d'émetteur IPC `mini:action`, page durcie comme un onglet dans la session par défaut, promue par
+  `BrowserController.adoptExternalPage` sans rechargement) ; `LaunchRouter` y envoie un seul lien web une fois l'app
+  prête (`settings.behavior.externalLinksInMiniWindow`). Économiseur : politique pure `src/shared/energy.ts`,
+  `EnergyService` (`src/main/energy.ts`, `powerMonitor` injecté, crochet `BROWSER_TEST_ON_BATTERY`) lu par la veille,
+  `TabPreviews`, `MediaHub` ; `BrowserState.energy` → indicateur `WindowBar` et `data-reduce-motion`. Système : purs
+  `src/shared/desktop.ts` (`--new-tab`, `--private`, `--space=<id>` lus par `second-instance`, tâches, barre des tâches,
+  Mica), `src/main/desktop/` (`DesktopIntegration` : Jump List, Dock, progression/pastille, boutons de l'aperçu ; icônes
+  dessinées par `glyphs.ts`), Mica dans `WindowChrome.applySettings` (`data-mica`).
 - Stores mobiles (INSTALL 2.3) : `mobile/app.json` + `app.config.ts` (projet EAS, `eas update`, `IOS_DEFAULT_BROWSER=1` seulement après l'accord d'Apple),
   `mobile/eas.json` (numéros de build tenus par EAS), fiches et réponses confidentialité/chiffrement `mobile/store/`, liens entrants
   `useIncomingLinks` (nouvel onglet), workflow `mobile-release.yml` ; pages `site/privacy.html`/`support.html`.

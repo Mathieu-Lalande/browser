@@ -3,6 +3,7 @@ import type { DownloadsChange } from "@shared/downloads";
 import { Channels, type BrowserApi } from "@shared/ipc";
 import type { ImportProgress } from "@shared/import/types";
 import type { MediaSource } from "@shared/media";
+import type { MiniState } from "@shared/mini";
 import type { PeekState } from "@shared/peek";
 import type { Settings } from "@shared/settings";
 import type { KeyPress } from "@shared/accelerators";
@@ -189,6 +190,10 @@ const api: BrowserApi = {
     onMaximizedChange: (listener) => subscribe<boolean>(Channels.windowMaximized, listener),
     watchTopBar: (height) => send(Channels.windowTopBar, height),
     onTopBarLeft: (listener) => subscribe<void>(Channels.windowTopBarLeft, listener),
+  },
+  mini: {
+    onState: (listener) => subscribe<MiniState>(Channels.miniState, listener),
+    act: (action) => send(Channels.miniAction, action),
   },
   history: {
     search: (query, limit) => ipcRenderer.invoke(Channels.historySearch, query, limit),

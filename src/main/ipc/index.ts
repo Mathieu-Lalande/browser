@@ -44,10 +44,14 @@ type EventChannel = (typeof Channels)[
   | "pageSwipeState"
   | "annotationsChanged"
   | "assistantChanged"
-  | "importProgress"];
+  | "importProgress"
+  | "miniState"];
+
+/** Registered by `MiniWindows.registerIpc` (ADR-048): its sender is a mini window's bar, not a browser window's UI. */
+type OwnChannel = (typeof Channels)["miniAction"];
 
 /** Every channel the UI sends or invokes: the compiler checks each one has exactly one handler. */
-type RequestChannel = Exclude<ChannelName, EventChannel>;
+type RequestChannel = Exclude<ChannelName, EventChannel | OwnChannel>;
 
 const handlers = {
   ...windowHandlers,

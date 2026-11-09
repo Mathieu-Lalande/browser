@@ -18,6 +18,10 @@ export interface MediaHost {
     showTab(spaceId: SpaceId, tabId: TabId): void;
   };
   send(channel: string, ...args: unknown[]): void;
+  /** The tab on screen (the shown space's active tab). */
+  readonly tabs: { readonly activeTabId: TabId | null };
+  /** False while the energy saver is on (ADR-048): playing tabs off screen are not polled. */
+  pollsBackgroundMedia(): boolean;
 }
 
 interface Entry {
@@ -179,7 +183,10 @@ export class MediaHub {
 
   private startPolling(): void {
     this.timer ??= setInterval(() => {
-      for (const [tabId, entry] of this.entries) if (entry.source?.playing) void this.refresh(tabId, entry);
+      const background = this.host.pollsBackgroundMedia();
+      for (const [tabId, entry] of this.entries) {
+        if (entry.source?.playing && (background || tabId === this.host.tabs.activeTabId)) void this.refresh(tabId, entry);
+      }
     }, POLL_MS);
   }
 

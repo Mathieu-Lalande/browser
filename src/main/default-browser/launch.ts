@@ -1,5 +1,7 @@
 import { extname, posix, win32 } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import type { LaunchActions } from "@shared/desktop";
+import { opensInMiniWindow } from "@shared/mini";
 import { isPageOpenableUrl } from "@shared/url";
 
 /**
@@ -73,6 +75,10 @@ export function launchUrls(argv: readonly string[], context: LaunchContext): str
 export interface LaunchWindow {
   openUrl(url: string): void;
   focus(): void;
+  /** "Nouvel onglet" (Jump List, Dock menu: ADR-048). */
+  newTab(): void;
+  /** Shows a space (unknown ids are ignored). */
+  showSpace(id: string): void;
 }
 
 export interface LaunchWindows {
@@ -80,15 +86,22 @@ export interface LaunchWindows {
   lastNormal(): LaunchWindow | undefined;
   /** Opens a new normal window. */
   create(): LaunchWindow;
+  /** Opens a new private window. */
+  createPrivate(): LaunchWindow;
+  /** Mini windows (ADR-048): whether links from other apps go there, and opening one. */
+  mini?: { enabled(): boolean; open(url: string): void };
 }
 
 /**
  * Delivers URLs from the OS to the last focused normal window (a new one when only private
- * windows are open: a link from another app never lands in a private window). URLs arriving
- * before the app is ready (macOS `open-url` at launch, the first command line) wait for `ready()`.
+ * windows are open: a link from another app never lands in a private window), or, once the browser
+ * runs, a single web link to a mini window (ADR-048) when the setting says so. URLs arriving before
+ * the app is ready (macOS `open-url` at launch, the first command line) wait for `ready()` and open
+ * in tabs. Launch actions (`--new-tab`, `--private`, `--space=<id>`) wait the same way.
  */
 export class LaunchRouter {
   private pending: string[] = [];
+  private pendingActions: LaunchActions[] = [];
   private isReady = false;
 
   constructor(private readonly windows: () => LaunchWindows) {}
@@ -99,8 +112,26 @@ export class LaunchRouter {
       this.pending.push(...urls);
       return;
     }
-    const target = this.windows().lastNormal() ?? this.windows().create();
-    for (const url of urls.slice(0, MAX_LAUNCH_TARGETS)) target.openUrl(url);
+    const windows = this.windows();
+    if (windows.mini && opensInMiniWindow(urls, windows.mini.enabled())) return windows.mini.open(urls[0]);
+    this.openInTabs(urls);
+  }
+
+  /** What a Jump List task, the Dock menu or a command line asks besides links. */
+  act(actions: LaunchActions | null): void {
+    if (!actions) return;
+    if (!this.isReady) {
+      this.pendingActions.push(actions);
+      return;
+    }
+    const windows = this.windows();
+    if (actions.private) {
+      windows.createPrivate().focus();
+      if (!actions.newTab && !actions.spaceId) return;
+    }
+    const target = windows.lastNormal() ?? windows.create();
+    if (actions.spaceId) target.showSpace(actions.spaceId);
+    if (actions.newTab) target.newTab();
     target.focus();
   }
 
@@ -109,6 +140,17 @@ export class LaunchRouter {
     this.isReady = true;
     const pending = this.pending;
     this.pending = [];
-    this.open(pending);
+    // What waited opens in tabs: the first window is just being shown.
+    this.openInTabs(pending);
+    const actions = this.pendingActions;
+    this.pendingActions = [];
+    for (const action of actions) this.act(action);
+  }
+
+  private openInTabs(urls: readonly string[]): void {
+    if (!urls.length) return;
+    const target = this.windows().lastNormal() ?? this.windows().create();
+    for (const url of urls.slice(0, MAX_LAUNCH_TARGETS)) target.openUrl(url);
+    target.focus();
   }
 }

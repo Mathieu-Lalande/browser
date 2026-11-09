@@ -3,6 +3,7 @@ import { webHostname } from "@shared/hosts";
 import { TAB_PREVIEW, ThumbnailCache, previewCardBounds, previewViewBounds, type TabPreview } from "@shared/tab-preview";
 import type { Bounds, TabId, TabState } from "@shared/types";
 import { displayUrl } from "@shared/url";
+import { appServices } from "./app-services-ref";
 import { favoriteTiles } from "./organize";
 import { settings } from "./settings";
 import type { BrowserController } from "./window";
@@ -67,7 +68,9 @@ export class TabPreviews {
     const active = tabs.find((tab) => tab.id === this.c.tabs.activeTabId) ?? null;
     const loading = !!active?.isLoading;
     // A tab just shown, or done loading: take its picture once painted.
-    if (active && (active.id !== this.lastActive || (this.lastLoading && !loading))) this.scheduleCapture(active.id);
+    // Energy saver (ADR-048): only when a tab shows, and later.
+    const loaded = this.lastLoading && !loading && appServices().energy.policy.captureOnLoad;
+    if (active && (active.id !== this.lastActive || loaded)) this.scheduleCapture(active.id);
     this.lastActive = active?.id ?? null;
     this.lastLoading = loading;
     // The card follows its tab (title, sound, sleep) while shown.
@@ -79,7 +82,7 @@ export class TabPreviews {
     this.settleTimer = setTimeout(() => {
       this.settleTimer = null;
       void this.capture(id);
-    }, CAPTURE_SETTLE_MS);
+    }, appServices().energy.policy.captureSettleMs(CAPTURE_SETTLE_MS));
   }
 
   private async capture(id: TabId): Promise<void> {

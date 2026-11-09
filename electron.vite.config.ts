@@ -24,6 +24,8 @@ export default defineConfig({
           index: resolve(import.meta.dirname, "src/renderer/index.html"),
           // Floating UI layer drawn above the pages (src/main/overlay.ts).
           overlay: resolve(import.meta.dirname, "src/renderer/overlay.html"),
+          // The bar of a mini window (src/main/mini/, ADR-048).
+          mini: resolve(import.meta.dirname, "src/renderer/mini.html"),
         },
       },
     },

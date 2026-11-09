@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { ENERGY_SAVER_OPTIONS, type EnergySaverMode } from "@shared/energy";
   import { ARCHIVE_DELAY_OPTIONS, type CloseTabActivates, type NewTabPosition, type SettingsPatch, type TabArchiveDelay, type TabSleepDelay } from "@shared/settings";
   import { api } from "../../lib/browser.svelte";
   import { settings } from "../../lib/settings.svelte";
@@ -6,6 +7,7 @@
   import DefaultBrowserRow from "./DefaultBrowserRow.svelte";
   import Row from "../ui/Row.svelte";
   import Segmented from "../ui/Segmented.svelte";
+  import Toggle from "../ui/Toggle.svelte";
 
   /** Settings > Comportement: session restore, where tabs open, sleep and archiving, extensions. */
 
@@ -54,6 +56,17 @@
   />
 </Row>
 <Row
+  anchor="mini-window"
+  label="Ouvrir les liens externes dans une mini-fenêtre"
+  hint="Un lien ouvert depuis une autre application s'affiche dans une petite fenêtre. « Ouvrir dans le navigateur » (Ctrl+O) le garde dans un onglet ; la fermer l'oublie."
+>
+  <Toggle
+    label="Ouvrir les liens externes dans une mini-fenêtre"
+    checked={s.behavior.externalLinksInMiniWindow}
+    onchange={(externalLinksInMiniWindow) => update({ behavior: { externalLinksInMiniWindow } })}
+  />
+</Row>
+<Row
   anchor="sleep"
   label="Mettre en veille les onglets inactifs après"
   hint="Libère la mémoire : la page se recharge quand vous revenez sur l'onglet. Jamais pour un onglet qui joue du son ou un formulaire en cours."
@@ -69,6 +82,19 @@
       { value: "2h" as TabSleepDelay, label: "2 h" },
     ]}
     onchange={(sleepTabsAfter) => update({ behavior: { sleepTabsAfter } })}
+  />
+</Row>
+<Row
+  anchor="energy-saver"
+  label="Économiseur d'énergie"
+  hint="Onglets mis en veille au bout de 5 min au plus, pages en arrière-plan ralenties, aperçus moins fréquents, animations coupées. Une icône le signale dans la barre de fenêtre."
+  keywords="batterie autonomie"
+>
+  <Segmented
+    label="Économiseur d'énergie"
+    value={s.behavior.energySaver}
+    options={ENERGY_SAVER_OPTIONS.map((option) => ({ value: option.value as EnergySaverMode, label: option.label }))}
+    onchange={(energySaver) => update({ behavior: { energySaver } })}
   />
 </Row>
 <Row

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LaunchRouter, launchUrl, launchUrls, type LaunchContext, type LaunchWindow } from "./launch";
+import { LaunchRouter, launchUrl, launchUrls, type LaunchContext, type LaunchWindow, type LaunchWindows } from "./launch";
 import { DefaultBrowserService, WINDOWS_DEFAULT_APPS_URL, type DefaultClientPort } from "./service";
 
 const files = new Set(["/home/a/page.html", "/home/a/doc.PDF", "/home/a/notes.txt", "C:\\docs\\a.htm"]);
@@ -33,19 +33,54 @@ describe("launch URLs", () => {
 class FakeWindow implements LaunchWindow {
   opened: string[] = [];
   focused = 0;
+  newTabs = 0;
+  spaces: string[] = [];
+  constructor(readonly isPrivate = false) {}
   openUrl(url: string): void {
     this.opened.push(url);
   }
   focus(): void {
     this.focused++;
   }
+  newTab(): void {
+    this.newTabs++;
+  }
+  showSpace(id: string): void {
+    this.spaces.push(id);
+  }
+}
+
+/** Windows of a fake app: the last normal one, private ones, mini windows (ADR-048). */
+function fakeWindows(miniEnabled = false) {
+  const created: FakeWindow[] = [];
+  const minis: string[] = [];
+  let last: FakeWindow | undefined;
+  const windows: LaunchWindows = {
+    lastNormal: () => last,
+    create: () => {
+      last = new FakeWindow();
+      created.push(last);
+      return last;
+    },
+    createPrivate: () => {
+      const window = new FakeWindow(true);
+      created.push(window);
+      return window;
+    },
+    mini: { enabled: () => miniEnabled, open: (url) => void minis.push(url) },
+  };
+  return { windows, created, minis, last: () => last };
 }
 
 describe("LaunchRouter", () => {
   it("waits for the windows, then opens in the last normal window", () => {
     const normal = new FakeWindow();
     let last: FakeWindow | undefined;
-    const router = new LaunchRouter(() => ({ lastNormal: () => last, create: () => (last = new FakeWindow()) }));
+    const router = new LaunchRouter(() => ({
+      lastNormal: () => last,
+      create: () => (last = new FakeWindow()),
+      createPrivate: () => new FakeWindow(true),
+    }));
     router.open(["https://a.example/"]);
     expect(last).toBeUndefined();
     router.ready();
@@ -54,6 +89,42 @@ describe("LaunchRouter", () => {
     router.open(["https://b.example/", "https://c.example/"]);
     expect(normal.opened).toEqual(["https://b.example/", "https://c.example/"]);
     expect(normal.focused).toBe(1);
+  });
+
+  it("sends one web link to a mini window once running, when enabled (ADR-048)", () => {
+    const app = fakeWindows(true);
+    const router = new LaunchRouter(() => app.windows);
+    router.open(["https://cold.example/"]);
+    router.ready();
+    expect(app.last()?.opened).toEqual(["https://cold.example/"]);
+    expect(app.minis).toEqual([]);
+    router.open(["https://warm.example/"]);
+    expect(app.minis).toEqual(["https://warm.example/"]);
+    router.open(["https://a.example/", "https://b.example/"]);
+    expect(app.last()?.opened).toEqual(["https://cold.example/", "https://a.example/", "https://b.example/"]);
+    router.open(["file:///home/a/page.html"]);
+    expect(app.minis).toHaveLength(1);
+    const off = fakeWindows(false);
+    const plain = new LaunchRouter(() => off.windows);
+    plain.ready();
+    plain.open(["https://warm.example/"]);
+    expect(off.minis).toEqual([]);
+    expect(off.last()?.opened).toEqual(["https://warm.example/"]);
+  });
+
+  it("runs --new-tab, --space and --private, after the windows exist", () => {
+    const app = fakeWindows();
+    const router = new LaunchRouter(() => app.windows);
+    router.act({ newTab: true, private: false, spaceId: "work" });
+    expect(app.created).toHaveLength(0);
+    router.ready();
+    expect(app.last()?.spaces).toEqual(["work"]);
+    expect(app.last()?.newTabs).toBe(1);
+    router.act({ newTab: false, private: true, spaceId: null });
+    expect(app.created.map((window) => window.isPrivate)).toEqual([false, true]);
+    expect(app.last()?.newTabs).toBe(1);
+    router.act(null);
+    expect(app.created).toHaveLength(2);
   });
 });
 

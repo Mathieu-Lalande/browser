@@ -42,7 +42,7 @@
   const PrintPreviewPanel = $derived(lazy["print-preview"]);
 
   // Follow theme changes made while the overlay stays loaded.
-  $effect(() => applyTheme(settings.current, settings.mode, browser.isPrivate));
+  $effect(() => applyTheme(settings.current, settings.mode, browser.isPrivate, { energySaver: browser.state.energy?.active, mica: browser.state.mica }));
 
   /** What is shown, null when hidden. `id` remounts the UI on every open (fresh state). */
   let current = $state<{ request: OverlayRequest; id: number } | null>(null);

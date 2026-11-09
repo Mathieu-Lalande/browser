@@ -37,6 +37,7 @@ import type { Session as SavedSession, SessionWindow } from "./storage/session";
 import { TaskManagerService, type TaskManagerDeps } from "./tasks";
 import { CrashReportService, type CrashReportDeps } from "./diagnostics/crash-reports";
 import { spaces } from "./spaces";
+import { EnergyService, type PowerPort } from "./energy";
 
 export interface SessionOptions {
   /**
@@ -101,6 +102,8 @@ export interface AppConfig {
   processes: Pick<TaskManagerDeps, "metrics" | "allContents">;
   /** Crashpad and the build's crash endpoint (ADR-043). */
   crashReports: Pick<CrashReportDeps, "reporter" | "dumpsDir" | "endpoint" | "version">;
+  /** Electron's `powerMonitor`: the energy saver (ADR-048). */
+  power: PowerPort;
   /** `app.configureHostResolver`: secure DNS (ADR-046). */
   configureHostResolver(config: HostResolverConfig): void;
   /** Test hooks honored by an unpackaged app only (ADR-018). */
@@ -149,6 +152,8 @@ export class AppServices {
   readonly crashes: CrashReportService;
   /** DNS over HTTPS (ADR-046). */
   readonly secureDns: SecureDnsService;
+  /** Energy saver (ADR-048). */
+  readonly energy: EnergyService;
   /** Installed into each tab session, in this order. */
   readonly sessionServices: readonly SessionService[];
   readonly hardener: SessionHardener;
@@ -254,6 +259,12 @@ export class AppServices {
       onSettingsChanged: (listener) => config.onSettingsChanged(listener),
     });
     this.secureDns.start();
+    this.energy = new EnergyService({
+      power: config.power,
+      settings: () => config.settings(),
+      onSettingsChanged: (listener) => config.onSettingsChanged(listener),
+      windows,
+    });
     // Downloads: tab pages only, no automatic opening, dangerous types confirmed first (ADR-013); a
     // private session's ones never reach the history (ADR-014). Extensions: ADR-024.
     this.sessionServices = [privacyService, this.downloads, this.extensions, certificateService, this.spellcheck, this.passkeys];
