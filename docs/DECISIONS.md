@@ -2379,6 +2379,57 @@ dépendre du réseau au moment de la lire. Une vidéo quittée par un changement
 ligne ; image dans l'image à la sortie et au retour, site qui la refuse). Un panneau chargé coûte un processus de
 rendu par fenêtre tant qu'elle est ouverte.
 
+## ADR-048 — Mini-fenêtre pour les liens externes, économiseur d'énergie, intégration à Windows et macOS
+
+**Contexte.** Un lien venu d'une autre application tombait dans un onglet de la dernière fenêtre, souvent pour
+un coup d'œil : il encombrait la barre latérale. Sur un portable, rien n'économisait la batterie au-delà de la
+veille des onglets. Sous Windows, le navigateur n'offrait rien à la barre des tâches (liste de raccourcis,
+progression, boutons de l'aperçu) ni l'effet Mica de Windows 11.
+
+**Décision.**
+- **Mini-fenêtre** (`src/main/mini/`, modèle pur `src/shared/mini.ts`). Quand l'app tourne déjà, un seul lien web
+  reçu (`second-instance`, `open-url`) va dans une `BaseWindow` sans cadre de 900×700 (`roundedCorners`), si
+  `behavior.externalLinksInMiniWindow` (activé par défaut) ; au démarrage, plusieurs liens ou un fichier : un
+  onglet comme avant (`opensInMiniWindow`, `LaunchRouter`). En haut une barre, page d'interface `mini.html` dans la
+  session de l'interface (ADR-024) : site et titre (zone de déplacement), « Toujours au premier plan », « Copier le
+  lien », « Ouvrir dans le navigateur », « Fermer ». Dessous, la page : `WebContentsView` aux préférences des
+  onglets (`TAB_WEB_PREFERENCES`), `hardenWebContents` et `attachTabPrivacy` comme l'aperçu des liens (ADR-027),
+  dans la session par défaut (celle des espaces non isolés), permissions refusées (pas de barre d'autorisation),
+  rien d'enregistré. « Ouvrir dans le navigateur » (`Ctrl+O`/`⌘O`, lu dans `before-input-event` de la barre et de la
+  page) détache la vue et la passe à `BrowserController.adoptExternalPage` de la dernière fenêtre normale :
+  `TabManager.adoptPage` sans rechargement (dans un espace non isolé, l'espace affiché sinon le premier qui partage
+  la session), l'onglet de page d'accueil vide est retiré ; à défaut l'adresse est rouverte. Les écouteurs de la
+  mini-fenêtre sont retirés de la page avant (sinon `Ctrl+W` de l'onglet serait avalé). Fermer détruit la page.
+- **IPC de la barre.** Elle n'appartient à aucune fenêtre du navigateur : `mini:action` n'est pas dans les tables
+  de `registerIpc` (type `OwnChannel`) mais enregistré par `MiniWindows.registerIpc`, qui n'accepte que la barre
+  d'une mini-fenêtre ouverte et une action validée (`MINI_ACTIONS`). Le thème lui arrive dans `mini:state`
+  (réglages et mode résolu) : la barre n'appelle aucun autre canal.
+- **Économiseur d'énergie** (`behavior.energySaver` : `off`, `battery` par défaut, `always`). Politique pure
+  `src/shared/energy.ts` (`energyState`, `energyPolicy`), `EnergyService` (`powerMonitor` injecté :
+  `isOnBatteryPower`, `on-battery`/`on-ac`, réglages). Actif : délai de veille plafonné à 5 min (« Jamais » reste
+  jamais), `setBackgroundThrottling(true)` réaffirmé sur chaque page d'onglet, aperçus des onglets 4× plus tardifs
+  et plus à chaque fin de chargement, `MediaHub` ne sonde plus que l'onglet affiché, animations coupées
+  (`BrowserState.energy` → `data-reduce-motion` dans l'interface et le calque). La barre de fenêtre (ADR-045)
+  montre une batterie (sur batterie) ou une pousse (toujours), avec une infobulle.
+- **Lancement par le système** (`src/shared/desktop.ts`). `--new-tab`, `--private`, `--space=<id>` (identifiant
+  `[\w-]{1,64}`) sont lus au démarrage et par `second-instance` (`parseLaunchActions` → `LaunchRouter.act`,
+  différé jusqu'aux fenêtres comme les liens). Windows : Jump List (`app.setJumpList` : tâches « Nouvel onglet »,
+  « Nouvelle fenêtre privée », catégorie « Espaces » mise à jour avec les espaces, fichiers récents ; repli sur
+  `setUserTasks` si refusée), progression des téléchargements des fenêtres normales (`setProgressBar`,
+  indéterminée sans taille) et pastille (`setOverlayIcon`), boutons Précédent/Suivant/Nouvel onglet sous l'aperçu
+  (`setThumbarButtons`, posés à la première apparition de la fenêtre). Icônes dessinées en code (`glyphs.ts`,
+  BGRA 16 px) : aucun fichier image à livrer. macOS : menu du Dock avec les mêmes tâches. Ailleurs : rien.
+- **Mica** (`appearance.mica`, activé par défaut, réglage visible sous Windows seulement) : Windows 11
+  (build ≥ 22000, `micaSupported`) → `setBackgroundMaterial("mica")` et fond natif transparent ; l'interface reçoit
+  `data-mica` et laisse transparaître le fond (`body` à 62 % de `--bg`). Windows 10 garde le fond opaque du thème.
+
+**Conséquences.** Une troisième entrée d'interface (`mini.html`, `uiUrl("mini")`). Les fenêtres privées ne
+reçoivent jamais de lien externe ni de mini-fenêtre. Mica, Jump List, barre des tâches et Dock ne se testent pas
+sous Linux : leurs règles sont pures et testées (`desktop.test.ts`, `glyphs.test.ts`). Tests : unitaires
+(`energy`, `EnergyService`, `mini`, `desktop`, `LaunchRouter`), e2e `desktop.spec.ts` (mini-fenêtre promue sans
+rechargement puis fermée, réglage coupé, `--new-tab`/`--space`/`--private` par `second-instance`, indicateur
+d'énergie).
+
 ## ADR-049 — Chrome Web Store, boutons d'extension, extensions en navigation privée
 
 **Contexte.** ADR-024 n'installait que des dossiers, `.zip` et `.crx` choisis à la main, sans mise à jour ni
@@ -2452,57 +2503,6 @@ CRX2, client avec `fetch` simulé). E2E `tests/e2e/webstore.spec.ts` : faux stor
 vers un CRX3 signé par une clé de test, `tests/crx-pack.ts`) — installation après la boîte des autorisations,
 bouton dans la barre latérale, fenêtre ouverte à la taille de son contenu puis fermée par un clic extérieur,
 mise à jour qui ne montre que la nouvelle autorisation.
-
-## ADR-048 — Mini-fenêtre pour les liens externes, économiseur d'énergie, intégration à Windows et macOS
-
-**Contexte.** Un lien venu d'une autre application tombait dans un onglet de la dernière fenêtre, souvent pour
-un coup d'œil : il encombrait la barre latérale. Sur un portable, rien n'économisait la batterie au-delà de la
-veille des onglets. Sous Windows, le navigateur n'offrait rien à la barre des tâches (liste de raccourcis,
-progression, boutons de l'aperçu) ni l'effet Mica de Windows 11.
-
-**Décision.**
-- **Mini-fenêtre** (`src/main/mini/`, modèle pur `src/shared/mini.ts`). Quand l'app tourne déjà, un seul lien web
-  reçu (`second-instance`, `open-url`) va dans une `BaseWindow` sans cadre de 900×700 (`roundedCorners`), si
-  `behavior.externalLinksInMiniWindow` (activé par défaut) ; au démarrage, plusieurs liens ou un fichier : un
-  onglet comme avant (`opensInMiniWindow`, `LaunchRouter`). En haut une barre, page d'interface `mini.html` dans la
-  session de l'interface (ADR-024) : site et titre (zone de déplacement), « Toujours au premier plan », « Copier le
-  lien », « Ouvrir dans le navigateur », « Fermer ». Dessous, la page : `WebContentsView` aux préférences des
-  onglets (`TAB_WEB_PREFERENCES`), `hardenWebContents` et `attachTabPrivacy` comme l'aperçu des liens (ADR-027),
-  dans la session par défaut (celle des espaces non isolés), permissions refusées (pas de barre d'autorisation),
-  rien d'enregistré. « Ouvrir dans le navigateur » (`Ctrl+O`/`⌘O`, lu dans `before-input-event` de la barre et de la
-  page) détache la vue et la passe à `BrowserController.adoptExternalPage` de la dernière fenêtre normale :
-  `TabManager.adoptPage` sans rechargement (dans un espace non isolé, l'espace affiché sinon le premier qui partage
-  la session), l'onglet de page d'accueil vide est retiré ; à défaut l'adresse est rouverte. Les écouteurs de la
-  mini-fenêtre sont retirés de la page avant (sinon `Ctrl+W` de l'onglet serait avalé). Fermer détruit la page.
-- **IPC de la barre.** Elle n'appartient à aucune fenêtre du navigateur : `mini:action` n'est pas dans les tables
-  de `registerIpc` (type `OwnChannel`) mais enregistré par `MiniWindows.registerIpc`, qui n'accepte que la barre
-  d'une mini-fenêtre ouverte et une action validée (`MINI_ACTIONS`). Le thème lui arrive dans `mini:state`
-  (réglages et mode résolu) : la barre n'appelle aucun autre canal.
-- **Économiseur d'énergie** (`behavior.energySaver` : `off`, `battery` par défaut, `always`). Politique pure
-  `src/shared/energy.ts` (`energyState`, `energyPolicy`), `EnergyService` (`powerMonitor` injecté :
-  `isOnBatteryPower`, `on-battery`/`on-ac`, réglages). Actif : délai de veille plafonné à 5 min (« Jamais » reste
-  jamais), `setBackgroundThrottling(true)` réaffirmé sur chaque page d'onglet, aperçus des onglets 4× plus tardifs
-  et plus à chaque fin de chargement, `MediaHub` ne sonde plus que l'onglet affiché, animations coupées
-  (`BrowserState.energy` → `data-reduce-motion` dans l'interface et le calque). La barre de fenêtre (ADR-045)
-  montre une batterie (sur batterie) ou une pousse (toujours), avec une infobulle.
-- **Lancement par le système** (`src/shared/desktop.ts`). `--new-tab`, `--private`, `--space=<id>` (identifiant
-  `[\w-]{1,64}`) sont lus au démarrage et par `second-instance` (`parseLaunchActions` → `LaunchRouter.act`,
-  différé jusqu'aux fenêtres comme les liens). Windows : Jump List (`app.setJumpList` : tâches « Nouvel onglet »,
-  « Nouvelle fenêtre privée », catégorie « Espaces » mise à jour avec les espaces, fichiers récents ; repli sur
-  `setUserTasks` si refusée), progression des téléchargements des fenêtres normales (`setProgressBar`,
-  indéterminée sans taille) et pastille (`setOverlayIcon`), boutons Précédent/Suivant/Nouvel onglet sous l'aperçu
-  (`setThumbarButtons`, posés à la première apparition de la fenêtre). Icônes dessinées en code (`glyphs.ts`,
-  BGRA 16 px) : aucun fichier image à livrer. macOS : menu du Dock avec les mêmes tâches. Ailleurs : rien.
-- **Mica** (`appearance.mica`, activé par défaut, réglage visible sous Windows seulement) : Windows 11
-  (build ≥ 22000, `micaSupported`) → `setBackgroundMaterial("mica")` et fond natif transparent ; l'interface reçoit
-  `data-mica` et laisse transparaître le fond (`body` à 62 % de `--bg`). Windows 10 garde le fond opaque du thème.
-
-**Conséquences.** Une troisième entrée d'interface (`mini.html`, `uiUrl("mini")`). Les fenêtres privées ne
-reçoivent jamais de lien externe ni de mini-fenêtre. Mica, Jump List, barre des tâches et Dock ne se testent pas
-sous Linux : leurs règles sont pures et testées (`desktop.test.ts`, `glyphs.test.ts`). Tests : unitaires
-(`energy`, `EnergyService`, `mini`, `desktop`, `LaunchRouter`), e2e `desktop.spec.ts` (mini-fenêtre promue sans
-rechargement puis fermée, réglage coupé, `--new-tab`/`--space`/`--private` par `second-instance`, indicateur
-d'énergie).
 
 ## ADR-050 — Mots de passe synchronisés, notes, images du lecteur et thème dynamique sur le téléphone
 
