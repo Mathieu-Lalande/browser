@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t, intlLocale } from "@shared/i18n";
   import { TASKS_REFRESH_MS, formatMemory, sortTaskRows, type TaskRow, type TaskSortKey } from "@shared/tasks";
   import { api } from "../../lib/browser.svelte";
   import Icon from "../Icon.svelte";
@@ -80,7 +80,7 @@
               </div>
             </td>
             <td class="numeric">{formatMemory(row.memoryKb)}</td>
-            <td class="numeric">{row.cpu.toLocaleString("fr-FR")} %</td>
+            <td class="numeric">{row.cpu.toLocaleString(intlLocale())} %</td>
             <td class="numeric">{row.pid}</td>
             <td class="action">
               {#if row.killable}
@@ -94,7 +94,7 @@
         <tr>
           <td>{t("tasksPage.total")}</td>
           <td class="numeric">{formatMemory(totals.memory)}</td>
-          <td class="numeric">{totals.cpu.toLocaleString("fr-FR")} %</td>
+          <td class="numeric">{totals.cpu.toLocaleString(intlLocale())} %</td>
           <td colspan="2"></td>
         </tr>
       </tfoot>

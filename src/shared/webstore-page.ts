@@ -12,7 +12,7 @@
  */
 
 /** Steps of a store install, shown on the page's button, the address bar and the store bar. */
-import { t } from "./i18n";
+import { t as tr, t } from "./i18n";
 
 export type StoreInstallPhase = "download" | "verify" | "review" | "install";
 
@@ -23,7 +23,7 @@ export const STORE_PHASE_LABELS: Record<StoreInstallPhase, string> = {
   get download() { return t("webstorePage.downloading") },
   get verify() { return t("webstorePage.verifying") },
   get review() { return t("webstorePage.waitingApproval") },
-  install: "Installation…",
+  get install() { return tr("webstorePage.installing") },
 };
 
 /** What our button on a store detail page shows (computed by main, sent to the page's agent). */
@@ -33,15 +33,15 @@ export interface StoreButtonState {
   /** What a click asks main for; null while busy. */
   action: "install" | "remove" | null;
   label: string;
-  /** A failure under the button ("Réessayer" is then the label). */
+  /** A failure under the button ("Try again" is then the label). */
   message: string | null;
 }
 
 export function storeButtonState(id: string, installed: boolean, progress: StoreInstall | null | undefined): StoreButtonState {
   if (progress && progress.phase !== "error") return { id, action: null, label: STORE_PHASE_LABELS[progress.phase], message: null };
   if (installed) return { id, action: "remove", label: t("webstorePage.removeFromBrowser"), message: null };
-  if (progress?.phase === "error") return { id, action: "install", label: "Réessayer", message: progress.message };
-  return { id, action: "install", label: "Ajouter à Browser", message: null };
+  if (progress?.phase === "error") return { id, action: "install", label: t("webstorePage.retry"), message: progress.message };
+  return { id, action: "install", label: t("webstorePage.addToBrowser"), message: null };
 }
 
 /** A click on our button, as the agent reports it. */
@@ -69,6 +69,7 @@ export function parseStorePageAction(json: string): StorePageAction | null {
  *   "Supprimer de Chrome"…), or null;
  * - `findBanner`: the "Passez à Chrome" / "Switch to Chrome" banner's box, never one holding `keep`.
  */
+// i18n-ignore: the store's own labels, matched in every language.
 export const WEBSTORE_DOM_SOURCE = String.raw`(function () {
   var BUTTON = /^(ajouter à chrome|supprimer de chrome|retirer de chrome|add to chrome|remove from chrome|zu chrome hinzufügen|aus chrome entfernen|añadir a chrome|quitar de chrome|aggiungi a chrome|rimuovi da chrome|usar no chrome|remover do chrome|adicionar ao chrome)$/;
   var BANNER = /^(passez à chrome|passer à chrome|switch to chrome|wechseln sie zu chrome|cambia a chrome|cámbiate a chrome|passa a chrome|mude para o chrome)(\s|$)/;

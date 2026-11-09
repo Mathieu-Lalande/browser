@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t as tr, t } from "@shared/i18n";
   import { untrack } from "svelte";
   import { BOOST_FONTS, FILTER_RANGES, MAX_BOOST_CSS, MAX_BOOST_SCRIPT, type BoostFont, type BoostInput, type FilterAmount } from "@shared/boosts";
   import Icon from "../Icon.svelte";
@@ -21,7 +21,7 @@
     error = await onsave($state.snapshot(draft));
   }
 
-  const FILTER_LABELS: Record<FilterAmount, string> = { grayscale: t("boostEditor.grayscale"), sepia: t("boostEditor.sepia"), brightness: t("boostEditor.brightness"), contrast: "Contraste" };
+  const FILTER_LABELS: Record<FilterAmount, string> = { grayscale: t("boostEditor.grayscale"), sepia: t("boostEditor.sepia"), brightness: t("boostEditor.brightness"), contrast: tr("boostEditor.contrast") };
 </script>
 
 <Card as="form" class="editor" aria-label={t("boostEditor.editBoost")} onsubmit={(event) => (event.preventDefault(), void save())}>

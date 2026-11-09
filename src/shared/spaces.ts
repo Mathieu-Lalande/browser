@@ -1,4 +1,4 @@
-import { t } from "./i18n";
+import { t as tr, t } from "./i18n";
 import type { SpaceId, SpaceInfo, SpaceInput } from "./types";
 
 /** Accent colors offered for spaces (the first ones are used, in order, for new spaces). */
@@ -45,21 +45,21 @@ export const SPACE_ICONS = [
 
 /** Accessible names of the space icons (French UI). */
 export const SPACE_ICON_LABELS: Readonly<Record<(typeof SPACE_ICONS)[number], string>> = {
-  "circle-user": "Personnel",
-  briefcase: "Travail",
+  get "circle-user"() { return tr("spaces.personal2") },
+  get briefcase() { return tr("spaces.work") },
   get palette() { return t("spaces.creation") },
   get "book-open"() { return t("spaces.reading") },
-  "gamepad-2": "Jeux",
-  "shopping-bag": "Achats",
-  plane: "Voyages",
-  music: "Musique",
+  get "gamepad-2"() { return tr("spaces.games") },
+  get "shopping-bag"() { return tr("spaces.shopping") },
+  get plane() { return tr("spaces.travel") },
+  get music() { return tr("spaces.music") },
   get lightbulb() { return t("spaces.ideas") },
-  "flask-conical": "Recherche",
+  get "flask-conical"() { return tr("spaces.research") },
   sprout: "Nature",
   get star() { return t("spaces.favorites") },
   get lock() { return t("spaces.private") },
   get newspaper() { return t("spaces.news") },
-  "chef-hat": "Cuisine",
+  get "chef-hat"() { return tr("spaces.cooking") },
   get heart() { return t("spaces.health") },
   get code() { return t("spaces.development") },
   get "graduation-cap"() { return t("spaces.studies") },
@@ -67,14 +67,14 @@ export const SPACE_ICON_LABELS: Readonly<Record<(typeof SPACE_ICONS)[number], st
   camera: "Photo",
   get film() { return t("spaces.video") },
   globe: "Web",
-  rocket: "Projets",
-  landmark: "Administration",
-  wallet: "Finances",
-  calendar: "Agenda",
-  mail: "Courrier",
-  folder: "Dossiers",
-  layers: "Divers",
-  zap: "Rapide",
+  get rocket() { return tr("spaces.projects") },
+  get landmark() { return tr("spaces.administration") },
+  get wallet() { return tr("spaces.finances") },
+  get calendar() { return tr("spaces.calendar") },
+  get mail() { return tr("spaces.mail") },
+  get folder() { return tr("spaces.folders") },
+  get layers() { return tr("spaces.miscellaneous") },
+  get zap() { return tr("spaces.quick") },
   get coffee() { return t("spaces.break") },
   get users() { return t("spaces.team") },
 };

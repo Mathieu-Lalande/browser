@@ -66,7 +66,7 @@ function task(input: PromptInput): string {
     case "explain-selection":
       return t("assistantPrompts.explainSelectedPassageSimply");
     case "translate-selection":
-      return `Traduis le passage sélectionné en ${input.language || "français"}. Donne seulement la traduction, en gardant la mise en forme.`;
+      return t("assistantPrompts.translateSelection", { language: input.language || t("assistantPrompts.defaultLanguage") });
     case "compare-tabs":
       return t("assistantPrompts.compareThesePagesWhat");
     case "ask":

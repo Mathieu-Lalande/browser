@@ -62,7 +62,7 @@ export function useAssistant({
       if (!apiKey) throw new Error("no key");
       const progress = await askClaude(apiKey, settings.model, messages, controller.signal);
       const status = finalStatus(progress);
-      finish({ text: progress.text, status, error: status === "refused" ? REFUSAL_MESSAGE : status === "truncated" ? TRUNCATED_NOTE : undefined });
+      finish({ text: progress.text, status, error: status === "refused" ? REFUSAL_MESSAGE() : status === "truncated" ? TRUNCATED_NOTE() : undefined });
     } catch (error) {
       if (isAbort(error)) finish({ status: "stopped" });
       else finish({ status: "error", error: apiKey ? errorMessage(error) : t("mobile.useAssistant.addAnthropicApiKey") });

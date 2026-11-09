@@ -1,4 +1,4 @@
-import { t } from "@shared/i18n";
+import { t as tr, t } from "@shared/i18n";
 import { ACCENT_PRESETS, ARCHIVE_DELAY_OPTIONS, LIMITS, type CloseTabActivates, type NewTabPosition, type TabArchiveDelay, type ThemeMode } from "@shared/settings";
 import { addWidget } from "@shared/start-widgets";
 import { displayUrl, SEARCH_ENGINES } from "@shared/url";
@@ -85,8 +85,8 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
               value={appearance.mode}
               options={[
                 ["system", "Auto"],
-                ["light", "Clair"],
-                ["dark", "Sombre"],
+                ["light", tr("mobile.settingsScreen.light")],
+                ["dark", tr("mobile.settingsScreen.dark")],
               ]}
               onChange={(mode) => actions.updateSettings({ appearance: { mode } })}
             />
@@ -251,8 +251,8 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
             label={t("mobile.settingsScreen.adTrackerBlocker")}
             detail={
               ContentBlocker
-                ? `EasyList et EasyPrivacy. Désactivable par site : touchez le cadenas, puis « Bouclier ».${trackers ? ` ${trackers} traqueur${trackers > 1 ? "s" : ""} bloqué${trackers > 1 ? "s" : ""} en 30 jours.` : ""}`
-                : t("mobile.settingsScreen.adElementsHidden", { SHIELD_UNAVAILABLE_NOTE })
+                ? t("mobile.settingsScreen.blockerDetail") + (trackers ? " " + t("mobile.settingsScreen.trackersBlocked", { trackers }) : "")
+                : t("mobile.settingsScreen.adElementsHidden", { SHIELD_UNAVAILABLE_NOTE: SHIELD_UNAVAILABLE_NOTE() })
             }
             value={mobile.contentBlocker}
             onChange={(contentBlocker) => actions.updateMobileSettings({ contentBlocker })}
@@ -344,7 +344,7 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
           onCode={(code) => {
             setScanning(false);
             void actions.sync.pair(code).then((result) =>
-              Alert.alert("Synchronisation", result.ok ? t("mobile.settingsScreen.phonePairedComputer") : result.message),
+              Alert.alert(tr("mobile.settingsScreen.sync2"), result.ok ? t("mobile.settingsScreen.phonePairedComputer") : result.message),
             );
           }}
         />

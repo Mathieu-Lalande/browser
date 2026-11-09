@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t as tr, t } from "@shared/i18n";
   import type { CommandId, CommandIcon } from "@shared/commands";
   import type { Bounds, TabId } from "@shared/types";
   import { displayUrl } from "@shared/url";
@@ -145,7 +145,7 @@
           >
             {tab.zoom}&#8239;%
           </button>
-          <button class="round" aria-label={t("pageOptionsPanel.zoom2")} title={platform.tip("Zoom avant", "zoom-in")} onclick={() => run("zoom-in", "stay")}>
+          <button class="round" aria-label={t("pageOptionsPanel.zoom2")} title={platform.tip(tr("pageOptionsPanel.zoom3"), "zoom-in")} onclick={() => run("zoom-in", "stay")}>
             <Icon name="plus" size={14} />
           </button>
         </div>

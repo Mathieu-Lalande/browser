@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t, intlLocale } from "@shared/i18n";
   import { formatSize, type ExtensionDetailsInfo, type ExtensionInfo } from "@shared/extensions";
   import { api, browser } from "../../lib/browser.svelte";
   import Icon from "../Icon.svelte";
@@ -33,7 +33,7 @@
   }
 
   const source = $derived(extension.webStoreId ? "Chrome Web Store" : extension.managed ? t("extensionRow.installedFromFile") : t("extensionRow.unpackedFolder"));
-  const when = (time: number) => new Date(time).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" });
+  const when = (time: number) => new Date(time).toLocaleString(intlLocale(), { dateStyle: "medium", timeStyle: "short" });
 </script>
 
 <ListRow align="start" disabled={!extension.enabled} data-extension-id={extension.id}>
@@ -88,7 +88,7 @@
             <span>{t("extensionRow.size", { p: formatSize(details.size) })}</span>
             {#if extension.webStoreId}
               <span>
-                Mises à jour : {details.lastUpdateCheck ? `dernière vérification le ${when(details.lastUpdateCheck)}` : "jamais vérifiées"}
+                {details.lastUpdateCheck ? t("extensionRow.updatesLastCheck", { date: when(details.lastUpdateCheck) }) : t("extensionRow.updatesNeverChecked")}
               </span>
             {:else}
               <span>{t("extensionRow.updatesManualOutsideChrome")}</span>

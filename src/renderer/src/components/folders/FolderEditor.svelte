@@ -67,7 +67,7 @@
   {#if confirming}
     <div class="confirm">
       <p>
-        {t("folderEditor.deleteFolder")} <strong>« {folder.name} »</strong> ? Il contient {count} onglet{count > 1 ? "s" : ""}.
+        {t("folderEditor.deleteFolder")} <strong>{t("folderEditor.quotedName", { name: folder.name })}</strong>{t("folderEditor.containsTabs", { count })}
       </p>
       <div class="choices">
         <button class="danger" onclick={() => remove(true)}>{t("folderEditor.deleteCloseTabs")}</button>

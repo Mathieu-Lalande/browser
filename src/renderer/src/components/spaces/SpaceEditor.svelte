@@ -59,9 +59,7 @@
 <div class="editor" role="dialog" aria-label={t("spaceEditor.editSpace")} tabindex="-1" onkeydown={onKeydown}>
   {#if confirming}
     <div class="confirm">
-      <p>{t("spaceEditor.deleteSpace")} <strong>« {space.name} »</strong> ? Ses onglets seront fermés{space.isolated
-          ? ", et ses cookies et données effacés"
-          : ""}.</p>
+      <p>{t("spaceEditor.deleteSpace")} <strong>{t("spaceEditor.quotedName", { name: space.name })}</strong>{t(space.isolated ? "spaceEditor.tabsClosedIsolated" : "spaceEditor.tabsClosed")}</p>
       <div class="actions">
         <button class="secondary" bind:this={cancelButton} onclick={() => (confirming = false)}>{t("spaceEditor.cancel")}</button>
         <button class="danger" onclick={remove}>{t("spaceEditor.delete")}</button>

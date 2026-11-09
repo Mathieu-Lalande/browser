@@ -65,8 +65,8 @@ export const AssistantSheet = memo(function AssistantSheet({ assistant, includeP
       <ScrollView style={styles.list} contentContainerStyle={styles.content}>
         {assistant.waitingConsent && (
           <View style={[styles.notice, { backgroundColor: colors.surface }]}>
-            {assistant.isPrivate && <Text style={[styles.small, { color: colors.text }]}>{PRIVATE_NOTICE}</Text>}
-            <Text style={[styles.small, { color: colors.text }]}>{PRIVACY_NOTICE}</Text>
+            {assistant.isPrivate && <Text style={[styles.small, { color: colors.text }]}>{PRIVATE_NOTICE()}</Text>}
+            <Text style={[styles.small, { color: colors.text }]}>{PRIVACY_NOTICE()}</Text>
             {assistant.pendingLabel ? <Text style={[styles.small, { color: colors.textMuted }]}>{t("mobile.assistantSheet.pendingRequest")} {assistant.pendingLabel}</Text> : null}
             <Tap accessibilityRole="button" onPress={assistant.accept} style={[styles.button, { backgroundColor: colors.accent }]}>
               <Text style={{ color: colors.onAccent, fontWeight: "600" }}>{t("mobile.assistantSheet.acceptSend")}</Text>
@@ -81,7 +81,7 @@ export const AssistantSheet = memo(function AssistantSheet({ assistant, includeP
                 {turn.reusedContext
                   ? t("mobile.assistantSheet.pageAlreadySentAbove")
                   : turn.sent?.length
-                    ? `Envoyé à Anthropic : ${turn.sent.map((source) => `${source.title}${source.truncated ? " (tronqué)" : ""}`).join(", ")}`
+                    ? t("mobile.assistantSheet.sentToAnthropic", { sources: turn.sent.map((source) => (source.truncated ? t("mobile.assistantSheet.truncated", { title: source.title }) : source.title)).join(", ") })
                     : t("mobile.assistantSheet.withoutPage")}
               </Text>
             </View>

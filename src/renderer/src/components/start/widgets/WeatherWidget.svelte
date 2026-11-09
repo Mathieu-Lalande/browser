@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t as tr, t } from "@shared/i18n";
   import type { WeatherPlace } from "@shared/start-widgets";
   import { MAX_PLACE_QUERY, WEATHER_CACHE_MS, forecastWeekday, formatTemperature, weatherCondition, type Forecast } from "@shared/weather";
   import { api } from "../../../lib/browser.svelte";
@@ -81,7 +81,7 @@
       </div>
     {:else}
       <Icon name="cloud" size={30} />
-      <p class="where">{place.name} · {failed ? t("weatherWidget.weatherUnavailable") : "Chargement…"}</p>
+      <p class="where">{place.name} · {failed ? t("weatherWidget.weatherUnavailable") : tr("weatherWidget.loading")}</p>
     {/if}
   </div>
   {#if widget.size !== "s" && forecast}

@@ -28,7 +28,7 @@ import { TranslationRun } from "./run";
  * this language, never this site), the run in progress and what the UIs show (`TabTranslation`).
  */
 
-const PRIVATE_NOTICE = t("translateIndex.privateWindowConfirmSending");
+const PRIVATE_NOTICE = (): string => t("translateIndex.privateWindowConfirmSending");
 
 /** The UI/system languages, for the default target. */
 function preferredLanguages(): string[] {
@@ -180,7 +180,7 @@ export class PageTranslator {
     const entry = this.entryOf(tabId);
     if (!entry) return { ok: false, message: t("translateIndex.pageCantTranslated") };
     if (consent) this.consent();
-    if (this.needsConsent) return { ok: false, message: this.c.isPrivate ? PRIVATE_NOTICE : t("translateIndex.acceptSendingTextTranslation") };
+    if (this.needsConsent) return { ok: false, message: this.c.isPrivate ? PRIVATE_NOTICE() : t("translateIndex.acceptSendingTextTranslation") };
     let translator: Translator;
     try {
       translator = currentTranslator();

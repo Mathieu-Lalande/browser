@@ -119,9 +119,9 @@ export function updateStatusText(status: UpdateStatus): string {
     case "up-to-date":
       return t("updates.browserUpDateVersion", { currentVersion: status.currentVersion });
     case "available":
-      return `Version ${status.version} disponible.`;
+      return t("updates.versionAvailable", { version: status.version });
     case "downloading":
-      return `Téléchargement${status.version ? ` de la version ${status.version}` : ""} : ${status.percent} %`;
+      return status.version ? t("updates.downloadingVersion", { version: status.version, percent: status.percent }) : t("updates.downloading", { percent: status.percent });
     case "ready":
       return t("updates.versionReadyRestartInstall", { version: status.version });
     case "manual":

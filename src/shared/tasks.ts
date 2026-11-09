@@ -4,7 +4,7 @@
  * `app.getAppMetrics()` and `webContents.getOSProcessId()` and does the killing.
  */
 
-import { t } from "./i18n";
+import { t as tr, t, intlLocale } from "./i18n";
 
 export type TaskKind = "browser" | "gpu" | "interface" | "tab" | "extension" | "utility" | "other";
 
@@ -48,13 +48,13 @@ export const TASK_SORT_KEYS: readonly TaskSortKey[] = ["title", "cpu", "memory",
 export const TASKS_REFRESH_MS = 2000;
 
 const KIND_TITLES: Record<TaskKind, string> = {
-  browser: "Navigateur",
-  gpu: "Processus GPU",
+  get browser() { return tr("tasks.browser") },
+  get gpu() { return tr("tasks.gpuProcess") },
   get interface() { return t("tasks.browserInterface") },
   get tab() { return t("tasks.tab") },
   extension: "Extension",
   utility: "Service",
-  other: "Processus",
+  get other() { return tr("tasks.process") },
 };
 
 const PREFIX: Record<ProcessOwner["kind"], string> = { get tab() { return t("tasks.tab") }, extension: "Extension", interface: "Interface" };
@@ -75,7 +75,7 @@ export function buildTaskRows(samples: readonly ProcessSample[], owners: readonl
     const first = mine[0];
     const kind: TaskKind = first ? first.kind : baseKind(sample);
     const title = first
-      ? `${PREFIX[first.kind]} : ${first.title || "Sans titre"}`
+      ? `${PREFIX[first.kind]} : ${first.title || tr("tasks.untitled")}`
       : sample.type === "Utility" && sample.name
         ? `${KIND_TITLES.utility} : ${sample.name}`
         : KIND_TITLES[kind];
@@ -96,7 +96,7 @@ export function buildTaskRows(samples: readonly ProcessSample[], owners: readonl
 export function sortTaskRows(rows: readonly TaskRow[], key: TaskSortKey, descending = key === "cpu" || key === "memory"): TaskRow[] {
   const value = (row: TaskRow) => (key === "cpu" ? row.cpu : key === "memory" ? row.memoryKb : key === "pid" ? row.pid : 0);
   const compare = (a: TaskRow, b: TaskRow) => {
-    const diff = key === "title" ? a.title.localeCompare(b.title, "fr") : value(a) - value(b);
+    const diff = key === "title" ? a.title.localeCompare(b.title, intlLocale()) : value(a) - value(b);
     return diff !== 0 ? diff : a.pid - b.pid;
   };
   return [...rows].sort((a, b) => (descending ? compare(b, a) : compare(a, b)));

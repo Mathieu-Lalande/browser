@@ -1,4 +1,4 @@
-import { t } from "./i18n";
+import { getLocale, intlLocale, t } from "./i18n";
 import { sanitizePlace, type TemperatureUnit, type WeatherPlace } from "./start-widgets";
 
 /**
@@ -32,7 +32,7 @@ export interface Forecast {
 }
 
 export function geocodingUrl(query: string): string {
-  const params = new URLSearchParams({ name: query.trim().slice(0, MAX_PLACE_QUERY), count: "6", language: "fr", format: "json" });
+  const params = new URLSearchParams({ name: query.trim().slice(0, MAX_PLACE_QUERY), count: "6", language: getLocale(), format: "json" });
   return `${GEOCODING_ENDPOINT}?${params}`;
 }
 
@@ -102,7 +102,7 @@ export function formatTemperature(celsius: number, unit: TemperatureUnit): strin
 /** Short French weekday of a forecast day ("lun."), from its `YYYY-MM-DD` date. */
 export function forecastWeekday(date: string): string {
   const [year, month, day] = date.split("-").map(Number);
-  return new Date(year, month - 1, day).toLocaleDateString("fr-FR", { weekday: "short" });
+  return new Date(year, month - 1, day).toLocaleDateString(intlLocale(), { weekday: "short" });
 }
 
 /** GETs a URL and parses its JSON body; rejects on an HTTP error or a timeout. */

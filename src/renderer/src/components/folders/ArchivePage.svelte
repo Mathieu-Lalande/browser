@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t, intlLocale } from "@shared/i18n";
   import ListRow from "../ui/ListRow.svelte";
   import Card from "../ui/Card.svelte";
   import type { ArchivedTab } from "@shared/archive";
@@ -37,7 +37,7 @@
   const delay = $derived(settings.current.behavior.archiveTabsAfter);
   const delayLabel: Record<string, string> = { "12h": "12 heures", "24h": "24 heures", "7d": "7 jours", "30d": "30 jours" };
 
-  const dateFormat = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+  const dateFormat = new Intl.DateTimeFormat(intlLocale(), { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
 </script>
 
 {#snippet subtitle()}

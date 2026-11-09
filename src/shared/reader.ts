@@ -1,4 +1,4 @@
-import { t } from "./i18n";
+import { t as tr, t } from "./i18n";
 import { READABILITY_SOURCE, READERABLE_SOURCE } from "./readability-source";
 import type { ReaderTheme } from "./settings";
 import { isPageOpenableUrl } from "./url";
@@ -323,7 +323,7 @@ export function readerColors(theme: ReaderTheme, appDark: boolean): ReaderColors
 /** Maximum line length of each width setting, in `ch` (the phone always uses the screen width). */
 export const READER_WIDTHS = { narrow: 56, medium: 68, wide: 84 } as const;
 
-export const READER_THEME_LABELS: Record<ReaderTheme, string> = { get auto() { return t("reader.theme") }, get sepia() { return t("reader.sepia") }, dark: "Sombre" };
+export const READER_THEME_LABELS: Record<ReaderTheme, string> = { get auto() { return t("reader.theme") }, get sepia() { return t("reader.sepia") }, get dark() { return tr("reader.dark") } };
 
 export function readingTimeLabel(minutes: number): string {
   return t("reader.minRead", { minutes });

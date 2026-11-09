@@ -1,4 +1,4 @@
-import { t } from "@shared/i18n";
+import { t as tr, t } from "@shared/i18n";
 import type { ArchivedTab } from "@shared/archive";
 import type { Favorite } from "@shared/favorites";
 import { displayUrl } from "@shared/url";
@@ -102,7 +102,7 @@ export const ArchivedTabs = memo(function ArchivedTabs({
           <View key={entry.id} style={[styles.row, index > 0 && { borderTopColor: colors.hairline, borderTopWidth: StyleSheet.hairlineWidth }]}>
             <Tap
               accessibilityRole="button"
-              accessibilityLabel={`Restaurer ${entry.title || displayUrl(entry.url)}`}
+              accessibilityLabel={tr("mobile.organize.restore", { p: entry.title || displayUrl(entry.url) })}
               onPress={() => onRestore(entry.id)}
               pressScale={0.98}
               style={styles.rowMain}

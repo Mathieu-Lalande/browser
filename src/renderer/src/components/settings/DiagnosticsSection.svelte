@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t, intlLocale } from "@shared/i18n";
   import { crashSizeText, type CrashReportsInfo } from "@shared/diagnostics";
   import { api, browser } from "../../lib/browser.svelte";
   import { settings } from "../../lib/settings.svelte";
@@ -28,11 +28,13 @@
     info = await api.crashes.clear().catch(() => info);
   }
 
-  const date = (ms: number) => new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(ms));
+  const date = (ms: number) => new Intl.DateTimeFormat(intlLocale(), { dateStyle: "medium", timeStyle: "short" }).format(new Date(ms));
   const hint = $derived(
     info && !info.endpointHost
       ? t("diagnosticsSection.versionHasNoReport")
-      : `Envoie le rapport technique d'un plantage${info?.endpointHost ? ` à ${info.endpointHost}` : ""}. Désactivé par défaut.`,
+      : info?.endpointHost
+        ? t("diagnosticsSection.sendsReportTo", { host: info.endpointHost })
+        : t("diagnosticsSection.sendsReport"),
   );
 </script>
 
@@ -44,9 +46,7 @@
   />
 </Row>
 <p class="privacy" data-testid="crash-privacy">
-  Un rapport contient l'état de la mémoire du processus qui a planté (minidump), la version de Browser, le canal de mise à jour et le
-  système. Il peut, rarement, contenir des fragments de la page affichée à ce moment-là. Aucun historique, favori, mot de passe ni
-  identifiant n'y est ajouté, et rien n'est envoyé sans votre accord.{info?.uploading ? " Envoi activé." : ""}
+  {t("diagnosticsSection.reportContent")}{info?.uploading ? t("diagnosticsSection.sendingOn") : ""}
 </p>
 
 <Row anchor="crashes" label={t("diagnosticsSection.recentCrashes")} hint={t("diagnosticsSection.keptDeviceEvenWithout")} stacked keywords={t("diagnosticsSection.crashHistory")}>

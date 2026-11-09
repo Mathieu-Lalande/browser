@@ -1,4 +1,4 @@
-import { t } from "../../i18n";
+import { t as tr, t } from "../../i18n";
 import type { Provider, QueryContext, Suggestion } from "../types";
 
 /**
@@ -21,7 +21,7 @@ export class AssistantProvider implements Provider {
       detailRanges: [],
       score,
       icon: "sparkles",
-      verb: "Demander",
+      verb: tr("providersAssistant.ask"),
       action: { type: "assistant", question, includePage },
     });
     const withPage = context.assistant.pageAvailable && context.assistant.includePage;

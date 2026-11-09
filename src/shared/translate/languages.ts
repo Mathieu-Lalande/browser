@@ -4,7 +4,7 @@
  */
 
 /** Languages offered in the pickers (the three providers know all of them). */
-import { t } from "../i18n";
+import { t as tr, t } from "../i18n";
 
 export const LANGUAGES: readonly { code: string; name: string }[] = [
   { code: "fr", get name() { return t("translateLanguages.french") } },
@@ -61,7 +61,7 @@ export const isLanguageCode = (value: unknown): value is string => typeof value 
 
 /** "Anglais", or the code in capitals for a language without a French name here. */
 export function languageName(code: string | null | undefined): string {
-  if (!code) return "langue inconnue";
+  if (!code) return tr("translateLanguages.unknownLanguage");
   return NAMES.get(code) ?? code.toUpperCase();
 }
 

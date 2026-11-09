@@ -70,7 +70,6 @@
   });
   $effect(() => api.import.onProgress((step) => (progress = step.step === "done" ? null : step.label)));
 
-  const plural = (count: number, word: string) => `${count} ${word}${count > 1 ? "s" : ""}`;
 </script>
 
 <Page icon="import" title={t("importPage.importData")} subtitle={t("importPage.bookmarksHistoryPasswordsFrom")} testid="import-page">
@@ -88,7 +87,7 @@
               <button class="pick" role="radio" aria-checked={candidate.id === sourceId} onclick={() => choose(candidate)}>
                 <span class="radio" aria-hidden="true">{#if candidate.id === sourceId}<span class="dot"></span>{/if}</span>
                 <span class="name">{candidate.name}</span>
-                <span class="hint">{plural(candidate.profiles.length, "profil")}</span>
+                <span class="hint">{t("importPage.profileCount", { count: candidate.profiles.length })}</span>
               </button>
             </ListRow>
           {/each}
@@ -124,9 +123,9 @@
           <div class="summary" class:error={!summary.ok} role="status" data-testid="import-summary">
             <Icon name={summary.ok ? "check" : "warning"} size={16} />
             <ul>
-              {#if summary.bookmarks}<li>{plural(summary.bookmarks.added, "favori")} importé{summary.bookmarks.added > 1 ? "s" : ""}{summary.bookmarks.skipped ? `, ${summary.bookmarks.skipped} déjà présent${summary.bookmarks.skipped > 1 ? "s" : ""}` : ""}</li>{/if}
-              {#if summary.history}<li>{plural(summary.history.added, "page")} ajoutée{summary.history.added > 1 ? "s" : ""} à l'historique{summary.history.merged ? `, ${summary.history.merged} déjà connue${summary.history.merged > 1 ? "s" : ""}` : ""}</li>{/if}
-              {#if summary.favorites}<li>{plural(summary.favorites.added, "page")} dans la grille des favoris</li>{/if}
+              {#if summary.bookmarks}<li>{t("importPage.bookmarksImported", { count: summary.bookmarks.added })}{summary.bookmarks.skipped ? t("importPage.alreadyPresent", { count: summary.bookmarks.skipped }) : ""}</li>{/if}
+              {#if summary.history}<li>{t("importPage.historyAdded", { count: summary.history.added })}{summary.history.merged ? t("importPage.alreadyKnown", { count: summary.history.merged }) : ""}</li>{/if}
+              {#if summary.favorites}<li>{t("importPage.favoritesAdded", { count: summary.favorites.added })}</li>{/if}
               {#if summary.searchEngine !== undefined}<li>{summary.searchEngine ? t("importPage.searchEngine", { searchEngine: summary.searchEngine }) : t("importPage.searchEngineNotRecognized")}</li>{/if}
               {#if summary.message}<li>{summary.message}</li>{/if}
             </ul>
@@ -148,8 +147,9 @@
           <Icon name={passwords.ok ? "check" : "warning"} size={16} />
           <span>
             {#if passwords.ok}
-              {plural(passwords.added, "mot")} de passe ajouté{passwords.added > 1 ? "s" : ""}, {passwords.updated} mis à jour, {passwords.skipped} déjà
-              présent{passwords.skipped > 1 ? "s" : ""}{passwords.invalid ? `, ${passwords.invalid} ignoré${passwords.invalid > 1 ? "s" : ""}` : ""}.
+              {t("importPage.passwordsSummary", { added: passwords.added, updated: passwords.updated, skipped: passwords.skipped })}{passwords.invalid
+                ? t("importPage.passwordsIgnored", { count: passwords.invalid })
+                : ""}.
             {:else}
               {passwords.message}
             {/if}

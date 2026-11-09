@@ -2821,7 +2821,7 @@ export const en: Record<MessageKey, string> = {
   "assistantPrompts.summarizePage": "Summarize the page",
   "assistantPrompts.keyPoints": "Key points",
   "assistantPrompts.explainSelection": "Explain the selection",
-  "assistantPrompts.translateSelection": "Translate the selection",
+  "assistantPrompts.translateSelection": "Translate the selected passage into {language}. Give only the translation, keeping the formatting.",
   "assistantPrompts.compareSelectedTabs": "Compare the selected tabs",
   "assistantPrompts.summarizePageFewShort": "Summarize this page in a few short paragraphs: its subject, its main ideas and its conclusion.",
   "assistantPrompts.giveKeyPointsPage": "Give the key points of this page as a bulleted list (five to ten points), from most to least important.",
@@ -3544,4 +3544,598 @@ export const en: Record<MessageKey, string> = {
   "webstorePage.verifying": "Verifying…",
   "webstorePage.waitingApproval": "Waiting for your approval…",
   "webstorePage.removeFromBrowser": "Remove from Browser",
+  // settingsIndex.section
+  "settingsIndex.section.appearance": "Appearance",
+  "settingsIndex.section.layout": "Layout",
+  "settingsIndex.section.search": "Search",
+  "settingsIndex.section.startPage": "Start page",
+  "settingsIndex.section.behavior": "Behavior",
+  "settingsIndex.section.shortcuts": "Keyboard shortcuts",
+  "settingsIndex.section.privacy": "Privacy",
+  "settingsIndex.section.autofill": "Addresses and payments",
+  "settingsIndex.section.siteData": "Site data",
+  "settingsIndex.section.notifications": "Notifications",
+  "settingsIndex.section.translate": "Translation",
+  "settingsIndex.section.assistant": "AI assistant",
+  "settingsIndex.section.spellcheck": "Spelling",
+  "settingsIndex.section.downloads": "Downloads",
+  "settingsIndex.section.data": "Data",
+  "settingsIndex.section.sync": "Sync",
+  "settingsIndex.section.updates": "Updates",
+  "settingsIndex.section.diagnostics": "Diagnostics",
+
+  // settingsIndex.appearance
+  "settingsIndex.appearance.theme": "Theme",
+  "settingsIndex.appearance.themeKeywords": "light, dark, mode, system",
+  "settingsIndex.appearance.accent": "Accent color",
+  "settingsIndex.appearance.accentKeywords": "color, accent",
+  "settingsIndex.appearance.secondary": "Secondary color",
+  "settingsIndex.appearance.secondaryKeywords": "gradient, color",
+  "settingsIndex.appearance.background": "Background",
+  "settingsIndex.appearance.backgroundKeywords": "background, gradient",
+  "settingsIndex.appearance.font": "Interface font",
+  "settingsIndex.appearance.fontKeywords": "typography, font",
+  "settingsIndex.appearance.density": "Density",
+  "settingsIndex.appearance.densityKeywords": "compact, height, size",
+  "settingsIndex.appearance.radius": "Corner radius",
+  "settingsIndex.appearance.radiusKeywords": "radius, corners",
+  "settingsIndex.appearance.shadows": "Shadows",
+  "settingsIndex.appearance.shadowsKeywords": "shadow",
+  "settingsIndex.appearance.reduceMotion": "Reduce motion",
+  "settingsIndex.appearance.reduceMotionKeywords": "animations, motion",
+  "settingsIndex.appearance.handCursor": "Hand cursor",
+  "settingsIndex.appearance.handCursorKeywords": "pointer, mouse, cursor",
+  "settingsIndex.appearance.dynamicTheme": "Dynamic theme",
+  "settingsIndex.appearance.dynamicThemeKeywords": "site color, theme-color, accent, adaptive",
+  "settingsIndex.appearance.mica": "Mica effect",
+  "settingsIndex.appearance.micaKeywords": "windows 11, transparency, mica",
+  "settingsIndex.appearance.pageZoom": "Default zoom",
+  "settingsIndex.appearance.pageZoomKeywords": "zoom, page size, enlarge",
+
+  // settingsIndex.layout
+  "settingsIndex.layout.sidebarPosition": "Sidebar position",
+  "settingsIndex.layout.sidebarPositionKeywords": "left, right, sidebar",
+  "settingsIndex.layout.sidebarWidth": "Sidebar width",
+  "settingsIndex.layout.sidebarWidthKeywords": "sidebar, width",
+  "settingsIndex.layout.gutter": "Margin around the page",
+  "settingsIndex.layout.gutterKeywords": "edge, margin, gutter",
+  "settingsIndex.layout.zen": "Zen mode",
+  "settingsIndex.layout.zenKeywords": "full screen, focus, zen",
+  "settingsIndex.layout.tabPreview": "Tab preview on hover",
+  "settingsIndex.layout.tabPreviewKeywords": "thumbnail, hover, preview",
+
+  // settingsIndex.search
+  "settingsIndex.search.engine": "Search engine",
+  "settingsIndex.search.engineKeywords": "google, duckduckgo, brave, startpage, search engine",
+
+  // settingsIndex.startPage
+  "settingsIndex.startPage.name": "First name",
+  "settingsIndex.startPage.nameKeywords": "start page, hello, name, greeting",
+  "settingsIndex.startPage.widgets": "Start page widgets",
+  "settingsIndex.startPage.widgetsKeywords": "clock, time, notes, weather, tasks, widgets",
+  "settingsIndex.startPage.background": "Start page background",
+  "settingsIndex.startPage.backgroundKeywords": "image, background, wallpaper",
+
+  // settingsIndex.behavior
+  "settingsIndex.behavior.defaultBrowser": "Default browser",
+  "settingsIndex.behavior.defaultBrowserKeywords": "default, links, pdf, html",
+  "settingsIndex.behavior.restoreSession": "At startup",
+  "settingsIndex.behavior.restoreSessionKeywords": "session, startup, reopen, restore, resume",
+  "settingsIndex.behavior.newTabPosition": "Open new tabs",
+  "settingsIndex.behavior.newTabPositionKeywords": "position, new tab",
+  "settingsIndex.behavior.afterClose": "After closing a tab, show",
+  "settingsIndex.behavior.afterCloseKeywords": "close, closing",
+  "settingsIndex.behavior.sleep": "Put inactive tabs to sleep",
+  "settingsIndex.behavior.sleepKeywords": "sleep, memory",
+  "settingsIndex.behavior.archive": "Archive inactive tabs",
+  "settingsIndex.behavior.archiveKeywords": "archive, archiving",
+  "settingsIndex.behavior.autoPip": "Automatic picture in picture",
+  "settingsIndex.behavior.autoPipKeywords": "pip, picture in picture, video, floating",
+  "settingsIndex.behavior.energySaver": "Energy saver",
+  "settingsIndex.behavior.energySaverKeywords": "battery, energy, power, saver",
+  "settingsIndex.behavior.miniWindow": "External links in a mini window",
+  "settingsIndex.behavior.miniWindowKeywords": "mini window, little arc, links, other apps",
+
+  // settingsIndex.shortcuts
+  "settingsIndex.shortcuts.section": "Keyboard shortcuts",
+  "settingsIndex.shortcuts.sectionKeywords": "shortcut, keys, keyboard",
+
+  // settingsIndex.privacy
+  "settingsIndex.privacy.weather": "Weather widget",
+  "settingsIndex.privacy.weatherKeywords": "open-meteo, location, network",
+  "settingsIndex.privacy.acceptLanguage": "Standardize the language sent to sites",
+  "settingsIndex.privacy.acceptLanguageKeywords": "language, fingerprint",
+  "settingsIndex.privacy.cookieBanners": "Refuse cookie banners",
+  "settingsIndex.privacy.cookieBannersKeywords": "cookies, consent, gdpr, banner, cmp",
+  "settingsIndex.privacy.fingerprinting": "Fingerprinting protection",
+  "settingsIndex.privacy.fingerprintingKeywords": "fingerprint, strict, client hints",
+  "settingsIndex.privacy.secureDns": "Secure DNS (DNS over HTTPS)",
+  "settingsIndex.privacy.secureDnsKeywords": "dns, doh, cloudflare, quad9, nextdns, resolver",
+  "settingsIndex.privacy.privacyPages": "Dashboard and site settings",
+  "settingsIndex.privacy.privacyPagesKeywords": "privacy, statistics, trackers, permissions, javascript, autoplay",
+  "settingsIndex.privacy.drm": "Protected content (DRM)",
+  "settingsIndex.privacy.drmKeywords": "widevine, netflix, disney, spotify, prime video, streaming",
+
+  // settingsIndex.siteData
+  "settingsIndex.siteData.thirdPartyCookies": "Block third-party cookies",
+  "settingsIndex.siteData.thirdPartyCookiesKeywords": "cookies, tracking",
+  "settingsIndex.siteData.section": "Cookies and site data",
+  "settingsIndex.siteData.sectionKeywords": "cookies, storage, clear",
+
+  // settingsIndex.translate
+  "settingsIndex.translate.provider": "Translation service",
+  "settingsIndex.translate.providerKeywords": "translate, deepl, libretranslate, google",
+  "settingsIndex.translate.target": "Translation language",
+  "settingsIndex.translate.targetKeywords": "translate to, language",
+  "settingsIndex.translate.offer": "Offer to translate pages",
+  "settingsIndex.translate.offerKeywords": "translation, address bar",
+
+  // settingsIndex.assistant
+  "settingsIndex.assistant.enabled": "Turn on the AI assistant",
+  "settingsIndex.assistant.enabledKeywords": "ai, claude, anthropic, summarize, chat",
+  "settingsIndex.assistant.apiKey": "Anthropic API key",
+  "settingsIndex.assistant.apiKeyKeywords": "ai, claude, key, api key",
+  "settingsIndex.assistant.model": "Assistant model",
+  "settingsIndex.assistant.modelKeywords": "ai, claude, opus, fable, model",
+
+  // settingsIndex.autofill
+  "settingsIndex.autofill.addresses": "Save and fill addresses",
+  "settingsIndex.autofill.addressesKeywords": "address, shipping, form, autofill",
+  "settingsIndex.autofill.cards": "Save and fill payment cards",
+  "settingsIndex.autofill.cardsKeywords": "bank card, payment, visa, mastercard",
+  "settingsIndex.autofill.syncAddresses": "Sync addresses",
+  "settingsIndex.autofill.syncAddressesKeywords": "sync, addresses",
+  "settingsIndex.autofill.cardList": "Saved payment cards",
+  "settingsIndex.autofill.cardListKeywords": "card, number",
+
+  // settingsIndex.notifications
+  "settingsIndex.notifications.doNotDisturb": "Do not disturb",
+  "settingsIndex.notifications.doNotDisturbKeywords": "notifications, silence, alerts",
+
+  // settingsIndex.spellcheck
+  "settingsIndex.spellcheck.enabled": "Check spelling",
+  "settingsIndex.spellcheck.enabledKeywords": "spell checker, mistakes, spellcheck",
+  "settingsIndex.spellcheck.languages": "Spelling languages",
+  "settingsIndex.spellcheck.languagesKeywords": "dictionary, language, spell checker",
+  "settingsIndex.spellcheck.words": "Words added to the dictionary",
+  "settingsIndex.spellcheck.wordsKeywords": "personal dictionary, words",
+
+  // settingsIndex.downloads
+  "settingsIndex.downloads.folder": "Downloads folder",
+  "settingsIndex.downloads.folderKeywords": "folder, location, download",
+  "settingsIndex.downloads.askWhere": "Always ask where to save",
+  "settingsIndex.downloads.askWhereKeywords": "save, ask",
+  "settingsIndex.downloads.executables": "Executable files",
+  "settingsIndex.downloads.executablesKeywords": "exe, programs, security",
+
+  // settingsIndex.data
+  "settingsIndex.data.import": "Import from another browser",
+  "settingsIndex.data.importKeywords": "import, chrome, firefox, edge, arc, passwords, csv",
+  "settingsIndex.data.history": "Browsing history",
+  "settingsIndex.data.historyKeywords": "clear, history",
+  "settingsIndex.data.bookmarks": "Bookmarks",
+  "settingsIndex.data.bookmarksKeywords": "bookmarks, favorites",
+
+  // settingsIndex.sync
+  "settingsIndex.sync.section": "Sync",
+  "settingsIndex.sync.sectionKeywords": "devices, sync, pairing, account",
+  "settingsIndex.sync.annotations": "Sync notes and highlights",
+  "settingsIndex.sync.annotationsKeywords": "notes, highlights, annotations",
+  "settingsIndex.sync.passwords": "Sync passwords",
+  "settingsIndex.sync.passwordsKeywords": "passwords, credentials, keychain",
+  "settingsIndex.sync.panels": "Sync web panels",
+  "settingsIndex.sync.panelsKeywords": "panels, whatsapp, spotify",
+
+  // settingsIndex.updates
+  "settingsIndex.updates.section": "Updates",
+  "settingsIndex.updates.sectionKeywords": "version, update",
+  "settingsIndex.updates.beta": "Beta program",
+  "settingsIndex.updates.betaKeywords": "beta, preview, channel, test",
+
+  // settingsIndex.diagnostics
+  "settingsIndex.diagnostics.crashReports": "Send crash reports",
+  "settingsIndex.diagnostics.crashReportsKeywords": "crash, report, sentry",
+  "settingsIndex.diagnostics.crashes": "Recent crashes",
+  "settingsIndex.diagnostics.crashesKeywords": "crash",
+  "settingsIndex.diagnostics.reportIssue": "Report a problem",
+  "settingsIndex.diagnostics.reportIssueKeywords": "bug, github, issue",
+  // startWidgets
+  "startWidgets.clock": "Clock and greeting",
+  "startWidgets.clockDescription": "The time, the date and a welcome word.",
+  "startWidgets.search": "Search",
+  "startWidgets.searchDescription": "Search the web or enter an address.",
+  "startWidgets.topSites": "Top sites",
+  "startWidgets.topSitesDescription": "Your most visited sites, and the ones you pin.",
+  "startWidgets.favorites": "Favorites",
+  "startWidgets.favoritesDescription": "The favorites grid.",
+  "startWidgets.devices": "Other devices",
+  "startWidgets.devicesDescription": "Tabs open on your synced devices.",
+  "startWidgets.notes": "Quick notes",
+  "startWidgets.notesDescription": "A notepad kept on this device.",
+  "startWidgets.weather": "Weather",
+  "startWidgets.weatherDescription": "Asks Open-Meteo (no key or cookie) for the chosen city.",
+  "startWidgets.calendar": "Calendar",
+  "startWidgets.calendarDescription": "The current month.",
+  "startWidgets.todo": "To do",
+  "startWidgets.todoDescription": "A task list kept on this device.",
+  "startWidgets.resume": "Resume",
+  "startWidgets.resumeDescription": "Reopen a closed or archived tab.",
+  "startWidgets.sizeSmall": "Small",
+  "startWidgets.sizeMedium": "Medium",
+  "startWidgets.sizeLarge": "Large",
+  // mobile.assistantSheet
+  "mobile.assistantSheet.sentToAnthropic": "Sent to Anthropic: {sources}",
+  "mobile.assistantSheet.truncated": "{title} (truncated)",
+
+  // mobile.bottomBar
+  "mobile.bottomBar.siteInfoSecure": "Site info (secure connection)",
+  "mobile.bottomBar.siteInfoInsecure": "Site info (not secure connection)",
+
+  // mobile.settingsScreen
+  "mobile.settingsScreen.blockerDetail": "EasyList and EasyPrivacy. Can be turned off per site: tap the padlock, then “Shield”.",
+  "mobile.settingsScreen.trackersBlocked": "{trackers, plural, one {# tracker blocked} other {# trackers blocked}} in 30 days.",
+
+  // mobile.site
+  "mobile.site.goodMorning": "Good morning",
+  "mobile.site.goodAfternoon": "Good afternoon",
+  "mobile.site.goodEvening": "Good evening",
+  "mobile.site.goodNight": "Good night",
+
+  // mobile.usePageTranslation
+  "mobile.usePageTranslation.consent": "The text of this page will be sent to {provider} to be translated.",
+  "mobile.usePageTranslation.privateNote": "Private tab: confirmation asked every session, nothing is saved.",
+
+  // startWidgets
+  "startWidgets.hello": "Hello",
+  "startWidgets.goodEvening": "Good evening",
+  // downloadsFiles
+  "downloadsFiles.fallbackName": "download",
+  // boostsScripts
+  "boostsScripts.zapHint": "Click an element to hide it. Esc to finish.",
+
+  // captureScripts
+  "captureScripts.pickHint": "Click an element to capture it. Esc to cancel.",
+  // extensions
+  "extensions.readChangeDataOn": "Read and change your data on {hosts}{others}",
+
+  // assistantPrompts
+  "assistantPrompts.defaultLanguage": "English",
+
+  // updates
+  "updates.versionAvailable": "Version {version} available.",
+  "updates.downloadingVersion": "Downloading version {version}: {percent}%",
+  "updates.downloading": "Downloading: {percent}%",
+
+  // extensionsService
+  "extensionsService.updatePending": "Update pending: {message}",
+
+  // webstorePage
+  "webstorePage.retry": "Try again",
+  "webstorePage.addToBrowser": "Add to Browser",
+
+  // addressBar
+  "addressBar.secureSiteInfoTitle": "Secure connection: site info, protections ({protections}) and permissions",
+  "addressBar.insecureSiteInfoTitle": "Not secure connection: site info, protections ({protections}) and permissions",
+  "addressBar.blockedCount": "{count} blocked",
+  "addressBar.protectionsOff": "off",
+  "addressBar.siteInfoSecure": "Site info (secure connection)",
+  "addressBar.siteInfoInsecure": "Site info (not secure connection)",
+
+  // downloadsButton
+  "downloadsButton.running": "Downloads: {count} in progress",
+  "downloadsButton.runningProgress": "Downloads: {count} in progress, {percent}%",
+
+  // extensionRow
+  "extensionRow.updatesLastCheck": "Updates: last checked on {date}",
+  "extensionRow.updatesNeverChecked": "Updates: never checked",
+
+  // folderEditor
+  "folderEditor.quotedName": "“{name}”",
+  "folderEditor.containsTabs": "? It contains {count, plural, one {# tab} other {# tabs}}.",
+
+  // spaceEditor
+  "spaceEditor.quotedName": "“{name}”",
+  "spaceEditor.tabsClosed": "? Its tabs will be closed.",
+  "spaceEditor.tabsClosedIsolated": "? Its tabs will be closed, and its cookies and data erased.",
+
+  // importPage
+  "importPage.bookmarksImported": "{count, plural, one {# bookmark imported} other {# bookmarks imported}}",
+  "importPage.alreadyPresent": ", {count} already there",
+  "importPage.historyAdded": "{count, plural, one {# page added} other {# pages added}} to history",
+  "importPage.alreadyKnown": ", {count} already known",
+  "importPage.favoritesAdded": "{count, plural, one {# page} other {# pages}} in the favorites grid",
+  "importPage.passwordsSummary": "{added, plural, one {# password added} other {# passwords added}}, {updated} updated, {skipped} already there",
+  "importPage.passwordsIgnored": ", {count} ignored",
+
+  // passwordsPage
+  "passwordsPage.modifiedOn": "Changed on {date}",
+  "passwordsPage.usedOn": " · used on {date}",
+
+  // backupCard
+  "backupCard.backupOfProfile": "Backup of the profile “{name}”",
+  "backupCard.backup": "Backup",
+  "backupCard.colon": ":",
+
+  // assistantSection
+  "assistantSection.usageShortcut": "Shortcut {shortcut}, ",
+  "assistantSection.usageHint": "“…” menu, right-click on the page or a selection, or @ia followed by a question in the universal bar. Each request is billed by Anthropic to your account; long pages are truncated (this is shown).",
+
+  // autofillSection
+  "autofillSection.cardDetail": "{name} · expires end of {expiry}",
+  "autofillSection.noCardholder": "No cardholder",
+
+  // diagnosticsSection
+  "diagnosticsSection.sendsReportTo": "Sends the technical report of a crash to {host}. Off by default.",
+  "diagnosticsSection.sendsReport": "Sends the technical report of a crash. Off by default.",
+  "diagnosticsSection.reportContent": "A report contains the memory state of the process that crashed (minidump), the version of Browser, the update channel and the system. It may, rarely, contain fragments of the page shown at that moment. No history, bookmark, password or username is added, and nothing is sent without your consent.",
+  "diagnosticsSection.sendingOn": " Sending on.",
+
+  // shortcutsSection
+  "shortcutsSection.needsModifierMac": "Add ⌘, ⌃ or ⌥ to this key.",
+  "shortcutsSection.needsModifier": "Add Ctrl or Alt to this key.",
+
+  // syncSection
+  "syncSection.offlineRetryAt": "Server unreachable, retrying at {time}.",
+  "syncSection.offline": "Server unreachable.",
+
+  // restoreSessionCard
+  "restoreSessionCard.notClosedProperly": "The browser didn’t close properly. {windows, plural, one {# window} other {# windows}}, {tabs, plural, one {# tab} other {# tabs}} can be reopened.",
+  "restoreSessionCard.windowTabs": "Window {index}: {tabs, plural, one {# tab} other {# tabs}}",
+
+  // welcomeImport
+  "welcomeImport.bookmarks": "{count, plural, one {# bookmark} other {# bookmarks}}",
+  "welcomeImport.historyPages": "{count, plural, one {# history page} other {# history pages}}",
+  "welcomeImport.engine": "{name} search engine",
+  "welcomeImport.importFrom": "Import from {name}",
+
+  // miniBar
+  "miniBar.openInBrowserShortcut": "Open in browser ({shortcut})",
+  "miniBar.closeShortcut": "Close ({shortcut})",
+
+  // appMenuPanel
+  "appMenuPanel.offline": "Offline",
+  "appMenuPanel.upToDate": "Up to date, {time}",
+
+  // extensionInstallPanel
+  "extensionInstallPanel.versionFromFile": "Version {version} · dropped file, signature not verified",
+  "extensionInstallPanel.versionFromStore": "Version {version} · Chrome Web Store, signature verified",
+
+  // passwordPanel
+  "passwordPanel.updatePasswordFor": "Update the password for {site}?",
+  "passwordPanel.savePasswordFor": "Save the password for {site}?",
+  "passwordPanel.noUsername": "No username",
+
+  // translatePanel
+  "translatePanel.detect": "Detect",
+  "translatePanel.detectedAs": "Detect ({language})",
+  "translatePanel.consent": "The text of this page will be sent to {provider} to be translated.",
+  "translatePanel.privateNote": "Private window: confirmation asked once per window, nothing is saved.",
+  // importPage
+  "importPage.profileCount": "{count, plural, one {# profile} other {# profiles}}",
+  // settingsPage
+  "settingsPage.appearanceDescription": "Colors, mood and typography of the interface.",
+  "settingsPage.layoutDescription": "Placement of the sidebar and the page.",
+  "settingsPage.searchDescription": "Engine used by the address bar and the start page.",
+  "settingsPage.startPageDescription": "What a new tab shows.",
+  "settingsPage.behaviorDescription": "Startup and tab management.",
+  "settingsPage.shortcutsDescription": "Choose the combination of each command, or remove it.",
+  "settingsPage.privacyDescription": "What the browser reveals about you to sites.",
+  "settingsPage.autofillDescription": "Addresses and cards encrypted on this device, offered in forms.",
+  "settingsPage.siteDataDescription": "Cookies and storage left by sites, and third-party cookies.",
+  "settingsPage.notificationsDescription": "The alerts open sites can show on the desktop.",
+  "settingsPage.translateDescription": "Translate pages with the service of your choice: the page’s text is sent to it.",
+  "settingsPage.assistantDescription": "Summarize, explain and question pages with Claude, with your own Anthropic API key: the text of the chosen pages is sent to it.",
+  "settingsPage.spellcheckDescription": "Spell checking in the text fields of pages.",
+  "settingsPage.downloadsDescription": "Where files go, and how.",
+  "settingsPage.dataDescription": "History and bookmarks, stored only on this device.",
+  "settingsPage.syncDescription": "Your synced devices, end-to-end encrypted: the server can’t read anything.",
+  "settingsPage.updatesDescription": "New versions of Browser, installed at restart.",
+  "settingsPage.diagnosticsDescription": "Crash reports (off by default) and problem reporting.",
+  // mobile.bottomBar
+  "mobile.bottomBar.reload": "Reload",
+
+  // mobile.miniBar
+  "mobile.miniBar.play": "Play",
+
+  // mobile.organize
+  "mobile.organize.restore": "Restore {p}",
+
+  // mobile.passwordsSettings
+  "mobile.passwordsSettings.noUsername": "No username",
+
+  // mobile.peekSheet
+  "mobile.peekSheet.loading": "Loading…",
+
+  // mobile.readerScreen
+  "mobile.readerScreen.sansSerif": "Sans serif",
+
+  // mobile.readingListScreen
+  "mobile.readingListScreen.read2": "Read {title}",
+
+  // mobile.searchSheet
+  "mobile.searchSheet.bookmark": "Bookmark",
+
+  // mobile.settingsScreen
+  "mobile.settingsScreen.light": "Light",
+  "mobile.settingsScreen.dark": "Dark",
+  "mobile.settingsScreen.sync2": "Sync",
+
+  // mobile.startWidgets
+  "mobile.startWidgets.loading": "Loading…",
+
+  // mobile.syncSettings
+  "mobile.syncSettings.sync": "Sync",
+
+  // mobile.themeSettings
+  "mobile.themeSettings.dark": "Dark",
+  "mobile.themeSettings.light": "Light",
+
+  // mobile.useReader
+  "mobile.useReader.readerModeUnavailable": "Reader mode unavailable",
+
+  // mobile.platform
+  "mobile.platform.webBrowser": "Web browser",
+
+  // mobile.usePageTranslation
+  "mobile.usePageTranslation.translationUnavailable": "Translation unavailable",
+  "mobile.usePageTranslation.translationInterrupted": "Translation interrupted",
+
+  // events
+  "events.error": "Error: {p}",
+
+  // tabsManager
+  "tabsManager.loading": "Loading…",
+
+  // addressBar
+  "addressBar.pageTranslated2": "Page translated",
+
+  // boostEditor
+  "boostEditor.contrast": "Contrast",
+
+  // downloadsPage
+  "downloadsPage.yesterday": "Yesterday",
+
+  // historyPage
+  "historyPage.yesterday": "Yesterday",
+
+  // loadErrorPage
+  "loadErrorPage.reload": "Reload",
+  "loadErrorPage.loading": "Loading…",
+  "loadErrorPage.unknownError": "Unknown error",
+
+  // miniPlayer
+  "miniPlayer.play": "Play",
+
+  // passwordsPage
+  "passwordsPage.noUsername": "No username",
+
+  // backupCard
+  "backupCard.merge2": "Merge",
+
+  // readerView
+  "readerView.sansSerif": "Sans serif",
+
+  // autofillSection
+  "autofillSection.address": "Address",
+
+  // syncSection
+  "syncSection.progress": "In progress",
+  "syncSection.error": "Error",
+  "syncSection.confirm": "Confirm",
+
+  // weatherWidget
+  "weatherWidget.loading": "Loading…",
+
+  // welcomeEssentials
+  "welcomeEssentials.try": "Try it",
+
+  // miniBar
+  "miniBar.loading": "Loading…",
+
+  // appMenuPanel
+  "appMenuPanel.syncing": "Syncing…",
+  "appMenuPanel.zoom3": "Zoom in",
+
+  // autofillPanel
+  "autofillPanel.noCardholder": "No cardholder",
+
+  // extensionInstallPanel
+  "extensionInstallPanel.willAble": "It will be able to:",
+
+  // pageOptionsPanel
+  "pageOptionsPanel.zoom3": "Zoom in",
+
+  // passwordPanel
+  "passwordPanel.noUsername2": "No username",
+
+  // printPreviewPanel
+  "printPreviewPanel.print2": "Print",
+
+  // siteBoostSection
+  "siteBoostSection.active": "Active",
+
+  // accelerators
+  "accelerators.del": "Del",
+  "accelerators.ins": "Ins",
+  "accelerators.pageDown": "Page Down",
+  "accelerators.end": "End",
+  "accelerators.shift": "Shift",
+
+  // annotationsModel
+  "annotationsModel.yellow": "Yellow",
+  "annotationsModel.green": "Green",
+  "annotationsModel.blue": "Blue",
+  "annotationsModel.pink": "Pink",
+
+  // autofillCard
+  "autofillCard.card": "Card",
+
+  // capture
+  "capture.screenshot": "Screenshot",
+  "capture.recording": "Recording",
+
+  // drm
+  "drm.widevineUnavailable": "Widevine unavailable",
+
+  // omniboxOmnibox
+  "omniboxOmnibox.filter": "Filter",
+
+  // providersAssistant
+  "providersAssistant.ask": "Ask",
+
+  // providersPages
+  "providersPages.restore": "Restore",
+
+  // omniboxScorer
+  "omniboxScorer.filters": "Filters",
+
+  // onboarding
+  "onboarding.welcome": "Welcome",
+  "onboarding.twoFingers": "Two fingers",
+  "onboarding.shiftClick": "Shift + click",
+
+  // reader
+  "reader.dark": "Dark",
+
+  // siteInfo
+  "siteInfo.microphone": "Microphone",
+  "siteInfo.location": "Location",
+
+  // spaces
+  "spaces.personal2": "Personal",
+  "spaces.work": "Work",
+  "spaces.games": "Games",
+  "spaces.shopping": "Shopping",
+  "spaces.travel": "Travel",
+  "spaces.music": "Music",
+  "spaces.research": "Research",
+  "spaces.cooking": "Cooking",
+  "spaces.projects": "Projects",
+  "spaces.administration": "Administration",
+  "spaces.finances": "Finances",
+  "spaces.calendar": "Calendar",
+  "spaces.mail": "Mail",
+  "spaces.folders": "Folders",
+  "spaces.miscellaneous": "Miscellaneous",
+  "spaces.quick": "Quick",
+
+  // syncClient
+  "syncClient.serverUnreachable": "Server unreachable",
+
+  // tasks
+  "tasks.browser": "Browser",
+  "tasks.gpuProcess": "GPU process",
+  "tasks.process": "Process",
+  "tasks.untitled": "Untitled",
+
+  // translateLanguages
+  "translateLanguages.unknownLanguage": "unknown language",
+
+  // webstorePage
+  "webstorePage.installing": "Installing…",
+  // tabsModel
+  "tabsModel.startPage": "Start page",
+
+  // mobile.tabCard
+  "mobile.tabCard.startPage": "Start page",
 };

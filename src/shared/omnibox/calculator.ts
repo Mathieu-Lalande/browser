@@ -1,3 +1,4 @@
+import { getLocale } from "../i18n/locale";
 /**
  * Safe arithmetic for the universal bar: a tokenizer and a recursive-descent parser, never
  * `eval`. Numbers (decimal point or comma), + - * / % ^ and parentheses; nothing else is accepted.
@@ -168,5 +169,6 @@ export function formatNumber(value: number, decimal = ","): string {
   return text.replace(".", decimal);
 }
 
-/** The decimal separator the user typed (a point if any), else the French comma. */
-export const decimalOf = (input: string) => (/\d\.\d/.test(input) && !/\d,\d/.test(input) ? "." : ",");
+/** The decimal separator the user typed, else the UI language's (a comma in French). */
+export const decimalOf = (input: string) =>
+  /\d\.\d/.test(input) && !/\d,\d/.test(input) ? "." : /\d,\d/.test(input) || getLocale() === "fr" ? "," : ".";

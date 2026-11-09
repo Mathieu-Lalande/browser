@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t as tr, t, formatTime } from "@shared/i18n";
   import { getCommand, type CommandId } from "@shared/commands";
   import { buildAppMenu, closedEntryOf, profileEntryOf, type MenuNode, type PageLink } from "@shared/menus";
   import type { ProfilesView } from "@shared/profiles";
@@ -116,13 +116,13 @@
     if (!status?.configured) return t("appMenuPanel.off");
     switch (status.phase) {
       case "syncing":
-        return "Synchronisation…";
+        return tr("appMenuPanel.syncing");
       case "error":
         return t("appMenuPanel.syncError");
       case "offline":
-        return "Hors ligne";
+        return t("appMenuPanel.offline");
       default:
-        return status.lastSync ? `À jour, ${new Date(status.lastSync).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}` : t("appMenuPanel.on");
+        return status.lastSync ? t("appMenuPanel.upToDate", { time: formatTime(status.lastSync) }) : t("appMenuPanel.on");
     }
   });
 </script>
@@ -178,7 +178,7 @@
       >
         {tab?.zoom ?? defaultZoom}&#8239;%
       </button>
-      <button class="round" aria-label={t("appMenuPanel.zoom2")} title={platform.tip("Zoom avant", "zoom-in")} disabled={!tab} onclick={() => runCommand("zoom-in", true)}>
+      <button class="round" aria-label={t("appMenuPanel.zoom2")} title={platform.tip(tr("appMenuPanel.zoom3"), "zoom-in")} disabled={!tab} onclick={() => runCommand("zoom-in", true)}>
         <Icon name="plus" size={14} />
       </button>
       <IconButton size="sm" icon="maximize" label={t("appMenuPanel.fullScreen")} command="toggle-fullscreen" onclick={() => runCommand("toggle-fullscreen", true)} />

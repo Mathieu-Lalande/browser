@@ -2,6 +2,7 @@
  * Spell checker languages (ADR-041), pure. Chromium names its dictionaries "fr", "en-US", "pt-BR"…;
  * on macOS the system checker is used and picks languages by itself.
  */
+import { intlLocale } from "./i18n";
 
 /** The dictionaries to load: the chosen ones Chromium has, else the closest to the app's locale. */
 export function spellLanguagesFor(chosen: readonly string[], available: readonly string[], locale: string): string[] {
@@ -17,7 +18,7 @@ export function spellLanguagesFor(chosen: readonly string[], available: readonly
 /** "fr" → "Français", "en-US" → "Anglais (États-Unis)" (French UI), or the code itself. */
 export function spellLanguageName(code: string): string {
   try {
-    const name = new Intl.DisplayNames(["fr"], { type: "language" }).of(code);
+    const name = new Intl.DisplayNames([intlLocale()], { type: "language" }).of(code);
     return name ? name.charAt(0).toUpperCase() + name.slice(1) : code;
   } catch {
     return code;

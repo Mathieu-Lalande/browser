@@ -37,13 +37,12 @@
     busy = false;
   }
 
-  const plural = (count: number, word: string) => `${count} ${word}${count > 1 ? "s" : ""}`;
   const summaryText = (result: ImportSummary): string => {
     if (!result.ok) return result.message ?? t("welcomeImport.importFailed");
     const parts = [
-      result.bookmarks && plural(result.bookmarks.added, "favori"),
-      result.history && `${plural(result.history.added, "page")} d'historique`,
-      result.searchEngine && `moteur ${result.searchEngine}`,
+      result.bookmarks && t("welcomeImport.bookmarks", { count: result.bookmarks.added }),
+      result.history && t("welcomeImport.historyPages", { count: result.history.added }),
+      result.searchEngine && t("welcomeImport.engine", { name: result.searchEngine }),
     ].filter(Boolean);
     return parts.length ? t("welcomeImport.imported", { p: parts.join(", ") }) : t("welcomeImport.nothingNewImport");
   };
@@ -68,7 +67,7 @@
       {/each}
     </div>
     <div class="actions">
-      <Button variant="primary" icon="import" disabled={busy || !source} onclick={run}>{busy ? t("welcomeImport.importing") : `Importer depuis ${source?.name ?? "…"}`}</Button>
+      <Button variant="primary" icon="import" disabled={busy || !source} onclick={run}>{busy ? t("welcomeImport.importing") : t("welcomeImport.importFrom", { name: source?.name ?? "…" })}</Button>
       <Button variant="quiet" onclick={() => api.tabs.create(internalUrl("import"))}>{t("welcomeImport.moreOptions")}</Button>
     </div>
     {#if summary}

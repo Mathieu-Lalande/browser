@@ -16,7 +16,7 @@ const MAX_KEY_LENGTH = 500;
 
 type Keys = Partial<Record<TranslateProviderId, string>>;
 
-const UNAVAILABLE = t("translateKeys.systemEncryptionIsntAvailable");
+const UNAVAILABLE = (): string => t("translateKeys.systemEncryptionIsntAvailable");
 
 /** Same test hook as the password vault (unpackaged app only, ADR-018). */
 const TEST_PLAIN_KEYCHAIN = !app.isPackaged && process.env.BROWSER_TEST_PLAIN_KEYCHAIN === "1";
@@ -59,7 +59,7 @@ export class TranslateKeyStore {
     const available = safeStorage.isEncryptionAvailable();
     return {
       available,
-      message: available ? null : UNAVAILABLE,
+      message: available ? null : UNAVAILABLE(),
       keys: { deepl: !!keys.deepl, libretranslate: !!keys.libretranslate, google: !!keys.google },
     };
   }
@@ -70,12 +70,12 @@ export class TranslateKeyStore {
     const clean = key.trim().slice(0, MAX_KEY_LENGTH);
     if (clean) keys[provider] = clean;
     else delete keys[provider];
-    if (!safeStorage.isEncryptionAvailable()) return { ok: false, message: UNAVAILABLE };
+    if (!safeStorage.isEncryptionAvailable()) return { ok: false, message: UNAVAILABLE() };
     let ciphertext: string;
     try {
       ciphertext = safeStorage.encryptString(JSON.stringify(keys)).toString("base64");
     } catch {
-      return { ok: false, message: UNAVAILABLE };
+      return { ok: false, message: UNAVAILABLE() };
     }
     if (!this.file!.save({ ciphertext })) return { ok: false, message: t("translateKeys.keyFileCouldntWritten") };
     this.keys = keys;

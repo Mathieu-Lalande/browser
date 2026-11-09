@@ -1,4 +1,4 @@
-import { t } from "@shared/i18n";
+import { t as tr, t } from "@shared/i18n";
 import { originLabel, searchPasswords, summarize } from "@shared/passwords";
 import * as Clipboard from "expo-clipboard";
 import { memo, useMemo, useState } from "react";
@@ -105,7 +105,7 @@ export const PasswordsSettings = memo(function PasswordsSettings() {
                 {site}
               </Text>
               <Text style={[styles.detail, { color: colors.textMuted }]} numberOfLines={1}>
-                {entry.username || "Sans identifiant"}
+                {entry.username || tr("mobile.passwordsSettings.noUsername")}
               </Text>
               <Text style={[styles.detail, { color: revealed[entry.id] ? colors.text : colors.textFaint }]} selectable={!!revealed[entry.id]}>
                 {revealed[entry.id] ? passwordOf(entry.id) : "••••••••••"}

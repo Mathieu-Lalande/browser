@@ -4,6 +4,8 @@
  * the recording timer.
  */
 
+import { t } from "./i18n";
+
 export type CaptureMode = "visible" | "full" | "element";
 
 /** A rectangle in CSS pixels of the page (document coordinates for clips). */
@@ -57,7 +59,7 @@ export function captureSite(url: string): string {
 export function captureFileName(url: string, date: Date, kind: "image" | "video" = "image"): string {
   const day = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
   const time = `${pad(date.getHours())}.${pad(date.getMinutes())}.${pad(date.getSeconds())}`;
-  const prefix = kind === "image" ? "Capture" : "Enregistrement";
+  const prefix = kind === "image" ? t("capture.screenshot") : t("capture.recording");
   return `${prefix} ${captureSite(url)} ${day} ${time}.${kind === "image" ? "png" : "webm"}`;
 }
 

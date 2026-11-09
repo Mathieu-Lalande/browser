@@ -175,7 +175,7 @@ function takeAccess(c: BrowserController): boolean {
 export function revealPassword(c: BrowserController, id: string): RevealResult {
   const password = findPassword(id);
   if (password === null) return { ok: false, message: t("passwordsIndex.passwordNoLongerExists") };
-  return takeAccess(c) ? { ok: true, password } : { ok: false, message: PASSWORD_ACCESS_REFUSED };
+  return takeAccess(c) ? { ok: true, password } : { ok: false, message: PASSWORD_ACCESS_REFUSED() };
 }
 
 const CLIPBOARD_CLEAR_MS = 30_000;
@@ -183,7 +183,7 @@ const CLIPBOARD_CLEAR_MS = 30_000;
 export function copyPassword(c: BrowserController, id: string): PasswordResult {
   const password = findPassword(id);
   if (!password) return { ok: false, message: t("passwordsIndex.passwordNoLongerExists") };
-  if (!takeAccess(c)) return { ok: false, message: PASSWORD_ACCESS_REFUSED };
+  if (!takeAccess(c)) return { ok: false, message: PASSWORD_ACCESS_REFUSED() };
   clipboard.writeText(password);
   // Not left on the clipboard: cleared after a while, unless something else was copied since.
   setTimeout(async () => {

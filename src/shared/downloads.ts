@@ -3,7 +3,7 @@
  * The UI only ever refers to a download by `id`: paths are shown, never sent back to main.
  */
 
-import { t } from "./i18n";
+import { t, intlLocale } from "./i18n";
 
 export type DownloadState = "progressing" | "paused" | "completed" | "cancelled" | "interrupted";
 
@@ -78,7 +78,7 @@ export const canOpenFile = (entry: DownloadEntry) => isOpenable(entry) && SAFE_T
 
 const UNITS = ["o", "Ko", "Mo", "Go", "To"];
 const decimal = (value: number, digits: number) =>
-  value.toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: digits });
+  value.toLocaleString(intlLocale(), { minimumFractionDigits: 0, maximumFractionDigits: digits });
 
 /** 3_400_000 → "3,2 Mo" (binary multiples, French units). */
 export function formatBytes(bytes: number): string {

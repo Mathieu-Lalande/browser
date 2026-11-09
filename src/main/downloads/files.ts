@@ -1,5 +1,6 @@
 /** File name rules for downloads. Pure: no Electron, no fs (existence is a callback). */
 
+import { t } from "@shared/i18n";
 import { fileExtension } from "@shared/downloads";
 
 export { fileExtension };
@@ -45,7 +46,8 @@ const WINDOWS_RESERVED = /^(con|prn|aux|nul|com\d|lpt\d)(\..*)?$/i;
 const MAX_NAME_LENGTH = 200;
 /** Longest extension kept whole when a name is shortened (".tar.gz", ".numbers"…, never 500 chars). */
 const MAX_EXTENSION_LENGTH = 32;
-export const FALLBACK_FILENAME = "téléchargement";
+/** Name of a file whose own name has nothing left once cleaned (UI language, ADR-052). */
+export const fallbackFilename = (): string => t("downloadsFiles.fallbackName");
 
 /**
  * A file name safe on every OS: no path separators or reserved characters, no control
@@ -69,7 +71,7 @@ export function sanitizeFilename(name: string): string {
     const kept = ext.slice(0, MAX_EXTENSION_LENGTH);
     clean = (base.slice(0, MAX_NAME_LENGTH - kept.length) + kept).replace(/[.\s]+$/, "");
   }
-  return clean || FALLBACK_FILENAME;
+  return clean || fallbackFilename();
 }
 
 /** Multi-part extensions kept together when numbering ("logs (1).tar.gz", not "logs.tar (1).gz"). */

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t as tr, t } from "@shared/i18n";
   import {
     DEFAULT_PRINT_OPTIONS,
     PDF_DESTINATION,
@@ -183,7 +183,7 @@
 
     <div class="buttons">
       <Button variant="quiet" onclick={cancel}>{t("printPreviewPanel.cancel")}</Button>
-      <Button variant="primary" disabled={busy || !pagesValid} onclick={run}>{isPdf ? t("printPreviewPanel.save") : "Imprimer"}</Button>
+      <Button variant="primary" disabled={busy || !pagesValid} onclick={run}>{isPdf ? t("printPreviewPanel.save") : tr("printPreviewPanel.print2")}</Button>
     </div>
   </div>
 </div>

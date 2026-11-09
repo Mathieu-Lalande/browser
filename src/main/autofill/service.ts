@@ -54,9 +54,9 @@ export interface AutofillDeps {
   now?: () => number;
 }
 
-const UNAVAILABLE = t("autofillService.systemEncryptionIsntAvailable");
-const LOCKED = t("autofillService.savedAddressesCardsCant");
-const WRITE_FAILED = t("autofillService.dataCouldntSaved");
+const UNAVAILABLE = (): string => t("autofillService.systemEncryptionIsntAvailable");
+const LOCKED = (): string => t("autofillService.savedAddressesCardsCant");
+const WRITE_FAILED = (): string => t("autofillService.dataCouldntSaved");
 const PENDING_TTL = 10 * 60_000;
 
 /** The form a suggestion was offered for: filled when the user picks an entry. */
@@ -98,7 +98,7 @@ export class AutofillService {
 
   status(): AutofillStatus {
     const status = this.store.status();
-    if (!status.available) return { available: false, message: status.reason === "locked" ? LOCKED : UNAVAILABLE, weak: false };
+    if (!status.available) return { available: false, message: status.reason === "locked" ? LOCKED() : UNAVAILABLE(), weak: false };
     return { available: true, message: null, weak: status.weak };
   }
 
@@ -108,8 +108,8 @@ export class AutofillService {
 
   private write(next: AutofillData): AutofillResult {
     const status = this.status();
-    if (!status.available) return { ok: false, message: status.message ?? UNAVAILABLE };
-    return this.store.write(next) ? { ok: true } : { ok: false, message: WRITE_FAILED };
+    if (!status.available) return { ok: false, message: status.message ?? UNAVAILABLE() };
+    return this.store.write(next) ? { ok: true } : { ok: false, message: WRITE_FAILED() };
   }
 
   // --- Pages ------------------------------------------------------------------------------------
@@ -280,7 +280,7 @@ export class AutofillService {
       if (item.capture.address) data = saveAddress(data, item.capture.address, now, newId());
       if (item.capture.card) data = saveCard(data, item.capture.card, now, newId());
     } catch (error) {
-      return { ok: false, message: error instanceof Error ? error.message : WRITE_FAILED };
+      return { ok: false, message: error instanceof Error ? error.message : WRITE_FAILED() };
     }
     return this.write(data);
   }
@@ -296,7 +296,7 @@ export class AutofillService {
     try {
       return this.write(putAddress(this.store.current(), id ?? newId(), fields, this.now()));
     } catch (error) {
-      return { ok: false, message: error instanceof Error ? error.message : WRITE_FAILED };
+      return { ok: false, message: error instanceof Error ? error.message : WRITE_FAILED() };
     }
   }
 

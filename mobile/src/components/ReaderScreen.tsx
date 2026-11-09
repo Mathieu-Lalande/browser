@@ -1,4 +1,4 @@
-import { t } from "@shared/i18n";
+import { t as tr, t } from "@shared/i18n";
 import { READER_THEME_LABELS, readerColors, readingTimeLabel, type ReaderArticle, type ReaderColors } from "@shared/reader";
 import { LIMITS, type ReaderFont, type ReaderTheme } from "@shared/settings";
 import { memo, useEffect, useMemo, useState } from "react";
@@ -14,7 +14,7 @@ const MONO = Platform.select({ ios: "Menlo", default: "monospace" });
 const THEMES: ReaderTheme[] = ["auto", "sepia", "dark"];
 const FONTS: { value: ReaderFont; label: string }[] = [
   { value: "serif", label: "Serif" },
-  { value: "sans", label: "Sans serif" },
+  { value: "sans", get label() { return tr("mobile.readerScreen.sansSerif") } },
 ];
 
 interface Props {

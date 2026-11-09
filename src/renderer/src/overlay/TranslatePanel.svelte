@@ -125,7 +125,7 @@
         <label>
           <span>{t("translatePanel.from")}</span>
           <select class="ui-field" bind:value={from} aria-label={t("translatePanel.pageLanguage")}>
-            <option value="">Détecter{translation?.from && !translation.pageLanguage ? ` (${languageName(translation.from)})` : ""}</option>
+            <option value="">{translation?.from && !translation.pageLanguage ? t("translatePanel.detectedAs", { language: languageName(translation.from) }) : t("translatePanel.detect")}</option>
             {#each LANGUAGES as language (language.code)}
               <option value={language.code}>{language.name}</option>
             {/each}
@@ -146,8 +146,8 @@
         <p class="notice" role="note">
           <Icon name="info" size={14} />
           <span>
-            Le texte de cette page sera envoyé à {providerLabel(info.provider)} pour être traduit.
-            {info.isPrivate ? "Fenêtre privée : confirmation demandée une fois par fenêtre, rien n'est enregistré." : ""}
+            {t("translatePanel.consent", { provider: providerLabel(info.provider) })}
+            {info.isPrivate ? t("translatePanel.privateNote") : ""}
           </span>
         </p>
       {/if}

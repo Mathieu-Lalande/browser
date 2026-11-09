@@ -1,4 +1,4 @@
-import { t } from "@shared/i18n";
+import { t as tr, t } from "@shared/i18n";
 import { displayUrl } from "@shared/url";
 import { memo, useMemo, useState, type ComponentType } from "react";
 import { Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
@@ -139,7 +139,7 @@ export const PeekSheet = memo(function PeekSheet({ peek, onClose }: Props) {
                   {title}
                 </Text>
                 <Text style={[styles.subtitle, { color: colors.textMuted }]} numberOfLines={1}>
-                  {page.loading ? "Chargement…" : displayUrl(page.url)}
+                  {page.loading ? tr("mobile.peekSheet.loading") : displayUrl(page.url)}
                 </Text>
               </View>
               <Tap

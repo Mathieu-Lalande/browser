@@ -1,4 +1,4 @@
-import { t } from "../i18n";
+import { t as tr, t } from "../i18n";
 import { fuzzyMatch, type Range } from "../fuzzy";
 import type { Section, SectionId, Suggestion } from "./types";
 
@@ -58,7 +58,7 @@ export const SECTION_LIMITS: Record<SectionId, number> = {
 export const SCOPED_LIMIT = 40;
 
 export const SECTION_TITLES: Record<SectionId, string | null> = {
-  scopes: "Filtres",
+  get scopes() { return tr("omniboxScorer.filters") },
   answer: null,
   go: null,
   get tabs() { return t("omniboxScorer.tabs") },

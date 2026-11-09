@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t as tr, t } from "@shared/i18n";
   import {
     CARD_BRAND_LABELS,
     addressSummary,
@@ -107,7 +107,7 @@
           <ListRow>
             <Icon name="map-pin" size={14} />
             <span class="main">
-              <span class="title">{address.name || address.organization || "Adresse"}</span>
+              <span class="title">{address.name || address.organization || tr("autofillSection.address")}</span>
               <span class="detail">{addressSummary(address)}</span>
             </span>
             <IconButton icon="pencil" size="row" label={t("autofillSection.editAddress", { p: address.name || addressSummary(address) })} onclick={() => (editingAddress = address.id)} />
@@ -136,7 +136,7 @@
             <Icon name="credit-card" size={14} />
             <span class="main">
               <span class="title">{card.nickname || CARD_BRAND_LABELS[card.brand]} <span class="number" data-testid="card-number">{revealed[card.id] ? formatCardNumber(revealed[card.id]) : maskCardNumber(card.last4)}</span></span>
-              <span class="detail">{card.name || "Sans titulaire"} · expire fin {expiry(card)}</span>
+              <span class="detail">{t("autofillSection.cardDetail", { name: card.name || t("autofillSection.noCardholder"), expiry: expiry(card) })}</span>
             </span>
             <IconButton icon={revealed[card.id] ? "eye-off" : "eye"} size="row" label={revealed[card.id] ? t("autofillSection.hideNumber") : t("autofillSection.showNumber")} onclick={() => reveal(card)} />
             <IconButton icon="pencil" size="row" label={t("autofillSection.editCard", { p: maskCardNumber(card.last4) })} onclick={() => (editingCard = card.id)} />

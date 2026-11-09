@@ -20,8 +20,8 @@ interface Stored {
   ciphertext: string;
 }
 
-const UNAVAILABLE = t("passwordsVault.systemEncryptionIsntAvailable");
-const LOCKED = t("passwordsVault.savedPasswordsCantDecrypted");
+const UNAVAILABLE = (): string => t("passwordsVault.systemEncryptionIsntAvailable");
+const LOCKED = (): string => t("passwordsVault.savedPasswordsCantDecrypted");
 
 export interface VaultOptions {
   /** Where `passwords.json` lives. */
@@ -53,8 +53,8 @@ export class PasswordVaultStore {
 
   status(): PasswordsStatus {
     const { locked } = this.opened();
-    if (!safeStorage.isEncryptionAvailable()) return { available: false, message: UNAVAILABLE, weak: false };
-    if (locked) return { available: false, message: LOCKED, weak: false };
+    if (!safeStorage.isEncryptionAvailable()) return { available: false, message: UNAVAILABLE(), weak: false };
+    if (locked) return { available: false, message: LOCKED(), weak: false };
     const weak = process.platform === "linux" && safeStorage.getSelectedStorageBackend() === "basic_text";
     return { available: true, message: null, weak };
   }
@@ -66,13 +66,13 @@ export class PasswordVaultStore {
   /** Encrypts and writes `next`; refused (nothing changes) without keychain encryption. */
   write(next: PasswordVault): PasswordResult {
     const status = this.status();
-    if (!status.available) return { ok: false, message: status.message ?? UNAVAILABLE };
+    if (!status.available) return { ok: false, message: status.message ?? UNAVAILABLE() };
     const current = this.opened();
     let ciphertext: string;
     try {
       ciphertext = safeStorage.encryptString(JSON.stringify(next)).toString("base64");
     } catch {
-      return { ok: false, message: UNAVAILABLE };
+      return { ok: false, message: UNAVAILABLE() };
     }
     if (!current.file.save({ ciphertext })) return { ok: false, message: t("passwordsVault.passwordFileCouldntWritten") };
     current.vault = next;

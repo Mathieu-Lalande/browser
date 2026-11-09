@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t, intlLocale } from "@shared/i18n";
   import { PRIVACY_COUNTERS, PRIVACY_COUNTER_LABELS, formatSaved, type PrivacyCounter, type PrivacySummary } from "@shared/privacy-stats";
   import { api, browser } from "../../lib/browser.svelte";
   import type { IconName } from "../Icon.svelte";
@@ -52,8 +52,8 @@
 
   const peak = $derived(Math.max(1, ...(summary?.daily.map((day) => day.counts.trackers) ?? [0])));
   const hasData = $derived(!!summary && PRIVACY_COUNTERS.some((counter) => summary!.totals[counter] > 0));
-  const number = new Intl.NumberFormat("fr-FR");
-  const dayLabel = (day: string) => new Date(`${day}T12:00:00`).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+  const number = new Intl.NumberFormat(intlLocale());
+  const dayLabel = (day: string) => new Date(`${day}T12:00:00`).toLocaleDateString(intlLocale(), { day: "numeric", month: "short" });
 </script>
 
 <Page

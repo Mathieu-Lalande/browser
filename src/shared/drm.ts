@@ -9,7 +9,7 @@
  * - `unavailable`: no CDM (stock Electron build, download failed, unsupported platform);
  * - `disabled`: the user turned protected content off.
  */
-import { t } from "./i18n";
+import { t as tr, t } from "./i18n";
 
 export type WidevineState = "ready" | "installing" | "unavailable" | "disabled";
 
@@ -66,6 +66,6 @@ export function widevineLabel(status: WidevineStatus | null): string {
     case "disabled":
       return t("drm.off");
     default:
-      return "Widevine indisponible";
+      return tr("drm.widevineUnavailable");
   }
 }

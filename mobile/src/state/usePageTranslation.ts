@@ -61,7 +61,7 @@ export function usePageTranslation(openSettings: () => void) {
     try {
       await translatorNow();
     } catch (error) {
-      Alert.alert("Traduction indisponible", error instanceof Error ? error.message : "", [
+      Alert.alert(tr("mobile.usePageTranslation.translationUnavailable"), error instanceof Error ? error.message : "", [
         { text: tr("mobile.usePageTranslation.cancel"), style: "cancel" },
         { text: tr("mobile.usePageTranslation.settings"), onPress: openSettings },
       ]);
@@ -71,7 +71,7 @@ export function usePageTranslation(openSettings: () => void) {
     if (!needsConsent || t.provider === "none") return send(tabId, "translate");
     Alert.alert(
       tr("mobile.usePageTranslation.translatePage"),
-      `Le texte de cette page sera envoyé à ${providerLabel(t.provider)} pour être traduit.${isPrivate ? " Onglet privé : confirmation demandée à chaque session, rien n'est enregistré." : ""}`,
+      tr("mobile.usePageTranslation.consent", { provider: providerLabel(t.provider) }) + (isPrivate ? " " + tr("mobile.usePageTranslation.privateNote") : ""),
       [
         { text: tr("mobile.usePageTranslation.cancel"), style: "cancel" },
         {
@@ -101,7 +101,7 @@ export function usePageTranslation(openSettings: () => void) {
     } catch (error) {
       if (!failed.current.has(tabId)) {
         failed.current.add(tabId);
-        Alert.alert("Traduction interrompue", error instanceof Error ? error.message : tr("mobile.usePageTranslation.translationFailed"));
+        Alert.alert(tr("mobile.usePageTranslation.translationInterrupted"), error instanceof Error ? error.message : tr("mobile.usePageTranslation.translationFailed"));
       }
       throw error;
     }

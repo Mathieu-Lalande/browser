@@ -1,4 +1,4 @@
-import { t } from "@shared/i18n";
+import { t as tr, t, intlLocale } from "@shared/i18n";
 import { isFavoriteTab, type Favorite } from "@shared/favorites";
 import { topSites } from "@shared/search";
 import {
@@ -89,8 +89,8 @@ const ClockWidget = memo(function ClockWidget({ widget }: ViewProps<"clock">) {
     return () => clearInterval(timer);
   }, []);
   const name = settings.startPage.greetingName.trim();
-  const time = now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-  const date = widget.options.date ? now.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }) : "";
+  const time = now.toLocaleTimeString(intlLocale(), { hour: "2-digit", minute: "2-digit" });
+  const date = widget.options.date ? now.toLocaleDateString(intlLocale(), { weekday: "long", day: "numeric", month: "long" }) : "";
   const greeting = widget.options.greeting && !isPrivate;
   return (
     <View style={styles.hero}>
@@ -362,7 +362,7 @@ const WeatherWidget = memo(function WeatherWidget({ widget, actions }: ViewProps
         <View>
           {forecast && <Text style={[styles.temp, { color: colors.text }]}>{formatTemperature(forecast.temperature, widget.options.unit)}</Text>}
           <Text style={[styles.rowText, { color: colors.textMuted }]} numberOfLines={1}>
-            {place.name} · {condition?.label ?? (failed ? t("mobile.startWidgets.weatherUnavailable") : "Chargement…")}
+            {place.name} · {condition?.label ?? (failed ? t("mobile.startWidgets.weatherUnavailable") : tr("mobile.startWidgets.loading"))}
           </Text>
         </View>
       </View>

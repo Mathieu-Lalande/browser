@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t as tr, t } from "@shared/i18n";
   import type { PasswordAccounts, PasswordPrompt, PromptAnswer } from "@shared/passwords";
   import type { Bounds, TabId } from "@shared/types";
   import { api } from "../lib/browser.svelte";
@@ -83,9 +83,9 @@
   {#if kind === "save" && prompt}
     <header>
       <span class="badge"><Icon name="key" size={16} /></span>
-      <h2>{prompt.update ? "Mettre à jour" : "Enregistrer"} le mot de passe pour {prompt.site} ?</h2>
+      <h2>{t(prompt.update ? "passwordPanel.updatePasswordFor" : "passwordPanel.savePasswordFor", { site: prompt.site })}</h2>
     </header>
-    <p class="account"><Icon name="circle-user" size={14} /> <span>{prompt.username || "Sans identifiant"}</span></p>
+    <p class="account"><Icon name="circle-user" size={14} /> <span>{prompt.username || t("passwordPanel.noUsername")}</span></p>
     <p class="hint">{t("passwordPanel.encryptedSavedDeviceOnly")}</p>
     {#if error}<p class="error" role="alert"><Icon name="warning" size={12} /> {error}</p>{/if}
     <div class="buttons">
@@ -104,7 +104,7 @@
           <li>
             <button disabled={busy} onclick={() => fill(account.id)}>
               <Icon name="circle-user" size={14} />
-              <span class="name">{account.username || "Sans identifiant"}</span>
+              <span class="name">{account.username || tr("passwordPanel.noUsername2")}</span>
               <span class="dots" aria-hidden="true">••••••••</span>
             </button>
           </li>

@@ -5,14 +5,16 @@
  * leaving the page cancels. Resolves `{ rect, page }` in document CSS pixels, or null; the
  * highlight is gone from the screen before it resolves, so it is never in the capture.
  */
+import { t } from "@shared/i18n";
+
 export const PICK_WORLD_ID = 1009;
 
-export const PICK_SCRIPT = `(() => {
+export const pickScript = (): string => `(() => {
   if (globalThis.__browserPick) return globalThis.__browserPick;
   const box = document.createElement("div");
   box.style.cssText = "position:fixed;z-index:2147483647;pointer-events:none;border:2px solid #3e63dd;background:rgba(62,99,221,.16);border-radius:3px;transition:all .06s;display:none";
   const hint = document.createElement("div");
-  hint.textContent = "Cliquez sur un élément pour le capturer. Échap pour annuler.";
+  hint.textContent = ${JSON.stringify(t("captureScripts.pickHint"))};
   hint.style.cssText = "position:fixed;z-index:2147483647;left:50%;bottom:16px;transform:translateX(-50%);pointer-events:none;padding:8px 14px;border-radius:8px;background:#1b1b1f;color:#fff;font:13px system-ui,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.35)";
   document.documentElement.append(box, hint);
   const pick = (el) => (el instanceof Element && el !== document.documentElement ? el : null);

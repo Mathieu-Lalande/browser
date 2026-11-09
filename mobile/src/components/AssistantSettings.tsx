@@ -46,7 +46,7 @@ export const AssistantSettings = memo(function AssistantSettings() {
 
   return (
     <View>
-      <Text style={[styles.intro, { color: colors.textMuted }]}>{t("mobile.assistantSettings.offDefault")} {PRIVACY_NOTICE}</Text>
+      <Text style={[styles.intro, { color: colors.textMuted }]}>{t("mobile.assistantSettings.offDefault")} {PRIVACY_NOTICE()}</Text>
       <Pressable
         accessibilityRole="switch"
         accessibilityState={{ checked: a.enabled }}

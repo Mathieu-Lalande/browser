@@ -238,7 +238,7 @@ export type RevealResult = { ok: true; password: string } | { ok: false; message
 /** Reveals and copies per window and per minute: a compromised UI cannot dump the vault quickly. */
 export const PASSWORD_ACCESS_LIMIT = 10;
 export const PASSWORD_ACCESS_WINDOW_MS = 60_000;
-export const PASSWORD_ACCESS_REFUSED = t("sharedPasswords.tooManyPasswordsShown");
+export const PASSWORD_ACCESS_REFUSED = (): string => t("sharedPasswords.tooManyPasswordsShown");
 
 /**
  * Sliding-window limit: the accesses still counted (oldest first) with this one added, or null

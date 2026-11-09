@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FALLBACK_FILENAME, fileExtension, isDangerousFile, sanitizeFilename, splitName, uniqueFilename } from "./files";
+import { fallbackFilename, fileExtension, isDangerousFile, sanitizeFilename, splitName, uniqueFilename } from "./files";
 
 describe("isDangerousFile", () => {
   it.each([
@@ -123,14 +123,14 @@ describe("sanitizeFilename", () => {
     expect(spoofed).toBe("invoicefdp.exe");
     expect(isDangerousFile(spoofed)).toBe(true);
     expect(sanitizeFilename("a​b⁦c⁩﻿.pdf")).toBe("abc.pdf");
-    expect(sanitizeFilename("‮‮")).toBe(FALLBACK_FILENAME);
+    expect(sanitizeFilename("‮‮")).toBe(fallbackFilename());
   });
 
   it("never yields hidden files, trailing dots or empty names", () => {
     expect(sanitizeFilename(".htaccess")).toBe("htaccess");
     expect(sanitizeFilename("file.txt. . ")).toBe("file.txt");
-    expect(sanitizeFilename("   ")).toBe(FALLBACK_FILENAME);
-    expect(sanitizeFilename("...")).toBe(FALLBACK_FILENAME);
+    expect(sanitizeFilename("   ")).toBe(fallbackFilename());
+    expect(sanitizeFilename("...")).toBe(fallbackFilename());
   });
 
   it("defuses Windows device names", () => {

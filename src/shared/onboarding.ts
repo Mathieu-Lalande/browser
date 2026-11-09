@@ -4,7 +4,7 @@
  * whether the page opens by itself at startup (`shouldOpenWelcome`).
  */
 
-import { t } from "./i18n";
+import { t as tr, t } from "./i18n";
 import type { CommandId } from "./commands";
 
 export const WELCOME_STEPS = ["hello", "theme", "import", "default", "essentials"] as const;
@@ -12,7 +12,7 @@ export const WELCOME_STEPS = ["hello", "theme", "import", "default", "essentials
 export type WelcomeStep = (typeof WELCOME_STEPS)[number];
 
 export const WELCOME_STEP_LABELS: Record<WelcomeStep, string> = {
-  hello: "Bienvenue",
+  get hello() { return tr("onboarding.welcome") },
   get theme() { return t("onboarding.theme") },
   get import() { return t("onboarding.import") },
   get default() { return t("onboarding.defaultBrowser") },
@@ -36,9 +36,9 @@ export const WELCOME_TIPS: readonly WelcomeTipDefinition[] = [
     id: "spaces",
     get title() { return t("onboarding.spaces") },
     get text() { return t("onboarding.oneSpacePerContext") },
-    gesture: "Deux doigts",
+    get gesture() { return tr("onboarding.twoFingers") },
   },
-  { id: "peek", get title() { return t("onboarding.linkPreview") }, get text() { return t("onboarding.linkOpensCardAbove") }, gesture: "Maj + clic" },
+  { id: "peek", get title() { return t("onboarding.linkPreview") }, get text() { return t("onboarding.linkOpensCardAbove") }, get gesture() { return tr("onboarding.shiftClick") } },
   { id: "compact", get title() { return t("onboarding.compactMode") }, get text() { return t("onboarding.sidebarFoldsIntoRail") }, command: "toggle-compact-mode" },
 ];
 

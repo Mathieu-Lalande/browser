@@ -47,8 +47,8 @@ export function messageProgress(message: BetaMessage): AnswerProgress {
   return { text, model: message.model, stopReason: message.stop_reason, fellBack };
 }
 
-export const REFUSAL_MESSAGE = t("assistantStream.assistantRefusedAnswerRequest");
-export const TRUNCATED_NOTE = t("assistantStream.responseInterruptedReachedMaximum");
+export const REFUSAL_MESSAGE = (): string => t("assistantStream.assistantRefusedAnswerRequest");
+export const TRUNCATED_NOTE = (): string => t("assistantStream.responseInterruptedReachedMaximum");
 
 /** How a finished answer ends: refused (whatever text came before), cut by the length limit, or done. */
 export function finalStatus(progress: AnswerProgress): TurnStatus {

@@ -51,7 +51,7 @@ export function useSiteMenus({
         : [
             counts && counts.trackers ? t("mobile.useSiteMenus.trackersBlockedSite30", { trackers: counts.trackers }) : "",
             counts && counts.cookieBanners ? t("mobile.useSiteMenus.cookieBannersRefused", { cookieBanners: counts.cookieBanners }) : "",
-            nativeBlocking ? "" : t("mobile.useSiteMenus.hereOnlyAdElements", { SHIELD_UNAVAILABLE_NOTE }),
+            nativeBlocking ? "" : t("mobile.useSiteMenus.hereOnlyAdElements", { SHIELD_UNAVAILABLE_NOTE: SHIELD_UNAVAILABLE_NOTE() }),
           ]
             .filter(Boolean)
             .join(" ");
@@ -75,7 +75,7 @@ export function useSiteMenus({
       title: info.host,
       subtitle: connectionLabel(info),
       siteUrl: url,
-      note: shieldNote ? `${shieldNote}\n\n${SITE_DATA_NOTE}` : SITE_DATA_NOTE,
+      note: shieldNote ? `${shieldNote}\n\n${SITE_DATA_NOTE()}` : SITE_DATA_NOTE(),
       items: [
         ...shieldItem,
         { key: "copy", label: t("mobile.useSiteMenus.copyLink"), icon: "link", onPress: () => copy(url) },

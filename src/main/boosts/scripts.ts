@@ -5,6 +5,8 @@
  */
 
 /** Isolated worlds: 1001…1006 are taken (cosmetics, forms, media, passwords, reader). */
+import { t } from "@shared/i18n";
+
 export const SCRIPT_WORLD_ID = 1007;
 export const ZAP_WORLD_ID = 1008;
 
@@ -19,7 +21,7 @@ export function userScript(code: string): string {
  * and removes the tool, leaving the page resolves null. Main saves the selector and runs it again.
  * Trusted events only; the page's own click handlers do not see the clicks made with the tool.
  */
-export const ZAP_SCRIPT = `(() => {
+export const zapScript = (): string => `(() => {
   const state = (globalThis.__browserZap ??= { waiters: [], queue: [], active: false });
   const settle = (value) => {
     if (state.waiters.length) { for (const resolve of state.waiters.splice(0)) resolve(value); }
@@ -57,7 +59,7 @@ export const ZAP_SCRIPT = `(() => {
     const box = document.createElement("div");
     box.style.cssText = "position:fixed;z-index:2147483647;pointer-events:none;border:2px solid #e5484d;background:rgba(229,72,77,.18);border-radius:3px;transition:all .06s;display:none";
     const hint = document.createElement("div");
-    hint.textContent = "Cliquez sur un élément pour le masquer. Échap pour terminer.";
+    hint.textContent = ${JSON.stringify(t("boostsScripts.zapHint"))};
     hint.style.cssText = "position:fixed;z-index:2147483647;left:50%;bottom:16px;transform:translateX(-50%);pointer-events:none;padding:8px 14px;border-radius:8px;background:#1b1b1f;color:#fff;font:13px system-ui,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.35)";
     document.documentElement.append(box, hint);
     let target = null;

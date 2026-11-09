@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t as tr, t } from "@shared/i18n";
   import { mergeSuggestions, type Suggestion } from "@shared/search";
   import { internalPageOf } from "@shared/internal";
   import type { Bookmark } from "@shared/types";
@@ -166,8 +166,8 @@
         type="button"
         class="status site-info"
         class:secure={isSecure}
-        title="{isSecure ? 'Connexion sécurisée' : 'Connexion non sécurisée'} : infos sur le site, protections ({tab?.shieldsEnabled ? `${tab.blockedCount} bloqué${tab.blockedCount > 1 ? 's' : ''}` : 'désactivées'}) et autorisations"
-        aria-label="Infos sur le site ({isSecure ? 'connexion sécurisée' : 'connexion non sécurisée'})"
+        title={t(isSecure ? "addressBar.secureSiteInfoTitle" : "addressBar.insecureSiteInfoTitle", { protections: tab?.shieldsEnabled ? t("addressBar.blockedCount", { count: tab.blockedCount }) : t("addressBar.protectionsOff") })}
+        aria-label={t(isSecure ? "addressBar.siteInfoSecure" : "addressBar.siteInfoInsecure")}
         onmousedown={(event) => event.preventDefault()}
         onclick={showSiteInfo}
       >
@@ -298,7 +298,7 @@
         type="button"
         class="star on"
         aria-label={tab?.translated ? t("addressBar.pageTranslated") : t("addressBar.pageTranslation")}
-        title={platform.tip(tab?.translated ? "Page traduite" : t("addressBar.pageTranslation"), "translate-page")}
+        title={platform.tip(tab?.translated ? tr("addressBar.pageTranslated2") : t("addressBar.pageTranslation"), "translate-page")}
         onmousedown={(event) => event.preventDefault()}
         onclick={showTranslatePanel}
       >

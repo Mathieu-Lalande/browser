@@ -2822,7 +2822,7 @@ export const fr = {
   "assistantPrompts.summarizePage": "Résumer la page",
   "assistantPrompts.keyPoints": "Points clés",
   "assistantPrompts.explainSelection": "Expliquer la sélection",
-  "assistantPrompts.translateSelection": "Traduire la sélection",
+  "assistantPrompts.translateSelection": "Traduis le passage sélectionné en {language}. Donne seulement la traduction, en gardant la mise en forme.",
   "assistantPrompts.compareSelectedTabs": "Comparer les onglets sélectionnés",
   "assistantPrompts.summarizePageFewShort": "Résume cette page en quelques paragraphes courts : son sujet, ses idées principales et sa conclusion.",
   "assistantPrompts.giveKeyPointsPage": "Donne les points clés de cette page sous forme de liste à puces (cinq à dix points), du plus important au moins important.",
@@ -3545,6 +3545,600 @@ export const fr = {
   "webstorePage.verifying": "Vérification…",
   "webstorePage.waitingApproval": "En attente de votre accord…",
   "webstorePage.removeFromBrowser": "Supprimer de Browser",
+  // settingsIndex.section
+  "settingsIndex.section.appearance": "Apparence",
+  "settingsIndex.section.layout": "Disposition",
+  "settingsIndex.section.search": "Recherche",
+  "settingsIndex.section.startPage": "Page d'accueil",
+  "settingsIndex.section.behavior": "Comportement",
+  "settingsIndex.section.shortcuts": "Raccourcis clavier",
+  "settingsIndex.section.privacy": "Confidentialité",
+  "settingsIndex.section.autofill": "Adresses et paiements",
+  "settingsIndex.section.siteData": "Données des sites",
+  "settingsIndex.section.notifications": "Notifications",
+  "settingsIndex.section.translate": "Traduction",
+  "settingsIndex.section.assistant": "Assistant IA",
+  "settingsIndex.section.spellcheck": "Orthographe",
+  "settingsIndex.section.downloads": "Téléchargements",
+  "settingsIndex.section.data": "Données",
+  "settingsIndex.section.sync": "Synchronisation",
+  "settingsIndex.section.updates": "Mises à jour",
+  "settingsIndex.section.diagnostics": "Diagnostic",
+
+  // settingsIndex.appearance
+  "settingsIndex.appearance.theme": "Thème",
+  "settingsIndex.appearance.themeKeywords": "clair, sombre, dark, light, mode, système",
+  "settingsIndex.appearance.accent": "Couleur d'accent",
+  "settingsIndex.appearance.accentKeywords": "couleur, color, accent",
+  "settingsIndex.appearance.secondary": "Couleur secondaire",
+  "settingsIndex.appearance.secondaryKeywords": "dégradé, couleur",
+  "settingsIndex.appearance.background": "Arrière-plan",
+  "settingsIndex.appearance.backgroundKeywords": "fond, dégradé, background",
+  "settingsIndex.appearance.font": "Police de l'interface",
+  "settingsIndex.appearance.fontKeywords": "typographie, font, police",
+  "settingsIndex.appearance.density": "Densité",
+  "settingsIndex.appearance.densityKeywords": "compact, hauteur, taille",
+  "settingsIndex.appearance.radius": "Arrondi des coins",
+  "settingsIndex.appearance.radiusKeywords": "rayon, coins, radius",
+  "settingsIndex.appearance.shadows": "Ombres",
+  "settingsIndex.appearance.shadowsKeywords": "shadow, ombre",
+  "settingsIndex.appearance.reduceMotion": "Réduire les animations",
+  "settingsIndex.appearance.reduceMotionKeywords": "animations, mouvement, motion",
+  "settingsIndex.appearance.handCursor": "Curseur main",
+  "settingsIndex.appearance.handCursorKeywords": "pointeur, souris, cursor",
+  "settingsIndex.appearance.dynamicTheme": "Thème dynamique",
+  "settingsIndex.appearance.dynamicThemeKeywords": "couleur du site, theme-color, accent, adaptatif",
+  "settingsIndex.appearance.mica": "Effet Mica",
+  "settingsIndex.appearance.micaKeywords": "windows 11, transparence, mica",
+  "settingsIndex.appearance.pageZoom": "Zoom par défaut",
+  "settingsIndex.appearance.pageZoomKeywords": "zoom, taille des pages, agrandir",
+
+  // settingsIndex.layout
+  "settingsIndex.layout.sidebarPosition": "Position de la barre latérale",
+  "settingsIndex.layout.sidebarPositionKeywords": "gauche, droite, sidebar",
+  "settingsIndex.layout.sidebarWidth": "Largeur de la barre latérale",
+  "settingsIndex.layout.sidebarWidthKeywords": "sidebar, largeur",
+  "settingsIndex.layout.gutter": "Marge autour de la page",
+  "settingsIndex.layout.gutterKeywords": "bord, marge, gutter",
+  "settingsIndex.layout.zen": "Mode zen",
+  "settingsIndex.layout.zenKeywords": "plein écran, focus, zen",
+  "settingsIndex.layout.tabPreview": "Aperçu des onglets au survol",
+  "settingsIndex.layout.tabPreviewKeywords": "miniature, survol, vignette, hover, preview",
+
+  // settingsIndex.search
+  "settingsIndex.search.engine": "Moteur de recherche",
+  "settingsIndex.search.engineKeywords": "google, duckduckgo, brave, startpage, search engine",
+
+  // settingsIndex.startPage
+  "settingsIndex.startPage.name": "Prénom",
+  "settingsIndex.startPage.nameKeywords": "accueil, bonjour, nom",
+  "settingsIndex.startPage.widgets": "Widgets de la page d'accueil",
+  "settingsIndex.startPage.widgetsKeywords": "horloge, heure, notes, météo, tâches, widgets",
+  "settingsIndex.startPage.background": "Fond de la page d'accueil",
+  "settingsIndex.startPage.backgroundKeywords": "image, fond, wallpaper",
+
+  // settingsIndex.behavior
+  "settingsIndex.behavior.defaultBrowser": "Navigateur par défaut",
+  "settingsIndex.behavior.defaultBrowserKeywords": "défaut, default, liens, pdf, html",
+  "settingsIndex.behavior.restoreSession": "Au démarrage",
+  "settingsIndex.behavior.restoreSessionKeywords": "session, démarrage, rouvrir, restaurer, reprendre",
+  "settingsIndex.behavior.newTabPosition": "Ouvrir les nouveaux onglets",
+  "settingsIndex.behavior.newTabPositionKeywords": "position, nouvel onglet",
+  "settingsIndex.behavior.afterClose": "Après la fermeture d'un onglet, afficher",
+  "settingsIndex.behavior.afterCloseKeywords": "fermer, fermeture",
+  "settingsIndex.behavior.sleep": "Mettre en veille les onglets inactifs",
+  "settingsIndex.behavior.sleepKeywords": "veille, mémoire, sleep",
+  "settingsIndex.behavior.archive": "Archiver les onglets inactifs",
+  "settingsIndex.behavior.archiveKeywords": "archive, archivage",
+  "settingsIndex.behavior.autoPip": "Image dans l'image automatique",
+  "settingsIndex.behavior.autoPipKeywords": "pip, picture in picture, vidéo, flottante",
+  "settingsIndex.behavior.energySaver": "Économiseur d'énergie",
+  "settingsIndex.behavior.energySaverKeywords": "batterie, énergie, autonomie, economiseur",
+  "settingsIndex.behavior.miniWindow": "Liens externes dans une mini-fenêtre",
+  "settingsIndex.behavior.miniWindowKeywords": "mini fenêtre, little arc, liens, autres applications",
+
+  // settingsIndex.shortcuts
+  "settingsIndex.shortcuts.section": "Raccourcis clavier",
+  "settingsIndex.shortcuts.sectionKeywords": "raccourci, touches, keyboard, shortcut",
+
+  // settingsIndex.privacy
+  "settingsIndex.privacy.weather": "Widget Météo",
+  "settingsIndex.privacy.weatherKeywords": "open-meteo, localisation, réseau",
+  "settingsIndex.privacy.acceptLanguage": "Uniformiser la langue envoyée aux sites",
+  "settingsIndex.privacy.acceptLanguageKeywords": "langue, empreinte, fingerprint",
+  "settingsIndex.privacy.cookieBanners": "Refuser les bandeaux cookies",
+  "settingsIndex.privacy.cookieBannersKeywords": "cookies, consentement, rgpd, gdpr, bandeau, cmp",
+  "settingsIndex.privacy.fingerprinting": "Protection contre le pistage par empreinte",
+  "settingsIndex.privacy.fingerprintingKeywords": "empreinte, fingerprint, strict, client hints",
+  "settingsIndex.privacy.secureDns": "DNS sécurisé (DNS over HTTPS)",
+  "settingsIndex.privacy.secureDnsKeywords": "dns, doh, cloudflare, quad9, nextdns, résolveur",
+  "settingsIndex.privacy.privacyPages": "Tableau de bord et paramètres des sites",
+  "settingsIndex.privacy.privacyPagesKeywords": "confidentialité, statistiques, traqueurs, autorisations, javascript, lecture automatique",
+  "settingsIndex.privacy.drm": "Contenus protégés (DRM)",
+  "settingsIndex.privacy.drmKeywords": "widevine, netflix, disney, spotify, prime video, streaming",
+
+  // settingsIndex.siteData
+  "settingsIndex.siteData.thirdPartyCookies": "Bloquer les cookies tiers",
+  "settingsIndex.siteData.thirdPartyCookiesKeywords": "cookies, pistage, tracking",
+  "settingsIndex.siteData.section": "Cookies et données des sites",
+  "settingsIndex.siteData.sectionKeywords": "cookies, stockage, effacer",
+
+  // settingsIndex.translate
+  "settingsIndex.translate.provider": "Service de traduction",
+  "settingsIndex.translate.providerKeywords": "traduire, translate, deepl, libretranslate, google",
+  "settingsIndex.translate.target": "Langue de traduction",
+  "settingsIndex.translate.targetKeywords": "traduire vers, langue, translate",
+  "settingsIndex.translate.offer": "Proposer de traduire les pages",
+  "settingsIndex.translate.offerKeywords": "traduction, barre d'adresse",
+
+  // settingsIndex.assistant
+  "settingsIndex.assistant.enabled": "Activer l'assistant IA",
+  "settingsIndex.assistant.enabledKeywords": "ia, ai, claude, anthropic, résumer, chat",
+  "settingsIndex.assistant.apiKey": "Clé d'API Anthropic",
+  "settingsIndex.assistant.apiKeyKeywords": "ia, claude, clé, api key",
+  "settingsIndex.assistant.model": "Modèle de l'assistant",
+  "settingsIndex.assistant.modelKeywords": "ia, claude, opus, fable, modèle",
+
+  // settingsIndex.autofill
+  "settingsIndex.autofill.addresses": "Enregistrer et remplir les adresses",
+  "settingsIndex.autofill.addressesKeywords": "adresse, livraison, formulaire, autofill",
+  "settingsIndex.autofill.cards": "Enregistrer et remplir les cartes de paiement",
+  "settingsIndex.autofill.cardsKeywords": "carte bancaire, paiement, visa, mastercard",
+  "settingsIndex.autofill.syncAddresses": "Synchroniser les adresses",
+  "settingsIndex.autofill.syncAddressesKeywords": "synchronisation, adresses",
+  "settingsIndex.autofill.cardList": "Cartes de paiement enregistrées",
+  "settingsIndex.autofill.cardListKeywords": "carte, numéro, cb",
+
+  // settingsIndex.notifications
+  "settingsIndex.notifications.doNotDisturb": "Ne pas déranger",
+  "settingsIndex.notifications.doNotDisturbKeywords": "notifications, silence, alertes",
+
+  // settingsIndex.spellcheck
+  "settingsIndex.spellcheck.enabled": "Vérifier l'orthographe",
+  "settingsIndex.spellcheck.enabledKeywords": "correcteur, fautes, spellcheck",
+  "settingsIndex.spellcheck.languages": "Langues de l'orthographe",
+  "settingsIndex.spellcheck.languagesKeywords": "dictionnaire, langue, correcteur",
+  "settingsIndex.spellcheck.words": "Mots ajoutés au dictionnaire",
+  "settingsIndex.spellcheck.wordsKeywords": "dictionnaire personnel, mots",
+
+  // settingsIndex.downloads
+  "settingsIndex.downloads.folder": "Dossier des téléchargements",
+  "settingsIndex.downloads.folderKeywords": "dossier, emplacement, download",
+  "settingsIndex.downloads.askWhere": "Toujours demander où enregistrer",
+  "settingsIndex.downloads.askWhereKeywords": "enregistrer, demander",
+  "settingsIndex.downloads.executables": "Fichiers exécutables",
+  "settingsIndex.downloads.executablesKeywords": "exe, programmes, sécurité",
+
+  // settingsIndex.data
+  "settingsIndex.data.import": "Importer depuis un autre navigateur",
+  "settingsIndex.data.importKeywords": "import, chrome, firefox, edge, arc, mots de passe, csv",
+  "settingsIndex.data.history": "Historique de navigation",
+  "settingsIndex.data.historyKeywords": "effacer, historique, history",
+  "settingsIndex.data.bookmarks": "Favoris",
+  "settingsIndex.data.bookmarksKeywords": "bookmarks, signets",
+
+  // settingsIndex.sync
+  "settingsIndex.sync.section": "Synchronisation",
+  "settingsIndex.sync.sectionKeywords": "appareils, sync, jumelage, compte",
+  "settingsIndex.sync.annotations": "Synchroniser les notes et surlignages",
+  "settingsIndex.sync.annotationsKeywords": "notes, surlignages, annotations, highlights",
+  "settingsIndex.sync.passwords": "Synchroniser les mots de passe",
+  "settingsIndex.sync.passwordsKeywords": "mots de passe, passwords, identifiants, trousseau",
+  "settingsIndex.sync.panels": "Synchroniser les panneaux web",
+  "settingsIndex.sync.panelsKeywords": "panneaux, panels, whatsapp, spotify",
+
+  // settingsIndex.updates
+  "settingsIndex.updates.section": "Mises à jour",
+  "settingsIndex.updates.sectionKeywords": "version, update, mettre à jour",
+  "settingsIndex.updates.beta": "Programme bêta",
+  "settingsIndex.updates.betaKeywords": "beta, bêta, préversion, canal, tester",
+
+  // settingsIndex.diagnostics
+  "settingsIndex.diagnostics.crashReports": "Envoyer les rapports de plantage",
+  "settingsIndex.diagnostics.crashReportsKeywords": "crash, plantage, rapport, sentry",
+  "settingsIndex.diagnostics.crashes": "Derniers plantages",
+  "settingsIndex.diagnostics.crashesKeywords": "crash, plantage",
+  "settingsIndex.diagnostics.reportIssue": "Signaler un problème",
+  "settingsIndex.diagnostics.reportIssueKeywords": "bug, github, issue",
+  // startWidgets
+  "startWidgets.clock": "Horloge et salutation",
+  "startWidgets.clockDescription": "L'heure, la date et un mot d'accueil.",
+  "startWidgets.search": "Recherche",
+  "startWidgets.searchDescription": "Rechercher sur le web ou saisir une adresse.",
+  "startWidgets.topSites": "Sites fréquents",
+  "startWidgets.topSitesDescription": "Vos sites les plus visités, et ceux que vous épinglez.",
+  "startWidgets.favorites": "Favoris",
+  "startWidgets.favoritesDescription": "La grille des favoris.",
+  "startWidgets.devices": "Autres appareils",
+  "startWidgets.devicesDescription": "Les onglets ouverts sur vos appareils synchronisés.",
+  "startWidgets.notes": "Notes rapides",
+  "startWidgets.notesDescription": "Un bloc-notes conservé sur cet appareil.",
+  "startWidgets.weather": "Météo",
+  "startWidgets.weatherDescription": "Interroge Open-Meteo (sans clé ni cookie) pour la ville choisie.",
+  "startWidgets.calendar": "Calendrier",
+  "startWidgets.calendarDescription": "Le mois en cours.",
+  "startWidgets.todo": "À faire",
+  "startWidgets.todoDescription": "Une liste de tâches conservée sur cet appareil.",
+  "startWidgets.resume": "Reprendre",
+  "startWidgets.resumeDescription": "Rouvrir un onglet fermé ou archivé.",
+  "startWidgets.sizeSmall": "Petit",
+  "startWidgets.sizeMedium": "Moyen",
+  "startWidgets.sizeLarge": "Large",
+  // mobile.assistantSheet
+  "mobile.assistantSheet.sentToAnthropic": "Envoyé à Anthropic : {sources}",
+  "mobile.assistantSheet.truncated": "{title} (tronqué)",
+
+  // mobile.bottomBar
+  "mobile.bottomBar.siteInfoSecure": "Infos sur le site (connexion sécurisée)",
+  "mobile.bottomBar.siteInfoInsecure": "Infos sur le site (connexion non sécurisée)",
+
+  // mobile.settingsScreen
+  "mobile.settingsScreen.blockerDetail": "EasyList et EasyPrivacy. Désactivable par site : touchez le cadenas, puis « Bouclier ».",
+  "mobile.settingsScreen.trackersBlocked": "{trackers, plural, one {# traqueur bloqué} other {# traqueurs bloqués}} en 30 jours.",
+
+  // mobile.site
+  "mobile.site.goodMorning": "Bonjour",
+  "mobile.site.goodAfternoon": "Bon après-midi",
+  "mobile.site.goodEvening": "Bonsoir",
+  "mobile.site.goodNight": "Bonne nuit",
+
+  // mobile.usePageTranslation
+  "mobile.usePageTranslation.consent": "Le texte de cette page sera envoyé à {provider} pour être traduit.",
+  "mobile.usePageTranslation.privateNote": "Onglet privé : confirmation demandée à chaque session, rien n'est enregistré.",
+
+  // startWidgets
+  "startWidgets.hello": "Bonjour",
+  "startWidgets.goodEvening": "Bonsoir",
+  // downloadsFiles
+  "downloadsFiles.fallbackName": "téléchargement",
+  // boostsScripts
+  "boostsScripts.zapHint": "Cliquez sur un élément pour le masquer. Échap pour terminer.",
+
+  // captureScripts
+  "captureScripts.pickHint": "Cliquez sur un élément pour le capturer. Échap pour annuler.",
+  // extensions
+  "extensions.readChangeDataOn": "Lire et modifier vos données sur {hosts}{others}",
+
+  // assistantPrompts
+  "assistantPrompts.defaultLanguage": "français",
+
+  // updates
+  "updates.versionAvailable": "Version {version} disponible.",
+  "updates.downloadingVersion": "Téléchargement de la version {version} : {percent} %",
+  "updates.downloading": "Téléchargement : {percent} %",
+
+  // extensionsService
+  "extensionsService.updatePending": "Mise à jour en attente : {message}",
+
+  // webstorePage
+  "webstorePage.retry": "Réessayer",
+  "webstorePage.addToBrowser": "Ajouter à Browser",
+
+  // addressBar
+  "addressBar.secureSiteInfoTitle": "Connexion sécurisée : infos sur le site, protections ({protections}) et autorisations",
+  "addressBar.insecureSiteInfoTitle": "Connexion non sécurisée : infos sur le site, protections ({protections}) et autorisations",
+  "addressBar.blockedCount": "{count, plural, one {# bloqué} other {# bloqués}}",
+  "addressBar.protectionsOff": "désactivées",
+  "addressBar.siteInfoSecure": "Infos sur le site (connexion sécurisée)",
+  "addressBar.siteInfoInsecure": "Infos sur le site (connexion non sécurisée)",
+
+  // downloadsButton
+  "downloadsButton.running": "Téléchargements : {count} en cours",
+  "downloadsButton.runningProgress": "Téléchargements : {count} en cours, {percent} %",
+
+  // extensionRow
+  "extensionRow.updatesLastCheck": "Mises à jour : dernière vérification le {date}",
+  "extensionRow.updatesNeverChecked": "Mises à jour : jamais vérifiées",
+
+  // folderEditor
+  "folderEditor.quotedName": "« {name} »",
+  "folderEditor.containsTabs": " ? Il contient {count, plural, one {# onglet} other {# onglets}}.",
+
+  // spaceEditor
+  "spaceEditor.quotedName": "« {name} »",
+  "spaceEditor.tabsClosed": " ? Ses onglets seront fermés.",
+  "spaceEditor.tabsClosedIsolated": " ? Ses onglets seront fermés, et ses cookies et données effacés.",
+
+  // importPage
+  "importPage.bookmarksImported": "{count, plural, one {# favori importé} other {# favoris importés}}",
+  "importPage.alreadyPresent": ", {count, plural, one {# déjà présent} other {# déjà présents}}",
+  "importPage.historyAdded": "{count, plural, one {# page ajoutée} other {# pages ajoutées}} à l'historique",
+  "importPage.alreadyKnown": ", {count, plural, one {# déjà connue} other {# déjà connues}}",
+  "importPage.favoritesAdded": "{count, plural, one {# page} other {# pages}} dans la grille des favoris",
+  "importPage.passwordsSummary": "{added, plural, one {# mot de passe ajouté} other {# mots de passe ajoutés}}, {updated} mis à jour, {skipped, plural, one {# déjà présent} other {# déjà présents}}",
+  "importPage.passwordsIgnored": ", {count, plural, one {# ignoré} other {# ignorés}}",
+
+  // passwordsPage
+  "passwordsPage.modifiedOn": "Modifié le {date}",
+  "passwordsPage.usedOn": " · utilisé le {date}",
+
+  // backupCard
+  "backupCard.backupOfProfile": "Sauvegarde du profil « {name} »",
+  "backupCard.backup": "Sauvegarde",
+  "backupCard.colon": " :",
+
+  // assistantSection
+  "assistantSection.usageShortcut": "Raccourci {shortcut}, ",
+  "assistantSection.usageHint": "menu « … », clic droit sur la page ou une sélection, ou @ia suivi d'une question dans la barre universelle. Chaque demande est facturée par Anthropic sur votre compte ; les pages longues sont tronquées (c'est indiqué).",
+
+  // autofillSection
+  "autofillSection.cardDetail": "{name} · expire fin {expiry}",
+  "autofillSection.noCardholder": "Sans titulaire",
+
+  // diagnosticsSection
+  "diagnosticsSection.sendsReportTo": "Envoie le rapport technique d'un plantage à {host}. Désactivé par défaut.",
+  "diagnosticsSection.sendsReport": "Envoie le rapport technique d'un plantage. Désactivé par défaut.",
+  "diagnosticsSection.reportContent": "Un rapport contient l'état de la mémoire du processus qui a planté (minidump), la version de Browser, le canal de mise à jour et le système. Il peut, rarement, contenir des fragments de la page affichée à ce moment-là. Aucun historique, favori, mot de passe ni identifiant n'y est ajouté, et rien n'est envoyé sans votre accord.",
+  "diagnosticsSection.sendingOn": " Envoi activé.",
+
+  // shortcutsSection
+  "shortcutsSection.needsModifierMac": "Ajoutez ⌘, ⌃ ou ⌥ à cette touche.",
+  "shortcutsSection.needsModifier": "Ajoutez Ctrl ou Alt à cette touche.",
+
+  // syncSection
+  "syncSection.offlineRetryAt": "Serveur injoignable, nouvel essai à {time}.",
+  "syncSection.offline": "Serveur injoignable.",
+
+  // restoreSessionCard
+  "restoreSessionCard.notClosedProperly": "Le navigateur ne s'est pas fermé correctement. {windows, plural, one {# fenêtre} other {# fenêtres}}, {tabs, plural, one {# onglet} other {# onglets}} peuvent être rouverts.",
+  "restoreSessionCard.windowTabs": "Fenêtre {index} : {tabs, plural, one {# onglet} other {# onglets}}",
+
+  // welcomeImport
+  "welcomeImport.bookmarks": "{count, plural, one {# favori} other {# favoris}}",
+  "welcomeImport.historyPages": "{count, plural, one {# page} other {# pages}} d'historique",
+  "welcomeImport.engine": "moteur {name}",
+  "welcomeImport.importFrom": "Importer depuis {name}",
+
+  // miniBar
+  "miniBar.openInBrowserShortcut": "Ouvrir dans le navigateur ({shortcut})",
+  "miniBar.closeShortcut": "Fermer ({shortcut})",
+
+  // appMenuPanel
+  "appMenuPanel.offline": "Hors ligne",
+  "appMenuPanel.upToDate": "À jour, {time}",
+
+  // extensionInstallPanel
+  "extensionInstallPanel.versionFromFile": "Version {version} · fichier déposé, sans signature vérifiée",
+  "extensionInstallPanel.versionFromStore": "Version {version} · Chrome Web Store, signature vérifiée",
+
+  // passwordPanel
+  "passwordPanel.updatePasswordFor": "Mettre à jour le mot de passe pour {site} ?",
+  "passwordPanel.savePasswordFor": "Enregistrer le mot de passe pour {site} ?",
+  "passwordPanel.noUsername": "Sans identifiant",
+
+  // translatePanel
+  "translatePanel.detect": "Détecter",
+  "translatePanel.detectedAs": "Détecter ({language})",
+  "translatePanel.consent": "Le texte de cette page sera envoyé à {provider} pour être traduit.",
+  "translatePanel.privateNote": "Fenêtre privée : confirmation demandée une fois par fenêtre, rien n'est enregistré.",
+  // importPage
+  "importPage.profileCount": "{count, plural, one {# profil} other {# profils}}",
+  // settingsPage
+  "settingsPage.appearanceDescription": "Couleurs, ambiance et typographie de l'interface.",
+  "settingsPage.layoutDescription": "Place de la barre latérale et de la page.",
+  "settingsPage.searchDescription": "Moteur utilisé par la barre d'adresse et la page d'accueil.",
+  "settingsPage.startPageDescription": "Ce qu'affiche un nouvel onglet.",
+  "settingsPage.behaviorDescription": "Démarrage et gestion des onglets.",
+  "settingsPage.shortcutsDescription": "Choisissez la combinaison de chaque commande, ou retirez-la.",
+  "settingsPage.privacyDescription": "Ce que le navigateur révèle de vous aux sites.",
+  "settingsPage.autofillDescription": "Adresses et cartes chiffrées sur cet appareil, proposées dans les formulaires.",
+  "settingsPage.siteDataDescription": "Cookies et stockage laissés par les sites, et cookies tiers.",
+  "settingsPage.notificationsDescription": "Les alertes que les sites ouverts peuvent afficher sur le bureau.",
+  "settingsPage.translateDescription": "Traduire les pages avec le service de votre choix : le texte de la page lui est envoyé.",
+  "settingsPage.assistantDescription": "Résumer, expliquer et interroger les pages avec Claude, avec votre propre clé d'API Anthropic : le texte des pages choisies lui est envoyé.",
+  "settingsPage.spellcheckDescription": "Vérification de l'orthographe dans les champs de texte des pages.",
+  "settingsPage.downloadsDescription": "Où vont les fichiers, et comment.",
+  "settingsPage.dataDescription": "Historique et favoris, stockés uniquement sur cet appareil.",
+  "settingsPage.syncDescription": "Vos appareils synchronisés, chiffrés de bout en bout : le serveur ne peut rien lire.",
+  "settingsPage.updatesDescription": "Nouvelles versions de Browser, installées au redémarrage.",
+  "settingsPage.diagnosticsDescription": "Rapports de plantage (désactivés par défaut) et signalement des problèmes.",
+  // mobile.bottomBar
+  "mobile.bottomBar.reload": "Actualiser",
+
+  // mobile.miniBar
+  "mobile.miniBar.play": "Lire",
+
+  // mobile.organize
+  "mobile.organize.restore": "Restaurer {p}",
+
+  // mobile.passwordsSettings
+  "mobile.passwordsSettings.noUsername": "Sans identifiant",
+
+  // mobile.peekSheet
+  "mobile.peekSheet.loading": "Chargement…",
+
+  // mobile.readerScreen
+  "mobile.readerScreen.sansSerif": "Sans serif",
+
+  // mobile.readingListScreen
+  "mobile.readingListScreen.read2": "Lire {title}",
+
+  // mobile.searchSheet
+  "mobile.searchSheet.bookmark": "Favori",
+
+  // mobile.settingsScreen
+  "mobile.settingsScreen.light": "Clair",
+  "mobile.settingsScreen.dark": "Sombre",
+  "mobile.settingsScreen.sync2": "Synchronisation",
+
+  // mobile.startWidgets
+  "mobile.startWidgets.loading": "Chargement…",
+
+  // mobile.syncSettings
+  "mobile.syncSettings.sync": "Synchronisation",
+
+  // mobile.themeSettings
+  "mobile.themeSettings.dark": "Sombre",
+  "mobile.themeSettings.light": "Clair",
+
+  // mobile.useReader
+  "mobile.useReader.readerModeUnavailable": "Mode lecture indisponible",
+
+  // mobile.platform
+  "mobile.platform.webBrowser": "Navigateur web",
+
+  // mobile.usePageTranslation
+  "mobile.usePageTranslation.translationUnavailable": "Traduction indisponible",
+  "mobile.usePageTranslation.translationInterrupted": "Traduction interrompue",
+
+  // events
+  "events.error": "Erreur : {p}",
+
+  // tabsManager
+  "tabsManager.loading": "Chargement…",
+
+  // addressBar
+  "addressBar.pageTranslated2": "Page traduite",
+
+  // boostEditor
+  "boostEditor.contrast": "Contraste",
+
+  // downloadsPage
+  "downloadsPage.yesterday": "Hier",
+
+  // historyPage
+  "historyPage.yesterday": "Hier",
+
+  // loadErrorPage
+  "loadErrorPage.reload": "Actualiser",
+  "loadErrorPage.loading": "Chargement…",
+  "loadErrorPage.unknownError": "Erreur inconnue",
+
+  // miniPlayer
+  "miniPlayer.play": "Lire",
+
+  // passwordsPage
+  "passwordsPage.noUsername": "Sans identifiant",
+
+  // backupCard
+  "backupCard.merge2": "Fusionner",
+
+  // readerView
+  "readerView.sansSerif": "Sans serif",
+
+  // autofillSection
+  "autofillSection.address": "Adresse",
+
+  // syncSection
+  "syncSection.progress": "En cours",
+  "syncSection.error": "Erreur",
+  "syncSection.confirm": "Confirmer",
+
+  // weatherWidget
+  "weatherWidget.loading": "Chargement…",
+
+  // welcomeEssentials
+  "welcomeEssentials.try": "Essayer",
+
+  // miniBar
+  "miniBar.loading": "Chargement…",
+
+  // appMenuPanel
+  "appMenuPanel.syncing": "Synchronisation…",
+  "appMenuPanel.zoom3": "Zoom avant",
+
+  // autofillPanel
+  "autofillPanel.noCardholder": "Sans titulaire",
+
+  // extensionInstallPanel
+  "extensionInstallPanel.willAble": "Elle pourra :",
+
+  // pageOptionsPanel
+  "pageOptionsPanel.zoom3": "Zoom avant",
+
+  // passwordPanel
+  "passwordPanel.noUsername2": "Sans identifiant",
+
+  // printPreviewPanel
+  "printPreviewPanel.print2": "Imprimer",
+
+  // siteBoostSection
+  "siteBoostSection.active": "Actif",
+
+  // accelerators
+  "accelerators.del": "Suppr",
+  "accelerators.ins": "Inser",
+  "accelerators.pageDown": "Page suiv.",
+  "accelerators.end": "Fin",
+  "accelerators.shift": "Maj",
+
+  // annotationsModel
+  "annotationsModel.yellow": "Jaune",
+  "annotationsModel.green": "Vert",
+  "annotationsModel.blue": "Bleu",
+  "annotationsModel.pink": "Rose",
+
+  // autofillCard
+  "autofillCard.card": "Carte",
+
+  // capture
+  "capture.screenshot": "Capture",
+  "capture.recording": "Enregistrement",
+
+  // drm
+  "drm.widevineUnavailable": "Widevine indisponible",
+
+  // omniboxOmnibox
+  "omniboxOmnibox.filter": "Filtrer",
+
+  // providersAssistant
+  "providersAssistant.ask": "Demander",
+
+  // providersPages
+  "providersPages.restore": "Restaurer",
+
+  // omniboxScorer
+  "omniboxScorer.filters": "Filtres",
+
+  // onboarding
+  "onboarding.welcome": "Bienvenue",
+  "onboarding.twoFingers": "Deux doigts",
+  "onboarding.shiftClick": "Maj + clic",
+
+  // reader
+  "reader.dark": "Sombre",
+
+  // siteInfo
+  "siteInfo.microphone": "Micro",
+  "siteInfo.location": "Position",
+
+  // spaces
+  "spaces.personal2": "Personnel",
+  "spaces.work": "Travail",
+  "spaces.games": "Jeux",
+  "spaces.shopping": "Achats",
+  "spaces.travel": "Voyages",
+  "spaces.music": "Musique",
+  "spaces.research": "Recherche",
+  "spaces.cooking": "Cuisine",
+  "spaces.projects": "Projets",
+  "spaces.administration": "Administration",
+  "spaces.finances": "Finances",
+  "spaces.calendar": "Agenda",
+  "spaces.mail": "Courrier",
+  "spaces.folders": "Dossiers",
+  "spaces.miscellaneous": "Divers",
+  "spaces.quick": "Rapide",
+
+  // syncClient
+  "syncClient.serverUnreachable": "Serveur injoignable",
+
+  // tasks
+  "tasks.browser": "Navigateur",
+  "tasks.gpuProcess": "Processus GPU",
+  "tasks.process": "Processus",
+  "tasks.untitled": "Sans titre",
+
+  // translateLanguages
+  "translateLanguages.unknownLanguage": "langue inconnue",
+
+  // webstorePage
+  "webstorePage.installing": "Installation…",
+  // tabsModel
+  "tabsModel.startPage": "Page d'accueil",
+
+  // mobile.tabCard
+  "mobile.tabCard.startPage": "Page d'accueil",
 } as const;
 
 export type MessageKey = keyof typeof fr;

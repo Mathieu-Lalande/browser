@@ -37,6 +37,7 @@ export interface Country {
 
 export const COUNTRIES: readonly Country[] = [
   { code: "FR", get name() { return t("autofillAddress.france") }, layout: "eu", postal: /^\d{5}$/, aliases: ["france", "fra"] },
+  // i18n-ignore
   { code: "BE", get name() { return t("autofillAddress.belgium") }, layout: "eu", postal: /^\d{4}$/, aliases: ["belgium", "belgië", "belgie", "bel"] },
   { code: "CH", get name() { return t("autofillAddress.switzerland") }, layout: "eu", postal: /^\d{4}$/, aliases: ["switzerland", "schweiz", "svizzera", "che"] },
   { code: "LU", get name() { return t("autofillAddress.luxembourg") }, layout: "eu", postal: /^(L-?)?\d{4}$/, aliases: ["lux"] },
@@ -47,6 +48,7 @@ export const COUNTRIES: readonly Country[] = [
   { code: "IT", get name() { return t("autofillAddress.italy") }, layout: "eu", postal: /^\d{5}$/, aliases: ["italy", "italia", "ita"] },
   { code: "PT", get name() { return t("autofillAddress.portugal") }, layout: "eu", postal: /^\d{4}-?\d{3}$/, aliases: ["prt"] },
   { code: "NL", get name() { return t("autofillAddress.netherlands") }, layout: "eu", postal: /^\d{4}\s?[a-z]{2}$/i, aliases: ["netherlands", "nederland", "nld", "holland"] },
+  // i18n-ignore
   { code: "IE", get name() { return t("autofillAddress.ireland") }, layout: "uk", postal: null, aliases: ["ireland", "irl", "éire"] },
   { code: "GB", get name() { return t("autofillAddress.unitedKingdom") }, layout: "uk", postal: /^[a-z]{1,2}\d[a-z\d]?\s?\d[a-z]{2}$/i, aliases: ["united kingdom", "uk", "great britain", "england", "gbr"] },
   { code: "US", get name() { return t("autofillAddress.unitedStates") }, layout: "us", postal: /^\d{5}(-\d{4})?$/, aliases: ["united states", "usa", "united states of america", "etats-unis"] },

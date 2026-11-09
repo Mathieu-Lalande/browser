@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import type { WebContents } from "electron";
 import type { FolderId } from "@shared/folders";
 import type { TabId } from "@shared/types";
@@ -322,7 +323,7 @@ export class TabEvents {
         deps.emit();
         return;
       }
-      tab.state.title = `Erreur : ${displayUrl(url) || description}`;
+      tab.state.title = t("events.error", { p: displayUrl(url) || description });
       tab.state.isLoading = false;
       // The chrome UI explains the failure (LoadErrorPage) instead of Chromium's blank error page.
       tab.state.loadError = { code, description, url };

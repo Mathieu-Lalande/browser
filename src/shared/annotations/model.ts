@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { fold } from "../fuzzy";
 
 /**
@@ -28,7 +29,7 @@ export const HIGHLIGHT_COLORS = ["yellow", "green", "blue", "pink"] as const;
 export type HighlightColor = (typeof HIGHLIGHT_COLORS)[number];
 export const isHighlightColor = (value: unknown): value is HighlightColor => HIGHLIGHT_COLORS.includes(value as HighlightColor);
 
-export const COLOR_LABELS: Record<HighlightColor, string> = { yellow: "Jaune", green: "Vert", blue: "Bleu", pink: "Rose" };
+export const COLOR_LABELS: Record<HighlightColor, string> = { get yellow() { return t("annotationsModel.yellow") }, get green() { return t("annotationsModel.green") }, get blue() { return t("annotationsModel.blue") }, get pink() { return t("annotationsModel.pink") } };
 
 /**
  * Highlight backgrounds: translucent on a light page, deeper on a dark one (text stays readable:

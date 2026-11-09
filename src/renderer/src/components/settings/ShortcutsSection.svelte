@@ -77,7 +77,7 @@
   function refusal(check: Exclude<ShortcutCheck, { ok: true }>): string {
     switch (check.reason) {
       case "needs-modifier":
-        return `Ajoutez ${platform.isMac ? "⌘, ⌃ ou ⌥" : "Ctrl ou Alt"} à cette touche.`;
+        return t(platform.isMac ? "shortcutsSection.needsModifierMac" : "shortcutsSection.needsModifier");
       case "reserved":
         return t("shortcutsSection.combinationReservedSystem");
       case "fixed":

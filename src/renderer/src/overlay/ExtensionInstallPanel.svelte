@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t as tr, t } from "@shared/i18n";
   import type { ExtensionReview } from "@shared/extensions";
   import { api } from "../lib/browser.svelte";
   import { dismiss } from "../components/ui/dismiss";
@@ -56,11 +56,11 @@
       </span>
       <div>
         <h2>{title}</h2>
-        <p class="meta">Version {review.version} · {review.source === "file" ? "fichier déposé, sans signature vérifiée" : "Chrome Web Store, signature vérifiée"}</p>
+        <p class="meta">{t(review.source === "file" ? "extensionInstallPanel.versionFromFile" : "extensionInstallPanel.versionFromStore", { version: review.version })}</p>
       </div>
     </header>
     {#if review.permissions.length}
-      <p>{review.update ? t("extensionInstallPanel.newVersionAsksMore") : "Elle pourra :"}</p>
+      <p>{review.update ? t("extensionInstallPanel.newVersionAsksMore") : tr("extensionInstallPanel.willAble")}</p>
       <ul>
         {#each review.permissions as permission (permission)}
           <li><Icon name="check" size={12} /> {permission}</li>

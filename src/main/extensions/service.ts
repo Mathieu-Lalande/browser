@@ -649,7 +649,7 @@ export class ExtensionService implements SessionService {
     if (added.length) {
       if (!review) {
         const message = t("extensionsService.newVersionAsksMore");
-        this.errors.set(id, `Mise à jour en attente : ${message}`);
+        this.errors.set(id, t("extensionsService.updatePending", { message }));
         return discard(message);
       }
       const icon = readIcon(target, manifest.iconPath);

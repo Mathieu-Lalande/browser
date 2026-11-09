@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t as tr, t, intlLocale, formatTime } from "@shared/i18n";
   import { displayUrl } from "@shared/url";
   import { api, browser } from "../../lib/browser.svelte";
   import { sync } from "../../lib/sync.svelte";
@@ -52,7 +52,7 @@
     if (minutes < 60) return t("syncSection.minAgo", { minutes });
     const hours = Math.round(minutes / 60);
     if (hours < 24) return t("syncSection.hAgo", { hours });
-    return new Date(time).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+    return new Date(time).toLocaleDateString(intlLocale(), { day: "numeric", month: "long" });
   }
 
   const statusText = $derived.by(() => {
@@ -61,7 +61,7 @@
       case "syncing":
         return t("syncSection.syncing");
       case "offline":
-        return `Serveur injoignable${status.retryAt ? `, nouvel essai à ${new Date(status.retryAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}` : ""}.`;
+        return status.retryAt ? t("syncSection.offlineRetryAt", { time: formatTime(status.retryAt) }) : t("syncSection.offline");
       case "error":
         return status.error?.message ?? t("syncSection.syncError");
       default:
@@ -175,7 +175,7 @@
   <Row label={t("syncSection.status")} hint={statusText}>
     <span class="phase" class:error={status.phase === "error"} class:offline={status.phase === "offline"} data-phase={status.phase}>
       <Icon name={status.phase === "offline" || status.phase === "error" ? "cloud-off" : "cloud"} size={14} />
-      {status.phase === "syncing" ? "En cours" : status.phase === "idle" ? t("syncSection.on") : status.phase === "offline" ? "Hors ligne" : "Erreur"}
+      {status.phase === "syncing" ? tr("syncSection.progress") : status.phase === "idle" ? t("syncSection.on") : status.phase === "offline" ? "Hors ligne" : tr("syncSection.error")}
     </span>
     <button class="secondary" onclick={() => api.sync.syncNow()} disabled={status.phase === "syncing"}>
       <Icon name="reload" size={13} /> {t("syncSection.syncNow")}
@@ -273,7 +273,7 @@
   <Row label={t("syncSection.disconnectDevice")} hint={t("syncSection.stopsSyncHereRemoves")}>
     <button class="danger" class:confirming={confirming === "disconnect"} disabled={busy} onclick={() => confirmed("disconnect")}>
       <Icon name="unlink" size={13} />
-      {confirming === "disconnect" ? "Confirmer" : t("syncSection.disconnect")}
+      {confirming === "disconnect" ? tr("syncSection.confirm") : t("syncSection.disconnect")}
     </button>
   </Row>
   <Row

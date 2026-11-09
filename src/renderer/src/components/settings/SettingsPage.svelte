@@ -187,7 +187,7 @@
         id="appearance"
         icon="palette"
         title={t("settingsPage.appearance")}
-        description="Couleurs, ambiance et typographie de l'interface."
+        description={t("settingsPage.appearanceDescription")}
         onReset={() => settings.reset("appearance")}
       >
         <AppearanceSection />
@@ -197,7 +197,7 @@
         id="layout"
         icon="sidebar"
         title={t("settingsPage.layout")}
-        description="Place de la barre latérale et de la page."
+        description={t("settingsPage.layoutDescription")}
         onReset={() => settings.reset("layout")}
       >
         <LayoutSection />
@@ -207,7 +207,7 @@
         id="search"
         icon="search"
         title={t("settingsPage.search")}
-        description="Moteur utilisé par la barre d'adresse et la page d'accueil."
+        description={t("settingsPage.searchDescription")}
         onReset={() => settings.reset("search")}
       >
         <SearchSection />
@@ -217,7 +217,7 @@
         id="startPage"
         icon="home"
         title={t("settingsPage.startPage")}
-        description="Ce qu'affiche un nouvel onglet."
+        description={t("settingsPage.startPageDescription")}
         onReset={() => settings.reset("startPage")}
       >
         <StartPageSection />
@@ -227,7 +227,7 @@
         id="behavior"
         icon="sliders"
         title={t("settingsPage.behavior")}
-        description="Démarrage et gestion des onglets."
+        description={t("settingsPage.behaviorDescription")}
         onReset={() => settings.reset("behavior")}
       >
         <BehaviorSection />
@@ -237,7 +237,7 @@
         id="shortcuts"
         icon="keyboard"
         title={t("settingsPage.keyboardShortcuts")}
-        description="Choisissez la combinaison de chaque commande, ou retirez-la."
+        description={t("settingsPage.shortcutsDescription")}
         keywords={t("settingsPage.keysCombinationKeyboardAccelerator")}
       >
         <ShortcutsSection />
@@ -247,7 +247,7 @@
         id="privacy"
         icon="shield"
         title={t("settingsPage.privacy")}
-        description="Ce que le navigateur révèle de vous aux sites."
+        description={t("settingsPage.privacyDescription")}
         onReset={() => settings.reset("privacy")}
       >
         <PrivacySection />
@@ -257,14 +257,14 @@
         id="autofill"
         icon="credit-card"
         title={t("settingsPage.addressesPayments")}
-        description="Adresses et cartes chiffrées sur cet appareil, proposées dans les formulaires."
+        description={t("settingsPage.autofillDescription")}
         keywords={t("settingsPage.autofillAutomaticFillingBank")}
         onReset={() => settings.reset("autofill")}
       >
         <AutofillSection />
       </Section>
 
-      <Section id="siteData" icon="cookie" title={t("settingsPage.siteData")} description="Cookies et stockage laissés par les sites, et cookies tiers.">
+      <Section id="siteData" icon="cookie" title={t("settingsPage.siteData")} description={t("settingsPage.siteDataDescription")}>
         <SiteDataSection />
       </Section>
 
@@ -272,7 +272,7 @@
         id="notifications"
         icon="bell"
         title={t("settingsPage.notifications")}
-        description="Les alertes que les sites ouverts peuvent afficher sur le bureau."
+        description={t("settingsPage.notificationsDescription")}
         onReset={() => settings.reset("notifications")}
       >
         <NotificationsSection />
@@ -282,7 +282,7 @@
         id="translate"
         icon="languages"
         title={t("settingsPage.translation")}
-        description="Traduire les pages avec le service de votre choix : le texte de la page lui est envoyé."
+        description={t("settingsPage.translateDescription")}
         keywords={t("settingsPage.translateDeeplLibretranslateGoogle")}
         onReset={() => settings.reset("translate")}
       >
@@ -293,7 +293,7 @@
         id="assistant"
         icon="sparkles"
         title={t("settingsPage.aiAssistant")}
-        description="Résumer, expliquer et interroger les pages avec Claude, avec votre propre clé d'API Anthropic : le texte des pages choisies lui est envoyé."
+        description={t("settingsPage.assistantDescription")}
         keywords={t("settingsPage.assistantAiClaudeAnthropic")}
         onReset={() => settings.reset("assistant")}
       >
@@ -304,7 +304,7 @@
         id="spellcheck"
         icon="spell-check"
         title={t("settingsPage.spelling")}
-        description="Vérification de l'orthographe dans les champs de texte des pages."
+        description={t("settingsPage.spellcheckDescription")}
         keywords={t("settingsPage.spellCheckerDictionarySpellcheck")}
         onReset={() => settings.reset("spellcheck")}
       >
@@ -315,13 +315,13 @@
         id="downloads"
         icon="download"
         title={t("settingsPage.downloads")}
-        description="Où vont les fichiers, et comment."
+        description={t("settingsPage.downloadsDescription")}
         onReset={() => settings.reset("downloads")}
       >
         <DownloadsSection />
       </Section>
 
-      <Section id="data" icon="database" title={t("settingsPage.data")} description="Historique et favoris, stockés uniquement sur cet appareil.">
+      <Section id="data" icon="database" title={t("settingsPage.data")} description={t("settingsPage.dataDescription")}>
         <DataSection />
       </Section>
 
@@ -329,7 +329,7 @@
         id="sync"
         icon="cloud"
         title={t("settingsPage.sync")}
-        description="Vos appareils synchronisés, chiffrés de bout en bout : le serveur ne peut rien lire."
+        description={t("settingsPage.syncDescription")}
       >
         <SyncSection />
       </Section>
@@ -338,7 +338,7 @@
         id="updates"
         icon="update"
         title={t("settingsPage.updates")}
-        description="Nouvelles versions de Browser, installées au redémarrage."
+        description={t("settingsPage.updatesDescription")}
         onReset={() => settings.reset("updates")}
       >
         <UpdatesSection />
@@ -348,7 +348,7 @@
         id="diagnostics"
         icon="bug"
         title={t("settingsPage.diagnostics")}
-        description="Rapports de plantage (désactivés par défaut) et signalement des problèmes."
+        description={t("settingsPage.diagnosticsDescription")}
         keywords={t("settingsPage.crashReportBugDiagnostics")}
         onReset={() => settings.reset("diagnostics")}
       >

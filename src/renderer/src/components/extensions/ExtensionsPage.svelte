@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t, intlLocale } from "@shared/i18n";
   import Card from "../ui/Card.svelte";
   import type { DroppedExtension, ExtensionInfo, ExtensionInstallResult } from "@shared/extensions";
   import { api, browser } from "../../lib/browser.svelte";
@@ -64,9 +64,9 @@
 
   const fromStore = $derived(extensions.some((extension) => extension.webStoreId));
   const shown = $derived.by(() => {
-    const needle = query.trim().toLocaleLowerCase("fr");
+    const needle = query.trim().toLocaleLowerCase(intlLocale());
     if (!needle) return extensions;
-    return extensions.filter((extension) => `${extension.name} ${extension.description}`.toLocaleLowerCase("fr").includes(needle));
+    return extensions.filter((extension) => `${extension.name} ${extension.description}`.toLocaleLowerCase(intlLocale()).includes(needle));
   });
 
   async function checkUpdates(): Promise<void> {
@@ -101,7 +101,7 @@
   }
 
   const storeLink = (extension: ExtensionInfo) => (extension.webStoreId ? `https://chromewebstore.google.com/detail/${extension.webStoreId}` : null);
-  const when = (time: number) => new Date(time).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" });
+  const when = (time: number) => new Date(time).toLocaleString(intlLocale(), { dateStyle: "medium", timeStyle: "short" });
 </script>
 
 {#snippet subtitle()}

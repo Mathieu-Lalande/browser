@@ -3,6 +3,8 @@
  * CVV, cryptogramme) is never part of the model: nothing here reads, keeps or fills it.
  */
 
+import { t } from "../i18n";
+
 export type CardBrand = "visa" | "mastercard" | "amex" | "discover" | "diners" | "jcb" | "unionpay" | "maestro" | "unknown";
 
 export const CARD_BRAND_LABELS: Record<CardBrand, string> = {
@@ -14,7 +16,7 @@ export const CARD_BRAND_LABELS: Record<CardBrand, string> = {
   jcb: "JCB",
   unionpay: "UnionPay",
   maestro: "Maestro",
-  unknown: "Carte",
+  get unknown() { return t("autofillCard.card") },
 };
 
 /** Digits of a typed number (spaces, dashes and dots dropped); null if anything else is in it. */
@@ -109,16 +111,19 @@ export function parseExpiry(value: string): CardExpiry | null {
 /** French and English month names (prefixes long enough to be unambiguous). */
 const MONTH_NAMES: readonly string[][] = [
   ["janv", "jan"],
+  // i18n-ignore
   ["févr", "fevr", "feb"],
   ["mars", "mar"],
   ["avr", "apr"],
   ["mai", "may"],
   ["juin", "jun"],
   ["juil", "jul"],
+  // i18n-ignore
   ["août", "aout", "aug"],
   ["sept", "sep"],
   ["oct"],
   ["nov"],
+  // i18n-ignore
   ["déc", "dec"],
 ];
 

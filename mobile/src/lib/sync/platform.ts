@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetchTransport, type Transport } from "@shared/sync/client";
 import { SyncController, type SyncStatus } from "@shared/sync/controller";
@@ -85,7 +86,7 @@ function debouncedState(target: { save(state: unknown): void }, delayMs = 500) {
 export function deviceName(): string {
   if (Platform.OS === "ios") return Platform.isPad ? "iPad" : "iPhone";
   if (Platform.OS === "android") return "Android";
-  return "Navigateur web";
+  return t("mobile.platform.webBrowser");
 }
 
 export function createMobileSync(options: MobileSyncOptions): SyncController {

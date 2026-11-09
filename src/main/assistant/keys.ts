@@ -13,7 +13,7 @@ import { JsonFile } from "../storage/json-file";
 
 const VERSION = 1;
 const MAX_KEY_LENGTH = 500;
-const UNAVAILABLE = t("assistantKeys.systemEncryptionIsntAvailable");
+const UNAVAILABLE = (): string => t("assistantKeys.systemEncryptionIsntAvailable");
 
 /** Same test hook as the password vault (unpackaged app only, ADR-018). */
 const TEST_PLAIN_KEYCHAIN = !app.isPackaged && process.env.BROWSER_TEST_PLAIN_KEYCHAIN === "1";
@@ -53,19 +53,19 @@ export class AssistantKeyStore {
   status(): AssistantKeyStatus {
     const set = !!this.opened();
     const available = safeStorage.isEncryptionAvailable();
-    return { available, message: available ? null : UNAVAILABLE, set };
+    return { available, message: available ? null : UNAVAILABLE(), set };
   }
 
   /** Saves (or, empty, removes) the key; refused without OS encryption. */
   set(key: string): { ok: true } | { ok: false; message: string } {
     this.opened();
     const clean = key.trim().slice(0, MAX_KEY_LENGTH);
-    if (!safeStorage.isEncryptionAvailable()) return { ok: false, message: UNAVAILABLE };
+    if (!safeStorage.isEncryptionAvailable()) return { ok: false, message: UNAVAILABLE() };
     let ciphertext: string;
     try {
       ciphertext = safeStorage.encryptString(clean).toString("base64");
     } catch {
-      return { ok: false, message: UNAVAILABLE };
+      return { ok: false, message: UNAVAILABLE() };
     }
     if (!this.file!.save({ ciphertext })) return { ok: false, message: t("assistantKeys.keyFileCouldntWritten") };
     this.key = clean;

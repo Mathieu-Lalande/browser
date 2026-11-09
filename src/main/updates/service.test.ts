@@ -138,11 +138,11 @@ describe("UpdateService", () => {
     const { updater, service } = setup();
     updater.next = "fail";
     await service.check();
-    expect(service.status).toMatchObject({ phase: "error", error: CHECK_FAILED });
+    expect(service.status).toMatchObject({ phase: "error", error: CHECK_FAILED() });
     updater.next = "available";
     updater.failDownload = true;
     await service.check();
-    expect(service.status).toMatchObject({ phase: "error", error: DOWNLOAD_FAILED, version: "2.0.0" });
+    expect(service.status).toMatchObject({ phase: "error", error: DOWNLOAD_FAILED(), version: "2.0.0" });
   });
 
   it("does nothing without an updater", async () => {

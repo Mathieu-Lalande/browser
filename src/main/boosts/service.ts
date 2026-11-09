@@ -19,7 +19,7 @@ import {
 import { Channels } from "@shared/ipc";
 import type { TabBoost } from "@shared/types";
 import type { WindowDirectory, WindowPort } from "../ports";
-import { SCRIPT_WORLD_ID, ZAP_SCRIPT, ZAP_WORLD_ID, userScript } from "./scripts";
+import { SCRIPT_WORLD_ID, zapScript, ZAP_WORLD_ID, userScript } from "./scripts";
 
 const PRIVATE_REFUSAL: BoostResult = { ok: false, get message() { return t("boostsService.boostsAreEditedFrom") } };
 
@@ -148,7 +148,7 @@ export class BoostService {
     void (async () => {
       try {
         while (!contents.isDestroyed()) {
-          const result: unknown = await contents.executeJavaScriptInIsolatedWorld(ZAP_WORLD_ID, [{ code: ZAP_SCRIPT }]).catch(() => null);
+          const result: unknown = await contents.executeJavaScriptInIsolatedWorld(ZAP_WORLD_ID, [{ code: zapScript() }]).catch(() => null);
           const selector = typeof result === "object" && result !== null ? (result as { selector?: unknown }).selector : undefined;
           if (!isValidSelector(selector)) return;
           const boost = this.ensureBoost(contents.getURL());

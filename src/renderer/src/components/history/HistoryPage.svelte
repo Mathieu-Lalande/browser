@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t as tr, t, intlLocale } from "@shared/i18n";
   import { groupByDay, type HistoryClearRange, type HistoryCursor } from "@shared/history";
   import type { HistoryEntry } from "@shared/types";
   import { displayUrl } from "@shared/url";
@@ -91,15 +91,15 @@
     await load(true);
   }
 
-  const dayFormat = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-  const timeFormat = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  const dayFormat = new Intl.DateTimeFormat(intlLocale(), { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const timeFormat = new Intl.DateTimeFormat(intlLocale(), { hour: "2-digit", minute: "2-digit" });
 
   function dayLabel(date: number): string {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const days = Math.round((today.getTime() - date) / 86_400_000);
     if (days === 0) return "Aujourd'hui";
-    if (days === 1) return "Hier";
+    if (days === 1) return tr("historyPage.yesterday");
     const label = dayFormat.format(date);
     return label.charAt(0).toUpperCase() + label.slice(1);
   }

@@ -31,7 +31,7 @@ export interface FolderInput {
 }
 
 export const DEFAULT_FOLDER_ICON: SpaceIcon = "folder";
-export const DEFAULT_FOLDER_NAME = t("folders.newFolder");
+export const DEFAULT_FOLDER_NAME = (): string => t("folders.newFolder");
 export const MAX_FOLDERS = 64;
 /** Nesting levels (a root folder is level 1). */
 export const MAX_FOLDER_DEPTH = 4;
@@ -104,7 +104,7 @@ export function sanitizeFolders(value: unknown): TabFolder[] {
     if (!isFolderId(f.id) || folders.some((folder) => folder.id === f.id)) continue;
     folders.push({
       id: f.id,
-      name: (typeof f.name === "string" ? cleanName(f.name) : "") || DEFAULT_FOLDER_NAME,
+      name: (typeof f.name === "string" ? cleanName(f.name) : "") || DEFAULT_FOLDER_NAME(),
       icon: isSpaceIcon(f.icon) ? f.icon : DEFAULT_FOLDER_ICON,
       parentId: isFolderId(f.parentId) ? f.parentId : null,
       collapsed: f.collapsed === true,
@@ -132,10 +132,10 @@ export function sanitizeFolders(value: unknown): TabFolder[] {
 /** "Nouveau dossier", then "Nouveau dossier 2"… */
 export function nextFolderName(folders: readonly TabFolder[]): string {
   const names = new Set(folders.map((folder) => folder.name));
-  if (!names.has(DEFAULT_FOLDER_NAME)) return DEFAULT_FOLDER_NAME;
+  if (!names.has(DEFAULT_FOLDER_NAME())) return DEFAULT_FOLDER_NAME();
   let n = 2;
-  while (names.has(`${DEFAULT_FOLDER_NAME} ${n}`)) n++;
-  return `${DEFAULT_FOLDER_NAME} ${n}`;
+  while (names.has(`${DEFAULT_FOLDER_NAME()} ${n}`)) n++;
+  return `${DEFAULT_FOLDER_NAME()} ${n}`;
 }
 
 /** Adds a folder at the end of its parent; null at the limit, for an unknown parent or too deep. */

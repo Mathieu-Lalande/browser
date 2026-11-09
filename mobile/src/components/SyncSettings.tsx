@@ -1,4 +1,4 @@
-import { t } from "@shared/i18n";
+import { t as tr, t, intlLocale } from "@shared/i18n";
 import * as Clipboard from "expo-clipboard";
 import { memo, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
@@ -28,10 +28,10 @@ export const SyncSettings = memo(function SyncSettings({ onScan }: { onScan: () 
     setBusy(true);
     const result = await action();
     setBusy(false);
-    if (!result.ok) Alert.alert("Synchronisation", result.message);
+    if (!result.ok) Alert.alert(tr("mobile.syncSettings.sync"), result.message);
     else if (success) {
       haptic("success");
-      Alert.alert("Synchronisation", success);
+      Alert.alert(tr("mobile.syncSettings.sync"), success);
     }
     return result.ok;
   };
@@ -194,7 +194,7 @@ function ago(time: number | null): string {
   if (minutes < 60) return t("mobile.syncSettings.minAgo", { minutes });
   const hours = Math.round(minutes / 60);
   if (hours < 24) return t("mobile.syncSettings.hAgo", { hours });
-  return new Date(time).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+  return new Date(time).toLocaleDateString(intlLocale(), { day: "numeric", month: "long" });
 }
 
 /** QR code drawn locally with react-native-svg (uqr, pure JS). */

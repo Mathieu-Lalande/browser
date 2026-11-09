@@ -1,4 +1,4 @@
-import { t } from "./i18n";
+import { t, type MessageKey } from "./i18n";
 import { isNavigableUrl } from "./url";
 
 /**
@@ -94,40 +94,65 @@ export const LIMITS = {
 } as const;
 
 export const WIDGET_CATALOG: Readonly<Record<WidgetKind, WidgetInfo>> = {
-  clock: info("Horloge et salutation", "L'heure, la date et un mot d'accueil.", "clock", ["s", "m", "l"], "l", { single: true }),
-  search: info("Recherche", "Rechercher sur le web ou saisir une adresse.", "search", ["m", "l"], "l", { single: true }),
-  "top-sites": info("Sites fréquents", "Vos sites les plus visités, et ceux que vous épinglez.", "trending-up", ["m", "l"], "l", {
+  clock: info("startWidgets.clock", "clock", ["s", "m", "l"], "l", { single: true }),
+  search: info("startWidgets.search", "search", ["m", "l"], "l", { single: true }),
+  "top-sites": info("startWidgets.topSites", "trending-up", ["m", "l"], "l", {
     single: true,
     revealsHabits: true,
   }),
-  favorites: info("Favoris", "La grille des favoris.", "layout-grid", ["m", "l"], "m", { single: true }),
-  devices: info("Autres appareils", "Les onglets ouverts sur vos appareils synchronisés.", "monitor-smartphone", ["s", "m", "l"], "m", {
+  favorites: info("startWidgets.favorites", "layout-grid", ["m", "l"], "m", { single: true }),
+  devices: info("startWidgets.devices", "monitor-smartphone", ["s", "m", "l"], "m", {
     single: true,
     revealsHabits: true,
   }),
-  notes: info("Notes rapides", "Un bloc-notes conservé sur cet appareil.", "sticky-note", ["s", "m", "l"], "m"),
-  weather: info("Météo", "Interroge Open-Meteo (sans clé ni cookie) pour la ville choisie.", "cloud-sun", ["s", "m"], "s", { network: true }),
-  calendar: info("Calendrier", "Le mois en cours.", "calendar", ["s", "m"], "s", { single: true, mobile: false }),
-  todo: info("À faire", "Une liste de tâches conservée sur cet appareil.", "list-todo", ["s", "m", "l"], "m"),
-  resume: info("Reprendre", "Rouvrir un onglet fermé ou archivé.", "rotate-ccw-clock", ["s", "m", "l"], "m", {
+  notes: info("startWidgets.notes", "sticky-note", ["s", "m", "l"], "m"),
+  weather: info("startWidgets.weather", "cloud-sun", ["s", "m"], "s", { network: true }),
+  calendar: info("startWidgets.calendar", "calendar", ["s", "m"], "s", { single: true, mobile: false }),
+  todo: info("startWidgets.todo", "list-todo", ["s", "m", "l"], "m"),
+  resume: info("startWidgets.resume", "rotate-ccw-clock", ["s", "m", "l"], "m", {
     single: true,
     mobile: false,
     revealsHabits: true,
   }),
 };
 
+/** Texts are catalog keys (`key`, `${key}Description`), read in the UI language (ADR-052). */
 function info(
-  label: string,
-  description: string,
+  key: MessageKey,
   icon: WidgetIcon,
   sizes: readonly WidgetSize[],
   defaultSize: WidgetSize,
   flags: Partial<Pick<WidgetInfo, "single" | "mobile" | "network" | "revealsHabits">> = {},
 ): WidgetInfo {
-  return { label, description, icon, sizes, defaultSize, single: false, mobile: true, network: false, revealsHabits: false, ...flags };
+  return {
+    get label() {
+      return t(key);
+    },
+    get description() {
+      return t(`${key}Description` as MessageKey);
+    },
+    icon,
+    sizes,
+    defaultSize,
+    single: false,
+    mobile: true,
+    network: false,
+    revealsHabits: false,
+    ...flags,
+  };
 }
 
-export const SIZE_LABELS: Readonly<Record<WidgetSize, string>> = { s: "Petit", m: "Moyen", l: "Large" };
+export const SIZE_LABELS: Readonly<Record<WidgetSize, string>> = {
+  get s() {
+    return t("startWidgets.sizeSmall");
+  },
+  get m() {
+    return t("startWidgets.sizeMedium");
+  },
+  get l() {
+    return t("startWidgets.sizeLarge");
+  },
+};
 
 export function defaultOptions<K extends WidgetKind>(kind: K): WidgetOptionsByKind[K] {
   const defaults: { [P in WidgetKind]: () => WidgetOptionsByKind[P] } = {
@@ -424,8 +449,8 @@ export function widgetSpan(size: WidgetSize, columns: number): number {
   return Math.max(1, Math.min(span, columns));
 }
 
-/** "Bonjour" until 18 h, "Bonsoir" in the evening and at night. */
-export const greetingFor = (hour: number): string => (hour < 5 || hour >= 18 ? "Bonsoir" : "Bonjour");
+/** "Bonjour" until 18 h, "Bonsoir" in the evening and at night (in the UI language). */
+export const greetingFor = (hour: number): string => t(hour < 5 || hour >= 18 ? "startWidgets.goodEvening" : "startWidgets.hello");
 
 export interface CalendarDay {
   day: number;

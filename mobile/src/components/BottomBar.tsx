@@ -1,4 +1,4 @@
-import { t } from "@shared/i18n";
+import { t as tr, t } from "@shared/i18n";
 import { BlurView } from "expo-blur";
 import { memo, useEffect } from "react";
 import { Platform, StyleSheet, Text, View, useWindowDimensions } from "react-native";
@@ -186,7 +186,7 @@ export const BottomBar = memo(function BottomBar(props: Props) {
               {label && /^https?:/i.test(tab?.url ?? "") ? (
                 <Tap
                   accessibilityRole="button"
-                  accessibilityLabel={`Infos sur le site (${secure ? "connexion sécurisée" : "connexion non sécurisée"})`}
+                  accessibilityLabel={t(secure ? "mobile.bottomBar.siteInfoSecure" : "mobile.bottomBar.siteInfoInsecure")}
                   onPress={props.onSiteInfo}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 4 }}
                   style={styles.pillIcon}
@@ -213,7 +213,7 @@ export const BottomBar = memo(function BottomBar(props: Props) {
               {tab?.url ? (
                 <IconButton
                   icon={loading ? "close" : "reload"}
-                  label={loading ? t("mobile.bottomBar.stopLoading") : "Actualiser"}
+                  label={loading ? t("mobile.bottomBar.stopLoading") : tr("mobile.bottomBar.reload")}
                   size={17}
                   color={colors.textMuted}
                   onPress={loading ? props.onStop : props.onReload}

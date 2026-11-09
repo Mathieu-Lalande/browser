@@ -1,4 +1,4 @@
-import { t } from "@shared/i18n";
+import { t as tr, t } from "@shared/i18n";
 import { highlightSegments, type Range } from "@shared/fuzzy";
 import { searchEngineOf } from "@shared/settings";
 import { memo, useDeferredValue, useMemo, useRef, useState, type ComponentRef } from "react";
@@ -182,7 +182,7 @@ const Row = memo(function Row({ item, first, onPick, onFill }: { item: SheetItem
   const accent = answer || item.section === "go" || item.section === "web";
   const siteUrl = item.action.type === "tab" ? (item.completion ?? null) : item.icon === "cloud" || item.favicon !== undefined ? itemUrl(item) : null;
   const fillValue = item.section === "bookmarks" || item.section === "history" ? itemUrl(item) : null;
-  const badge = item.section === "tabs" ? t("mobile.searchSheet.tab") : item.section === "bookmarks" ? "Favori" : answer ? t("mobile.searchSheet.copy") : null;
+  const badge = item.section === "tabs" ? t("mobile.searchSheet.tab") : item.section === "bookmarks" ? tr("mobile.searchSheet.bookmark") : answer ? t("mobile.searchSheet.copy") : null;
   return (
     <Tap
       accessibilityRole="button"

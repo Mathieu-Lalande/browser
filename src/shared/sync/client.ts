@@ -1,4 +1,4 @@
-import { t } from "../i18n";
+import { t as tr, t } from "../i18n";
 import { authorization, normalizeServerUrl, type SyncCredentials } from "./pairing";
 import {
   PROTOCOL_PREFIX,
@@ -149,7 +149,7 @@ async function send(transport: Transport, request: HttpRequest): Promise<HttpRes
   try {
     return await transport(request);
   } catch (error) {
-    throw new SyncError("offline", error instanceof Error ? error.message : "Serveur injoignable");
+    throw new SyncError("offline", error instanceof Error ? error.message : tr("syncClient.serverUnreachable"));
   }
 }
 

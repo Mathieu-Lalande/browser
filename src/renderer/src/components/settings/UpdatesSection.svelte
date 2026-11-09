@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t, intlLocale } from "@shared/i18n";
   import type { UpdateChannel } from "@shared/settings";
   import { isUpdateBusy, updateStatusText } from "@shared/updates";
   import { api } from "../../lib/browser.svelte";
@@ -14,7 +14,7 @@
   const status = $derived(updates.status);
   const lastCheck = $derived(
     status?.lastCheck
-      ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(status.lastCheck))
+      ? new Intl.DateTimeFormat(intlLocale(), { dateStyle: "medium", timeStyle: "short" }).format(new Date(status.lastCheck))
       : null,
   );
 </script>

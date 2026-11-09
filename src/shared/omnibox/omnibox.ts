@@ -1,4 +1,4 @@
-import { t } from "../i18n";
+import { t as tr, t } from "../i18n";
 import { CalculatorProvider, ConversionProvider, NumberBaseProvider, TimeZoneProvider } from "./providers/answers";
 import { CommandsProvider, SettingsProvider } from "./providers/commands";
 import { AnnotationsProvider, ArchivedTabsProvider, BookmarksProvider, FavoritesProvider, HistoryProvider, RemoteTabsProvider } from "./providers/pages";
@@ -39,7 +39,7 @@ export class Omnibox {
           detailRanges: [],
           score: -index,
           icon: scope.icon,
-          verb: "Filtrer",
+          verb: tr("omniboxOmnibox.filter"),
           completion: `@${scope.names[0]} `,
           action: { type: "scope", scope: scope.id },
         }),

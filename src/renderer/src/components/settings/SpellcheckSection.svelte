@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t, intlLocale } from "@shared/i18n";
   import { MAX_SPELL_LANGUAGES } from "@shared/settings";
   import { isDictionaryWord, spellLanguageName } from "@shared/spellcheck";
   import { api, browser } from "../../lib/browser.svelte";
@@ -43,7 +43,7 @@
   });
 
   /** Chosen ones first, then the others, by name. */
-  const sorted = $derived([...available].sort((a, b) => Number(s.languages.includes(b)) - Number(s.languages.includes(a)) || spellLanguageName(a).localeCompare(spellLanguageName(b), "fr")));
+  const sorted = $derived([...available].sort((a, b) => Number(s.languages.includes(b)) - Number(s.languages.includes(a)) || spellLanguageName(a).localeCompare(spellLanguageName(b), intlLocale())));
 
   function toggleLanguage(code: string, on: boolean): void {
     const base = s.languages.length ? s.languages : current;

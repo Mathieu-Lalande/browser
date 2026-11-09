@@ -7,7 +7,7 @@ import { captureFileName, captureScale, elementClip, fullPageClip, isCaptureRect
 import type { Bounds } from "@shared/types";
 import type { WindowDirectory, WindowPort } from "../ports";
 import { TabRecorder } from "./recorder";
-import { PICK_SCRIPT, PICK_WORLD_ID } from "./scripts";
+import { pickScript, PICK_WORLD_ID } from "./scripts";
 
 interface Kept {
   image: NativeImage;
@@ -159,7 +159,7 @@ export class CaptureService {
 
   private async pickElement(contents: WebContents): Promise<NativeImage | null> {
     contents.focus();
-    const picked: unknown = await contents.executeJavaScriptInIsolatedWorld(PICK_WORLD_ID, [{ code: PICK_SCRIPT }], true).catch(() => null);
+    const picked: unknown = await contents.executeJavaScriptInIsolatedWorld(PICK_WORLD_ID, [{ code: pickScript() }], true).catch(() => null);
     if (typeof picked !== "object" || picked === null) return null;
     const { rect, page } = picked as { rect?: unknown; page?: unknown };
     if (!isCaptureRect(rect) || !isCaptureRect({ x: 0, y: 0, ...(page as object) })) return null;

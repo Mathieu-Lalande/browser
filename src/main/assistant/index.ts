@@ -153,7 +153,7 @@ export class PageAssistant {
     if (this.needsConsent) {
       conversation.pending = { ...request, consent: undefined };
       this.notify(tabId, true);
-      return { ok: false, needsConsent: true, message: this.c.isPrivate ? PRIVATE_NOTICE : t("assistantIndex.acceptSendingAnthropicFirst") };
+      return { ok: false, needsConsent: true, message: this.c.isPrivate ? PRIVATE_NOTICE() : t("assistantIndex.acceptSendingAnthropicFirst") };
     }
     conversation.pending = null;
     conversation.abort?.abort();
@@ -221,8 +221,8 @@ export class PageAssistant {
       (progress) => {
         answer.text = progress.text;
         answer.status = finalStatus(progress);
-        if (answer.status === "refused") answer.error = REFUSAL_MESSAGE;
-        if (answer.status === "truncated") answer.error = TRUNCATED_NOTE;
+        if (answer.status === "refused") answer.error = REFUSAL_MESSAGE();
+        if (answer.status === "truncated") answer.error = TRUNCATED_NOTE();
       },
       (error: unknown) => {
         answer.status = isAbort(error) ? "stopped" : "error";

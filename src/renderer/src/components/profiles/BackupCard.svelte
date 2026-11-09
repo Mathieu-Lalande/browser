@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t as tr, t, intlLocale } from "@shared/i18n";
   import { MIN_PASSPHRASE, type BackupMode, type BackupSection, type BackupSummary } from "@shared/backup";
   import { api } from "../../lib/browser.svelte";
   import Button from "../ui/Button.svelte";
@@ -63,7 +63,7 @@
     } else message = result.message;
   }
 
-  const dateFormat = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeStyle: "short" });
+  const dateFormat = new Intl.DateTimeFormat(intlLocale(), { dateStyle: "long", timeStyle: "short" });
 </script>
 
 <section class="ui-section" aria-labelledby="backup-title">
@@ -94,7 +94,7 @@
     {#if summary}
       <div class="body summary" aria-label={t("backupCard.backupContent")}>
         <p>
-          Sauvegarde{summary.profileName ? ` du profil « ${summary.profileName} »` : ""}{summary.createdAt ? `, ${dateFormat.format(summary.createdAt)}` : ""} :
+          {summary.profileName ? t("backupCard.backupOfProfile", { name: summary.profileName }) : t("backupCard.backup")}{summary.createdAt ? `, ${dateFormat.format(summary.createdAt)}` : ""}{t("backupCard.colon")}
         </p>
         <ul>
           {#each Object.entries(summary.counts) as [section, count] (section)}
@@ -126,7 +126,7 @@
         {/if}
         <div class="buttons end">
           <Button variant="quiet" onclick={() => (summary = null)}>{t("backupCard.cancel")}</Button>
-          <Button variant={mode === "replace" ? "danger" : "primary"} disabled={busy} onclick={apply}>{mode === "merge" ? "Fusionner" : "Remplacer"}</Button>
+          <Button variant={mode === "replace" ? "danger" : "primary"} disabled={busy} onclick={apply}>{mode === "merge" ? tr("backupCard.merge2") : "Remplacer"}</Button>
         </div>
       </div>
     {/if}

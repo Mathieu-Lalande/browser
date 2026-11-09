@@ -33,7 +33,6 @@
     busy = false;
   }
 
-  const plural = (count: number, word: string) => `${count} ${word}${count > 1 ? "s" : ""}`;
 </script>
 
 {#if summary}
@@ -43,8 +42,7 @@
       <div class="text">
         <h2 id="restore-title">{t("restoreSessionCard.restoreSession")}</h2>
         <p>
-          Le navigateur ne s'est pas fermé correctement. {plural(summary.windows.length, "fenêtre")}, {plural(summary.tabCount, "onglet")}
-          peuvent être rouverts.
+          {t("restoreSessionCard.notClosedProperly", { windows: summary.windows.length, tabs: summary.tabCount })}
         </p>
       </div>
     </div>
@@ -53,7 +51,7 @@
         {#each summary.windows as window (window.index)}
           <li>
             <Checkbox checked={chosen.has(window.index)} onchange={(checked) => toggle(window.index, checked)}>
-              Fenêtre {window.index + 1} : {plural(window.tabCount, "onglet")}
+              {t("restoreSessionCard.windowTabs", { index: window.index + 1, tabs: window.tabCount })}
             </Checkbox>
             <span class="titles">{window.titles.join(" · ")}</span>
           </li>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t as tr, t } from "@shared/i18n";
   import { currentPosition, formatMediaTime, type MediaSource } from "@shared/media";
   import { api } from "../../lib/browser.svelte";
   import { media } from "../../lib/media.svelte";
@@ -21,7 +21,7 @@
   });
 
   const position = $derived(top ? (seeking ?? currentPosition(top, media.now)) : 0);
-  const playLabel = (source: MediaSource) => (source.playing ? t("miniPlayer.pause") : "Lire");
+  const playLabel = (source: MediaSource) => (source.playing ? t("miniPlayer.pause") : tr("miniPlayer.play"));
 
   function seek(source: MediaSource, value: number): void {
     seeking = null;

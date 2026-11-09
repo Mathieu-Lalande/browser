@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t as tr, t } from "@shared/i18n";
   import { BOOST_FONTS, type Boost, type BoostFont } from "@shared/boosts";
   import type { TabBoost, TabId } from "@shared/types";
   import { api } from "../../lib/browser.svelte";
@@ -52,7 +52,7 @@
       {#if boost && !tabBoost.isPrivate}
         <Toggle label={t("siteBoostSection.boostActiveSite")} checked={boost.enabled} onchange={(enabled) => update((b) => ({ ...b, enabled }))} />
       {:else if boost}
-        <span class="kit-value">{boost.enabled ? "Actif" : t("siteBoostSection.off")}</span>
+        <span class="kit-value">{boost.enabled ? tr("siteBoostSection.active") : t("siteBoostSection.off")}</span>
       {/if}
     </div>
     {#if !boost}

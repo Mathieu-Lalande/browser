@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { WebContentsView, session as electronSession, type BaseWindow, type Session, type WebContents } from "electron";
 import type { FolderId, FolderInput } from "@shared/folders";
 import { INTERNAL_PAGES, internalPageOf, internalUrl, type InternalPage } from "@shared/internal";
@@ -34,7 +35,7 @@ import { TabPageActions } from "./page-actions";
 import { TabStore, type ClosedTab } from "./store";
 
 /** Title of a popup tab until its page names itself. */
-const POPUP_TITLE = "Chargement…";
+const POPUP_TITLE = (): string => t("tabsManager.loading");
 
 /**
  * Owns the web pages of one space of one window: each tab is a sandboxed WebContentsView that is
@@ -159,7 +160,7 @@ export class TabManager {
   /** `localFile`: `input` is a `file://` URL main checked (ADR-039); `extensionPage`: an extension page main built (options, ADR-049). Loaded as they are. */
   create(input = "", options: { activate?: boolean; index?: number; folderId?: FolderId | null; localFile?: boolean; extensionPage?: boolean } = {}): TabId {
     const folderId = options.folderId && this.folders.has(options.folderId) ? options.folderId : undefined;
-    const tab = this.insert({ url: "", title: START_TITLE, favicon: null, pinned: false, folderId }, options.index ?? this.store.newTabIndex(this.options.newTabPosition));
+    const tab = this.insert({ url: "", title: START_TITLE(), favicon: null, pinned: false, folderId }, options.index ?? this.store.newTabIndex(this.options.newTabPosition));
     if (folderId) this.folders.reorder();
     if (options.activate ?? true) this.activate(tab.id);
     this.navigate(tab.id, input, { localFile: options.localFile, extensionPage: options.extensionPage });
@@ -384,7 +385,7 @@ export class TabManager {
       // detached but kept with its history, so that Back shows it again as it was.
       const page = internalPageOf(url);
       if (wasWebPage) tab.parkedFavicon = tab.state.favicon;
-      tab.state.title = page ? INTERNAL_PAGES[page].title : START_TITLE;
+      tab.state.title = page ? INTERNAL_PAGES[page].title : START_TITLE();
       tab.state.favicon = null;
       tab.state.isLoading = false;
       liveContents(tab)?.stop();
@@ -627,7 +628,7 @@ export class TabManager {
     const folderId = opener.state.folderId && this.folders.has(opener.state.folderId) ? opener.state.folderId : undefined;
     const openerIndex = this.store.indexOf(opener.id);
     const index = openerIndex >= 0 ? openerIndex + 1 : this.store.newTabIndex(this.options.newTabPosition);
-    const tab = this.insert({ url: url || "about:blank", title: POPUP_TITLE, favicon: null, pinned: false, folderId }, index);
+    const tab = this.insert({ url: url || "about:blank", title: POPUP_TITLE(), favicon: null, pinned: false, folderId }, index);
     if (folderId) this.folders.reorder();
     tab.view = view;
     tab.state.isLoading = true;

@@ -1,3 +1,4 @@
+import { intlLocale } from "../i18n";
 import { fold } from "../fuzzy";
 
 /** "heure à Tokyo", "quelle heure est-il à New York ?", "time in London": local time of a place. */
@@ -152,8 +153,8 @@ export function placeTime(input: string, now: number): PlaceTime | null {
   if (!timeZone) return null;
   try {
     const date = new Date(now);
-    const time = new Intl.DateTimeFormat("fr-FR", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(date);
-    const day = new Intl.DateTimeFormat("fr-FR", { timeZone, weekday: "long", day: "numeric", month: "long" }).format(date);
+    const time = new Intl.DateTimeFormat(intlLocale(), { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(date);
+    const day = new Intl.DateTimeFormat(intlLocale(), { timeZone, weekday: "long", day: "numeric", month: "long" }).format(date);
     const original = input.trim();
     // The place as typed (its case and accents), from the folded match position.
     const start = fold(original).lastIndexOf(name);

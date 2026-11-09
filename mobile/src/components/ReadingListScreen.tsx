@@ -1,4 +1,4 @@
-import { t } from "@shared/i18n";
+import { t as tr, t } from "@shared/i18n";
 import { readingTimeLabel } from "@shared/reader";
 import type { ReadingItem } from "@shared/reading-list";
 import { displayUrl } from "@shared/url";
@@ -41,7 +41,7 @@ export const ReadingListScreen = memo(function ReadingListScreen({ onClose, onRe
 
   const row = (item: ReadingItem) => (
     <View key={item.id} style={[styles.row, { borderTopColor: colors.hairline }]}>
-      <Tap accessibilityRole="button" accessibilityLabel={`Lire ${item.title}`} onPress={() => open(item)} pressScale={0.98} style={styles.main}>
+      <Tap accessibilityRole="button" accessibilityLabel={tr("mobile.readingListScreen.read2", { title: item.title })} onPress={() => open(item)} pressScale={0.98} style={styles.main}>
         <SiteIcon url={item.url} title={item.title} size={22} />
         <View style={styles.text}>
           <Text style={[styles.title, { color: item.readAt === null ? colors.text : colors.textMuted }]} numberOfLines={2}>

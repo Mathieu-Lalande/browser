@@ -4,7 +4,7 @@
  */
 
 /** An installed extension, as `browser://extensions` lists it. */
-import { t } from "./i18n";
+import { t, intlLocale } from "./i18n";
 
 export interface ExtensionInfo {
   /** Our own Chrome-style id (32 letters a–p), stable across launches. */
@@ -185,7 +185,7 @@ export function manifestAction(raw: unknown, messages: Record<string, unknown> |
 /** Host patterns meaning "every site". */
 const ALL_SITES = new Set(["<all_urls>", "*://*/*", "http://*/*", "https://*/*", "*://*/", "http://*/", "https://*/"]);
 const MAX_LISTED_HOSTS = 3;
-const ALL_SITES_LABEL = t("extensions.readChangeAllData");
+const allSitesLabel = () => t("extensions.readChangeAllData");
 
 /** Chrome's permission warnings, in French; permissions without a warning (storage, alarms…) are absent. */
 const PERMISSION_LABELS: Record<string, string> = {
@@ -206,8 +206,8 @@ const PERMISSION_LABELS: Record<string, string> = {
   get management() { return t("extensions.manageAppsExtensionsThemes") },
   get nativeMessaging() { return t("extensions.communicateAppsInstalledComputer") },
   get privacy() { return t("extensions.changePrivacySettings") },
-  proxy: ALL_SITES_LABEL,
-  pageCapture: ALL_SITES_LABEL,
+  get proxy() { return allSitesLabel() },
+  get pageCapture() { return allSitesLabel() },
   get debugger() { return t("extensions.accessPagesDebugger") },
   get contentSettings() { return t("extensions.changeSitePermissionsCookies") },
   get desktopCapture() { return t("extensions.captureContentScreen") },
@@ -229,7 +229,7 @@ function patternHost(pattern: string): string | null {
 const strings = (value: unknown) => (Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []);
 
 /**
- * The permission warnings Chrome would show for a manifest, in French: site access first (host
+ * The permission warnings Chrome would show for a manifest, in the UI language: site access first (host
  * permissions, MV2 hosts in `permissions`, content script matches), then the API permissions.
  * Optional permissions are asked by the extension later: not listed.
  */
@@ -244,13 +244,16 @@ export function permissionLabels(raw: unknown): string[] {
     }
   }
   const labels = new Set<string>();
-  if (patterns.some((pattern) => ALL_SITES.has(pattern))) labels.add(ALL_SITES_LABEL);
+  const siteLabels = new Set<string>();
+  if (patterns.some((pattern) => ALL_SITES.has(pattern))) labels.add(allSitesLabel());
   else {
     const hosts = [...new Set(patterns.map(patternHost).filter((host): host is string => !!host))].sort();
     const more = hosts.length - MAX_LISTED_HOSTS;
     if (hosts.length) {
       const others = more > 0 ? t("extensions.otherSites", { more }) : "";
-      labels.add(`Lire et modifier vos données sur ${hosts.slice(0, MAX_LISTED_HOSTS).join(", ")}${others}`);
+      const label = t("extensions.readChangeDataOn", { hosts: hosts.slice(0, MAX_LISTED_HOSTS).join(", "), others });
+      labels.add(label);
+      siteLabels.add(label);
     }
   }
   for (const permission of permissions) {
@@ -258,7 +261,7 @@ export function permissionLabels(raw: unknown): string[] {
     if (label) labels.add(label);
   }
   // "Every site" covers the narrower site access a proxy or page capture would add.
-  if (labels.has(ALL_SITES_LABEL)) for (const label of labels) if (label.startsWith("Lire et modifier vos données sur ")) labels.delete(label);
+  if (labels.has(allSitesLabel())) for (const label of siteLabels) labels.delete(label);
   return [...labels];
 }
 
@@ -324,7 +327,7 @@ export function formatSize(bytes: number): string {
     value /= 1024;
     unit++;
   }
-  return `${value.toLocaleString("fr-FR", { maximumFractionDigits: value < 10 ? 1 : 0 })} ${units[unit]}`;
+  return `${value.toLocaleString(intlLocale(), { maximumFractionDigits: value < 10 ? 1 : 0 })} ${units[unit]}`;
 }
 
 /** A package dropped on `browser://extensions`: a .crx/.zip file's bytes, or a folder's files (copied into the profile). */

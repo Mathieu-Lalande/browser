@@ -1,8 +1,10 @@
 import { fold } from "../fuzzy";
+import { getLocale } from "../i18n/locale";
 
 /**
  * Offline unit conversions for the universal bar: "10 km en miles", "72 °F en °C", "3 Go en Mo".
  * No currencies (they need live rates, so a network request per keystroke).
+ * i18n-ignore-file: the aliases are parsing words, French and English alike (ADR-052).
  */
 
 export type Quantity = "length" | "mass" | "temperature" | "volume" | "speed" | "data";
@@ -84,6 +86,26 @@ export function findUnit(name: string): Unit | null {
   return loose.length === 1 ? loose[0] : null;
 }
 
+/** English symbols of the units French writes its own way ("Mo" → "MB"), ADR-052. */
+const ENGLISH_SYMBOLS: Readonly<Record<string, string>> = {
+  o: "B",
+  Ko: "kB",
+  Mo: "MB",
+  Go: "GB",
+  To: "TB",
+  Kio: "KiB",
+  Mio: "MiB",
+  Gio: "GiB",
+  Tio: "TiB",
+  tasse: "cup",
+  nœud: "kn",
+};
+
+/** The symbol shown for a unit in the UI language. */
+export function displaySymbol(symbol: string): string {
+  return getLocale() === "en" ? (ENGLISH_SYMBOLS[symbol] ?? symbol) : symbol;
+}
+
 function toKelvin(value: number, symbol: string): number {
   if (symbol === "°C") return value + 273.15;
   if (symbol === "°F") return ((value - 32) * 5) / 9 + 273.15;
@@ -117,7 +139,7 @@ export function convert(value: number, fromName: string, toName: string): Conver
   } else {
     result = (value * from.factor) / to.factor;
   }
-  return Number.isFinite(result) ? { value, from: from.symbol, to: to.symbol, result, quantity: from.quantity } : null;
+  return Number.isFinite(result) ? { value, from: displaySymbol(from.symbol), to: displaySymbol(to.symbol), result, quantity: from.quantity } : null;
 }
 
 /** "10 km en miles", "10km → mi", "72 °F to °C", "1,5 Go en Mo". */

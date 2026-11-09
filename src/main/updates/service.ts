@@ -54,8 +54,8 @@ const realTimers: Timers = {
   clear: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
 };
 
-export const CHECK_FAILED = t("updatesService.cantCheckUpdatesCheck");
-export const DOWNLOAD_FAILED = t("updatesService.updateDownloadFailedTry");
+export const CHECK_FAILED = (): string => t("updatesService.cantCheckUpdatesCheck");
+export const DOWNLOAD_FAILED = (): string => t("updatesService.updateDownloadFailedTry");
 
 export class UpdateService {
   private state: UpdateStatus;
@@ -118,7 +118,7 @@ export class UpdateService {
     try {
       await this.updater.check();
     } catch {
-      this.dispatch({ type: "error", message: CHECK_FAILED });
+      this.dispatch({ type: "error", message: CHECK_FAILED() });
       return;
     }
     // Some updaters resolve without any event (nothing configured): never stay "checking".
@@ -132,7 +132,7 @@ export class UpdateService {
     try {
       await this.updater.download();
     } catch {
-      this.dispatch({ type: "error", message: DOWNLOAD_FAILED });
+      this.dispatch({ type: "error", message: DOWNLOAD_FAILED() });
     }
   }
 

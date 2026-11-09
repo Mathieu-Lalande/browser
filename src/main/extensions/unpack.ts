@@ -1,4 +1,4 @@
-import { t } from "@shared/i18n";
+import { t, intlLocale } from "@shared/i18n";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve, sep } from "node:path";
 import { crc32, inflateRawSync } from "node:zlib";
@@ -30,7 +30,7 @@ export const ZIP_LIMITS = {
 } as const;
 
 const MIB = 1024 * 1024;
-const count = (value: number) => value.toLocaleString("fr-FR");
+const count = (value: number) => value.toLocaleString(intlLocale());
 
 /** The ZIP inside a `.crx` (CRX2 or CRX3); a buffer that already is a ZIP is returned as is. */
 export function crxToZip(data: Buffer): Buffer {

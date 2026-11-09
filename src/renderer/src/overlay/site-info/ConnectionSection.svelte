@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t, intlLocale } from "@shared/i18n";
   import type { SiteInfo } from "@shared/site-info";
   import Icon from "../../components/Icon.svelte";
 
   /** Whether the connection is encrypted, and the certificate of a secure one. */
   let { certificate, secure }: { certificate: SiteInfo["certificate"]; secure: boolean } = $props();
 
-  const dateFormat = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" });
+  const dateFormat = new Intl.DateTimeFormat(intlLocale(), { dateStyle: "long" });
   const date = (ms: number) => dateFormat.format(new Date(ms));
 </script>
 

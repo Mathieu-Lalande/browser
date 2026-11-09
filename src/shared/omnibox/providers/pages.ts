@@ -1,4 +1,4 @@
-import { t } from "../../i18n";
+import { t as tr, t } from "../../i18n";
 import { displayUrl } from "../../url";
 import { rankBoost } from "../scorer";
 import type { Provider, QueryContext, Suggestion } from "../types";
@@ -158,7 +158,7 @@ export class AnnotationsProvider implements Provider {
           {
             key: `note:${item.id}`,
             title: item.exact.length > QUOTE_TITLE ? `${item.exact.slice(0, QUOTE_TITLE - 1)}…` : item.exact,
-            detail: `${item.title || shortUrl(item.url)}${item.note ? ` · ${item.note.replace(/\s+/g, " ").slice(0, 80)}` : ""}`,
+            detail: [item.title || shortUrl(item.url), item.note?.replace(/\s+/g, " ").slice(0, 80)].filter(Boolean).join(" · "),
             icon: "highlighter",
             verb: t("providersPages.openPage"),
             completion: item.url,
@@ -184,7 +184,7 @@ export class ArchivedTabsProvider implements Provider {
           detail: shortUrl(entry.url),
           icon: "archive",
           favicon: entry.favicon,
-          verb: "Restaurer",
+          verb: tr("providersPages.restore"),
           completion: entry.url,
           action: { type: "archived", archiveId: entry.id, url: entry.url },
         }),

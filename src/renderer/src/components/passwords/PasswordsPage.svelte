@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t as tr, t, intlLocale } from "@shared/i18n";
   import ListRow from "../ui/ListRow.svelte";
   import Card from "../ui/Card.svelte";
   import { originLabel, searchPasswords, type PasswordSummary, type PasswordsStatus } from "@shared/passwords";
@@ -32,7 +32,7 @@
   let request = 0;
 
   const shown = $derived(searchPasswords(entries, query));
-  const dateFormat = new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" });
+  const dateFormat = new Intl.DateTimeFormat(intlLocale(), { dateStyle: "medium" });
 
   async function refresh(): Promise<void> {
     const id = ++request;
@@ -145,10 +145,10 @@
             {:else}
               <span class="text">
                 <span class="site">{originLabel(entry.origin)}</span>
-                <span class="user">{entry.username || "Sans identifiant"}</span>
+                <span class="user">{entry.username || tr("passwordsPage.noUsername")}</span>
                 <span class="secret" class:mono={entry.id in revealed} data-testid="password-value">{revealed[entry.id] ?? "••••••••••"}</span>
                 <span class="detail">
-                  Modifié le {dateFormat.format(entry.updatedAt)}{entry.lastUsedAt ? ` · utilisé le ${dateFormat.format(entry.lastUsedAt)}` : ""}
+                  {t("passwordsPage.modifiedOn", { date: dateFormat.format(entry.updatedAt) })}{entry.lastUsedAt ? t("passwordsPage.usedOn", { date: dateFormat.format(entry.lastUsedAt) }) : ""}
                 </span>
               </span>
               <span class="actions">

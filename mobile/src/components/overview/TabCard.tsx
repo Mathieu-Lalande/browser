@@ -31,7 +31,7 @@ export const TabCard = memo(function TabCard({
 }) {
   const { colors, haptic } = useTheme();
   const width = layout.cardWidth;
-  const label = tab.url ? siteLabel(tab.url) : "Page d'accueil";
+  const label = tab.url ? siteLabel(tab.url) : t("mobile.tabCard.startPage");
   const title = tab.title || label;
   const privateTab = isPrivateTab(tab);
 

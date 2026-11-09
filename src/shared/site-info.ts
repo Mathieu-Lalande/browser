@@ -1,4 +1,4 @@
-import { t } from "./i18n";
+import { t as tr, t } from "./i18n";
 import type { PermissionKind } from "./types";
 
 /**
@@ -100,8 +100,8 @@ export function cookieCount(count: number): string {
 /** French names of the permissions, for the site info popover. */
 export const PERMISSION_LABELS: Record<PermissionKind, string> = {
   get camera() { return t("siteInfo.camera") },
-  microphone: "Micro",
-  geolocation: "Position",
+  get microphone() { return tr("siteInfo.microphone") },
+  get geolocation() { return tr("siteInfo.location") },
   notifications: "Notifications",
   midi: "Appareils MIDI",
   get "midi-sysex"() { return t("siteInfo.midiDevicesFullControl") },

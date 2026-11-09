@@ -14,7 +14,7 @@ import agentSource from "../generated/cookie-banner-agent.json";
  * switch ("Bouclier") and the counters. Network blocking is native (`modules/content-blocker`).
  */
 
-export const SHIELD_UNAVAILABLE_NOTE = t("mobile.shields.fullBlockerAvailableCompiled");
+export const SHIELD_UNAVAILABLE_NOTE = (): string => t("mobile.shields.fullBlockerAvailableCompiled");
 
 /** The shield's site key of a host: its registrable domain (approximated, like the native side). */
 export const shieldSiteOf = (host: string | null | undefined): string | null => (host ? approximateSite(host.toLowerCase()) : null);

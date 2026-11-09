@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t, intlLocale } from "@shared/i18n";
   import { monthGrid } from "@shared/start-widgets";
   import type { WidgetProps } from "../types";
 
@@ -13,8 +13,8 @@
   });
 
   const month = $derived(monthGrid(today));
-  const title = $derived(today.toLocaleDateString("fr-FR", { month: "long", year: "numeric" }));
-  const long = $derived(today.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }));
+  const title = $derived(today.toLocaleDateString(intlLocale(), { month: "long", year: "numeric" }));
+  const long = $derived(today.toLocaleDateString(intlLocale(), { weekday: "long", day: "numeric", month: "long" }));
 </script>
 
 <h2 class="widget-title"><span class="month">{title}</span></h2>

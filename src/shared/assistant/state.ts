@@ -35,7 +35,7 @@ export interface AssistantResult {
   needsConsent?: boolean;
 }
 
-export const PRIVACY_NOTICE =
+export const PRIVACY_NOTICE = (): string =>
   t("assistantState.textPagesYouChoose");
 
-export const PRIVATE_NOTICE = t("assistantState.privateWindowAssistantTurned");
+export const PRIVATE_NOTICE = (): string => t("assistantState.privateWindowAssistantTurned");

@@ -85,8 +85,8 @@ export function setProfileAnnotations(next: AnnotationsData): void {
   profileBook.save(next);
 }
 
-const PRIVATE_NOTICE = t("annotationsIndex.privateWindowTheseNotes");
-const NO_SELECTION = t("annotationsIndex.selectTextPageHighlight");
+const PRIVATE_NOTICE = (): string => t("annotationsIndex.privateWindowTheseNotes");
+const NO_SELECTION = (): string => t("annotationsIndex.selectTextPageHighlight");
 
 /** The color of the next highlight made without choosing one (the shortcut): the last one chosen. */
 let lastColor: HighlightColor = "yellow";
@@ -155,7 +155,7 @@ export class PageAnnotator {
     const page = this.page(tabId);
     if (!page) return { ok: false, message: t("annotationsIndex.pageCantAnnotated") };
     const captured = await captureSelection(page.contents);
-    if (!captured) return { ok: false, message: NO_SELECTION };
+    if (!captured) return { ok: false, message: NO_SELECTION() };
     const id = randomUUID();
     const next = addHighlight(this.book.data, { id, url: page.url, title: page.title, quote: captured.quote, color, now: Date.now() });
     if (!next) return { ok: false, message: t("annotationsIndex.tooManyHighlightsDelete") };
@@ -210,12 +210,12 @@ export class PageAnnotator {
       note: noteFor(this.book.data, page.url)?.text ?? "",
       missing: this.missing.get(tabId) ?? [],
       isPrivate: this.book.isPrivate,
-      notice: this.book.isPrivate ? PRIVATE_NOTICE : null,
+      notice: this.book.isPrivate ? PRIVATE_NOTICE() : null,
     };
   }
 
   list(): AnnotationsList {
-    return { ...this.book.data, isPrivate: this.book.isPrivate, notice: this.book.isPrivate ? PRIVATE_NOTICE : null };
+    return { ...this.book.data, isPrivate: this.book.isPrivate, notice: this.book.isPrivate ? PRIVATE_NOTICE() : null };
   }
 
   /** Scrolls the tab's page to a highlight and flashes it. */

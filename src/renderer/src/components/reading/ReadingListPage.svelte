@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t, intlLocale } from "@shared/i18n";
   import { internalFragment, internalUrl } from "@shared/internal";
   import { readingTimeLabel } from "@shared/reader";
   import type { ReadingEntry } from "@shared/reading-list";
@@ -35,7 +35,7 @@
   const shown = $derived(entries.filter((entry) => (filter === "all" ? true : filter === "read" ? entry.readAt !== null : entry.readAt === null)));
   const unread = $derived(entries.filter((entry) => entry.readAt === null).length);
 
-  const dateFormat = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long" });
+  const dateFormat = new Intl.DateTimeFormat(intlLocale(), { day: "numeric", month: "long" });
 
   function go(url: string): void {
     const tab = browser.activeTab;

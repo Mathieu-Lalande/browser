@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t as tr, t } from "@shared/i18n";
   import { READER_THEME_LABELS, READER_WIDTHS, readerColors, readingTimeLabel, type ReaderArticle } from "@shared/reader";
   import { LIMITS, type ReaderFont, type ReaderTheme, type ReaderWidth } from "@shared/settings";
   import type { TabState } from "@shared/types";
@@ -44,7 +44,7 @@
 
   const FONTS: { value: ReaderFont; label: string }[] = [
     { value: "serif", label: "Serif" },
-    { value: "sans", label: "Sans serif" },
+    { value: "sans", label: tr("readerView.sansSerif") },
   ];
   const WIDTHS: { value: ReaderWidth; label: string }[] = [
     { value: "narrow", label: t("readerView.narrow") },

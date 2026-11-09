@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t as tr, t } from "@shared/i18n";
   import { effectiveAccelerator } from "@shared/commands";
   import { acceleratorKeys } from "@shared/accelerators";
   import { WELCOME_TIPS, type WelcomeTipDefinition } from "@shared/onboarding";
@@ -46,7 +46,7 @@
           {#each keysOf(tip) as key, index (index)}<kbd>{key}</kbd>{/each}
           {#if tip.id === "compact"}
             <Button size="sm" variant="quiet" aria-pressed={compact} onclick={() => api.commands.run("toggle-compact-mode")}>
-              {compact ? t("welcomeEssentials.turnOff") : "Essayer"}
+              {compact ? t("welcomeEssentials.turnOff") : tr("welcomeEssentials.try")}
             </Button>
           {/if}
         </div>

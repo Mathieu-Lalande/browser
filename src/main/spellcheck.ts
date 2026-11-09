@@ -1,3 +1,4 @@
+import { intlLocale } from "@shared/i18n";
 import type { Session } from "electron";
 import type { Settings } from "@shared/settings";
 import { spellLanguagesFor } from "@shared/spellcheck";
@@ -6,7 +7,7 @@ import type { SessionOptions, SessionService } from "./services";
 export interface SpellcheckDeps {
   settings(): Settings;
   onSettingsChanged(listener: (current: Settings) => void): unknown;
-  /** The app's locale ("fr-FR"), the default dictionary. */
+  /** The app's locale (intlLocale()), the default dictionary. */
   locale(): string;
   platform: string;
 }
@@ -56,7 +57,7 @@ export class SpellcheckService implements SessionService {
 
   async words(): Promise<string[]> {
     const ses = this.profileSessions()[0];
-    return ses ? (await ses.listWordsInSpellCheckerDictionary()).sort((a, b) => a.localeCompare(b, "fr")) : [];
+    return ses ? (await ses.listWordsInSpellCheckerDictionary()).sort((a, b) => a.localeCompare(b, intlLocale())) : [];
   }
 
   /** "Ajouter au dictionnaire": every profile session, or only `from` when it is private. */

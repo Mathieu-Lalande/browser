@@ -116,8 +116,8 @@
     {#if panel.needsConsent}
       <div class="notice" role="alert" data-testid="assistant-notice">
         <p><Icon name={panel.isPrivate ? "mask" : "info"} size={14} /> <strong>{panel.isPrivate ? t("assistantPanel.privateWindow") : t("assistantPanel.beforeFirstSend")}</strong></p>
-        {#if panel.isPrivate}<p>{PRIVATE_NOTICE}</p>{/if}
-        <p>{PRIVACY_NOTICE}</p>
+        {#if panel.isPrivate}<p>{PRIVATE_NOTICE()}</p>{/if}
+        <p>{PRIVACY_NOTICE()}</p>
         {#if panel.pending}<p class="pending">{t("assistantPanel.pendingRequest", { pending: panel.pending })}</p>{/if}
         <Button variant="primary" onclick={accept}>{panel.pending ? t("assistantPanel.acceptSend") : t("assistantPanel.accept")}</Button>
       </div>

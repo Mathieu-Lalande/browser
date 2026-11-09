@@ -17,7 +17,9 @@
     waiting
       ? t("downloadsButton.downloadsFileWaitingConfirmation")
       : running
-        ? `Téléchargements : ${downloads.active.length} en cours${progress === null ? "" : `, ${Math.round(progress * 100)} %`}`
+        ? progress === null
+          ? t("downloadsButton.running", { count: downloads.active.length })
+          : t("downloadsButton.runningProgress", { count: downloads.active.length, percent: Math.round(progress * 100) })
         : t("downloadsButton.downloads"),
   );
 

@@ -8,7 +8,7 @@
  * Modifiers as stored. "Cmd" is macOS's Command key, "Super" the Windows/Meta key elsewhere
  * (Electron maps it to Command on macOS), "CmdOrCtrl" is Command on macOS and Ctrl elsewhere.
  */
-import { t } from "./i18n";
+import { t as tr, t } from "./i18n";
 
 export type Modifier = "CmdOrCtrl" | "Cmd" | "Super" | "Ctrl" | "Alt" | "Shift";
 
@@ -150,12 +150,12 @@ const KEY_NAMES: Record<string, string> = {
   get Escape() { return t("accelerators.esc") },
   get Space() { return t("accelerators.space") },
   get Backspace() { return t("accelerators.backspace") },
-  Delete: "Suppr",
-  Insert: "Inser",
+  get Delete() { return tr("accelerators.del") },
+  get Insert() { return tr("accelerators.ins") },
   get PageUp() { return t("accelerators.pageUp") },
-  PageDown: "Page suiv.",
+  get PageDown() { return tr("accelerators.pageDown") },
   get Home() { return t("accelerators.home") },
-  End: "Fin",
+  get End() { return tr("accelerators.end") },
   Tab: "Tab",
 };
 
@@ -165,7 +165,7 @@ export function acceleratorKeys(value: string, platform: string): string[] {
   if (!parsed) return [];
   const names: Record<Physical, string> = isMac(platform)
     ? MAC_SYMBOLS
-    : { Ctrl: "Ctrl", Alt: "Alt", Shift: "Maj", Meta: platform === "win32" ? "Win" : "Super" };
+    : { Ctrl: "Ctrl", Alt: "Alt", Shift: tr("accelerators.shift"), Meta: platform === "win32" ? "Win" : "Super" };
   return [...physicalModifiers(parsed.modifiers, platform).map((modifier) => names[modifier]), KEY_NAMES[parsed.key] ?? parsed.key];
 }
 

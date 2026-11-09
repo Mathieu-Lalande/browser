@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t as tr, t } from "@shared/i18n";
   import { CARD_BRAND_LABELS, maskCardNumber, type AutofillPrompt, type AutofillSuggestions } from "@shared/autofill";
   import type { Bounds, TabId } from "@shared/types";
   import { api } from "../lib/browser.svelte";
@@ -138,7 +138,7 @@
             <Icon name="credit-card" size={14} />
             <span class="text">
               <span class="name">{card.nickname || CARD_BRAND_LABELS[card.brand]} {maskCardNumber(card.last4)}</span>
-              <span class="detail">{card.name || "Sans titulaire"} · {expiry(card.expMonth, card.expYear)}</span>
+              <span class="detail">{card.name || tr("autofillPanel.noCardholder")} · {expiry(card.expMonth, card.expYear)}</span>
             </span>
           </button>
         </li>

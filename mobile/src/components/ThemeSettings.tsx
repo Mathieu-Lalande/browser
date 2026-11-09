@@ -1,4 +1,4 @@
-import { t } from "@shared/i18n";
+import { t as tr, t } from "@shared/i18n";
 import * as Clipboard from "expo-clipboard";
 import { applyTheme, isCurrentTheme, themePatch, THEME_GALLERY, type SharedTheme } from "@shared/theme-share";
 import { memo, useMemo, useState } from "react";
@@ -116,7 +116,7 @@ export const ThemeSettings = memo(function ThemeSettings({
         <View style={styles.cardSwatches}>
           <View style={[styles.dot, { backgroundColor: preview.accent }]} />
           <View style={[styles.dot, { backgroundColor: preview.accent2 }]} />
-          <Text style={{ color: preview.textMuted }}>{theme.mode === "dark" ? "Sombre" : theme.mode === "light" ? "Clair" : "Auto"}</Text>
+          <Text style={{ color: preview.textMuted }}>{theme.mode === "dark" ? tr("mobile.themeSettings.dark") : theme.mode === "light" ? tr("mobile.themeSettings.light") : "Auto"}</Text>
         </View>
         <View style={styles.buttons}>
           <Pressable accessibilityRole="button" onPress={onApply} style={[styles.button, { backgroundColor: preview.accent }]}>

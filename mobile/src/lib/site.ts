@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import { webHostname } from "@shared/hosts";
 import { displayUrl } from "@shared/url";
 
@@ -50,10 +51,10 @@ export function faviconUrl(url: string): string | null {
   }
 }
 
-/** French greeting for the start page. */
+/** Greeting for the start page, in the UI language. */
 export function greeting(hour: number): string {
-  if (hour >= 5 && hour < 12) return "Bonjour";
-  if (hour >= 12 && hour < 18) return "Bon après-midi";
-  if (hour >= 18 && hour < 23) return "Bonsoir";
-  return "Bonne nuit";
+  if (hour >= 5 && hour < 12) return t("mobile.site.goodMorning");
+  if (hour >= 12 && hour < 18) return t("mobile.site.goodAfternoon");
+  if (hour >= 18 && hour < 23) return t("mobile.site.goodEvening");
+  return t("mobile.site.goodNight");
 }

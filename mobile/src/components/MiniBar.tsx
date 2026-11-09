@@ -1,4 +1,4 @@
-import { t } from "@shared/i18n";
+import { t as tr, t } from "@shared/i18n";
 import { memo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
@@ -34,7 +34,7 @@ export const MiniBar = memo(function MiniBar({ title, subtitle, playing, onToggl
           {subtitle}
         </Text>
       </View>
-      <IconButton icon={playing ? "pause" : "play"} label={playing ? t("mobile.miniBar.pause") : "Lire"} size={22} onPress={onToggle} />
+      <IconButton icon={playing ? "pause" : "play"} label={playing ? t("mobile.miniBar.pause") : tr("mobile.miniBar.play")} size={22} onPress={onToggle} />
       <IconButton icon="close" label={t("mobile.miniBar.closePlayer")} size={20} color={colors.textMuted} onPress={onClose} />
     </Animated.View>
   );

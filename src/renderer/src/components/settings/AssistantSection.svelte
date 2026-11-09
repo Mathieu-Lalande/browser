@@ -39,7 +39,7 @@
   }
 </script>
 
-<Row anchor="enabled" label={t("assistantSection.turnAssistant")} hint={PRIVACY_NOTICE} keywords={t("assistantSection.aiClaudeAnthropicPrivacy")}>
+<Row anchor="enabled" label={t("assistantSection.turnAssistant")} hint={PRIVACY_NOTICE()} keywords={t("assistantSection.aiClaudeAnthropicPrivacy")}>
   <Toggle label={t("assistantSection.turnAssistant")} checked={a.enabled} onchange={(enabled) => settings.update({ assistant: { enabled } })} />
 </Row>
 
@@ -101,7 +101,7 @@
 <Row
   anchor="usage"
   label={t("assistantSection.usage")}
-  hint="{platform.shortcut('toggle-assistant') ? `Raccourci ${platform.shortcut('toggle-assistant')}, ` : ''}menu « … », clic droit sur la page ou une sélection, ou @ia suivi d'une question dans la barre universelle. Chaque demande est facturée par Anthropic sur votre compte ; les pages longues sont tronquées (c'est indiqué)."
+  hint={(platform.shortcut("toggle-assistant") ? t("assistantSection.usageShortcut", { shortcut: platform.shortcut("toggle-assistant") }) : "") + t("assistantSection.usageHint")}
 >
   <span></span>
 </Row>

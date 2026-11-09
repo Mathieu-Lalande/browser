@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t as tr, t, intlLocale } from "@shared/i18n";
   import Card from "../ui/Card.svelte";
   import { isActiveDownload, type DownloadEntry } from "@shared/downloads";
   import { api } from "../../lib/browser.svelte";
@@ -24,12 +24,12 @@
   });
   const clearable = $derived(downloads.entries.some((entry) => !isActiveDownload(entry) && !entry.awaitingConfirmation));
 
-  const dayFormat = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const dayFormat = new Intl.DateTimeFormat(intlLocale(), { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   function dayLabel(time: number): string {
     const day = new Date(time).toDateString();
     const today = new Date();
     if (day === today.toDateString()) return "Aujourd'hui";
-    if (day === new Date(today.getTime() - 86_400_000).toDateString()) return "Hier";
+    if (day === new Date(today.getTime() - 86_400_000).toDateString()) return tr("downloadsPage.yesterday");
     const label = dayFormat.format(time);
     return label.charAt(0).toUpperCase() + label.slice(1);
   }

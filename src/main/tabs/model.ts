@@ -1,3 +1,4 @@
+import { t } from "@shared/i18n";
 import type { Session, WebContents, WebContentsView } from "electron";
 import { INTERNAL_PAGES, internalPageOf, isInternalUrl } from "@shared/internal";
 import type { CloseTabActivates, NewTabPosition } from "@shared/settings";
@@ -10,7 +11,7 @@ import type { PageWheelSample } from "../page-swipe-script";
 import type { MarkClick } from "../annotations/page";
 import type { StorePageAction } from "@shared/webstore-page";
 
-export const START_TITLE = "Page d'accueil";
+export const START_TITLE = (): string => t("tabsModel.startPage");
 
 /** Closed tabs remembered per tab list for "Rouvrir l'onglet fermé". */
 export const MAX_CLOSED_TABS = 25;
@@ -144,7 +145,7 @@ export const withoutHash = (url: string) => url.split("#", 1)[0];
 export function defaultTitle(url: string): string {
   const page = internalPageOf(url);
   if (page) return INTERNAL_PAGES[page].title;
-  return url ? displayUrl(url) : START_TITLE;
+  return url ? displayUrl(url) : START_TITLE();
 }
 
 /**

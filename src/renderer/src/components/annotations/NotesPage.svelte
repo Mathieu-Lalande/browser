@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t, intlLocale } from "@shared/i18n";
   import { annotatedSites, COLOR_LABELS, HIGHLIGHT_SWATCHES, type AnnotationsList, type HighlightColor } from "@shared/annotations/model";
   import type { AnnotationExportFormat } from "@shared/annotations/export";
   import { displayUrl } from "@shared/url";
@@ -29,7 +29,7 @@
 
   const sites = $derived(list ? annotatedSites(list, { query, colors }) : []);
   const total = $derived(list ? list.highlights.length + list.notes.length : 0);
-  const dateFormat = new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" });
+  const dateFormat = new Intl.DateTimeFormat(intlLocale(), { dateStyle: "medium" });
 
   async function refresh(): Promise<void> {
     const id = ++request;

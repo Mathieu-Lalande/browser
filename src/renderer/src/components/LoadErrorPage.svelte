@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t as tr, t } from "@shared/i18n";
   import { describeLoadError, type LoadError, type LoadErrorFamily } from "@shared/load-error";
   import type { TabState } from "@shared/types";
   import { api } from "../lib/browser.svelte";
@@ -35,9 +35,9 @@
   <p>{text.message}</p>
   <p class="muted">{text.advice}</p>
   <div class="actions">
-    <button class="primary" disabled={tab.isLoading} title={platform.tip("Actualiser", "reload")} onclick={() => api.tabs.reload(tab.id)}>
+    <button class="primary" disabled={tab.isLoading} title={platform.tip(tr("loadErrorPage.reload"), "reload")} onclick={() => api.tabs.reload(tab.id)}>
       <Icon name="reload" size={16} />
-      {tab.isLoading ? "Chargement…" : "Actualiser"}
+      {tab.isLoading ? tr("loadErrorPage.loading") : tr("loadErrorPage.reload")}
     </button>
   </div>
   <details>
@@ -46,7 +46,7 @@
       <dt>{t("loadErrorPage.address")}</dt>
       <dd>{error.url}</dd>
       <dt>{t("loadErrorPage.error")}</dt>
-      <dd><code>{error.description || "Erreur inconnue"}</code> ({error.code})</dd>
+      <dd><code>{error.description || tr("loadErrorPage.unknownError")}</code> ({error.code})</dd>
     </dl>
   </details>
 </section>

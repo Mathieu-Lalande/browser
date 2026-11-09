@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { intlLocale } from "@shared/i18n";
   import { greetingFor } from "@shared/start-widgets";
   import { browser } from "../../../lib/browser.svelte";
   import { settings } from "../../../lib/settings.svelte";
@@ -12,8 +13,8 @@
     return () => clearInterval(timer);
   });
 
-  const time = $derived(now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }));
-  const date = $derived(now.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }));
+  const time = $derived(now.toLocaleTimeString(intlLocale(), { hour: "2-digit", minute: "2-digit" }));
+  const date = $derived(now.toLocaleDateString(intlLocale(), { weekday: "long", day: "numeric", month: "long" }));
   const name = $derived(settings.current.startPage.greetingName.trim());
   // A private window's heading is "Navigation privée": the clock is no heading there.
   const showGreeting = $derived(widget.options.greeting && !browser.isPrivate);

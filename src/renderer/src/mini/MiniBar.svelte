@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from "@shared/i18n";
+  import { t as tr, t } from "@shared/i18n";
   import type { MiniAction } from "@shared/mini";
   import Icon from "../components/Icon.svelte";
   import Button from "../components/ui/Button.svelte";
@@ -29,7 +29,7 @@
   <div class="site drag" title={bar?.url ?? ""}>
     <span class="lock" class:secure={bar?.secure}><Icon name={bar?.secure ? "lock" : "globe"} size={14} /></span>
     <span class="host">{bar?.host ?? ""}</span>
-    <span class="title">{bar?.isLoading ? "Chargement…" : (bar?.title ?? "")}</span>
+    <span class="title">{bar?.isLoading ? tr("miniBar.loading") : (bar?.title ?? "")}</span>
   </div>
   <div class="actions">
     <IconButton
@@ -40,10 +40,10 @@
       onclick={() => act("pin")}
     />
     <IconButton icon={copied ? "check" : "copy"} size="sm" label={copied ? t("miniBar.linkCopied") : t("miniBar.copyLink")} onclick={() => act("copy")} />
-    <Button variant="primary" size="sm" icon="open" title={`Ouvrir dans le navigateur (${key("O")})`} onclick={() => act("promote")}>
+    <Button variant="primary" size="sm" icon="open" title={t("miniBar.openInBrowserShortcut", { shortcut: key("O") })} onclick={() => act("promote")}>
       {t("miniBar.openBrowser")}
     </Button>
-    <IconButton icon="close" size="sm" label={t("miniBar.close")} title={`Fermer (${key("W")})`} onclick={() => act("close")} />
+    <IconButton icon="close" size="sm" label={t("miniBar.close")} title={t("miniBar.closeShortcut", { shortcut: key("W") })} onclick={() => act("close")} />
   </div>
 </header>
 

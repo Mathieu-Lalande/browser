@@ -23,7 +23,7 @@ export function connectionLabel(info: MobileSiteInfo): string {
   return info.secure ? t("mobile.siteInfo.secureConnectionHttps") : t("mobile.siteInfo.notSecureConnectionHttp");
 }
 
-export const SITE_DATA_NOTE =
+export const SITE_DATA_NOTE = (): string =>
   t("mobile.siteInfo.clearingSiteDataEmpties") +
   t("mobile.siteInfo.protectedCookiesHttponlyCant");
 
