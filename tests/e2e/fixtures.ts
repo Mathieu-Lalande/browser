@@ -339,6 +339,17 @@ function startServer(): Promise<{ server: Server; origin: string; log: ServerLog
         `<title>Long</title><body style="margin:0"><div id="box" style="width:240px;height:120px;margin:40px;background:#2b8a3e">box</div>` +
           `<div style="height:4000px;background:linear-gradient(#fff,#36c)">long</div></body>`,
       );
+    } else if (path.startsWith("/panel-app")) {
+      // A web app for a panel (ADR-047): its unread count in the title.
+      res.end(`<title>(3) Discussions</title><h1>Messagerie</h1><p>Trois messages non lus.</p>`);
+    } else if (path.startsWith("/nopip-video")) {
+      // A playing video whose site refuses picture-in-picture (ADR-047).
+      res.end(
+        `<title>No PiP</title><canvas id="c" width="160" height="90"></canvas><video id="v" muted autoplay disablepictureinpicture width="320" height="180"></video>` +
+          `<script>const c = document.getElementById("c"), g = c.getContext("2d"); let t = 0;` +
+          `setInterval(() => { g.fillStyle = "hsl(" + (t++ * 9) % 360 + " 70% 50%)"; g.fillRect(0, 0, 160, 90); }, 40);` +
+          `document.getElementById("v").srcObject = c.captureStream(25);</script>`,
+      );
     } else if (path.startsWith("/form")) {
       res.end(`<title>Form</title><form><input id="field" name="field" value=""><textarea id="notes"></textarea></form>`);
     } else {

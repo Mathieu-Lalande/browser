@@ -130,6 +130,7 @@ export class TabManager {
         isBookmarked: this.isBookmarked(tab.state.url),
         isFavorite: tab.state.url !== "" && (this.hooks.isFavorite?.(tab.state.url) ?? false),
         isAsleep: isDiscarded(tab),
+        inReadingList: showsWebPage(tab.state.url) && (this.hooks.isInReadingList?.(tab.state.url) ?? false),
         hasPasswords: showsWebPage(tab.state.url) && (this.hooks.hasPasswords?.(tab.state.url) ?? false),
         reader: this.layout.showsReader(tab),
         ...this.translationOf(tab),

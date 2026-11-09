@@ -6,7 +6,7 @@ const cssVar = (chrome: Page, name: string) =>
   chrome.evaluate<string>(`getComputedStyle(document.documentElement).getPropertyValue(${JSON.stringify(name)}).trim()`);
 
 async function openSettings(chrome: Page): Promise<void> {
-  await chrome.getByRole("button", { name: "Paramètres" }).click();
+  await chrome.getByRole("button", { name: "Paramètres", exact: true }).click();
   await expect(chrome.getByRole("heading", { name: "Paramètres", level: 1 })).toBeVisible();
 }
 

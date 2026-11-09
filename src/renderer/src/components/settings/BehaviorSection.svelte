@@ -109,6 +109,18 @@
     onchange={(archiveTabsAfter) => update({ behavior: { archiveTabsAfter } })}
   />
 </Row>
+<Row
+  anchor="auto-pip"
+  label="Image dans l'image automatique"
+  hint="Quand vous quittez un onglet qui lit une vidéo visible, elle continue dans une fenêtre flottante, et revient à sa place à votre retour. Les sites qui interdisent l'image dans l'image sont respectés."
+  keywords="pip picture in picture vidéo flottante"
+>
+  <Toggle
+    label="Image dans l'image automatique"
+    checked={s.media.autoPictureInPicture}
+    onchange={(autoPictureInPicture) => update({ media: { autoPictureInPicture } })}
+  />
+</Row>
 <Row label="Onglets archivés" hint="Les onglets fermés par l'archivage, à restaurer ou supprimer.">
   <Button icon="archive" onclick={() => api.commands.run("open-archive")}>Voir les onglets archivés</Button>
 </Row>

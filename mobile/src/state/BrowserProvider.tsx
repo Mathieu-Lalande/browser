@@ -2,6 +2,7 @@ import { autofill } from "./autofill";
 import type { AnnotationsData } from "@shared/annotations/model";
 import type { ArchivedTab } from "@shared/archive";
 import type { Boost } from "@shared/boosts";
+import type { ReadingItem } from "@shared/reading-list";
 import { favoriteTab, type Favorite } from "@shared/favorites";
 import type { History } from "@shared/history";
 import { webHostname } from "@shared/hosts";
@@ -109,6 +110,8 @@ export interface BrowserActions {
   setBoosts(update: (boosts: Boost[]) => Boost[]): void;
   /** Highlights and page notes (ADR-037): normal tabs only (the caller checks). */
   setAnnotations(update: (data: AnnotationsData) => AnnotationsData): void;
+  /** "Lire plus tard" (ADR-047): normal tabs only (the caller checks). */
+  setReadingList(update: (list: ReadingItem[]) => ReadingItem[]): void;
   /** The favorite's tab in the space shown, else a new tab. Returns the tab shown. */
   openFavorite(url: string): TabId;
   /** Overview folders (ADR-022). Returns the new folder's id. */
@@ -159,6 +162,8 @@ interface BrowserState {
   boosts: Boost[];
   /** Highlights and page notes (ADR-037). */
   annotations: AnnotationsData;
+  /** "Lire plus tard" (ADR-047). */
+  reading: ReadingItem[];
   /** Bumped when history changes (the History instance is mutable). */
   historyVersion: number;
   history: History;
@@ -197,6 +202,7 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
   const archive = useStore(stores.archive);
   const boosts = useStore(stores.boosts);
   const annotations = useStore(stores.annotations);
+  const reading = useStore(stores.reading);
   const { history, version: historyVersion } = useStore(stores.history);
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const syncRef = useRef<SyncController | null>(null);
@@ -240,6 +246,7 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
       setBoosts: (next) => stores.boosts.set(next),
       annotations: stores.annotations.get,
       setAnnotations: (next) => stores.annotations.set(next),
+      reading: { list: stores.reading.get, set: (next) => stores.reading.set(next) },
       autofill,
       history: () => stores.history.history,
       historyChanged: () => stores.history.changed(),
@@ -260,7 +267,7 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
   // Any synced data changed: sync a little later (the controller debounces and ignores no-ops).
   useEffect(() => {
     if (ready) syncRef.current?.notifyChange();
-  }, [model.tabs, model.spaces, bookmarks, favorites, boosts, annotations, settings, historyVersion, ready]);
+  }, [model.tabs, model.spaces, bookmarks, favorites, boosts, annotations, reading, settings, historyVersion, ready]);
 
   // --- Auto-archiving (ADR-022): at startup, every minute, and back in the foreground ----------
   useEffect(() => {
@@ -466,6 +473,9 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
       setAnnotations(update) {
         stores.annotations.set(update);
       },
+      setReadingList(update) {
+        stores.reading.set(update);
+      },
       openFavorite(url) {
         const current = tabs.get();
         const here = current.tabs.filter((tab) => tab.spaceId === current.activeSpaceId);
@@ -543,8 +553,8 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
   }, [syncStatus, actions]);
 
   const state = useMemo<BrowserState>(
-    () => ({ ready, model, settings, mobile, bookmarks, favorites, archive, boosts, annotations, historyVersion, history, sync: syncStatus }),
-    [ready, model, settings, mobile, bookmarks, favorites, archive, boosts, annotations, historyVersion, history, syncStatus],
+    () => ({ ready, model, settings, mobile, bookmarks, favorites, archive, boosts, annotations, reading, historyVersion, history, sync: syncStatus }),
+    [ready, model, settings, mobile, bookmarks, favorites, archive, boosts, annotations, reading, historyVersion, history, syncStatus],
   );
 
   return (

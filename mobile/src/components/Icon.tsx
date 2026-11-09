@@ -6,6 +6,7 @@ import type { LucideIcon } from "lucide-react-native";
 // Lucide icons (https://lucide.dev), imported one by one so the bundle only holds the ones used.
 import ArrowUpLeft from "lucide-react-native/icons/arrow-up-left";
 import BookOpen from "lucide-react-native/icons/book-open";
+import BookMarked from "lucide-react-native/icons/book-bookmark";
 import Languages from "lucide-react-native/icons/languages";
 import Highlighter from "lucide-react-native/icons/highlighter";
 import Notebook from "lucide-react-native/icons/notebook";
@@ -177,6 +178,7 @@ const ui = {
   eyeOff: EyeOff,
   // Reader mode (ADR-026).
   reader: BookOpen,
+  bookMarked: BookMarked,
   textSize: Type,
   // Translation (ADR-036).
   languages: Languages,

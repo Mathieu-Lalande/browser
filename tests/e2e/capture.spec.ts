@@ -39,7 +39,7 @@ test.beforeEach(() => {
 });
 test.afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
-test("the address bar's two buttons appear on hover or keyboard focus", async ({ chrome, server }) => {
+test("the address bar's buttons appear on hover or keyboard focus", async ({ chrome, server }) => {
   await visit(chrome, server.url("/one"), "Page one");
   // Away from the bar: hidden, but laid out (the URL does not move when they appear).
   await chrome.mouse.move(600, 600);
@@ -53,8 +53,8 @@ test("the address bar's two buttons appear on hover or keyboard focus", async ({
   await expect(copy).toHaveCSS("opacity", "1");
   await expect(options).toHaveCSS("opacity", "1");
   expect(await chrome.getByLabel("Barre d'adresse").boundingBox()).toEqual(before);
-  // Two actions only (ADR-045): the rest is in the options popover or behind the lock.
-  await expect(chrome.locator(".address .actions button")).toHaveCount(2);
+  // Three actions only (ADR-045; "Lire plus tard", ADR-047): the rest is in the options popover or behind the lock.
+  await expect(chrome.locator(".address .actions button")).toHaveCount(3);
 
   await chrome.mouse.move(600, 600);
   await expect(copy).toHaveCSS("opacity", "0");

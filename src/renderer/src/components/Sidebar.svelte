@@ -12,6 +12,7 @@
   import FolderEditor from "./folders/FolderEditor.svelte";
   import Icon from "./Icon.svelte";
   import MiniPlayer from "./media/MiniPlayer.svelte";
+  import PanelStrip from "./panels/PanelStrip.svelte";
   import NavButtons from "./sidebar/NavButtons.svelte";
   import SelectionBar from "./sidebar/SelectionBar.svelte";
   import SidebarFooter from "./sidebar/SidebarFooter.svelte";
@@ -203,6 +204,7 @@
       <span>{drag.splitTarget ? `Vue scindée : ${drag.current.label}` : drag.current.label}</span>
     </div>
   {/if}
+  <PanelStrip />
   <MiniPlayer />
   <SidebarFooter
     onEditSpace={(id) => (editing = editing === id ? null : id)}

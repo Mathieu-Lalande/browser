@@ -25,6 +25,9 @@
   import NotesPanel from "./components/annotations/NotesPanel.svelte";
   import AssistantPanel from "./components/assistant/AssistantPanel.svelte";
   import { assistantPanel } from "./lib/assistant.svelte";
+  import WebPanelFrame from "./components/panels/WebPanelFrame.svelte";
+  import PanelAddForm from "./components/panels/PanelAddForm.svelte";
+  import { panelsUi } from "./lib/panels.svelte";
 
   /** Delay before a revealed zen sidebar hides once the pointer left it. */
   const ZEN_HIDE_DELAY = 450;
@@ -219,6 +222,7 @@
       if (command === "toggle-notes") notesOpen = !notesOpen;
       if (command === "toggle-assistant") assistantPanel.toggle();
       if (command === "open-assistant") assistantPanel.open = true;
+      if (command === "add-web-panel") panelsUi.startAdding();
     });
   });
 
@@ -279,6 +283,14 @@
         {/key}
       {/if}
       <div class="page-row" class:notes-left={right}>
+      <!-- Web panels (ADR-047): beside the page, on the sidebar's side; their pages are native views. -->
+      {#if panelsUi.available && panelsUi.adding}
+        <PanelAddForm />
+      {:else if panelsUi.available && panelsUi.open}
+        {#key panelsUi.open.id}
+          <WebPanelFrame panel={panelsUi.open} side={right ? "right" : "left"} />
+        {/key}
+      {/if}
       <main class="viewport" class:split={browser.splitTabs.length > 1} bind:this={viewport}>
         {#if browser.splitTabs.length > 1 && browser.state.split}
           <SplitView tabs={browser.splitTabs} split={browser.state.split} />

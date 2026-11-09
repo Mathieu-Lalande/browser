@@ -242,6 +242,18 @@ export interface OnboardingSettings {
 }
 
 /** Crash reports (ADR-043): local only unless the user opts in (and the build has an endpoint). */
+/** Media (ADR-047). */
+export interface MediaSettings {
+  /** Leaving a tab that plays a visible video pops it out in picture-in-picture (back on return). */
+  autoPictureInPicture: boolean;
+}
+
+/** Web panels (ADR-047). */
+export interface PanelSettings {
+  /** Opt-in: the panel list travels in the `panels` sync collection. */
+  sync: boolean;
+}
+
 export interface DiagnosticsSettings {
   /** Opt-in: send crash reports (minidumps) to the build's crash endpoint. */
   crashReports: boolean;
@@ -265,6 +277,8 @@ export interface Settings {
   spellcheck: SpellcheckSettings;
   onboarding: OnboardingSettings;
   diagnostics: DiagnosticsSettings;
+  media: MediaSettings;
+  panels: PanelSettings;
   /**
    * Keyboard shortcuts chosen by the user (desktop, ADR-028): only the commands that differ from
    * the registry. A patch replaces the whole map.
@@ -377,6 +391,8 @@ export const DEFAULT_SETTINGS: Settings = {
   spellcheck: { enabled: true, languages: [] },
   onboarding: { completed: true },
   diagnostics: { crashReports: false },
+  media: { autoPictureInPicture: false },
+  panels: { sync: false },
   shortcuts: {},
 };
 
@@ -547,6 +563,8 @@ const schema: Schema = {
   spellcheck: { enabled: bool, languages: sanitizeSpellLanguages },
   onboarding: { completed: bool },
   diagnostics: { crashReports: bool },
+  media: { autoPictureInPicture: bool },
+  panels: { sync: bool },
 };
 
 /**

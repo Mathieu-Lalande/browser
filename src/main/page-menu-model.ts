@@ -46,6 +46,8 @@ export interface PageMenuContext {
   canAnnotate?: boolean;
   /** The AI assistant is enabled (ADR-044): its entries are offered (selection, page). */
   assistant?: boolean;
+  /** The page is in the reading list (ADR-047); null/absent: not offered (a private window). */
+  inReadingList?: boolean | null;
   /** The page is bookmarked (the bookmark entry offers to remove it). */
   isBookmarked?: boolean;
   /**
@@ -199,6 +201,9 @@ export function buildPageMenu(params: PageMenuParams, context: PageMenuContext):
         { id: "page-forward", label: "Suivant", enabled: context.canGoForward, accelerator: key("forward") },
         { id: "page-reload", label: "Actualiser", accelerator: key("reload") },
         { id: "page-bookmark", label: context.isBookmarked ? "Retirer des favoris" : "Ajouter aux favoris", accelerator: key("toggle-bookmark") },
+        ...(typeof context.inReadingList === "boolean"
+          ? [{ id: "page-reading", label: context.inReadingList ? "Retirer de la liste de lecture" : "Lire plus tard", accelerator: key("toggle-reading-list") }]
+          : []),
       ],
       [
         { id: "page-save", label: "Enregistrer la page sous…", accelerator: key("save-page") },

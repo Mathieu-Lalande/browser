@@ -200,6 +200,7 @@ if (!app.requestSingleInstanceLock()) {
             backupExportPath: testHook("BROWSER_TEST_BACKUP_EXPORT"),
             backupImportPath: testHook("BROWSER_TEST_BACKUP_IMPORT"),
             notifications: process.env.BROWSER_TEST_NOTIFICATIONS === "1",
+            autoPip: process.env.BROWSER_TEST_AUTO_PIP === "1",
           },
       crashReports: {
         reporter: crashReporter,

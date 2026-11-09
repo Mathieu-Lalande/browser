@@ -13,7 +13,8 @@ import { favoriteFavicon, favoriteTiles, setArchiveNotifier, setFavoritesRefresh
 import { Overlay } from "./overlay";
 import { LinkPeek } from "./peek";
 import { TabPreviews } from "./tab-preview";
-import { MediaHub } from "./media";
+import { AutoPip, MediaHub } from "./media";
+import { PanelHost } from "./panels";
 import { PageTranslator } from "./translate";
 import { PageAssistant } from "./assistant";
 import { PageAnnotator } from "./annotations";
@@ -66,6 +67,7 @@ const tabHooks: TabManagerHooks = {
   },
   isBookmarked: (url) => profile().bookmarks.has(url),
   isFavorite: (url) => matchesFavorite(profile().favorites.list(), url),
+  isInReadingList: (url) => appServices().reading.has(url),
   hasPasswords: (url) => hasPasswordsFor(url),
 };
 
@@ -122,6 +124,15 @@ export class BrowserController {
   readonly annotator: PageAnnotator = new PageAnnotator(this, { all: () => BrowserController.all() });
   /** Tab hover preview cards and their thumbnails (ADR-038). */
   readonly previews: TabPreviews;
+  /** The web panels' live pages beside the page (ADR-047); none in a private window. */
+  readonly panels: PanelHost;
+  /** Automatic picture-in-picture on tab switches (ADR-047, off by default). */
+  readonly autoPip: AutoPip = new AutoPip({
+    enabled: () => settings().media.autoPictureInPicture,
+    // Any tab of the window (a space switch leaves a tab of another space).
+    pageOf: (tabId) => this.spaces?.allTabs().find(({ tab }) => tab.id === tabId)?.manager.pageOf(tabId) ?? null,
+    log: (entry) => appServices().autoPipLog?.(entry),
+  });
   /**
    * Private window: never written to the profile (history, session, permissions…). Anything that
    * persists per window checks this; per-session hooks (downloads) use `isPrivateSession` (./private).
@@ -203,6 +214,14 @@ export class BrowserController {
     });
     this.peek = new LinkPeek(this);
     this.previews = new TabPreviews(this);
+    this.panels = new PanelHost({
+      window: this.window,
+      isPrivate: this.isPrivate,
+      overlay: this.overlay,
+      service: appServices().panels,
+      openTab: (url, foreground) => this.tabs.create(url, { activate: foreground }),
+      refresh: () => this.spaces.refresh(),
+    });
     this.wireWindow(chrome.id);
 
     // app://browser/index.html (or the dev server, unpackaged only).
@@ -214,6 +233,7 @@ export class BrowserController {
     this.bridge.pushState(this.withFavorites(spaceState));
     if (!this.isPrivate) BrowserController.saveSession();
     this.media.sync();
+    this.autoPip.sync(spaceState.activeTabId);
     // Undefined only while the spaces are being created (first state, before the window is up).
     this.previews?.sync();
   }
@@ -254,6 +274,7 @@ export class BrowserController {
     if (outcome === "forget") BrowserController.saveSession();
     this.media.destroy();
     this.previews.destroy();
+    this.panels.destroy();
     try {
       this.spaces.destroy();
     } finally {
@@ -276,6 +297,8 @@ export class BrowserController {
       recording: appServices().capture.recorder.stateOf(this),
       // The "Restaurer la session ?" card (ADR-042), never in a private window.
       recovery: this.isPrivate ? null : appServices().recovery.summary(),
+      // Undefined only while the spaces are being created (first state, before the window is up).
+      panels: this.panels?.state() ?? null,
       // ADR-048: the window bar's indicator and motion; Mica behind the UI on Windows 11.
       energy: appServices().energy.state,
       mica: this.frame.micaApplied,
@@ -520,6 +543,18 @@ export class BrowserController {
     services.passwords.onChanged(() => {
       BrowserController.refreshAll();
       for (const controller of windows.all()) controller.send(Channels.passwordsChanged);
+    });
+    // Web panels added, removed, edited or synced (ADR-047): each window follows with its own pages.
+    services.panels.onChanged(() => {
+      for (const controller of windows.all()) {
+        controller.panels.sync();
+        controller.spaces.refresh();
+      }
+    });
+    // The reading list changed: the address bar's button and `browser://reading-list` follow (ADR-047).
+    services.reading.onChanged(() => {
+      BrowserController.refreshAll();
+      for (const controller of windows.all()) controller.send(Channels.readingChanged);
     });
     // Addresses and cards changed: the settings section re-lists them (ADR-041).
     services.autofill.onChanged(() => {

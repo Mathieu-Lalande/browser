@@ -2,6 +2,8 @@ import { join } from "node:path";
 import { app } from "electron";
 import { ANNOTATIONS_VERSION, emptyAnnotations, sanitizeAnnotations, type AnnotationsData } from "@shared/annotations/model";
 import { BOOSTS_VERSION, sanitizeBoosts, type Boost } from "@shared/boosts";
+import { PANELS_VERSION, sanitizePanels, type WebPanel } from "@shared/panels";
+import { READING_VERSION, sanitizeReadingList, type ReadingItem } from "@shared/reading-list";
 import { freshProfileSettings, sanitizeSettings, type Settings } from "@shared/settings";
 import type { DownloadEntry } from "@shared/downloads";
 import { DOWNLOADS_VERSION, DownloadList } from "./downloads/list";
@@ -33,6 +35,10 @@ export interface Profile {
   readonly boosts: readonly Boost[];
   /** Highlights and page notes (`annotations.json`, ADR-037). Never written from a private window. */
   readonly annotations: AnnotationsData;
+  /** Web panels pinned to the sidebar (`panels.json`, ADR-047). */
+  readonly panels: readonly WebPanel[];
+  /** "Lire plus tard" with the offline texts (`reading-list.json`, ADR-047). Never written from a private window. */
+  readonly readingList: readonly ReadingItem[];
   saveHistory(): void;
   saveBookmarks(): void;
   saveDownloads(): void;
@@ -43,6 +49,10 @@ export interface Profile {
   saveBoosts(next: readonly Boost[]): void;
   /** Replaces the annotations and schedules their write. */
   saveAnnotations(next: AnnotationsData): void;
+  /** Replaces the web panels and schedules their write. */
+  savePanels(next: readonly WebPanel[]): void;
+  /** Replaces the reading list and schedules its write. */
+  saveReadingList(next: readonly ReadingItem[]): void;
   /** Replaces the settings and schedules their write. */
   saveSettings(next: Settings): void;
   /** Debounced: `snapshot` is taken when the write happens. */
@@ -53,7 +63,7 @@ export interface Profile {
   onChange(listener: (what: ProfileChange) => void): () => void;
 }
 
-export type ProfileChange = "history" | "bookmarks" | "session" | "settings" | "favorites" | "archive" | "boosts" | "annotations";
+export type ProfileChange = "history" | "bookmarks" | "session" | "settings" | "favorites" | "archive" | "boosts" | "annotations" | "panels" | "reading";
 
 let current: Profile | null = null;
 
@@ -128,6 +138,20 @@ export function openProfile(dir = app.getPath("userData")): Profile {
     debounceMs: 500,
   });
 
+  const panelsFile = new JsonFile<WebPanel[]>({
+    path: join(dir, "panels.json"),
+    version: PANELS_VERSION,
+    parse: (data) => sanitizePanels(data),
+    debounceMs: 300,
+  });
+
+  const readingFile = new JsonFile<ReadingItem[]>({
+    path: join(dir, "reading-list.json"),
+    version: READING_VERSION,
+    parse: (data) => sanitizeReadingList(data),
+    debounceMs: 500,
+  });
+
   const history = new History(historyFile.load() ?? []);
   const favorites = new Favorites(favoritesFile.load() ?? []);
   const archive = new Archive(archiveFile.load() ?? []);
@@ -138,6 +162,8 @@ export function openProfile(dir = app.getPath("userData")): Profile {
   let settings = settingsFile.load() ?? freshProfileSettings();
   let boosts: readonly Boost[] = boostsFile.load() ?? [];
   let annotations: AnnotationsData = annotationsFile.load() ?? emptyAnnotations();
+  let panels: readonly WebPanel[] = panelsFile.load() ?? [];
+  let readingList: readonly ReadingItem[] = readingFile.load() ?? [];
   const changes = new Emitter<ProfileChange>();
   const changed = (what: ProfileChange) => changes.emit(what);
 
@@ -168,6 +194,22 @@ export function openProfile(dir = app.getPath("userData")): Profile {
       annotationsFile.scheduleSave(() => annotations);
       changed("annotations");
     },
+    get panels() {
+      return panels;
+    },
+    savePanels: (next) => {
+      panels = next;
+      panelsFile.scheduleSave(() => [...panels]);
+      changed("panels");
+    },
+    get readingList() {
+      return readingList;
+    },
+    saveReadingList: (next) => {
+      readingList = next;
+      readingFile.scheduleSave(() => [...readingList]);
+      changed("reading");
+    },
     saveHistory: () => {
       historyFile.scheduleSave(() => history.toJSON());
       changed("history");
@@ -197,7 +239,7 @@ export function openProfile(dir = app.getPath("userData")): Profile {
     },
     onChange: (listener) => changes.on(listener),
     // Each store in its own try: one failure never keeps the others from being written.
-    flush: () => flushAll([historyFile, bookmarksFile, sessionFile, settingsFile, downloadsFile, zoomFile, favoritesFile, archiveFile, boostsFile, annotationsFile]),
+    flush: () => flushAll([historyFile, bookmarksFile, sessionFile, settingsFile, downloadsFile, zoomFile, favoritesFile, archiveFile, boostsFile, annotationsFile, panelsFile, readingFile]),
   };
   return current;
 }

@@ -37,6 +37,9 @@ import { HttpsOnlyPage } from "./HttpsOnlyPage";
 import { MiniBar } from "./MiniBar";
 import { PeekSheet, type PeekRequest } from "./PeekSheet";
 import { ReaderScreen } from "./ReaderScreen";
+import { ReadingListScreen } from "./ReadingListScreen";
+import { isInReadingList, toggleReadLater, withArticle } from "../lib/readingList";
+import { readingArticle } from "@shared/reading-list";
 import { SearchSheet } from "./SearchSheet";
 import { SettingsScreen } from "./SettingsScreen";
 import { SpaceEditor } from "./SpaceEditor";
@@ -47,14 +50,14 @@ import { WebTab } from "./WebTab";
 /** WebViews kept alive besides the active one (unmounted tabs reload when shown again). */
 const MAX_LIVE_TABS = 4;
 
-type Overlay = "none" | "search" | "tabs" | "settings";
+type Overlay = "none" | "search" | "tabs" | "settings" | "reading";
 
 /**
  * The browser: the pages (live WebViews), the bottom toolbar, and what opens over them (search
  * sheet, tab overview, settings, reader, sheets). Each concern lives in a hook of `hooks/`.
  */
 export function BrowserScreen() {
-  const { model, bookmarks, mobile, favorites, boosts, annotations, settings } = useBrowserState();
+  const { model, bookmarks, mobile, favorites, boosts, annotations, settings, reading } = useBrowserState();
   // Boosts (ADR-029): one payload for normal tabs, one for private ones (scripts only if allowed).
   const normalBoosts = useMemo(() => boostPayload(boosts, false), [boosts]);
   const privateBoosts = useMemo(() => boostPayload(boosts, true), [boosts]);
@@ -262,7 +265,24 @@ export function BrowserScreen() {
   const autofillMenus = useAutofillMenus(tab);
   // The assistant (ADR-044) reads the page through the reader's injection (token per request).
   const assistantRef = useRef<AssistantController | null>(null);
-  const reader = useReader({ tab, visible: overlay === "none", onAssistantArticle: (id, article) => assistantRef.current?.onArticle(id, article) });
+  const reader = useReader({
+    tab,
+    visible: overlay === "none",
+    onAssistantArticle: (id, article) => assistantRef.current?.onArticle(id, article),
+    // "Lire plus tard" (ADR-047): the added page's offline text.
+    onReadingArticle: (_id, article) => article && actions.setReadingList((list) => withArticle(list, article, Date.now())),
+  });
+  const readLater = useEvent((tabId: string) => {
+    const target = model.tabs.find((candidate) => candidate.id === tabId);
+    if (!target || isPrivateTab(target)) return;
+    let added = false;
+    actions.setReadingList((list) => {
+      const next = toggleReadLater(list, target, Date.now());
+      added = next.added;
+      return next.list;
+    });
+    if (added) reader.open(tabId, "reading");
+  });
   const assistant = useAssistant({
     tab,
     settings: settings.assistant,
@@ -307,6 +327,9 @@ export function BrowserScreen() {
     autofillMenu: autofillMenus.menu,
     autofillSections: autofillMenus.sections,
     openReader: reader.open,
+    readLater: tab && !isPrivateTab(tab) ? readLater : null,
+    inReadingList: !!tab && isInReadingList(reading, tab.url),
+    openReadingList: () => setOverlay("reading"),
     openAssistant: settings.assistant.enabled ? assistant.open : null,
     translated: !!tab && translation.translated.has(tab.id),
     toggleTranslation: () => void (tab && translation.toggle(tab.id, isPrivateTab(tab))),
@@ -495,6 +518,21 @@ export function BrowserScreen() {
       {overlay === "search" && (
         <View style={[StyleSheet.absoluteFill, { zIndex: 4 }]}>
           <SearchSheet initialText={searchText} onSubmit={submit} onPick={pick} onClose={closeSearch} />
+        </View>
+      )}
+      {overlay === "reading" && (
+        <View style={[StyleSheet.absoluteFill, { zIndex: 4 }]}>
+          <ReadingListScreen
+            onClose={closeSearch}
+            onRead={(item) => {
+              closeSearch();
+              reader.show(readingArticle(item));
+            }}
+            onOpen={(url) => {
+              closeSearch();
+              void actions.openUrl(url);
+            }}
+          />
         </View>
       )}
       {overlay === "settings" && (

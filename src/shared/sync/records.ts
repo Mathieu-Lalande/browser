@@ -11,7 +11,7 @@ import { isDeviceId } from "./hlc";
  * value decrypted from another device.
  */
 
-export const COLLECTIONS = ["settings", "spaces", "bookmarks", "history", "clients", "favorites", "boosts", "sent", "annotations", "addresses"] as const;
+export const COLLECTIONS = ["settings", "spaces", "bookmarks", "history", "clients", "favorites", "boosts", "sent", "annotations", "addresses", "panels", "reading"] as const;
 export type CollectionName = (typeof COLLECTIONS)[number];
 
 const MAX_TEXT = 512;

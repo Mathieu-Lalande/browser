@@ -34,6 +34,8 @@ import type {
 } from "./passwords";
 import type { DownloadEntry, DownloadsChange } from "./downloads";
 import type { MediaAction, MediaSource } from "./media";
+import type { PanelAddResult } from "./panels";
+import type { ReadingEntry, ReadingItem } from "./reading-list";
 import type { OmniboxTab, OpenDisposition } from "./omnibox/types";
 import type { PeekAction, PeekState } from "./peek";
 import type { ReaderArticle } from "./reader";
@@ -340,6 +342,23 @@ export const Channels = {
   backupApply: "backup:apply",
   crashesInfo: "crashes:info",
   crashesClear: "crashes:clear",
+  // ADR-047: web panels, reading list.
+  panelsAdd: "panels:add",
+  panelsRemove: "panels:remove",
+  panelsMove: "panels:move",
+  panelsSetWidth: "panels:set-width",
+  panelsSetMobile: "panels:set-mobile",
+  panelsToggle: "panels:toggle",
+  panelsClose: "panels:close",
+  panelsBounds: "panels:bounds",
+  panelsReload: "panels:reload",
+  panelsContextMenu: "panels:context-menu",
+  readingList: "reading:list",
+  readingGet: "reading:get",
+  readingToggleTab: "reading:toggle-tab",
+  readingSetRead: "reading:set-read",
+  readingRemove: "reading:remove",
+  readingChanged: "reading:changed",
 } as const;
 
 /** Outcome of a sync action (errors are messages for the user: they do not cross IPC as exceptions). */
@@ -584,6 +603,37 @@ export interface BrowserApi {
    * Media hub (ADR-035): tabs of this window playing (or recently paused) media. Controls name a
    * tab; main runs them in its page's isolated world.
    */
+  /**
+   * Web panels (ADR-047): the list and the open panel come with the window state
+   * (`BrowserState.panels`); main owns the pages, the chrome UI draws the frame and says where the
+   * page goes. Refused in a private window.
+   */
+  panels: {
+    /** Pins a web page (http(s) only); the result says why it was refused. */
+    add(url: string, title?: string, mobile?: boolean): Promise<PanelAddResult>;
+    remove(id: string): void;
+    move(id: string, index: number): void;
+    setWidth(id: string, width: number): void;
+    setMobile(id: string, mobile: boolean): void;
+    /** Shows the panel, or hides it when shown; no id: the last panel opened (the shortcut). */
+    toggle(id?: string): void;
+    close(): void;
+    /** Where the open panel's page goes (window coordinates); null: nowhere. */
+    setBounds(bounds: Bounds | null): void;
+    reload(id: string): void;
+    /** Native menu of a panel's icon (reload, mobile version, move, remove). */
+    contextMenu(id: string): void;
+  };
+  /** "Lire plus tard" (ADR-047): the list without texts, one item with its offline text. */
+  reading: {
+    list(): Promise<ReadingEntry[]>;
+    get(id: string): Promise<ReadingItem | null>;
+    /** Adds the tab's page (with its reader-mode text) or takes it off the list. */
+    toggleTab(tabId: TabId): Promise<ReadingEntry | null>;
+    setRead(id: string, read: boolean): void;
+    remove(id: string): void;
+    onChanged(listener: () => void): () => void;
+  };
   media: {
     list(): Promise<MediaSource[]>;
     onChanged(listener: (sources: MediaSource[]) => void): () => void;
