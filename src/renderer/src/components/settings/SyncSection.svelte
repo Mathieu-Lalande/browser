@@ -254,6 +254,14 @@
       onchange={(sync) => settings.update({ annotations: { sync } })}
     />
   </Row>
+  <Row
+    label="Panneaux web"
+    anchor="panels"
+    keywords="panneaux panels whatsapp spotify"
+    hint="Facultatif : retrouve les mêmes panneaux de la barre latérale sur vos ordinateurs (les sites, pas leurs sessions). La liste de lecture, elle, est toujours synchronisée."
+  >
+    <Toggle label="Synchroniser les panneaux web" checked={settings.current.panels.sync} onchange={(sync) => settings.update({ panels: { sync } })} />
+  </Row>
   <Row label="Déconnecter cet appareil" hint="Arrête la synchronisation ici et retire cet appareil de la liste. Les données restent sur l'appareil.">
     <button class="danger" class:confirming={confirming === "disconnect"} disabled={busy} onclick={() => confirmed("disconnect")}>
       <Icon name="unlink" size={13} />

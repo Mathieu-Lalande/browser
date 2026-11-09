@@ -1,3 +1,4 @@
+import type { PanelsState } from "./panels";
 import type { RecoverySummary } from "./recovery";
 import type { PrintPreviewInfo } from "./print";
 import type { CaptureResult, RecordingState } from "./capture";
@@ -27,6 +28,8 @@ export interface TabState {
   isFavorite?: boolean;
   /** Whether `url` is in the bookmarks. */
   isBookmarked: boolean;
+  /** Whether the page is in the reading list, "Lire plus tard" (ADR-047; never in a private window). */
+  inReadingList?: boolean;
   /** Saved passwords exist for the page's origin (ADR-025): the address bar shows the key. */
   hasPasswords?: boolean;
   /** The page looks like an article (Readability's check): the page options offer reader mode (ADR-026, ADR-045). */
@@ -152,6 +155,8 @@ export interface BrowserState extends TabsState {
   peeks?: SpacePeek[];
   /** The window is recording a tab (ADR-031): the address bar shows it, whatever tab is on screen. */
   recording?: RecordingState | null;
+  /** The web panels of the sidebar and the one shown beside the page (ADR-047); null in a private window. */
+  panels?: PanelsState | null;
 }
 
 /** Tabs and folders of a space not on screen (see `BrowserState.peeks`). */
@@ -216,6 +221,8 @@ export type UiCommand =
   /** Shows or hides the assistant panel (ADR-044); `open-assistant` only shows it. */
   | "toggle-assistant"
   | "open-assistant"
+  /** Shows the "add a web panel" form beside the page (ADR-047). */
+  | "add-web-panel"
   /** Opens a space's editor (`edit-space:<id>`), its name field focused with `rename-space:<id>`. */
   | `edit-space:${string}`
   | `rename-space:${string}`;

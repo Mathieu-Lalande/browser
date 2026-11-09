@@ -151,6 +151,7 @@ export const LIBRARY_MAIN: readonly CommandId[] = [
   "open-extensions",
 ];
 export const LIBRARY_MORE: readonly CommandId[] = [
+  "open-reading-list",
   "open-notes",
   "open-archive",
   "open-boosts",
@@ -158,7 +159,7 @@ export const LIBRARY_MORE: readonly CommandId[] = [
 ];
 
 const libraryMore = (isPrivate: boolean) =>
-  LIBRARY_MORE.filter((id) => !isPrivate || id !== "open-boosts");
+  LIBRARY_MORE.filter((id) => !isPrivate || (id !== "open-boosts" && id !== "open-reading-list"));
 
 /** The profile a Profils submenu entry opens (`profile-open-<id>`), null for other ids. */
 export function profileEntryOf(id: string): string | null {

@@ -4,6 +4,7 @@ import { appServices } from "../app-services-ref";
 import { BrowserController } from "../window";
 import { downloadHandlers } from "./downloads";
 import { mediaHandlers } from "./media";
+import { panelHandlers, readingHandlers } from "./panels";
 import { annotationHandlers } from "./annotations";
 import { archiveHandlers, favoriteHandlers, folderHandlers, spaceHandlers } from "./organize";
 import { passwordHandlers } from "./passwords";
@@ -44,6 +45,7 @@ type EventChannel = (typeof Channels)[
   | "pageSwipeState"
   | "annotationsChanged"
   | "assistantChanged"
+  | "readingChanged"
   | "importProgress"];
 
 /** Every channel the UI sends or invokes: the compiler checks each one has exactly one handler. */
@@ -71,6 +73,8 @@ const handlers = {
   ...updateHandlers,
   ...themeHandlers,
   ...mediaHandlers,
+  ...panelHandlers,
+  ...readingHandlers,
   ...translateHandlers,
   ...assistantHandlers,
   ...annotationHandlers,

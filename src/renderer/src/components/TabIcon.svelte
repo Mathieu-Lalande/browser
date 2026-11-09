@@ -15,6 +15,7 @@
     welcome: "sparkle",
     history: "history",
     import: "import",
+    "reading-list": "book-marked",
   };
   const internal = $derived(internalPageOf(tab.url));
 </script>

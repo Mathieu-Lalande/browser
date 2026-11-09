@@ -2254,3 +2254,60 @@ mal rangées : on ne savait plus où cliquer.
 Tests e2e : barre de fenêtre (`ux-audit.spec.ts`), menu de l'application vers le haut et dans la fenêtre
 (`ux-audit`, `responsive`), deux boutons au survol (`capture.spec.ts`), copie/lecture/traduction/mots de passe
 par les options de la page (utilitaire `pageOptions` des fixtures).
+
+## ADR-047 — Panneaux web, « Lire plus tard », image dans l'image automatique
+
+**Contexte.** Les messageries et lecteurs web (WhatsApp Web, Messenger, Spotify, ChatGPT, Gmail…) servent à côté
+de la navigation, pas à sa place : un onglet de plus les cache. Garder une page pour plus tard ne doit pas
+dépendre du réseau au moment de la lire. Une vidéo quittée par un changement d'onglet devrait pouvoir continuer
+à l'écran.
+
+**Décision.**
+- **Panneaux web.** Modèle pur `src/shared/panels.ts` (http(s) seulement, 16 au plus, une seule fois par site,
+  largeur 280–720 px, titre, « version mobile », favicon `data:` récupéré par main, ADR-018 ; nombre de non-lus lu
+  dans le titre, « (3) WhatsApp ») ; liste du profil `panels.json` (`PanelService`, `src/main/panels/`). Chaque
+  fenêtre normale a son `PanelHost` : la page d'un panneau est une `WebContentsView` durcie comme un onglet
+  (sandbox, isolation, aucun préchargement, `hardenWebContents` : bloqueur de fenêtres surgissantes, liens
+  ouverts en onglets ; `attachTabPrivacy` : protections, HTTPS-Only, GPC ; permissions refusées faute de barre),
+  créée à la première ouverture puis gardée en arrière-plan (messages, musique, compteur) jusqu'à la fermeture
+  de la fenêtre ou au retrait du panneau. Un panneau affiché à la fois ; le raccourci (`toggle-web-panel`,
+  `Ctrl+Maj+E`) rouvre le dernier (`panelToToggle`).
+- **Partition par panneau** (`persist:panel-<id>`, durcie par `hardenSession`) plutôt que par espace : un
+  panneau est le même dans tous les espaces et toutes les fenêtres, ses cookies ne se mêlent ni aux onglets ni
+  aux autres panneaux, et le retirer efface sa partition (`clearPanelPartition`). Contrepartie : se connecter
+  une fois dans le panneau même si l'onglet l'est déjà.
+- **Interface (ADR-010).** `PanelStrip` (au-dessus du pied de la barre latérale, verticale dans le rail compact) :
+  icônes, pastille de non-lus, « + », menu natif au clic droit (actualiser, version mobile, monter/descendre,
+  retirer). Le cadre `WebPanelFrame` réduit la zone `viewport` du côté de la barre latérale et indique à main où
+  placer la page (`panels:bounds`, une fois par image), bord redimensionnable (souris ou flèches), largeur
+  enregistrée au relâchement ; le formulaire d'ajout (`PanelAddForm` : adresse, page actuelle, suggestions
+  `PANEL_SUGGESTIONS`) occupe la même place. L'état vient avec celui de la fenêtre (`BrowserState.panels`).
+- **Jamais en fenêtre privée** : pas de `PanelHost` actif, `BrowserState.panels` nul, canaux `panels:*` refusés.
+- **Synchronisation facultative** (`settings.panels.sync`, désactivée) : collection `panels`, définition et
+  position seulement (ni favicon, ni largeur, ni session).
+- **Lire plus tard.** Modèle pur `src/shared/reading-list.ts` : élément identifié par un hachage de l'URL
+  (`readingId`, le même sur tous les appareils, utilisable en fragment), lu/non lu, et une copie hors ligne du
+  texte de l'article : l'extraction du mode lecture (ADR-026, monde isolé 1006, `sanitizeReaderArticle`) réduite à
+  des paragraphes de texte brut (`articleParagraphs`, sans image ni HTML), 40 000 caractères par élément, 4 millions
+  pour la liste (les éléments lus perdent leur texte d'abord), 500 éléments. `ReadingListService`
+  (`reading-list.json`) ; commande `toggle-reading-list` (`Ctrl+Maj+D`), bouton de la barre d'adresse au survol
+  (un troisième, après le favori et les options, ADR-045), menu de la page, barre universelle ;
+  `browser://reading-list` (non lues/toutes/lues, `#<id>` affiche la copie hors ligne avec les préférences du mode
+  lecture, sans réseau). Jamais depuis une fenêtre privée. Collection `reading` synchronisée avec le reste
+  (chiffrée de bout en bout, texte compris : un enregistrement reste loin de la limite du relais).
+- **Téléphone.** Menu de la page « Lire plus tard » (ajout immédiat, puis texte par l'injection du mode lecture,
+  `useReader` « reading »), « Liste de lecture » (`ReadingListScreen`, copie hors ligne dans `ReaderScreen`) ;
+  `mobile/src/lib/readingList.ts` sur le modèle partagé. Les panneaux restent sur le bureau.
+- **Image dans l'image automatique** (`settings.media.autoPictureInPicture`, désactivée). Politique pure
+  `AutoPipPolicy` (`src/shared/auto-pip.ts`) : quitter un onglet (changement d'onglet ou d'espace) demande
+  « entrer » pour lui, revenir sur un onglet que la fonction a détaché demande « sortir ». `AutoPip` par fenêtre
+  (`src/main/media/auto-pip.ts`, monde isolé 1018, geste utilisateur transmis) : vidéo en lecture, visible, la plus
+  grande ; les sites qui l'interdisent (`disablePictureInPicture`, politique de permissions) sont laissés tels
+  quels ; seule une vidéo détachée par la fonction est rattachée (marque `data-browser-auto-pip`). Crochet de test
+  `BROWSER_TEST_AUTO_PIP` (`globalThis.__browserTestAutoPip`), ignoré une fois empaqueté.
+
+**Conséquences.** Tests : unitaires (`panels.test.ts`, `reading-list.test.ts` dont fusion de synchro,
+`auto-pip.test.ts`), Jest mobile (`mobile/src/lib/readingList.test.ts`), e2e `tests/e2e/panels-reading.spec.ts`
+(panneau ajouté depuis une page locale, zone de page réduite, compteur, bascule ; page ajoutée avec son texte hors
+ligne ; image dans l'image à la sortie et au retour, site qui la refuse). Un panneau chargé coûte un processus de
+rendu par fenêtre tant qu'elle est ouverte.

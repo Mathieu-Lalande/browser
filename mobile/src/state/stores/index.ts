@@ -1,5 +1,6 @@
 import { ANNOTATIONS_VERSION, emptyAnnotations, sanitizeAnnotations, type AnnotationsData } from "@shared/annotations/model";
 import { BOOSTS_VERSION, sanitizeBoosts, type Boost } from "@shared/boosts";
+import { READING_VERSION, sanitizeReadingList, type ReadingItem } from "@shared/reading-list";
 import { createContext, use } from "react";
 import { ARCHIVE_VERSION, FAVORITES_VERSION } from "../../lib/organize";
 import { KEYS, loadDocuments, persistDocument } from "../../lib/storage";
@@ -27,6 +28,8 @@ export interface Stores {
   boosts: Store<Boost[]>;
   /** Highlights and page notes (ADR-037). */
   annotations: Store<AnnotationsData>;
+  /** "Lire plus tard" (ADR-047). */
+  reading: Store<ReadingItem[]>;
 }
 
 export function createStores(): Stores {
@@ -38,6 +41,7 @@ export function createStores(): Stores {
     settings: new SettingsStore(),
     boosts: new Store<Boost[]>([]),
     annotations: new Store<AnnotationsData>(emptyAnnotations()),
+    reading: new Store<ReadingItem[]>([]),
   };
 }
 
@@ -54,6 +58,7 @@ export async function loadStores(stores: Stores, isCancelled: () => boolean = ()
     archive: [KEYS.archive, ARCHIVE_VERSION],
     boosts: [KEYS.boosts, BOOSTS_VERSION],
     annotations: [KEYS.annotations, ANNOTATIONS_VERSION],
+    reading: [KEYS.reading, READING_VERSION],
   });
   if (isCancelled()) return false;
   stores.settings.hydrate(stored);
@@ -61,6 +66,7 @@ export async function loadStores(stores: Stores, isCancelled: () => boolean = ()
   stores.archive.hydrate(stored.archive);
   stores.boosts.set(sanitizeBoosts(stored.boosts));
   stores.annotations.set(sanitizeAnnotations(stored.annotations));
+  stores.reading.set(sanitizeReadingList(stored.reading));
   stores.history.hydrate(stored.history);
   stores.tabs.hydrate(stored.session, stores.settings.settings.behavior.restoreSession);
   return true;
@@ -68,7 +74,7 @@ export async function loadStores(stores: Stores, isCancelled: () => boolean = ()
 
 /** Saves each document when its part of the stores changes (call once loaded). Returns the stop. */
 export function persistStores(stores: Stores): () => void {
-  const { tabs, archive, history, bookmarks, settings, boosts, annotations } = stores;
+  const { tabs, archive, history, bookmarks, settings, boosts, annotations, reading } = stores;
   const stops = [
     persistDocument(tabs, (model: TabsModel) => model, KEYS.session, SESSION_VERSION, () => serializeSession(tabs.get())),
     persistDocument(bookmarks, (state: BookmarksState) => state.bookmarks, KEYS.bookmarks, BOOKMARKS_VERSION, () => bookmarks.bookmarks),
@@ -78,6 +84,7 @@ export function persistStores(stores: Stores): () => void {
     persistDocument(archive, (list) => list, KEYS.archive, ARCHIVE_VERSION, archive.get),
     persistDocument(boosts, (list) => list, KEYS.boosts, BOOSTS_VERSION, boosts.get),
     persistDocument(annotations, (data) => data, KEYS.annotations, ANNOTATIONS_VERSION, annotations.get),
+    persistDocument(reading, (list) => list, KEYS.reading, READING_VERSION, reading.get),
     persistDocument(settings, (state: SettingsState) => state.mobile, KEYS.mobile, SETTINGS_VERSION, () => settings.mobile, 200),
     persistDocument(history, (state: HistoryState) => state.version, KEYS.history, HISTORY_VERSION, () => history.history.toJSON(), 2000),
   ];

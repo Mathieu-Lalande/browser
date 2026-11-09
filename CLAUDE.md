@@ -163,3 +163,10 @@
   (menu de l'application, pied de la barre latérale, ouvert vers le haut) ; barre d'adresse : favori + options de la page
   au survol, le reste dans les options de la page ou derrière le cadenas ; zoom propre des pages dessinées par l'interface
   (clé `browser://` de `zoom.json`, `.drawn-page`) ; onglet lâché au milieu d'un autre = vue scindée (`splitTargetFromBoxes`).
+- Panneaux web, lire plus tard, PiP automatique (ADR-047) : modèles purs `src/shared/panels.ts` (`panels.json`, collection
+  `panels` facultative `settings.panels.sync`), `src/shared/reading-list.ts` (`reading-list.json`, texte du mode lecture en
+  paragraphes, plafonné, collection `reading`), `src/shared/auto-pip.ts` (`settings.media.autoPictureInPicture`) ; main
+  `PanelService` + `PanelHost` par fenêtre (`src/main/panels/`, une partition `persist:panel-<id>` par panneau, vues
+  durcies, jamais en privé), `ReadingListService` (`src/main/reading/`), `AutoPip` (`src/main/media/auto-pip.ts`, monde
+  isolé 1018, crochet `BROWSER_TEST_AUTO_PIP`) ; UI `components/panels/` (`PanelStrip`, `WebPanelFrame`, `PanelAddForm`,
+  `lib/panels.svelte.ts`), `browser://reading-list` (`components/reading/`) ; mobile `lib/readingList.ts`, `ReadingListScreen`.

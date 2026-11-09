@@ -25,6 +25,7 @@
     tasks: () => import("./tasks/TasksPage.svelte"),
     profiles: () => import("./profiles/ProfilesPage.svelte"),
     welcome: () => import("./welcome/WelcomePage.svelte"),
+    "reading-list": () => import("./reading/ReadingListPage.svelte"),
   };
 
   /** Loaded pages, so that coming back to one renders it at once (no {#await} gap). */

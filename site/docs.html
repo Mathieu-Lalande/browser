@@ -98,6 +98,8 @@
             <li><a href="#lecture">Mode lecture</a></li>
             <li><a href="#traduction">Traduction</a></li>
             <li><a href="#assistant">Assistant IA</a></li>
+            <li><a href="#panneaux">Panneaux web</a></li>
+            <li><a href="#lire-plus-tard">Lire plus tard</a></li>
             <li><a href="#notes">Notes et surlignages</a></li>
             <li><a href="#boosts">Boosts</a></li>
             <li><a href="#mots-de-passe">Mots de passe</a></li>
@@ -536,6 +538,43 @@
           </ul>
         </section>
 
+        <!-- Web panels (ADR-047) -->
+        <section class="doc-section" id="panneaux" aria-labelledby="t-panneaux">
+          <h2 id="t-panneaux"><i data-icon="panel-right"></i>Panneaux web</h2>
+          <p>
+            Épinglez une application web (WhatsApp Web, Messenger, Spotify, ChatGPT, Gmail… ou n'importe quelle adresse)
+            dans la barre latérale : le bouton <strong>+</strong> au-dessus du pied de la barre propose des suggestions,
+            la page actuelle ou une adresse à saisir. Un clic sur son icône l'ouvre à côté de la page, un second la masque ;
+            <kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>E</kbd> (<kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>E</kbd>) affiche ou masque le
+            dernier panneau ouvert.
+          </p>
+          <ul>
+            <li>Le panneau reste chargé en arrière-plan : le nombre de messages non lus de son titre s'affiche sur son icône.</li>
+            <li>Faites glisser son bord pour l'élargir ; « Version mobile » demande la mise en page étroite du site.</li>
+            <li>Clic droit sur l'icône : actualiser, version mobile, monter, descendre, retirer. Chaque panneau a sa propre
+              session (ses cookies ne se mélangent pas aux onglets) ; le retirer l'efface.</li>
+            <li>Jamais dans une fenêtre privée. La liste peut se synchroniser entre vos ordinateurs (Paramètres,
+              Synchronisation, « Panneaux web », désactivé par défaut).</li>
+          </ul>
+        </section>
+
+        <!-- Reading list (ADR-047) -->
+        <section class="doc-section" id="lire-plus-tard" aria-labelledby="t-lire-plus-tard">
+          <h2 id="t-lire-plus-tard"><i data-icon="book-marked"></i>Lire plus tard</h2>
+          <p>
+            Gardez une page pour plus tard avec le bouton de la barre d'adresse (au survol), le clic droit sur la page,
+            la barre universelle ou <kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>D</kbd> (<kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>D</kbd>).
+            Le texte de l'article (celui du mode lecture) est enregistré avec elle : il se lit même hors ligne.
+          </p>
+          <ul>
+            <li><code>browser://reading-list</code> (menu de l'application, « Liste de lecture ») : non lues, toutes ou
+              lues ; « Lire » ouvre la copie hors ligne, l'icône de lien ouvre la page en ligne.</li>
+            <li>La liste et ses textes sont synchronisés, chiffrés de bout en bout, avec vos appareils ; sur le téléphone :
+              menu de la page, « Lire plus tard » et « Liste de lecture ».</li>
+            <li>Rien n'est ajouté depuis une fenêtre ou un onglet privé.</li>
+          </ul>
+        </section>
+
         <!-- Notes et surlignages -->
         <section class="doc-section" id="notes" aria-labelledby="t-notes">
           <h2 id="t-notes"><i data-icon="highlighter"></i>Notes et surlignages</h2>
@@ -687,7 +726,7 @@
             <li><strong>Téléchargements</strong> : enregistrés sans boîte de dialogue (ou toujours demander où, Paramètres, Téléchargements), avec pause, reprise et annulation. Les programmes et scripts attendent votre confirmation ; rien n'est ouvert automatiquement. Liste : <kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>J</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>L</kbd>) ou <code>browser://downloads</code>.</li>
             <li><strong>Rechercher dans la page</strong> : <kbd>Ctrl</kbd> <kbd>F</kbd>, puis <kbd>Entrée</kbd> / <kbd>Maj</kbd> <kbd>Entrée</kbd>, <kbd>F3</kbd> ou <kbd>Ctrl</kbd> <kbd>G</kbd> pour l'occurrence suivante. Le compteur et la casse sont gardés par onglet.</li>
             <li><strong>Zoom</strong> : <kbd>Ctrl</kbd> <kbd>+</kbd> / <kbd>-</kbd> / <kbd>0</kbd>, pincement ou <kbd>Ctrl</kbd> + molette, mémorisé par site ; zoom par défaut dans Paramètres, Apparence.</li>
-            <li><strong>Médias</strong> : <kbd>Ctrl</kbd> <kbd>M</kbd> coupe le son de l'onglet ; « Image dans l'image » détache la vidéo ; <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>P</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>P</kbd>) met tout en pause.</li>
+            <li><strong>Médias</strong> : <kbd>Ctrl</kbd> <kbd>M</kbd> coupe le son de l'onglet ; « Image dans l'image » détache la vidéo, et le fait tout seul quand vous quittez un onglet qui lit une vidéo si « Image dans l'image automatique » est activée (Paramètres, Comportement ; les sites qui l'interdisent sont respectés) ; <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>P</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>P</kbd>) met tout en pause.</li>
           </ul>
           <h3 id="pause-medias">Pause des médias</h3>
           <p>

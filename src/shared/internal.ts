@@ -17,6 +17,7 @@ export const INTERNAL_PAGES = {
   tasks: { title: "Gestionnaire de tâches" },
   profiles: { title: "Profils" },
   welcome: { title: "Bienvenue" },
+  "reading-list": { title: "Liste de lecture" },
 } as const;
 
 export type InternalPage = keyof typeof INTERNAL_PAGES;
@@ -34,7 +35,7 @@ export const internalUrl = (page: InternalPage, fragment?: string | null) =>
  * optional `/`, optional deep link (`browser://settings#appearance/page-zoom`, ADR-032).
  */
 export function internalPageOf(url: string): InternalPage | null {
-  const match = /^browser:\/\/([a-z]+)\/?(?:#(.*))?$/i.exec(url.trim());
+  const match = /^browser:\/\/([a-z]+(?:-[a-z]+)*)\/?(?:#(.*))?$/i.exec(url.trim());
   const page = match?.[1].toLowerCase();
   if (match?.[2] !== undefined && !FRAGMENT.test(match[2])) return null;
   return page && Object.hasOwn(INTERNAL_PAGES, page) ? (page as InternalPage) : null;

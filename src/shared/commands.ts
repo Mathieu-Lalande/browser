@@ -65,6 +65,11 @@ export type CommandId =
   | "highlight-selection"
   | "toggle-notes-panel"
   | "toggle-assistant"
+  | "toggle-web-panel"
+  | "add-web-panel"
+  | "toggle-reading-list"
+  | "open-reading-list"
+  | "toggle-auto-pip"
   | "open-notes"
   | "open-boosts"
   | "zap-elements"
@@ -172,7 +177,8 @@ export type CommandIcon =
   | "credit-card"
   | "library"
   | "sparkles"
-  | "sparkle";
+  | "sparkle"
+  | "book-marked";
 
 /** What a command's label and availability may depend on. */
 export interface CommandContext {
@@ -185,7 +191,7 @@ export interface CommandDefinition {
   /** Label when the command would undo the active tab's current state (`toggles`). */
   activeLabel?: string;
   /** Which active-tab flag `activeLabel` follows. */
-  toggles?: "isPinned" | "isBookmarked" | "isMuted" | "isFavorite" | "reader" | "mobileSite" | "translated";
+  toggles?: "isPinned" | "isBookmarked" | "isMuted" | "isFavorite" | "reader" | "mobileSite" | "translated" | "inReadingList";
   /** Label in the application menu, when it differs (toggles have a neutral one). */
   menuLabel?: string;
   /** Extra search terms (synonyms, English names). */
@@ -483,6 +489,39 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
     accelerator: "CmdOrCtrl+Alt+A",
     icon: "sparkles",
   },
+  // Web panels (ADR-047): the last panel opened, or the first one.
+  "toggle-web-panel": {
+    label: "Afficher/masquer le panneau web",
+    keywords: ["panneau", "panel", "web app", "whatsapp", "messenger", "spotify", "barre latérale", "sidebar"],
+    accelerator: "CmdOrCtrl+Shift+E",
+    icon: "panel-right",
+  },
+  "add-web-panel": {
+    label: "Ajouter un panneau web",
+    keywords: ["panneau", "panel", "épingler un site", "web app", "whatsapp", "messenger", "spotify", "chatgpt", "gmail"],
+    icon: "plus",
+  },
+  // Reading list (ADR-047).
+  "toggle-reading-list": {
+    label: "Lire plus tard",
+    activeLabel: "Retirer de la liste de lecture",
+    toggles: "inReadingList",
+    menuLabel: "Ajouter à la liste de lecture",
+    keywords: ["lire plus tard", "liste de lecture", "reading list", "read later", "hors ligne", "pocket"],
+    accelerator: "CmdOrCtrl+Shift+D",
+    icon: "book-marked",
+    needsPage: true,
+  },
+  "open-reading-list": {
+    label: "Liste de lecture",
+    keywords: ["lire plus tard", "liste de lecture", "reading list", "articles", "hors ligne"],
+    icon: "library",
+  },
+  "toggle-auto-pip": {
+    label: "Image dans l'image automatique",
+    keywords: ["pip", "picture in picture", "vidéo", "automatique", "flottante", "changer d'onglet"],
+    icon: "pip",
+  },
   "open-notes": {
     label: "Toutes les notes",
     keywords: ["notes", "annotations", "surlignages", "exporter", "markdown", "highlights"],
@@ -741,10 +780,13 @@ export const COMMAND_GROUPS: readonly { label: string; ids: readonly CommandId[]
       "translate-page",
       "toggle-notes-panel",
       "toggle-assistant",
+      "toggle-web-panel",
+      "add-web-panel",
       "zoom-in",
       "zoom-out",
       "zoom-reset",
       "picture-in-picture",
+      "toggle-auto-pip",
       "devtools",
     ],
   },
@@ -754,6 +796,8 @@ export const COMMAND_GROUPS: readonly { label: string; ids: readonly CommandId[]
     ids: [
       "toggle-bookmark",
       "toggle-favorite",
+      "toggle-reading-list",
+      "open-reading-list",
       "open-history",
       "open-archive",
       "open-downloads",
