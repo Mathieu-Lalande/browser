@@ -764,6 +764,16 @@ export class TabManager {
     return url !== "" && (this.hooks.isBookmarked?.(url) ?? false);
   }
 
+  /** The UI language changed (ADR-052): titles of the pages drawn by the UI follow it. */
+  relocalize(): void {
+    for (const tab of this.store.all) {
+      if (showsWebPage(tab.state.url)) continue;
+      const page = internalPageOf(tab.state.url);
+      tab.state.title = page ? INTERNAL_PAGES[page].title : START_TITLE();
+    }
+    this.emit();
+  }
+
   /** Coalesce bursts of webContents events into one state push per tick. */
   private emit(): void {
     if (this.emitScheduled) return;

@@ -1,4 +1,4 @@
-import { t, keywords } from "./i18n";
+import { t, keywords, LOCALES, withLocale } from "./i18n";
 import {
   acceleratorKeys,
   acceleratorProblem,
@@ -700,7 +700,18 @@ export const COMMANDS: readonly CommandDefinition[] = (Object.keys(DEFINITIONS) 
  * the UI language when it changes (ADR-052).
  */
 function withId(id: CommandId): CommandDefinition {
-  return Object.defineProperties({ id } as CommandDefinition, Object.getOwnPropertyDescriptors(DEFINITIONS[id]));
+  const definition = DEFINITIONS[id];
+  const command = Object.defineProperties({ id } as CommandDefinition, Object.getOwnPropertyDescriptors(definition));
+  // A command is found by its labels in every language too ("nouvel onglet" in English).
+  return Object.defineProperty(command, "keywords", {
+    enumerable: true,
+    get: () => [
+      ...new Set([
+        ...definition.keywords,
+        ...LOCALES.flatMap((locale) => withLocale(locale, () => [definition.label, definition.activeLabel, definition.menuLabel])).filter((label): label is string => !!label),
+      ]),
+    ],
+  });
 }
 
 export function isCommandId(value: unknown): value is CommandId {

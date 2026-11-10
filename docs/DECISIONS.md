@@ -2661,3 +2661,50 @@ Jest `sync.test.ts` (téléphone ↔ téléphone, opt-in, coffre non lu), `reade
 échec est journalisée et les autres restent), le premier chargement d'une WebView créée avant la fin de la
 compilation (lancement à froid, sans cache) qui passe sans blocage. Testés : conversion et correspondance
 (Vitest), bouclier/agent/nonce/compteurs (Jest), `expo export`, `expo prebuild` (autoliage, plugin).
+
+## ADR-052 — Interface en français et en anglais (bureau, téléphone, site)
+
+**Contexte.** Toute l'interface était écrite en français dans les composants, les modèles purs (`commands.ts`,
+`menus.ts`, index des réglages, réponses de la barre universelle) et main (menus natifs, boîtes de dialogue,
+Jump List, erreurs). Le français reste la langue source ; l'anglais doit être complet et choisissable.
+
+**Décision.**
+- **Cœur pur** `src/shared/i18n/` (aucune dépendance) : catalogues plats `fr.ts` (source, `as const`, clés
+  `zone.nom`) et `en.ts` typé `Record<MessageKey, string>` (une clé manquante casse le typecheck) ; `t(clé, params)`
+  sur une langue courante de processus (`setLocale`, `onLocaleChange`, `withLocale` pour lire une autre langue
+  sans notifier) ; **ICU-lite** (`{nom}`, `{n, plural, =0 {…} one {# …} other {# …}}`, `select`, `#`), règles de
+  pluriel codées pour fr/en (Hermes n'a pas toujours `Intl.PluralRules`), pas de guillemets d'échappement (le
+  français est plein d'apostrophes) ; aides `Intl` (`intlLocale`, `formatDate`, `formatTime`, `formatNumber`,
+  `formatUnit`, `formatRelativeTime`, `formatList`, `compareText`). Tests : chaque clé dans chaque langue, mêmes
+  arguments, accolades équilibrées, pas de reste français dans `en.ts` (hors mots-clés).
+- **Langue** : réglage `appearance.language` (« Automatique », « Français », « English », chacun dans sa langue),
+  `resolveLocale` : choix explicite, sinon la première langue système supportée, sinon **l'anglais** (plus
+  largement compris ; le français reste la source et le repli des catalogues).
+- **Main** (`src/main/locale.ts`) : appliquée à l'ouverture du profil, puis dans `commit` des réglages **avant**
+  les écouteurs, pour que ce qu'ils reconstruisent soit déjà dans la nouvelle langue ; `onLocaleChange` reconstruit
+  le menu de l'application, la Jump List et les boutons de l'aperçu, retitre les onglets des pages internes et
+  renvoie l'état des fenêtres (`BrowserState.locale`, `MiniState.locale`).
+- **Interfaces Svelte** : `lib/i18n.svelte.ts` règle la langue partagée puis un état ; `App`, `Overlay` et `MiniBar`
+  ré-montent leur contenu dans `{#key locale.current}`. Plutôt qu'une réactivité par appel : tout texte calculé une
+  fois par un composant suit aussi, au prix de l'état local des composants (rare : un changement de langue).
+- **Modules** : un texte calculé au chargement d'un module serait figé ; il devient un getter (registre des
+  commandes, index des réglages, catalogue des widgets, libellés d'autorisations…) ou une fonction. Les
+  commandes et réglages se trouvent par leurs **libellés et mots-clés des deux langues** (`keywords()`).
+- **Téléphone** : mêmes catalogues par `@shared/i18n`, langue de l'appareil par `Intl` de Hermes (pas
+  d'`expo-localization` : un module natif de plus pour une seule valeur), `key={locale}` sur `BrowserScreen`.
+- **Données gardées telles quelles** (`// i18n-ignore`) : alias d'unités et de pays, mois des cartes, libellés du
+  Chrome Web Store et règles de bandeaux cookies (comparés au texte des pages). Les invites de l'assistant suivent la
+  langue de l'interface, donc ses réponses aussi.
+- **Garde-fou** : `npm run check:i18n` (`scripts/check-i18n.mjs`, aussi en CI) signale le texte d'allure française
+  (accents, mots courants) en dur dans les `.svelte`/`.ts`/`.tsx` hors catalogues et tests. La suite e2e tourne en
+  français (`BROWSER_TEST_LOCALE=fr` dans les fixtures) ; `i18n.spec.ts` passe en anglais à chaud et vérifie barre
+  latérale, réglages, menu « … », barre universelle, menu natif et une page interne.
+- **Site** : pages anglaises `site/en/` (accueil, guide, confidentialité, assistance), `hreflang` (fr, en,
+  `x-default` = fr), lien de langue dans l'en-tête et le pied ; à la première visite seulement, un bandeau
+  propose l'autre langue si le navigateur la préfère (jamais de redirection).
+
+**Conséquences.** Une chaîne d'interface s'ajoute dans les deux catalogues ; les clés générées lors de
+l'extraction suivent le fichier (`settingsPage.…`, `mobile.settingsScreen.…`), quelques libellés communs sont donc
+dupliqués entre zones. L'heuristique du contrôle ne voit pas un mot anglais ou un mot français sans accent ni mot
+courant : la revue reste nécessaire. Les identifiants d'ancres du site restent français dans les deux langues.
+

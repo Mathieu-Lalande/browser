@@ -51,6 +51,20 @@ export function setLocale(locale: Locale): void {
   for (const listener of [...listeners]) listener(locale);
 }
 
+/**
+ * Runs `read` with `locale` as the current language, without notifying anyone (to read a text
+ * in every language, e.g. search terms), then restores the current one.
+ */
+export function withLocale<T>(locale: Locale, read: () => T): T {
+  const saved = current;
+  current = locale;
+  try {
+    return read();
+  } finally {
+    current = saved;
+  }
+}
+
 export function onLocaleChange(listener: (locale: Locale) => void): () => void {
   listeners.add(listener);
   return () => {

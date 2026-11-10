@@ -29,6 +29,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run check:cycles
+      - run: npm run check:i18n
       - run: npm test
       - run: npm run build
       # The e2e fixtures launch Electron with --no-sandbox (no setuid sandbox on CI runners).

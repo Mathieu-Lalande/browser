@@ -281,6 +281,7 @@ if (!app.requestSingleInstanceLock()) {
     onLocaleChange(() => {
       desktop.updateTasks();
       for (const controller of BrowserController.all()) {
+        for (const tabs of controller.spaces.tabManagers()) tabs.relocalize();
         controller.refreshState();
         desktop.attach(desktopWindow(controller));
       }

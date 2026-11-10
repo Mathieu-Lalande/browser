@@ -1,4 +1,4 @@
-import { keywords, t, type MessageKey } from "../i18n";
+import { keywords, LOCALES, t, translate, type MessageKey } from "../i18n";
 
 /**
  * Searchable index of `browser://settings`: each entry deep-links to its row
@@ -50,7 +50,8 @@ const entry = (section: SectionKey, row: string | null, label: MessageKey): Sett
     return t(SECTIONS[section]);
   },
   get keywords() {
-    return keywords(`${label}Keywords` as MessageKey);
+    // The label in every language too: a setting is found by its French and English names.
+    return [...keywords(`${label}Keywords` as MessageKey), ...LOCALES.map((locale) => translate(locale, label))];
   },
 });
 

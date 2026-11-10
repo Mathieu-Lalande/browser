@@ -32,8 +32,12 @@
   `lib/tree-drag.svelte.ts` (`TreeDrag`), balayage entre espaces `lib/space-swipe-controller.svelte.ts`, sélection
   `lib/tab-selection.svelte.ts` (Vitest compile les runes : contrôleurs testables). Réglages : une section par composant
   `settings/*Section.svelte`, `SettingsPage` = navigation, recherche et liste des sections (ancres `data-section`/`data-setting`).
-- Texte d'interface en français ; code, identifiants et commentaires en anglais.
-- Vérifications avant commit : `npm run typecheck && npm test && npm run build && xvfb-run -a npx playwright test`
+- Texte d'interface : jamais en dur, toujours par la couche i18n (ADR-052) : `t("zone.clé")` de `@shared/i18n`, catalogues
+  `src/shared/i18n/fr.ts` (source) et `en.ts` (typé sur `fr.ts`), **tous deux complets** (clé, paramètres ICU-lite identiques ;
+  test Vitest + `npm run check:i18n`, aussi en CI). Texte calculé une fois au niveau module = getter ou fonction (la langue
+  change à chaud) ; données à garder en français (mots analysés, règles de pages) : `// i18n-ignore`. Code, identifiants
+  et commentaires en anglais.
+- Vérifications avant commit : `npm run typecheck && npm test && npm run check:i18n && npm run build && xvfb-run -a npx playwright test`
   (en root/conteneur, l'app est lancée avec `--no-sandbox`, déjà géré par les fixtures e2e).
 - `npm install` : `.npmrc` active `legacy-peer-deps` (contourne un bug npm avec vitest 4). Electron 44 ne télécharge
   plus son binaire à l'installation : `scripts/ensure-electron.mjs` le fait (`postinstall`, `predev`).
@@ -205,3 +209,9 @@
   `mobile/scripts/build-blocklists.mjs` (postinstall, sorties générées non commitées), module local
   `mobile/modules/content-blocker` (Swift/Kotlin + plugin), correctif `mobile/patches/` de react-native-webview,
   `lib/shields.ts` (masquage, bandeaux cookies à nonce, bouclier `mobile.shieldsOff`), `lib/privacyStats.ts`.
+- Langues (ADR-052) : `settings.appearance.language` (`auto`/`fr`/`en`), résolue par `resolveLocale` (système : `app.getPreferredSystemLanguages()`,
+  `Intl` sur Hermes ; ni français ni anglais → anglais) ; main `src/main/locale.ts` (`applyUiLanguage` avant les écouteurs de
+  réglages, crochet `BROWSER_TEST_LOCALE`, `fr` imposé par les fixtures e2e), `onLocaleChange` reconstruit menu, Jump List,
+  titres des pages internes ; `BrowserState.locale`/`MiniState.locale` → `lib/i18n.svelte.ts`, racines en `{#key locale.current}` ;
+  mobile `lib/locale.ts` + `key` sur `BrowserScreen` ; `Intl` via `formatDate`/`formatNumber`/`intlLocale()` (jamais `"fr-FR"`) ;
+  mots-clés de recherche dans les deux langues (`keywords()`). Site : pages `site/en/`, `hreflang`, bandeau de suggestion (`site/src/i18n.ts`).
