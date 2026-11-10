@@ -1,0 +1,1107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Documentation — Browser</title>
+    <meta
+      name="description"
+      content="Browser user guide: installation on Windows, macOS, Linux and mobile, first steps, every feature step by step, keyboard shortcuts, encrypted sync and troubleshooting."
+    />
+    <meta name="theme-color" content="#0b0710" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="canonical" href="https://mathieu-lalande.github.io/browser/en/docs.html" />
+    <link rel="alternate" hreflang="fr" href="https://mathieu-lalande.github.io/browser/docs.html" />
+    <link rel="alternate" hreflang="en" href="https://mathieu-lalande.github.io/browser/en/docs.html" />
+    <link rel="alternate" hreflang="x-default" href="https://mathieu-lalande.github.io/browser/docs.html" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="fr_FR" />
+    <meta property="og:site_name" content="Browser" />
+    <meta property="og:title" content="Browser documentation" />
+    <meta property="og:description" content="Install Browser, find your way around and master every feature." />
+    <meta property="og:url" content="https://mathieu-lalande.github.io/browser/en/docs.html" />
+    <meta property="og:image" content="https://mathieu-lalande.github.io/browser/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="module" src="/src/docs.ts"></script>
+  </head>
+  <body class="docs-page">
+    <a class="skip" href="#contenu">Skip to content</a>
+
+    <header class="topbar scrolled">
+      <div class="topbar-inner container">
+        <a class="brand" href="./" aria-label="Browser, home page">
+          <img src="/img/icon.png" width="28" height="28" alt="" />
+          <span>Browser</span>
+        </a>
+        <nav class="site-menu" id="site-menu" aria-label="Main navigation">
+          <ul class="nav-links">
+            <li><a href="./#fonctionnalites">Features</a></li>
+            <li><a href="./#confidentialite">Privacy</a></li>
+            <li><a href="./#mobile">Mobile</a></li>
+            <li><a href="docs.html" aria-current="page">Documentation</a></li>
+            <li><a href="./#telecharger">Download</a></li>
+          </ul>
+        </nav>
+        <div class="nav-actions">
+          <a class="icon-btn lang-switch" href="../docs.html" hreflang="fr" lang="fr" aria-label="Version française">FR</a>
+          <a class="icon-btn" href="https://github.com/Mathieu-Lalande/browser" aria-label="Source code on GitHub">
+            <i data-icon="code-xml"></i>
+          </a>
+          <a class="btn btn-small btn-primary nav-cta" href="./#telecharger">
+            <i data-icon="download"></i>
+            <span>Download</span>
+          </a>
+          <button class="icon-btn menu-toggle" id="menu-toggle" type="button" aria-expanded="false" aria-controls="site-menu" aria-label="Open the menu">
+            <i data-icon="menu" class="when-closed"></i>
+            <i data-icon="x" class="when-open"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="docs-hero">
+      <div class="mesh mesh-soft" aria-hidden="true">
+        <span class="blob b1"></span>
+        <span class="blob b2"></span>
+        <span class="blob b3"></span>
+      </div>
+      <div class="container">
+        <p class="kicker">Documentation</p>
+        <h1>The Browser guide</h1>
+        <p class="lead-left">
+          Install the browser, find your way around and make the most of every feature. Shortcuts are given for
+          Windows and Linux, then for macOS.
+        </p>
+      </div>
+    </div>
+
+    <div class="docs-layout container">
+      <aside class="docs-aside" aria-label="Documentation contents">
+        <div class="doc-search">
+          <i data-icon="search"></i>
+          <label class="sr-only" for="doc-search">Filter the documentation</label>
+          <input id="doc-search" type="search" placeholder="Filter the guide" autocomplete="off" spellcheck="false" />
+          <kbd aria-hidden="true">/</kbd>
+        </div>
+        <p class="doc-search-status" id="doc-search-status" role="status"></p>
+        <nav class="toc" aria-label="Sections">
+          <ul>
+            <li><a href="#installation">Installation</a></li>
+            <li><a href="#mobile">Mobile app</a></li>
+            <li><a href="#premiers-pas">First steps</a></li>
+            <li><a href="#principal">Default browser, history, import</a></li>
+            <li><a href="#mini-fenetre">Mini window, energy, Windows</a></li>
+            <li><a href="#onglets">Tabs</a></li>
+            <li><a href="#menus">Menus and gestures</a></li>
+            <li><a href="#espaces">Spaces and gestures</a></li>
+            <li><a href="#vue-scindee">Split view</a></li>
+            <li><a href="#organisation">Folders, favorites, archiving</a></li>
+            <li><a href="#barre-universelle">Universal bar</a></li>
+            <li><a href="#apercu">Link preview</a></li>
+            <li><a href="#lecture">Reader mode</a></li>
+            <li><a href="#traduction">Translation</a></li>
+            <li><a href="#assistant">AI assistant</a></li>
+            <li><a href="#panneaux">Web panels</a></li>
+            <li><a href="#lire-plus-tard">Read later</a></li>
+            <li><a href="#notes">Notes and highlights</a></li>
+            <li><a href="#boosts">Boosts</a></li>
+            <li><a href="#mots-de-passe">Passwords</a></li>
+            <li><a href="#formulaires">Addresses, cards, passkeys</a></li>
+            <li><a href="#notifications">Notifications and spelling</a></li>
+            <li><a href="#extensions">Extensions</a></li>
+            <li><a href="#captures">Page options, screenshots</a></li>
+            <li><a href="#pages">Downloads, zoom, media</a></li>
+            <li><a href="#confidentialite">Privacy</a></li>
+            <li><a href="#apparence">Appearance and themes</a></li>
+            <li><a href="#raccourcis">Keyboard shortcuts</a></li>
+            <li><a href="#mises-a-jour">Updates</a></li>
+            <li><a href="#diagnostic">Crashes and performance</a></li>
+            <li><a href="#profils">Profiles, backup, crashes</a></li>
+            <li><a href="#synchronisation">Sync</a></li>
+            <li><a href="#depannage">Troubleshooting</a></li>
+          </ul>
+        </nav>
+      </aside>
+
+      <main class="docs-content" id="contenu">
+        <!-- Installation -->
+        <section class="doc-section" id="installation" aria-labelledby="t-installation">
+          <h2 id="t-installation"><i data-icon="download"></i>Installation</h2>
+          <p>
+            Download the latest version from the <a href="./#telecharger">download page</a>: the main button detects
+            your system. All the files are also in the
+            <a href="https://github.com/Mathieu-Lalande/browser/releases">versions published on GitHub</a>, with
+            <code>SHA256SUMS.txt</code> to check them.
+          </p>
+          <h3>Windows 10 and 11</h3>
+          <ol>
+            <li>Download <code>Browser-Setup-&lt;version&gt;-x64.exe</code> (or <code>-arm64.exe</code> for Windows on ARM).</li>
+            <li>Run it. Choose an installation for you alone (without administrator rights, the default) or for all users.</li>
+            <li>If SmartScreen shows “Windows protected your PC”: “More info”, then “Run anyway” (the packages aren't signed yet).</li>
+          </ol>
+          <p>
+            The installer creates a Start menu shortcut, offers a desktop shortcut and uninstalls from Settings, Apps;
+            your profile is kept. The portable version <code>Browser-&lt;version&gt;-win-x64.zip</code> runs without
+            installation but doesn't update itself.
+          </p>
+          <h3>macOS 12 or later</h3>
+          <ol>
+            <li>Download <code>Browser-&lt;version&gt;-mac-arm64.dmg</code> (Apple Silicon) or <code>-mac-x64.dmg</code> (Intel).</li>
+            <li>Open the <code>.dmg</code> and drag Browser to Applications.</li>
+            <li>On first launch, right-click Browser, then “Open” (the app isn't notarized yet), or allow it in System Settings, Privacy &amp; Security.</li>
+          </ol>
+          <h3>Linux 64-bit</h3>
+          <ul>
+            <li><strong>AppImage</strong>: make the file executable (<code>chmod +x Browser-*.AppImage</code>), then run it. It updates itself.</li>
+            <li><strong>.deb package</strong> (Debian, Ubuntu): <code>sudo apt install ./Browser-*.deb</code>. Manual updates.</li>
+          </ul>
+          <h3>Check a file</h3>
+          <p>
+            Compare the checksum of the downloaded file with the one in <code>SHA256SUMS.txt</code>:
+            <code>sha256sum &lt;file&gt;</code> (Linux), <code>shasum -a 256 &lt;file&gt;</code> (macOS) or
+            <code>Get-FileHash &lt;file&gt;</code> (PowerShell).
+          </p>
+          <div class="callout">
+            <i data-icon="info"></i>
+            <p>
+              To build Browser yourself (Node.js 22, <code>npm install</code> then <code>npm run dev</code>), follow
+              <a href="https://github.com/Mathieu-Lalande/browser/blob/master/docs/INSTALL.md">docs/INSTALL.md</a>.
+            </p>
+          </div>
+        </section>
+
+        <!-- Mobile -->
+        <section class="doc-section" id="mobile" aria-labelledby="t-mobile">
+          <h2 id="t-mobile"><i data-icon="smartphone"></i>Mobile app</h2>
+          <figure class="doc-shot doc-phones">
+            <img src="/img/screens/mobile-start-dark.webp" width="390" height="844" loading="lazy" decoding="async"
+              alt="Mobile app: start page with its widgets, in the dark theme" />
+            <img src="/img/screens/mobile-tabs-light.webp" width="390" height="844" loading="lazy" decoding="async"
+              alt="Mobile app: tab view of the Personal space, in the light theme" />
+            <img src="/img/screens/mobile-menu-dark.webp" width="390" height="844" loading="lazy" decoding="async"
+              alt="Mobile app: page menu with bookmarks, reader mode and site boost" />
+          </figure>
+          <p>The iPhone and Android app isn't in the stores yet. Two ways to use it right now:</p>
+          <h3>With Expo Go (the simplest)</h3>
+          <ol>
+            <li>Install <strong>Expo Go</strong> (App Store or Play Store), an up-to-date version (SDK 58).</li>
+            <li>On a computer with Node.js: clone the repository, then <code>cd mobile</code>, <code>npm install</code> and <code>npx expo start</code>.</li>
+            <li>Scan the QR code (camera on iPhone, Expo Go on Android). Same Wi-Fi required, otherwise <code>npx expo start --tunnel</code>.</li>
+          </ol>
+          <h3>As a compiled version (TestFlight, APK)</h3>
+          <p>
+            With EAS Build, Expo's build service (no Mac needed): <code>eas build --platform ios</code> then
+            <code>eas submit</code> for TestFlight (Apple Developer account required), or
+            <code>eas build --platform android --profile preview</code> for an <code>.apk</code> to install directly.
+            The details are in <a href="https://github.com/Mathieu-Lalande/browser/blob/master/docs/INSTALL.md#23-iphone-et-android-sans-expo-go">docs/INSTALL.md</a>.
+          </p>
+          <h3>What the app does</h3>
+          <ul>
+            <li>Address bar at the bottom, folded while scrolling; swipe it to switch tabs.</li>
+            <li>Full-screen search (same engine as the desktop's universal bar), tab view as a grid per space, folders, favorites and archiving.</li>
+            <li>Private browsing, HTTPS only, reader mode, a site's desktop version, link preview with a long press.</li>
+            <li>Passwords in the phone's keychain, boosts (without the hiding tool), shareable themes.</li>
+            <li>Mini player above the toolbar when the page plays media.</li>
+            <li>Encrypted sync with the desktop (pairing by QR code).</li>
+            <li>French or English, following the phone's language (Settings, Appearance, Language to choose).</li>
+          </ul>
+          <p class="muted">The mobile ad blocker will come with the compiled version (phase 2).</p>
+        </section>
+
+        <!-- First steps -->
+        <section class="doc-section" id="premiers-pas" aria-labelledby="t-premiers-pas">
+          <h2 id="t-premiers-pas"><i data-icon="sparkles"></i>First steps</h2>
+          <figure class="doc-shot">
+            <img src="/img/screens/start-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="Customizable start page: clock, search, weather, calendar, tasks, notes and top sites" />
+          </figure>
+          <p>
+            On first launch, the <strong>guided tour</strong> (<code>browser://welcome</code>) offers five steps, all
+            optional: a theme, importing from the browser found on the computer, Browser as the default browser, then
+            the essentials (universal bar, spaces, link preview, compact mode). The arrow keys go from one step to the
+            next, <kbd>Esc</kbd> or “Skip” close it. It doesn't come back afterwards; Help, Guided tour reopens it.
+          </p>
+          <p>
+            Browser speaks <strong>French and English</strong>: it follows your system's language (English when the
+            system speaks neither). To choose: Settings, Appearance, <strong>Language</strong>; the whole interface,
+            menus included, switches at once.
+          </p>
+          <p>Browser's window has three areas:</p>
+          <ul>
+            <li><strong>The sidebar</strong> (on the left, or on the right in Settings, Layout): address bar, favorites grid, pinned tabs, folders and tabs of the current space, and the spaces at the bottom. Hide it with <kbd>Ctrl</kbd> <kbd>S</kbd> (<kbd>⌘</kbd> <kbd>S</kbd>).</li>
+            <li><strong>The page</strong>, with a small adjustable margin around it, or edge to edge.</li>
+            <li><strong>The universal bar</strong> that floats above the page when you type <kbd>Ctrl</kbd> <kbd>K</kbd> (<kbd>⌘</kbd> <kbd>K</kbd>).</li>
+          </ul>
+          <p>
+            Type an address or a search in the address bar (<kbd>Ctrl</kbd> <kbd>L</kbd>): search goes through DuckDuckGo
+            by default (Settings, Search to change it). The bar's buttons (copy link, zoom, bookmark, protections, page
+            options) appear on hover; the padlock stays visible and opens the <strong>site info</strong>.
+          </p>
+          <p>
+            The start page shows a greeting, the clock and your most visited sites; everything is set in Settings,
+            Start page. Settings (<kbd>Ctrl</kbd> <kbd>,</kbd>) apply live and can also be found by typing their name in
+            the universal bar.
+          </p>
+          <p>At startup, Browser restores your session: tabs come back, loaded only when you open them.</p>
+        </section>
+
+        <!-- Main browser (ADR-039) -->
+        <section class="doc-section" id="principal" aria-labelledby="t-principal">
+          <h2 id="t-principal"><i data-icon="badge-check"></i>Default browser, history, import</h2>
+          <h3>Default browser</h3>
+          <p>
+            On first launch, the start page offers once to make Browser your default browser (“Later” makes it go away).
+            The setting is in Settings, Behavior, <strong>Default browser</strong>. On Windows 10 and 11, the button
+            opens Windows Settings on Browser's page: choose it for web links and, if you wish, for HTML and PDF files.
+            On macOS, the system asks you to confirm; on Linux, Browser becomes the handler of <code>http</code> and
+            <code>https</code> links.
+          </p>
+          <p>
+            A link clicked in another app opens, when Browser is already running, in a
+            <a href="#mini-fenetre">mini window</a>; an HTML or PDF file opened from the file manager (or a link, with the
+            setting off) opens in a new tab of the last normal window used (never in a private window).
+          </p>
+          <h3>PDF viewer</h3>
+          <p>
+            PDFs show directly in the tab, online as well as on your disk, with Chromium's built-in viewer (zoom, find,
+            print, download). A PDF sent as an attachment by the site is downloaded, as before.
+          </p>
+          <h3>History</h3>
+          <p>
+            <kbd>Ctrl</kbd> <kbd>H</kbd> (<kbd>⌘</kbd> <kbd>Y</kbd>), the “…” menu, History, All history, or
+            <code>@h</code> in the universal bar open <code>browser://history</code>: visited pages day by day, a
+            search, deleting a page or a selection, and <strong>Clear history</strong> for the last hour, today, the
+            last 7 days or everything. Private windows neither save nor show history.
+          </p>
+          <h3>Import from another browser</h3>
+          <p>
+            Settings, Data, <strong>Import…</strong> (or <code>browser://import</code>) detects Chrome, Edge, Brave,
+            Vivaldi, Opera, Chromium, Firefox and Arc and their profiles. Choose what to bring over: bookmarks (kept in
+            folders of the same name), history, search engine, and for Arc the bar's favorites and the pinned tabs of
+            each space. Nothing is imported twice.
+          </p>
+          <p>
+            Other browsers' passwords are encrypted with a system key Browser must not read: export them as CSV from the
+            other browser (Chrome, Edge: Password Manager, Export; Firefox: Passwords, “…”, Export), choose the file in
+            the import page, then delete it. Safari isn't imported.
+          </p>
+        </section>
+
+        <!-- Mini window, energy saver, Windows (ADR-048) -->
+        <section class="doc-section" id="mini-fenetre" aria-labelledby="t-mini-fenetre">
+          <h2 id="t-mini-fenetre"><i data-icon="picture-in-picture-2"></i>Mini window, energy saver, Windows</h2>
+          <h3>Mini window</h3>
+          <p>
+            A link opened from another app (messaging, email…) shows in a small frameless window: the site and the page
+            title, then “Always on top”, “Copy link”, <strong>“Open in browser”</strong> (<kbd>Ctrl</kbd> <kbd>O</kbd>,
+            <kbd>⌘</kbd> <kbd>O</kbd>) and “Close” (<kbd>Ctrl</kbd> <kbd>W</kbd>). “Open in browser” moves the page, as
+            it is and without reloading it, into a tab of the last window used; closing the mini window forgets the
+            page (nothing in history). Settings, Behavior, <strong>“Open external links in a mini window”</strong> (on
+            by default).
+          </p>
+          <h3>Energy saver</h3>
+          <p>
+            Settings, Behavior, <strong>Energy saver</strong>: off, on battery (the default) or always. When on, it puts
+            inactive tabs to sleep after 5 minutes at most, slows down background pages, spaces out tab previews, stops
+            following the media of hidden tabs and turns off animations. An icon (battery or sprout) shows it in the
+            window bar.
+          </p>
+          <h3>Windows and macOS</h3>
+          <ul>
+            <li><strong>Jump List</strong> (right-click on the taskbar icon): New tab, New private window, your spaces
+              and recent files.</li>
+            <li><strong>Taskbar</strong>: download progress and a badge while they run; Back, Forward and New tab
+              buttons under the window preview.</li>
+            <li><strong>Mica effect</strong> (Windows 11, Settings, Appearance, on by default): the desktop background
+              shows through behind the sidebar. No effect on Windows 10.</li>
+            <li><strong>macOS</strong>: the Dock icon's menu offers the same shortcuts.</li>
+          </ul>
+        </section>
+
+        <!-- Tabs -->
+        <section class="doc-section" id="onglets" aria-labelledby="t-onglets">
+          <h2 id="t-onglets"><i data-icon="app-window"></i>Tabs</h2>
+          <figure class="doc-shot">
+            <img src="/img/screens/tab-selection-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="Several tabs selected with Ctrl + click and the selection's action bar" />
+          </figure>
+          <ul>
+            <li><strong>Open, close</strong>: <kbd>Ctrl</kbd> <kbd>T</kbd>, <kbd>Ctrl</kbd> <kbd>W</kbd>. Where a new tab opens and which one shows after closing: Settings, Behavior.</li>
+            <li><strong>Pin</strong>: right-click, “Pin the tab”, or double-click the tab. A pinned tab stays at the top of the bar.</li>
+            <li><strong>Duplicate</strong> with its history: <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>K</kbd>.</li>
+            <li><strong>Switch tabs</strong>: <kbd>Ctrl</kbd> <kbd>Tab</kbd> / <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Tab</kbd>, or <kbd>Ctrl</kbd> <kbd>1</kbd>…<kbd>9</kbd>.</li>
+            <li><strong>Preview on hover</strong>: leave the pointer on a tab, a favorite or an icon of the compact rail: a card shows the page's thumbnail, its title, the site, and whether the tab plays sound or is asleep. Move from one tab to another and the card follows at once. Can be turned off in Settings, Layout, “Tab preview on hover”.</li>
+            <li><strong>With the keyboard</strong>: the tab list is a single tab stop; <kbd>↑</kbd> <kbd>↓</kbd>, <kbd>Home</kbd> <kbd>End</kbd> to move, <kbd>Enter</kbd> to show, <kbd>Delete</kbd> to close.</li>
+            <li><strong>Tab menu</strong> (right-click): pin, duplicate, split view, move to a space or a folder, put to sleep, mute, close.</li>
+            <li><strong>Reopen the closed tab</strong>: <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>T</kbd> (<kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>T</kbd>), several times to go further back (last 25, never written to disk).</li>
+            <li><strong>Select several tabs</strong>: <kbd>Ctrl</kbd> + click (<kbd>⌘</kbd> + click on Mac), or “Select all tabs”. An action bar appears: new folder, move to a space, close, cancel (<kbd>Esc</kbd>).</li>
+          </ul>
+          <h3>Sleeping tabs</h3>
+          <p>
+            A tab inactive for the chosen delay (Settings, Behavior: never, 15 min, 30 min…) is put to sleep: its memory
+            is freed and it reloads when you come back to it. Never for a tab playing sound, waiting for a permission or
+            holding a form in progress. The “Put tab to sleep” and “Put other tabs to sleep” commands do it right away.
+          </p>
+        </section>
+
+        <!-- Menus & gestures -->
+        <section class="doc-section" id="menus" aria-labelledby="t-menus">
+          <h2 id="t-menus"><i data-icon="ellipsis"></i>Menus and gestures</h2>
+          <figure class="doc-shot">
+            <img src="/img/screens/app-menu-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="The app's “…” menu with the More tools submenu open" />
+          </figure>
+          <h3>The app's “…” menu</h3>
+          <p>
+            The “…” button at the head of the navigation row opens the full menu: sync status, new tab and windows, zoom
+            row (− % +) and full screen, recent history, bookmarks, downloads, passwords, extensions and themes, print,
+            save page, find in page, more tools (screenshots, video, reading, boost, page source…), settings, help
+            (shortcuts, about, report a problem) and quit. With the keyboard: arrows to move, <kbd>→</kbd> or
+            <kbd>Enter</kbd> to open a submenu, <kbd>←</kbd> or <kbd>Esc</kbd> to go back.
+          </p>
+          <h3>Context menus</h3>
+          <ul>
+            <li><strong>Empty space of the sidebar</strong> (right-click): new tab, new folder, reload, bookmark, select all tabs, reopen the closed tab, compact mode, switch the sidebar's side, edit the space.</li>
+            <li><strong>Space chip</strong> (right-click): rename, icon and color, move left or right, delete (after confirmation).</li>
+            <li><strong>Page</strong> (right-click): back, forward, reload and bookmark first, then “Save page as…” (complete HTML or MHTML), “Select all”, “Screenshot”, “View page source” (<kbd>Ctrl</kbd> <kbd>U</kbd>), “Send to a device” and “Inspect”. On a link: new tab, background, split view, another space, private window, preview, copy.</li>
+          </ul>
+          <h3>Compact mode</h3>
+          <p>
+            “Compact mode” command (sidebar menu or universal bar): the sidebar becomes a rail of icons that unfolds on
+            hover. Zen mode takes precedence.
+          </p>
+          <h3>Gestures on the page</h3>
+          <ul>
+            <li><strong>Pinch</strong> on the touchpad or <kbd>Ctrl</kbd> + wheel: page zoom, remembered per site like <kbd>Ctrl</kbd> <kbd>+</kbd>.</li>
+            <li><strong>Two-finger swipe</strong> horizontally: previous or next page. An arrow follows the gesture; it only triggers when the page can no longer scroll in that direction.</li>
+            <li><strong>Full screen</strong>: <kbd>F11</kbd> (<kbd>⌃</kbd> <kbd>⌘</kbd> <kbd>F</kbd>). Print: <kbd>Ctrl</kbd> <kbd>P</kbd> (<kbd>⌘</kbd> <kbd>P</kbd>).</li>
+          </ul>
+        </section>
+
+        <!-- Spaces -->
+        <section class="doc-section" id="espaces" aria-labelledby="t-espaces">
+          <h2 id="t-espaces"><i data-icon="layers"></i>Spaces and gestures</h2>
+          <figure class="doc-shot">
+            <img src="/img/screens/sidebar-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="The sidebar with the favorites grid, a pinned tab, folders and the spaces at the bottom" />
+          </figure>
+          <p>
+            A space groups tabs around a context (work, studies, leisure), with its name, its icon and its accent color.
+            Create one with the “New space” button, next to the space chips at the bottom of the sidebar, or the command
+            of the same name.
+          </p>
+          <ul>
+            <li><strong>Switch spaces</strong>: click its icon, <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>←</kbd> / <kbd>→</kbd>, or <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>1</kbd>…<kbd>9</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd> on Mac).</li>
+            <li><strong>Swipe</strong>: slide two fingers horizontally on the touchpad, with the pointer on the sidebar, or one finger on a touch screen. The list follows the gesture; release past a quarter to switch spaces.</li>
+            <li><strong>Isolated space</strong>: in the space editor, tick isolation to give it its own cookies and sign-ins, like a container (two accounts of the same site side by side).</li>
+            <li><strong>Move a tab</strong>: right-click the tab, “Move to”.</li>
+            <li><strong>Edit, reorder, delete a space</strong>: right-click its chip, or the “Edit space theme” command.</li>
+          </ul>
+          <p class="muted">In the page, a two-finger swipe (macOS) or <kbd>Alt</kbd> <kbd>←</kbd> / <kbd>→</kbd> navigates back and forward.</p>
+        </section>
+
+        <!-- Split view -->
+        <section class="doc-section" id="vue-scindee" aria-labelledby="t-vue-scindee">
+          <h2 id="t-vue-scindee"><i data-icon="columns-2"></i>Split view</h2>
+          <figure class="doc-shot">
+            <img src="/img/screens/split-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="An article and documentation shown side by side in split view" />
+          </figure>
+          <p>
+            Show two to four tabs side by side: <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>\</kbd> (<kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>\</kbd>)
+            pairs the active tab with the next one, and the same shortcut leaves the view. From a tab's menu, “Split
+            view”; from the universal bar, <kbd>Shift</kbd> <kbd>Enter</kbd> opens a result beside.
+          </p>
+          <p>Drag the dividers to adjust the panes; the layout is restored at startup.</p>
+        </section>
+
+        <!-- Organisation -->
+        <section class="doc-section" id="organisation" aria-labelledby="t-organisation">
+          <h2 id="t-organisation"><i data-icon="folder-tree"></i>Folders, favorites, archiving</h2>
+          <figure class="doc-shot">
+            <img src="/img/screens/archive-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="The browser://archive page listing archived tabs with their date" />
+          </figure>
+          <h3>Folders</h3>
+          <p>
+            “New folder” command or a tab's menu. Drag and drop tabs into it; a folder can contain others (4 levels),
+            have an icon and collapse (the active tab stays visible). A link opened from a tab in a folder stays in the
+            same folder.
+          </p>
+          <h3>Bookmarks and favorites</h3>
+          <ul>
+            <li><kbd>Ctrl</kbd> <kbd>D</kbd> adds or removes the page from bookmarks (managed in Settings, Data).</li>
+            <li>“Add to favorites (all spaces)” puts the site in the <strong>favorites grid</strong>, at the top of the sidebar, shared by every space.</li>
+          </ul>
+          <h3>Automatic archiving</h3>
+          <p>
+            Tabs you no longer open are archived after the chosen delay (Settings, Behavior: never, 12 h, 24 h, 7 days by
+            default, 30 days). Never the tab on screen, a pinned one, one in the favorites grid, one playing sound or in
+            split view. Find them with the “Archived tabs” command (<code>browser://archive</code>) or the universal
+            bar's filter.
+          </p>
+        </section>
+
+        <!-- Universal bar -->
+        <section class="doc-section" id="barre-universelle" aria-labelledby="t-barre-universelle">
+          <h2 id="t-barre-universelle"><i data-icon="command"></i>Universal bar</h2>
+          <figure class="doc-shot">
+            <img src="/img/screens/omnibox-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="Universal bar: results grouped into tabs, archived tabs and web search" />
+          </figure>
+          <p>
+            <kbd>Ctrl</kbd> <kbd>K</kbd> (<kbd>⌘</kbd> <kbd>K</kbd>) opens a fuzzy search over the tabs of every space,
+            the favorites grid, bookmarks, history, commands (with their shortcut), settings, the tabs of your other
+            devices and archived tabs. Nothing is sent to the search engine while you type. Commands and settings are
+            found by their French and English names alike.
+          </p>
+          <h3>Instant answers</h3>
+          <p>Computed on your computer, shown first; <kbd>Enter</kbd> copies the result.</p>
+          <ul>
+            <li>Calculations: <code>12*7+3</code>, <code>(1.5+2)^2</code>, <code>15%</code>.</li>
+            <li>Conversions: <code>12 km in miles</code>, <code>350 F to C</code>, <code>2 TB in GB</code> (length, mass, temperature, volume, speed, data).</li>
+            <li>Time in a city: <code>time in Tokyo</code>; bases: <code>0xff</code>, <code>255 in binary</code>.</li>
+          </ul>
+          <h3>Filters and keys</h3>
+          <table>
+            <tbody>
+              <tr><td><code>@tabs</code> <code>@o</code></td><td>Tabs only</td></tr>
+              <tr><td><code>@bookmarks</code> <code>@f</code></td><td>Bookmarks only</td></tr>
+              <tr><td><code>@history</code> <code>@h</code></td><td>History only</td></tr>
+              <tr><td><code>@commands</code> <code>@c</code></td><td>Actions only</td></tr>
+              <tr><td><code>@settings</code> <code>@r</code></td><td>Settings only</td></tr>
+              <tr><td><kbd>Enter</kbd></td><td>Open here</td></tr>
+              <tr><td><kbd>Ctrl</kbd> <kbd>Enter</kbd></td><td>New tab</td></tr>
+              <tr><td><kbd>Shift</kbd> <kbd>Enter</kbd></td><td>Side by side (split view)</td></tr>
+              <tr><td><kbd>Alt</kbd> <kbd>Enter</kbd></td><td>In the background</td></tr>
+              <tr><td><kbd>Tab</kbd></td><td>Complete with the chosen row</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- Link peek -->
+        <section class="doc-section" id="apercu" aria-labelledby="t-apercu">
+          <h2 id="t-apercu"><i data-icon="eye"></i>Link preview</h2>
+          <figure class="doc-shot">
+            <img src="/img/screens/peek-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="Preview of a link in a floating card above the article" />
+          </figure>
+          <p>
+            <kbd>Shift</kbd> + click on a link, or right-click then “Link preview”: the page opens in a floating card
+            above the tab. Keep it with “Open in a tab” (without reloading) or “Open in split view”, or close it with
+            <kbd>Esc</kbd> or a click beside it. Nothing is added to history.
+          </p>
+          <p class="muted">On the phone, a long press on a link offers the preview in a sheet.</p>
+        </section>
+
+        <!-- Reader -->
+        <section class="doc-section" id="lecture" aria-labelledby="t-lecture">
+          <h2 id="t-lecture"><i data-icon="book-open-text"></i>Reader mode and mobile site</h2>
+          <figure class="doc-shot">
+            <img src="/img/screens/reader-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="Reader mode: the article alone, with the choice of font, size, width and theme" />
+          </figure>
+          <p>
+            On an article, <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>R</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>R</kbd>) or Page
+            options, “Reader mode”: the text and its images alone, in a calm layout. The same shortcut goes back to the
+            page.
+          </p>
+          <p>
+            “Request mobile site” (Page options) reloads the site as a phone would see it; in the mobile app, the
+            opposite: “desktop site”. On the phone too, reader mode shows the article's first images, downloaded without
+            cookies.
+          </p>
+        </section>
+
+        <!-- Translation -->
+        <section class="doc-section" id="traduction" aria-labelledby="t-traduction">
+          <h2 id="t-traduction"><i data-icon="languages"></i>Translation</h2>
+          <p>
+            Off by default: to translate, the page's text is sent to an online service. Choose it in Settings,
+            “Translation”: <strong>DeepL</strong> (Free or Pro API key), <strong>LibreTranslate</strong> (your server or
+            a public one, optional key) or <strong>Google Cloud Translation</strong> (API key). “Test” checks the
+            configuration. Keys are encrypted by the system (keychain) and never shown again.
+          </p>
+          <p>
+            On a page in another language, the translate icon appears in the address bar: choose the languages
+            (“Detect” lets the service recognize the language), then “Translate”. The first time, the browser reminds
+            you that the text goes to the chosen service. Also: <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>T</kbd>
+            (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>T</kbd>), the “…” menu or a right-click on the page.
+          </p>
+          <ul>
+            <li>The visible part is translated first, then the rest and the content that arrives later; code, scripts,
+              form fields and editable areas are never sent.</li>
+            <li>“Show original” puts back the page's exact text, without reloading it.</li>
+            <li>“Always translate this language” and “Never for this site” can be found and removed in the settings.</li>
+            <li>Private windows: confirmation asked for each window, rules kept in memory only.</li>
+            <li>On the phone: page menu, “Translate the page” then “Show original”; the service and its key are set in
+              Settings, “Translation”.</li>
+          </ul>
+        </section>
+
+        <!-- AI assistant -->
+        <section class="doc-section" id="assistant" aria-labelledby="t-assistant">
+          <h2 id="t-assistant"><i data-icon="sparkles"></i>AI assistant</h2>
+          <p>
+            Optional and off by default. The assistant uses Anthropic's <strong>Claude</strong> with <strong>your own
+            API key</strong> (to create on console.anthropic.com, billed to your account): Settings, “AI assistant”, turn
+            it on, paste the key, then “Test”. Default model: Claude Opus 5.5, fast; Claude Fable 5.1 is the “more
+            powerful” option.
+          </p>
+          <p>
+            Open the panel next to the page with <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>A</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd>
+            <kbd>A</kbd>), the “…” menu or a right-click. Quick actions: “Summarize the page”, “Key points”, “Explain the
+            selection”, “Translate the selection”, or a question about the page. Select several tabs
+            (<kbd>Ctrl</kbd>+click) then the assistant icon to compare them. In the universal bar, <code>@ia</code>
+            followed by a question sends it, with or without the page. Prompts follow the interface language, and so do
+            the answers.
+          </p>
+          <ul>
+            <li>Each request shows what was sent (page titles, “truncated” for a page that is too long).</li>
+            <li>Answers stream in: “Stop” interrupts them; “Copy” and “Add to notes” keep them.</li>
+            <li>Conversations stay in memory, per tab; they are erased when the page changes unless “Keep conversations”
+              is on.</li>
+            <li>On the phone: page menu, “AI assistant” (summary, key points, question), same settings.</li>
+          </ul>
+        </section>
+
+        <!-- Web panels (ADR-047) -->
+        <section class="doc-section" id="panneaux" aria-labelledby="t-panneaux">
+          <h2 id="t-panneaux"><i data-icon="panel-right"></i>Web panels</h2>
+          <p>
+            Pin a web app (WhatsApp Web, Messenger, Spotify, ChatGPT, Gmail… or any address) to the sidebar: the
+            <strong>+</strong> button above the bar's footer offers suggestions, the current page or an address to type.
+            A click on its icon opens it next to the page, a second one hides it; <kbd>Ctrl</kbd> <kbd>Shift</kbd>
+            <kbd>E</kbd> (<kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>E</kbd>) shows or hides the last panel opened.
+          </p>
+          <ul>
+            <li>The panel stays loaded in the background: the number of unread messages from its title shows on its icon.</li>
+            <li>Drag its edge to widen it; “Mobile site” asks for the site's narrow layout.</li>
+            <li>Right-click the icon: reload, mobile site, move up, move down, remove. Each panel has its own session (its
+              cookies don't mix with tabs); removing it erases it.</li>
+            <li>Never in a private window. The list can be synced between your computers (Settings, Sync, “Web panels”,
+              off by default).</li>
+          </ul>
+        </section>
+
+        <!-- Reading list (ADR-047) -->
+        <section class="doc-section" id="lire-plus-tard" aria-labelledby="t-lire-plus-tard">
+          <h2 id="t-lire-plus-tard"><i data-icon="book-marked"></i>Read later</h2>
+          <p>
+            Keep a page for later with the address bar's button (on hover), a right-click on the page, the universal bar
+            or <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>D</kbd> (<kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>D</kbd>). The article's
+            text (the reader mode one) is saved with it: it can be read even offline.
+          </p>
+          <ul>
+            <li><code>browser://reading-list</code> (app menu, “Reading list”): unread, all or read; “Read” opens the
+              offline copy, the link icon opens the page online.</li>
+            <li>The list and its texts are synced, end-to-end encrypted, with your devices; on the phone: page menu, “Read
+              later” and “Reading list”.</li>
+            <li>Nothing is added from a private window or tab.</li>
+          </ul>
+        </section>
+
+        <!-- Notes et surlignages -->
+        <section class="doc-section" id="notes" aria-labelledby="t-notes">
+          <h2 id="t-notes"><i data-icon="highlighter"></i>Notes and highlights</h2>
+          <p>
+            Select text in a page, then right-click, “Highlight” and a color (yellow, green, blue or pink), or
+            <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>H</kbd> (<kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>H</kbd>) with the last color
+            chosen. The passage stays highlighted on every visit, even if the page has changed a little.
+          </p>
+          <ul>
+            <li>A click on a highlighted passage opens its card: color, note, “Copy”, “Delete”.</li>
+            <li>“Page notes” (<kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>N</kbd>) opens a panel next to the page: a free note for
+              the page and the list of its passages; a click scrolls the page to the passage.</li>
+            <li><code>browser://notes</code> gathers everything, grouped by site: search, filter by color, Markdown or
+              JSON export, deletion. In the universal bar, <code>@n</code> searches your passages and notes.</li>
+            <li>Optional sync (Settings, “Sync”, “Notes and highlights”), end-to-end encrypted like the rest.</li>
+            <li>Private windows: notes stay in memory and disappear when the window closes.</li>
+            <li>On the phone: select text then “Highlight”; tap a passage to change its color, write a note on it or
+              delete it; “Page note” is in the page menu; the list is in Settings, “Notes and highlights”.</li>
+          </ul>
+        </section>
+
+        <!-- Boosts -->
+        <section class="doc-section" id="boosts" aria-labelledby="t-boosts">
+          <h2 id="t-boosts"><i data-icon="wand-sparkles"></i>Boosts</h2>
+          <figure class="doc-shot">
+            <img src="/img/screens/boosts-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="The browser://boosts page with four boosts, one of them off" />
+          </figure>
+          <p>A boost customizes a site (or a domain and its subdomains, <code>*.example.com</code>):</p>
+          <ul>
+            <li>color filters (invert, gray, sepia, brightness, contrast) and font;</li>
+            <li>hidden elements: “Hide elements” command, then click what gets in the way (<kbd>Esc</kbd> to finish);</li>
+            <li>custom CSS, and an optional script (off by default, with a warning).</li>
+          </ul>
+          <p>
+            Create and edit your boosts from Page options, “Site boost”, or the <code>browser://boosts</code> page
+            (“Boosts” command). They are synced; a script received from another device stays off until you accept it.
+          </p>
+        </section>
+
+        <!-- Passwords -->
+        <section class="doc-section" id="mots-de-passe" aria-labelledby="t-mots-de-passe">
+          <h2 id="t-mots-de-passe"><i data-icon="key-round"></i>Passwords</h2>
+          <figure class="doc-shot">
+            <img src="/img/screens/passwords-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="The browser://passwords page listing three saved accounts, passwords hidden" />
+          </figure>
+          <ul>
+            <li><strong>Save</strong>: after a sign-in, Browser offers to save the credentials (or “Never for this site”).</li>
+            <li><strong>Fill</strong>: only when you ask, with the key that appears in the address bar on a known site, or “Fill the password” in the page menu. A password is only offered on the exact site where it was saved.</li>
+            <li><strong>Manage</strong>: “Passwords” command (<code>browser://passwords</code>): search, show, edit, delete, CSV export compatible with Chrome and Firefox.</li>
+          </ul>
+          <p>Passwords are encrypted by the system keychain (Windows, macOS, Linux). No prompt in a private window.</p>
+          <p>
+            <strong>Sync</strong> (off by default): Settings, “Sync”, “Sync passwords” (on the phone: Settings,
+            “Passwords”). Accounts and the “Never for this site” list are end-to-end encrypted: the server sees nothing,
+            and nothing is written in plain text outside the keychain. But any device paired with your pairing code can
+            read them: keep this code secret. When an entry changes on two devices, the most recent wins; a deletion
+            propagates.
+          </p>
+        </section>
+
+        <!-- Autofill, passkeys (ADR-041) -->
+        <section class="doc-section" id="formulaires" aria-labelledby="t-formulaires">
+          <h2 id="t-formulaires"><i data-icon="credit-card"></i>Addresses, cards and passkeys</h2>
+          <ul>
+            <li><strong>Save</strong>: after sending a shipping or payment form, Browser offers “Save this address?” or “Save this card?”. Fields are recognized in French and English (France/Europe, United Kingdom, North America address formats).</li>
+            <li><strong>Fill</strong>: when entering a recognized field, a list offers your addresses or cards; also “Fill an address” in the page menu (desktop and phone).</li>
+            <li><strong>Manage</strong>: Settings, “Addresses and payments”. Showing a card's full number asks for Touch ID (Mac) or a system confirmation.</li>
+          </ul>
+          <p>
+            Everything is encrypted by the system keychain (phone: iOS keychain / Android Keystore). The security code
+            (CVC) is <strong>never</strong> saved. Nothing is offered or saved in private browsing. Addresses can be
+            synced (off by default, end-to-end encrypted); cards never leave the device.
+          </p>
+          <h3>Passkeys and security keys</h3>
+          <ul>
+            <li><strong>Windows</strong>: everything goes through Windows Hello (this PC's passkeys, USB/NFC keys with their PIN, sign-in with a phone by QR code).</li>
+            <li><strong>macOS</strong>: USB security keys without a PIN work. Touch ID and iCloud passkeys aren't available in the current versions (a version signed with a dedicated keychain entitlement is needed); no sign-in with a phone.</li>
+            <li><strong>Linux</strong>: USB security keys without a PIN (the user must have access to the device, udev rules); no built-in authenticator.</li>
+            <li>Several accounts for a site: Browser asks which one to use.</li>
+          </ul>
+        </section>
+
+        <!-- Notifications, spell checking (ADR-041) -->
+        <section class="doc-section" id="notifications" aria-labelledby="t-notifications">
+          <h2 id="t-notifications"><i data-icon="bell"></i>Notifications and spelling</h2>
+          <ul>
+            <li><strong>Notifications</strong>: a site must first ask for permission (bar above the page). They show with the site's name and icon; a click brings the tab back. To change your mind: Site info (Allow, Block, Reset).</li>
+            <li><strong>Do not disturb</strong>: Settings, Notifications.</li>
+            <li><strong>Spelling</strong>: Settings, Spelling: dictionary languages (Windows, Linux; macOS follows the system languages), words added to the dictionary; suggestions and “Add to dictionary” on right-click.</li>
+          </ul>
+          <p>
+            “Push” notifications received when the site is closed (service workers, Web Push) aren't supported by
+            Electron: only open tabs can show them.
+          </p>
+        </section>
+
+        <!-- Extensions -->
+        <section class="doc-section" id="extensions" aria-labelledby="t-extensions">
+          <h2 id="t-extensions"><i data-icon="puzzle"></i>Extensions</h2>
+          <figure class="doc-shot">
+            <img src="/img/screens/extensions-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="The browser://extensions page with three extensions installed from a folder" />
+          </figure>
+          <p>
+            Open an extension on the <strong>Chrome Web Store</strong>: the grayed-out “Add to Chrome” button becomes
+            “Add to Browser”, in the same place (also in the address bar). The browser downloads the extension from
+            Google, checks its signature, then shows you what it will be able to do before installing it; the button
+            follows each step (download, verification, installation) and offers “Try again” if it fails. Once added,
+            “Pin” puts its button under the address bar. Store extensions update every day (option on the page) or with
+            “Update extensions”.
+          </p>
+          <p>
+            “Extensions” command (<code>browser://extensions</code>, also from Settings, Behavior): also add an
+            <strong>unpacked folder</strong> or a <strong>.zip / .crx</strong> file, or drop them on the page. Search,
+            turn on, turn off, pin or remove them; “Details” shows the sites it can access, the permissions, the size,
+            the last update check and opens the extension's options. Extension buttons show under the address bar; the
+            puzzle piece lists them all, a click opens the extension's window.
+          </p>
+          <p class="muted">
+            Partial support, Electron's: content scripts, extension windows and part of the <code>chrome.*</code> APIs;
+            no badge on buttons, no click passed to an extension without a window, and never in a private window
+            (Electron doesn't load extensions in a session kept in memory).
+          </p>
+        </section>
+
+        <!-- Page options & captures -->
+        <section class="doc-section" id="captures" aria-labelledby="t-captures">
+          <h2 id="t-captures"><i data-icon="camera"></i>Page options, screenshots and video</h2>
+          <figure class="doc-shot">
+            <img src="/img/screens/page-options-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="The page options popover: copy link, zoom, screenshot, video, reader mode, boost and QR code" />
+          </figure>
+          <p>
+            The <strong>Page options</strong> button, at the end of the address bar (<kbd>Ctrl</kbd> <kbd>Shift</kbd>
+            <kbd>O</kbd>), gathers: copy link, zoom (−, percentage to go back to the default, +), screenshots, video,
+            reader mode, mobile site, site boost, site info and the page's QR code.
+          </p>
+          <ul>
+            <li><strong>Visible area</strong>: <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>S</kbd> (<kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>S</kbd>).</li>
+            <li><strong>Full page</strong>: <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>S</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>S</kbd>), without scrolling the page.</li>
+            <li><strong>An element</strong>: “Screenshot of an element”, hover then click (<kbd>Esc</kbd> cancels).</li>
+          </ul>
+          <p>A preview shows at the bottom right: “Copy” or “Save” (PNG, in the downloads folder).</p>
+          <p>
+            <strong>Tab video</strong>: <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>V</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>V</kbd>)
+            starts and stops recording (the tab's picture and sound only). A red dot and a timer stay visible in the
+            address bar; when stopped, the WebM file is offered to you.
+          </p>
+        </section>
+
+        <!-- Downloads, find, zoom -->
+        <section class="doc-section" id="pages" aria-labelledby="t-pages">
+          <h2 id="t-pages"><i data-icon="hard-drive-download"></i>Downloads, find, zoom, media</h2>
+          <figure class="doc-shot">
+            <img src="/img/screens/downloads-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="The browser://downloads page with three finished downloads" />
+          </figure>
+          <ul>
+            <li><strong>Downloads</strong>: saved without a dialog (or always ask where, Settings, Downloads), with pause, resume and cancel. Programs and scripts wait for your confirmation; nothing is opened automatically. List: <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>J</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>L</kbd>) or <code>browser://downloads</code>.</li>
+            <li><strong>Find in page</strong>: <kbd>Ctrl</kbd> <kbd>F</kbd>, then <kbd>Enter</kbd> / <kbd>Shift</kbd> <kbd>Enter</kbd>, <kbd>F3</kbd> or <kbd>Ctrl</kbd> <kbd>G</kbd> for the next match. The counter and case are kept per tab.</li>
+            <li><strong>Zoom</strong>: <kbd>Ctrl</kbd> <kbd>+</kbd> / <kbd>-</kbd> / <kbd>0</kbd>, pinch or <kbd>Ctrl</kbd> + wheel, remembered per site; default zoom in Settings, Appearance.</li>
+            <li><strong>Media</strong>: <kbd>Ctrl</kbd> <kbd>M</kbd> mutes the tab; “Picture in picture” detaches the video, and does it by itself when you leave a tab playing a video if “Automatic picture in picture” is on (Settings, Behavior; sites that forbid it are respected); <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>P</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>P</kbd>) pauses everything.</li>
+          </ul>
+          <h3 id="pause-medias">Pausing media</h3>
+          <p>
+            When a tab other than the one on screen plays music or a video, a mini player appears at the bottom of the
+            sidebar: artwork, title and artist announced by the site, a clickable progress bar, play/pause, “Skip ahead
+            10 s”, picture in picture for a video, and close (pauses and hides the player). A click on the title shows
+            the tab, even in another space. A paused source stays offered for 5 minutes.
+          </p>
+          <ul>
+            <li><strong>Several sources</strong>: a counter opens the list of all of them, each with play/pause, sound and close.</li>
+            <li><strong>“Pause all media”</strong> (palette, menu or shortcut) stops every tab of every window.</li>
+            <li><strong>Media keys</strong> of the keyboard: they drive the last active player.</li>
+            <li><strong>Compact mode</strong>: a play/pause button in the rail. Also works in a private window, without saving anything.</li>
+            <li><strong>Phone</strong>: a bar above the toolbar for the page on screen (background tabs are suspended by the system).</li>
+          </ul>
+        </section>
+
+        <!-- Privacy -->
+        <section class="doc-section" id="confidentialite" aria-labelledby="t-confidentialite">
+          <h2 id="t-confidentialite"><i data-icon="shield-check"></i>Privacy and security</h2>
+          <figure class="doc-shot">
+            <img src="/img/screens/site-info-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="Site info: connection, cookies, permissions, protections, zoom and boost" />
+          </figure>
+          <ul>
+            <li><strong>Ad and tracker blocker</strong> (EasyList and uBlock lists) on everywhere, with a counter per tab; turn it off for a site from the address bar's shield or the site info.</li>
+            <li><strong>HTTPS only</strong>: every address goes to https; if the site doesn't allow it, a page asks you before continuing.</li>
+            <li><strong>Pop-ups</strong>: a page can only open a window after a real click.</li>
+            <li><strong>Permissions</strong> (camera, microphone, notifications…) asked site by site, revocable in the site info.</li>
+            <li><strong>Less fingerprinting</strong>: Global Privacy Control, a browser identity without any trace of Electron, a standardizable language sent to sites (Settings, Privacy).</li>
+            <li><strong>Third-party cookies</strong> can be blocked, a site's data can be cleared (“Clear site data” command, or Settings, Site data).</li>
+            <li><strong>Cookie banners refused</strong> out of the box on common consent platforms (OneTrust, Didomi, Cookiebot, Quantcast, Usercentrics, Axeptio, Sirdata, CookieYes, iubenda, Complianz, Google, Klaro, Osano, TrustArc, Termly): “Reject all” or “Continue without accepting”, otherwise the banner is hidden. Never “Accept”. Can be turned off per site (site info).</li>
+            <li><strong>Secure DNS</strong> (DNS over HTTPS): automatic, Cloudflare, Quad9, NextDNS or a server of your own (Settings, Privacy). It applies to the whole browser; a company or parental DNS filter then no longer applies.</li>
+            <li><strong>Fingerprinting</strong>: Standard level (reduced Chrome identity) or Strict (standardized language, no detailed client hints, fonts, screens and MIDI devices refused without asking). Canvas/WebGL drawing isn't scrambled: a browser that injects no script into pages can't do it.</li>
+          </ul>
+          <h3>Dashboard and site settings</h3>
+          <p>
+            <code>browser://privacy</code> (“…” menu, Library, or the site info) shows what the protections did over the
+            last 30 days: trackers and ads blocked, banners refused, connections upgraded to HTTPS, third-party cookies
+            blocked, fingerprinting attempts countered, most frequent sites and trackers. Only totals per day and per
+            site are kept, on the device; private windows don't count. <code>browser://site-settings</code> gathers the
+            decisions made site by site (permissions, zoom, protections, JavaScript, muted sound, cookie banners,
+            third-party cookie exceptions), with a search and a reset per site, and the default behaviors (autoplay:
+            allow, muted, block).
+          </p>
+          <h3>Private windows</h3>
+          <p>
+            <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>N</kbd> (<kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>N</kbd>): each private window
+            has its own in-memory session, erased when it closes. No history, no restored session, no remembered
+            permission, no password offered, no extension, and nothing synced.
+          </p>
+          <h3>What stays with you</h3>
+          <p>
+            History, bookmarks, passwords, sessions and settings stay in your local profile. Nothing is sent anywhere
+            else, except sync if you turn it on, end-to-end encrypted, and the update check (GitHub). The internal
+            <code>browser://</code> pages are never accessible to websites.
+          </p>
+        </section>
+
+        <!-- Appearance -->
+        <section class="doc-section" id="apparence" aria-labelledby="t-apparence">
+          <h2 id="t-apparence"><i data-icon="palette"></i>Appearance and themes</h2>
+          <figure class="doc-shot">
+            <img src="/img/screens/settings-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="Appearance settings: light or dark mode and theme gallery" />
+          </figure>
+          <p>
+            Settings, Appearance: interface language, light, dark or automatic theme, accent color and secondary color
+            (the derived palette stays readable), background, font, density, corner radius, shadows, reduced motion, hand
+            cursor. Layout: sidebar on the left or on the right, width, margin around the page.
+          </p>
+          <ul>
+            <li><strong>Gallery</strong>: eight ready-to-use themes, with a preview.</li>
+            <li><strong>Share</strong> your theme: a <code>browser-theme:v1:…</code> code to copy, a <code>.browsertheme</code> file or a QR code. To import, paste a code or choose a file: a preview shows before applying.</li>
+            <li><strong>Dynamic theme</strong> (off by default): the accent takes the color of the site on screen (its theme color, otherwise its icon's), adjusted so the text stays readable; on other pages, the space's color comes back. Never in a private window. On the phone: Settings, “Site color” (theme color only).</li>
+            <li><strong>Zen mode</strong>: <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>B</kbd> (<kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>B</kbd>), the page alone, edge to edge.</li>
+          </ul>
+        </section>
+
+        <!-- Shortcuts -->
+        <section class="doc-section" id="raccourcis" aria-labelledby="t-raccourcis">
+          <h2 id="t-raccourcis"><i data-icon="keyboard"></i>Keyboard shortcuts</h2>
+          <figure class="doc-shot">
+            <img src="/img/screens/settings-shortcuts-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="Keyboard shortcut settings, changeable command by command" />
+          </figure>
+          <p>
+            Default shortcuts. Each can be changed or removed in Settings, Keyboard shortcuts: press the new
+            combination; a conflict with another command is flagged, and combinations reserved by the system are
+            refused.
+          </p>
+          <div class="table-wrap">
+            <table class="shortcut-table">
+              <thead>
+                <tr><th scope="col">Action</th><th scope="col">Windows, Linux</th><th scope="col">macOS</th></tr>
+              </thead>
+              <tbody>
+                <tr class="group"><th colspan="3" scope="rowgroup">Tabs and windows</th></tr>
+                <tr><td>New tab</td><td><kbd>Ctrl</kbd> <kbd>T</kbd></td><td><kbd>⌘</kbd> <kbd>T</kbd></td></tr>
+                <tr><td>Close tab</td><td><kbd>Ctrl</kbd> <kbd>W</kbd></td><td><kbd>⌘</kbd> <kbd>W</kbd></td></tr>
+                <tr><td>Duplicate tab</td><td><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>K</kbd></td><td><kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>K</kbd></td></tr>
+                <tr><td>Next / previous tab</td><td><kbd>Ctrl</kbd> <kbd>Tab</kbd> / <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Tab</kbd></td><td><kbd>⌃</kbd> <kbd>Tab</kbd> / <kbd>⌃</kbd> <kbd>⇧</kbd> <kbd>Tab</kbd></td></tr>
+                <tr><td>Tab 1 to 8, last tab</td><td><kbd>Ctrl</kbd> <kbd>1</kbd>…<kbd>9</kbd></td><td><kbd>⌘</kbd> <kbd>1</kbd>…<kbd>9</kbd></td></tr>
+                <tr><td>New window</td><td><kbd>Ctrl</kbd> <kbd>N</kbd></td><td><kbd>⌘</kbd> <kbd>N</kbd></td></tr>
+                <tr><td>New private window</td><td><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>N</kbd></td><td><kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>N</kbd></td></tr>
+                <tr><td>Reopen closed tab</td><td><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>T</kbd></td><td><kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>T</kbd></td></tr>
+                <tr><td>Select several tabs</td><td><kbd>Ctrl</kbd> + click</td><td><kbd>⌘</kbd> + click</td></tr>
+                <tr><td>Quit</td><td><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Q</kbd></td><td><kbd>⌘</kbd> <kbd>Q</kbd></td></tr>
+                <tr><td>Mute tab</td><td><kbd>Ctrl</kbd> <kbd>M</kbd></td><td><kbd>⌃</kbd> <kbd>M</kbd></td></tr>
+                <tr class="group"><th colspan="3" scope="rowgroup">Navigation</th></tr>
+                <tr><td>Previous / next page</td><td><kbd>Alt</kbd> <kbd>←</kbd> / <kbd>Alt</kbd> <kbd>→</kbd></td><td><kbd>⌘</kbd> <kbd>[</kbd> / <kbd>⌘</kbd> <kbd>]</kbd></td></tr>
+                <tr><td>Reload</td><td><kbd>Ctrl</kbd> <kbd>R</kbd>, <kbd>F5</kbd></td><td><kbd>⌘</kbd> <kbd>R</kbd>, <kbd>F5</kbd></td></tr>
+                <tr><td>Address bar</td><td><kbd>Ctrl</kbd> <kbd>L</kbd></td><td><kbd>⌘</kbd> <kbd>L</kbd></td></tr>
+                <tr><td>Copy URL</td><td><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>C</kbd></td><td><kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>C</kbd></td></tr>
+                <tr><td>Find in page</td><td><kbd>Ctrl</kbd> <kbd>F</kbd></td><td><kbd>⌘</kbd> <kbd>F</kbd></td></tr>
+                <tr><td>Next / previous match</td><td><kbd>F3</kbd> or <kbd>Ctrl</kbd> <kbd>G</kbd> / <kbd>Shift</kbd> <kbd>F3</kbd> or <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>G</kbd></td><td><kbd>⌘</kbd> <kbd>G</kbd> / <kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>G</kbd></td></tr>
+                <tr class="group"><th colspan="3" scope="rowgroup">View</th></tr>
+                <tr><td>Show/hide sidebar</td><td><kbd>Ctrl</kbd> <kbd>S</kbd></td><td><kbd>⌘</kbd> <kbd>S</kbd></td></tr>
+                <tr><td>Zen mode</td><td><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>B</kbd></td><td><kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>B</kbd></td></tr>
+                <tr><td>Split view</td><td><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>\</kbd></td><td><kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>\</kbd></td></tr>
+                <tr><td>Zoom in / out / actual size</td><td><kbd>Ctrl</kbd> <kbd>+</kbd> / <kbd>Ctrl</kbd> <kbd>-</kbd> / <kbd>Ctrl</kbd> <kbd>0</kbd></td><td><kbd>⌘</kbd> <kbd>+</kbd> / <kbd>⌘</kbd> <kbd>-</kbd> / <kbd>⌘</kbd> <kbd>0</kbd></td></tr>
+                <tr><td>Full screen</td><td><kbd>F11</kbd></td><td><kbd>⌃</kbd> <kbd>⌘</kbd> <kbd>F</kbd></td></tr>
+                <tr><td>View page source</td><td><kbd>Ctrl</kbd> <kbd>U</kbd></td><td><kbd>⌘</kbd> <kbd>U</kbd></td></tr>
+                <tr><td>Print</td><td><kbd>Ctrl</kbd> <kbd>P</kbd></td><td><kbd>⌘</kbd> <kbd>P</kbd></td></tr>
+                <tr><td>Reader mode</td><td><kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>R</kbd></td><td><kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>R</kbd></td></tr>
+                <tr><td>Translate page / show original</td><td><kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>T</kbd></td><td><kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>T</kbd></td></tr>
+                <tr><td>Page options</td><td><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>O</kbd></td><td><kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>O</kbd></td></tr>
+                <tr><td>Developer tools</td><td><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>I</kbd></td><td><kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>I</kbd></td></tr>
+                <tr class="group"><th colspan="3" scope="rowgroup">Spaces</th></tr>
+                <tr><td>Next / previous space</td><td><kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>→</kbd> / <kbd>←</kbd></td><td><kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>→</kbd> / <kbd>←</kbd></td></tr>
+                <tr><td>Space 1 to 8, last space</td><td><kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>1</kbd>…<kbd>9</kbd></td><td><kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>1</kbd>…<kbd>9</kbd></td></tr>
+                <tr class="group"><th colspan="3" scope="rowgroup">Library and tools</th></tr>
+                <tr><td>Universal bar</td><td><kbd>Ctrl</kbd> <kbd>K</kbd></td><td><kbd>⌘</kbd> <kbd>K</kbd></td></tr>
+                <tr><td>Settings</td><td><kbd>Ctrl</kbd> <kbd>,</kbd></td><td><kbd>⌘</kbd> <kbd>,</kbd></td></tr>
+                <tr><td>Add to bookmarks</td><td><kbd>Ctrl</kbd> <kbd>D</kbd></td><td><kbd>⌘</kbd> <kbd>D</kbd></td></tr>
+                <tr><td>Downloads</td><td><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>J</kbd></td><td><kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>L</kbd></td></tr>
+                <tr><td>Screenshot of visible area</td><td><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>S</kbd></td><td><kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>S</kbd></td></tr>
+                <tr><td>Screenshot of full page</td><td><kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>S</kbd></td><td><kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>S</kbd></td></tr>
+                <tr><td>Record a video of the tab</td><td><kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>V</kbd></td><td><kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>V</kbd></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="muted">
+            The other commands (pin, put to sleep, new folder, compact mode, save page, extensions, passwords, boosts,
+            sync…) have no default shortcut: find them in the universal bar, or give them your own.
+          </p>
+        </section>
+
+        <!-- Updates -->
+        <section class="doc-section" id="mises-a-jour" aria-labelledby="t-mises-a-jour">
+          <h2 id="t-mises-a-jour"><i data-icon="refresh-cw"></i>Updates</h2>
+          <p>
+            Browser checks for new versions 30 seconds after startup and then every 6 hours, downloads them in the
+            background and installs them at the next restart, or right away with “Restart to update” (sidebar, File menu
+            or universal bar). Settings, Updates: automatic download, <strong>Stable</strong> or <strong>Beta</strong>
+            channel, “Check for updates”.
+          </p>
+          <ul>
+            <li>Windows: automatic with the installer; the portable <code>.zip</code> version is updated by hand.</li>
+            <li>Linux: the AppImage updates itself, the <code>.deb</code> package doesn't.</li>
+            <li>macOS: as long as the app isn't signed with a Developer ID certificate, Browser shows “Manual update required” with a link to the new version.</li>
+          </ul>
+          <p>Your tabs, bookmarks and settings are kept from one version to the next.</p>
+          <p>
+            <strong>Beta program</strong>: the Beta channel gets new features before everyone else, with the same profile
+            and the same data formats; going back to Stable is done in the same place. If something goes wrong, Help,
+            <strong>Report a problem</strong> opens the GitHub form prefilled with the version and the system (and
+            nothing else).
+          </p>
+        </section>
+
+        <!-- Diagnostics and performance (ADR-043) -->
+        <section class="doc-section" id="diagnostic" aria-labelledby="t-diagnostic">
+          <h2 id="t-diagnostic"><i data-icon="gauge"></i>Crashes and performance</h2>
+          <p>
+            Settings, Diagnostics. Crash reports (minidumps) stay on your device and are listed under “Recent crashes”;
+            they are <strong>only sent if you turn on</strong> “Send crash reports” and the installed version has a report
+            server. A report contains the memory state of the process that crashed, the version and the system: never
+            your history, bookmarks or passwords. Self-hosted servers can receive them (<code>CRASH_REPORTS=1</code> on
+            the sync relay).
+          </p>
+          <p>
+            Measurements of November 3, 2026, Browser 0.4.0 (Electron 44), development build, Linux continuous
+            integration container (Xeon 2.1 GHz, 4 cores, 16 GB, Xvfb), medians of 5 cold starts:
+          </p>
+          <table>
+            <thead><tr><th>Measurement</th><th>Median</th></tr></thead>
+            <tbody>
+              <tr><td>Launch → first paint of the interface</td><td>481 ms</td></tr>
+              <tr><td>Launch → sidebar ready</td><td>533 ms</td></tr>
+              <tr><td>New tab → interactive start page</td><td>26.5 ms</td></tr>
+              <tr><td>Memory, 1 tab</td><td>875 MB</td></tr>
+              <tr><td>Memory, 10 tabs</td><td>1,904 MB</td></tr>
+              <tr><td>Memory, 30 tabs</td><td>4,223 MB</td></tr>
+              <tr><td>Memory, 30 tabs with 29 asleep</td><td>939 MB</td></tr>
+            </tbody>
+          </table>
+          <p class="muted">
+            Memory: sum of the working set of all processes, which on Linux counts shared memory several times; it
+            overestimates the real footprint but compares from one version to the next.
+          </p>
+          <p class="muted">
+            Measurements taken by <code>npm run bench</code> on a Linux continuous integration machine: they only compare
+            to other browsers measured on the same machine (<code>scripts/bench-compare.md</code>).
+          </p>
+        </section>
+
+        <!-- Profiles, backups, recovery (ADR-042) -->
+        <section class="doc-section" id="profils" aria-labelledby="t-profils">
+          <h2 id="t-profils"><i data-icon="refresh-cw"></i>Profiles, backup and crashes</h2>
+          <ul>
+            <li><strong>Recovery after a crash</strong>: the session (windows, spaces, tabs, folders, split view) is saved continuously. If Browser closed badly, the start page offers “Restore the session?”: restore everything, choose windows or ignore. Settings, Behavior, “At startup”: continue where you left off or the start page.</li>
+            <li><strong>Recently closed</strong>: “…” menu, History; “Reopen closed window” with <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd>.</li>
+            <li><strong>Crashed page</strong>: a tab whose process stops shows “This page crashed” with “Reload”; the rest of the browser carries on.</li>
+            <li><strong>Task manager</strong> (<kbd>Shift</kbd>+<kbd>Esc</kbd>, <code>browser://tasks</code>): memory and CPU of each tab, extension and service, sortable; “End process” stops a greedy tab.</li>
+            <li><strong>Print</strong> (<kbd>Ctrl</kbd>+<kbd>P</kbd>): preview with pages, orientation, margins, scale, backgrounds, then “Save as PDF” or a printer.</li>
+            <li><strong>Profiles</strong> (<code>browser://profiles</code>): each profile has its settings, history, bookmarks, passwords, sessions and its sync. “Open” opens a window of that profile; “Choose the profile at startup” shows the list at launch.</li>
+            <li><strong>Backup</strong>: “Export the profile…” writes a <code>.browserbackup</code> file (passwords only if you tick it, encrypted with a passphrase; never cookies). “Import a backup…” shows its content, then merges or replaces.</li>
+          </ul>
+        </section>
+
+        <!-- Sync -->
+        <section class="doc-section" id="synchronisation" aria-labelledby="t-synchronisation">
+          <h2 id="t-synchronisation"><i data-icon="cloud-cog"></i>Encrypted sync</h2>
+          <p>
+            Bookmarks (and the favorites grid), the last 90 days of history, open tabs, spaces, theme, search engine,
+            start page and boosts sync between your computers and your phone. Everything is encrypted on the device
+            (XChaCha20-Poly1305) before sending: the server only sees unreadable data. Private windows and passwords are
+            never synced (passwords only if you turn it on).
+          </p>
+          <h3>1. Deploy your server</h3>
+          <p>
+            No server is provided: sync stays off until you have one. The repository's <code>server/</code> folder
+            contains a small dependency-free relay (Node 22, Docker) and guides for a VPS with Caddy, Fly.io or Render:
+            see <a href="https://github.com/Mathieu-Lalande/browser/blob/master/server/README.md">server/README.md</a>.
+            Choose a <code>REGISTRATION_SECRET</code>, otherwise anyone could create an account on your server.
+          </p>
+          <h3>2. First device</h3>
+          <ol>
+            <li>Settings (<kbd>Ctrl</kbd> <kbd>,</kbd>), Sync, <em>First device</em>.</li>
+            <li>Paste the server address (<code>https://sync.example.com</code>) and the registration code, then “Turn on sync”. The encryption key is created on this device.</li>
+          </ol>
+          <h3>3. Pair the others</h3>
+          <ol>
+            <li>On the first device: “Show the pairing code”. This code gives access to all your synced data: don't share it.</li>
+            <li>On the phone: Settings, Sync, “Scan the pairing code” (or paste the text code).</li>
+            <li>On another computer: <em>Join an existing account</em> and paste the code.</li>
+          </ol>
+          <p>
+            Sync happens at startup, a few seconds after each change, every 5 minutes, and on the phone each time it comes
+            back to the foreground (or “Sync now”). Your other devices' tabs appear in the universal bar and in the
+            phone's tab view.
+          </p>
+          <h3>Send a tab to a device</h3>
+          <p>
+            Right-click in the page, “Send to a device”, then choose the paired device. The address travels end-to-end
+            encrypted and expires after 7 days if it isn't received. The receiving computer opens it in the background
+            with a notification; the phone asks “Open” or “Later” and keeps it under “Other devices”. Never from a
+            private window.
+          </p>
+          <ul>
+            <li><strong>Disconnect this device</strong>: stops sync here, the local data stays.</li>
+            <li><strong>Reset</strong> (lost code, stolen device): erases the account on the server and creates a new one with a new key; pair your devices again.</li>
+          </ul>
+          <p class="muted">To try it locally: <code>cd server &amp;&amp; npm ci &amp;&amp; npm run build &amp;&amp; npm start</code>, then the address <code>http://&lt;PC-IP&gt;:8787</code> (http is only accepted on the local network).</p>
+        </section>
+
+        <!-- Troubleshooting -->
+        <section class="doc-section" id="depannage" aria-labelledby="t-depannage">
+          <h2 id="t-depannage"><i data-icon="circle-help"></i>Troubleshooting and questions</h2>
+          <dl class="faq-dl">
+            <dt>Windows shows “Windows protected your PC”.</dt>
+            <dd>That's SmartScreen, which warns about an unsigned or rarely downloaded program. As long as the packages aren't signed: “More info”, then “Run anyway”. Check the file with <code>SHA256SUMS.txt</code> if you wish. Signing (Azure Trusted Signing) is ready and will be turned on in an upcoming version; even signed, a new executable can be flagged for a few days while it builds its reputation.</dd>
+            <dt>Netflix, Disney+, Prime Video or Spotify refuse to play.</dt>
+            <dd>They require the Widevine protected content module. Check Settings, Privacy, “Protected content (DRM)”: the switch must be on and a Widevine version shown. On the very first launch, the module downloads in a few seconds; restart the browser if it says “installing”. On Linux, Widevine isn't available. Some services keep high definition for browsers whose platform is verified (VMP signature of published versions).</dd>
+            <dt>Google refuses the sign-in (“This browser or app may not be secure”).</dt>
+            <dd>Browser presents itself as Google Chrome of the same version, which is usually enough. If Google still refuses, update Browser, try again from <code>accounts.google.com</code> rather than from a pop-up, and turn off the protections for that site during the sign-in. Report it on GitHub with the version: Google's checks evolve.</dd>
+            <dt>A site doesn't find my passkey or security key.</dt>
+            <dd>On Windows, sign-in goes through Windows Hello: check that it is set up. On macOS and Linux, only USB security keys without a PIN work; Touch ID, the iCloud keychain and sign-in with a phone aren't available. See “Addresses, cards and passkeys”.</dd>
+            <dt>I don't get notifications from a closed site.</dt>
+            <dd>Normal: background “push” notifications aren't supported. Keep the tab open (it can be in the background), and check that “Do not disturb” is off.</dd>
+            <dt>macOS says the app can't be opened.</dt>
+            <dd>Right-click Browser in Applications, “Open”; or System Settings, Privacy &amp; Security, “Open Anyway”.</dd>
+            <dt>The AppImage doesn't start on Linux.</dt>
+            <dd>Make it executable (<code>chmod +x</code>). On some recent distributions, also install <code>libfuse2</code>.</dd>
+            <dt>In development, <code>npm run dev</code> doesn't find Electron.</dt>
+            <dd>Electron 44 no longer downloads its binary at install: <code>scripts/ensure-electron.mjs</code> does it on <code>postinstall</code> and before <code>npm run dev</code>. Run <code>npm install</code> again (or <code>node scripts/ensure-electron.mjs</code>), checking network access or the proxy.</dd>
+            <dt><code>npm install</code> fails on a dependency conflict.</dt>
+            <dd>The repository's <code>.npmrc</code> turns on <code>legacy-peer-deps</code>; run the command at the repository root. On Windows, avoid a folder synced by OneDrive.</dd>
+            <dt>What does Anthropic see when I use the assistant?</dt>
+            <dd>Only what you ask it to read, when you ask: the title, address and text of the page (or the selection, or the compared tabs) and your question, sent directly by the browser with your key, never form fields or passwords. A warning reminds you of it before the first send, and in every private window. Nothing goes through our servers: the key is encrypted by the system on the device, never synced; conversations are neither written to disk nor synced. Anthropic's use of the data follows its API terms.</dd>
+            <dt>A site doesn't work properly.</dt>
+            <dd>Turn off the protections for that site (address bar's shield), then reload. If the site refuses https, the HTTPS-only page offers to continue.</dd>
+            <dt>A tab reloads when I come back to it.</dt>
+            <dd>It was asleep to free memory. Lengthen the delay or choose “Never” in Settings, Behavior.</dd>
+            <dt>A tab has disappeared.</dt>
+            <dd>It may have been archived: “Archived tabs” command or the universal bar's filter.</dd>
+            <dt>Sync doesn't start.</dt>
+            <dd>Check the address (https required outside the local network), the registration code, and that the server answers. The status and last error show in Settings, Sync.</dd>
+            <dt>Passwords aren't offered for saving.</dt>
+            <dd>Never in a private window; on Linux, a system keychain (GNOME Keyring, KWallet) is needed, otherwise nothing is saved.</dd>
+            <dt>Where is my profile?</dt>
+            <dd>In the app's data folder (<code>%APPDATA%\Browser</code>, <code>~/Library/Application Support/Browser</code> or <code>~/.config/Browser</code>). It is kept when uninstalling.</dd>
+          </dl>
+          <p>
+            Another question? Open an issue on
+            <a href="https://github.com/Mathieu-Lalande/browser/issues">GitHub</a>.
+          </p>
+        </section>
+      </main>
+    </div>
+
+    <footer class="footer">
+      <div class="container footer-inner">
+        <div class="footer-brand">
+          <a class="brand" href="./">
+            <img src="/img/icon.png" width="24" height="24" alt="" loading="lazy" />
+            <span>Browser</span>
+          </a>
+          <p class="muted small">Fast, private, fully customizable.</p>
+        </div>
+        <nav aria-label="Footer">
+          <ul class="footer-links">
+            <li><a href="./">Home</a></li>
+            <li><a href="./#telecharger">Download</a></li>
+            <li><a href="https://github.com/Mathieu-Lalande/browser">Source code</a></li>
+            <li><a href="https://github.com/Mathieu-Lalande/browser/releases">Versions</a></li>
+            <li><a href="support.html">Support</a></li>
+            <li><a href="privacy.html">Privacy</a></li>
+            <li><a href="../docs.html" hreflang="fr" lang="fr">Français</a></li>
+          </ul>
+        </nav>
+        <p class="muted small">© 2026 Mathieu Lalande</p>
+      </div>
+    </footer>
+  </body>
+</html>

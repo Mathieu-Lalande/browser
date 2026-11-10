@@ -1,4 +1,4 @@
-import { t as tr, t } from "@shared/i18n";
+import { t as tr, t, LANGUAGE_SETTINGS, type LanguageSetting } from "@shared/i18n";
 import { ACCENT_PRESETS, ARCHIVE_DELAY_OPTIONS, LIMITS, type CloseTabActivates, type NewTabPosition, type TabArchiveDelay, type ThemeMode } from "@shared/settings";
 import { addWidget } from "@shared/start-widgets";
 import { displayUrl, SEARCH_ENGINES } from "@shared/url";
@@ -80,7 +80,14 @@ export const SettingsScreen = memo(function SettingsScreen({ onClose }: { onClos
         </Group>
 
         <Group title={t("mobile.settingsScreen.appearance")} icon="sparkles">
-          <Row label={t("mobile.settingsScreen.theme")} first>
+          <Row label={tr("language.label")} first>
+            <Segmented<LanguageSetting>
+              value={appearance.language}
+              options={LANGUAGE_SETTINGS.map((value) => [value, tr(`language.${value}`)])}
+              onChange={(language) => actions.updateSettings({ appearance: { language } })}
+            />
+          </Row>
+          <Row label={t("mobile.settingsScreen.theme")}>
             <Segmented<ThemeMode>
               value={appearance.mode}
               options={[

@@ -1,5 +1,7 @@
 /** Download buttons: detects the OS and points at the matching file of the latest GitHub release (ADR-023). */
 
+import { text } from "./i18n";
+
 const REPO = "Mathieu-Lalande/browser";
 const LATEST_API = `https://api.github.com/repos/${REPO}/releases/latest`;
 const DOWNLOAD_FALLBACK = "#telecharger";
@@ -70,7 +72,7 @@ function primaryAssetKey(os: Os, arm: boolean): AssetKey | null {
 }
 
 function formatSize(bytes: number): string {
-  return `${Math.round(bytes / 1_000_000)} Mo`;
+  return text.size(Math.round(bytes / 1_000_000));
 }
 
 // ---------- Release lookup ----------
@@ -113,9 +115,9 @@ export async function setupDownloads(): Promise<void> {
 
   if (version) {
     const heroVersion = document.getElementById("hero-version");
-    if (heroVersion) heroVersion.textContent = `Version ${version} · Gratuit · Windows, macOS et Linux`;
+    if (heroVersion) heroVersion.textContent = text.heroVersion(version);
     const downloadVersion = document.getElementById("download-version");
-    if (downloadVersion) downloadVersion.textContent = `Version ${version}, pour Windows, macOS et Linux.`;
+    if (downloadVersion) downloadVersion.textContent = text.downloadVersion(version);
   }
 
   const primary = document.getElementById("dl-primary") as HTMLAnchorElement | null;
@@ -132,32 +134,32 @@ export async function setupDownloads(): Promise<void> {
     const others = (["windows", "mac", "linux"] as const).filter((o) => o !== os);
     if (alt) {
       alt.replaceChildren(
-        "Aussi pour ",
+        text.alsoFor,
         ...others.flatMap((o, i) => {
           const a = document.createElement("a");
           a.href = "#telecharger";
           a.textContent = OS_LABEL[o];
-          return i === 0 ? [a, " et "] : [a];
+          return i === 0 ? [a, text.and] : [a];
         }),
       );
     }
 
     const key = primaryAssetKey(os, arm)!;
     const asset = assets[key];
-    label.textContent = `Télécharger pour ${OS_LABEL[os]}`;
+    label.textContent = text.downloadFor(OS_LABEL[os]);
     if (asset) {
       primary.href = asset.browser_download_url;
-      const detail = key === "mac-arm64" ? "Apple Silicon" : key === "mac-x64" ? "Intel" : key === "win-arm64" ? "ARM" : key === "linux-appimage" ? "AppImage" : "64 bits";
+      const detail = key === "mac-arm64" ? "Apple Silicon" : key === "mac-x64" ? "Intel" : key === "win-arm64" ? "ARM" : key === "linux-appimage" ? "AppImage" : text.bits;
       meta.textContent = `Version ${version} · ${detail} · ${formatSize(asset.size)}`;
     } else {
       primary.href = release?.html_url ?? DOWNLOAD_FALLBACK;
-      meta.textContent = release ? `Version ${version} sur GitHub` : "Téléchargements bientôt disponibles";
+      meta.textContent = release ? text.onGitHub(version) : text.soon;
     }
   } else {
     // Phone, tablet or unknown system: point to the platform list instead of guessing.
     primary.href = DOWNLOAD_FALLBACK;
-    label.textContent = "Choisir ma plateforme";
-    meta.textContent = os === "mobile" ? "Pour ordinateur ; l'app mobile arrive bientôt" : "Windows, macOS ou Linux";
+    label.textContent = text.choosePlatform;
+    meta.textContent = os === "mobile" ? text.mobileMeta : text.anyOs;
   }
 }
 

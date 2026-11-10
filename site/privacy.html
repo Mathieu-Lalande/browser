@@ -9,11 +9,13 @@
     <meta name="color-scheme" content="dark" />
     <link rel="canonical" href="https://mathieu-lalande.github.io/browser/privacy.html" />
     <link rel="alternate" hreflang="fr" href="https://mathieu-lalande.github.io/browser/privacy.html" />
-    <link rel="alternate" hreflang="en" href="https://mathieu-lalande.github.io/browser/privacy.html#english" />
+    <link rel="alternate" hreflang="en" href="https://mathieu-lalande.github.io/browser/en/privacy.html" />
+    <link rel="alternate" hreflang="x-default" href="https://mathieu-lalande.github.io/browser/privacy.html" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="fr_FR" />
+    <meta property="og:locale:alternate" content="en_US" />
     <meta property="og:site_name" content="Browser" />
     <meta property="og:title" content="Politique de confidentialité de Browser" />
     <meta property="og:description" content="Browser ne collecte aucune donnée." />
@@ -40,6 +42,7 @@
           </ul>
         </nav>
         <div class="nav-actions">
+          <a class="icon-btn lang-switch" href="en/privacy.html" hreflang="en" lang="en" aria-label="English version">EN</a>
           <a class="icon-btn" href="https://github.com/Mathieu-Lalande/browser" aria-label="Code source sur GitHub">
             <i data-icon="code-xml"></i>
           </a>
@@ -67,7 +70,7 @@
         <p class="lead-left">
           Browser ne collecte aucune donnée. Cette page décrit, pour l'ordinateur, l'iPhone, l'iPad et Android,
           ce qui reste sur votre appareil et ce qui n'en sort que si vous le décidez.
-          <a href="#english" lang="en">English version below.</a>
+          <a href="en/privacy.html" hreflang="en" lang="en">English version.</a>
         </p>
       </div>
     </div>
@@ -144,28 +147,7 @@
         <div lang="en">
           <section class="doc-section" id="english" aria-labelledby="t-english">
             <h2 id="t-english"><i data-icon="languages"></i>Privacy policy (English)</h2>
-            <p><strong>Browser collects no data.</strong> Last updated: November 3, 2026.</p>
-            <ul>
-              <li>No account, no ads, no trackers, no usage analytics, no automatic crash reports.</li>
-              <li>The developer receives, stores and sells no data about you.</li>
-              <li>History, tabs, bookmarks, notes, passwords and settings stay on your device; passwords and form data are encrypted by the system keychain. Private tabs and windows save nothing.</li>
-              <li>Websites you visit receive what any browser sends them (IP address, headers), under their own policies.</li>
-            </ul>
-            <h3>Optional features (off by default)</h3>
-            <ul>
-              <li><strong>Sync</strong> goes through a server you run yourself. Data is end-to-end encrypted on the device (XChaCha20-Poly1305): the server never sees it in the clear. Nothing private is synced. QR-code pairing uses the camera only while scanning.</li>
-              <li><strong>AI assistant</strong>: with your own Anthropic key, the page text and your question are sent to Anthropic, only when you ask.</li>
-              <li><strong>Translation</strong>: with the service you choose (DeepL, LibreTranslate or Google) and your key, the page text is sent to it when you ask for a translation.</li>
-              <li><strong>Weather widget</strong>: the city you choose is sent to Open-Meteo, with no key or cookie.</li>
-              <li><strong>Desktop only</strong>: update checks go to GitHub (release files, nothing about you); crash reports stay on the computer unless you tick "Send crash reports" (off by default). The mobile app sends no reports.</li>
-            </ul>
-            <h3>Your rights and contact</h3>
-            <p>
-              Since no data is collected, there is nothing to access or delete on our side: uninstalling the app removes
-              its data; synced data lives on your own server. Questions:
-              <a href="https://github.com/Mathieu-Lalande/browser/issues">open a GitHub issue</a> or see the
-              <a href="support.html">Support</a> page.
-            </p>
+            <p>This page is available in English: <a href="en/privacy.html" hreflang="en">privacy policy in English</a>.</p>
           </section>
         </div>
       </div>
@@ -187,6 +169,7 @@
             <li><a href="support.html">Assistance</a></li>
             <li><a href="privacy.html" aria-current="page">Confidentialité</a></li>
             <li><a href="https://github.com/Mathieu-Lalande/browser">Code source</a></li>
+            <li><a href="en/privacy.html" hreflang="en" lang="en">English</a></li>
           </ul>
         </nav>
         <p class="muted small">© 2026 Mathieu Lalande</p>

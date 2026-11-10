@@ -75,6 +75,6 @@ questionnaire, answer "web browser / unrestricted internet access".
 
 ## Links
 
-- Support: https://mathieu-lalande.github.io/browser/support.html
-- Privacy policy: https://mathieu-lalande.github.io/browser/privacy.html
+- Support: https://mathieu-lalande.github.io/browser/en/support.html
+- Privacy policy: https://mathieu-lalande.github.io/browser/en/privacy.html
 - Website: https://mathieu-lalande.github.io/browser/

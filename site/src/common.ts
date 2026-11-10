@@ -1,5 +1,7 @@
 /** Shared by every page: header (scroll state, mobile menu, active link) and reveal on scroll. */
 
+import { suggestOtherLanguage, text } from "./i18n";
+
 export const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 
 document.documentElement.classList.add("js");
@@ -19,7 +21,7 @@ addEventListener("scroll", setScrolled, { passive: true });
 function setMenu(open: boolean): void {
   if (!menuButton || !menu) return;
   menuButton.setAttribute("aria-expanded", String(open));
-  menuButton.setAttribute("aria-label", open ? "Fermer le menu" : "Ouvrir le menu");
+  menuButton.setAttribute("aria-label", open ? text.menuClose : text.menuOpen);
   header?.classList.toggle("menu-open", open);
   document.body.classList.toggle("no-scroll", open);
 }
@@ -66,6 +68,10 @@ export function trackActiveLinks(links: HTMLAnchorElement[]): void {
   addEventListener("resize", schedule, { passive: true });
   update();
 }
+
+// ---------- Language (ADR-052) ----------
+
+suggestOtherLanguage();
 
 // ---------- Reveal on scroll ----------
 

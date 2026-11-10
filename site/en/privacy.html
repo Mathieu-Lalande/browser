@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacy policy — Browser</title>
+    <meta name="description" content="Browser's privacy policy (desktop, iOS, Android): no data collected, end-to-end encrypted sync, optional features explained." />
+    <meta name="theme-color" content="#0b0710" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="canonical" href="https://mathieu-lalande.github.io/browser/en/privacy.html" />
+    <link rel="alternate" hreflang="fr" href="https://mathieu-lalande.github.io/browser/privacy.html" />
+    <link rel="alternate" hreflang="en" href="https://mathieu-lalande.github.io/browser/en/privacy.html" />
+    <link rel="alternate" hreflang="x-default" href="https://mathieu-lalande.github.io/browser/privacy.html" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="fr_FR" />
+    <meta property="og:site_name" content="Browser" />
+    <meta property="og:title" content="Browser's privacy policy" />
+    <meta property="og:description" content="Browser collects no data." />
+    <meta property="og:url" content="https://mathieu-lalande.github.io/browser/en/privacy.html" />
+    <meta property="og:image" content="https://mathieu-lalande.github.io/browser/og.png" />
+    <script type="module" src="/src/legal.ts"></script>
+  </head>
+  <body class="docs-page">
+    <a class="skip" href="#contenu">Skip to content</a>
+
+    <header class="topbar scrolled">
+      <div class="topbar-inner container">
+        <a class="brand" href="./" aria-label="Browser, home page">
+          <img src="/img/icon.png" width="28" height="28" alt="" />
+          <span>Browser</span>
+        </a>
+        <nav class="site-menu" id="site-menu" aria-label="Main navigation">
+          <ul class="nav-links">
+            <li><a href="./#fonctionnalites">Features</a></li>
+            <li><a href="./#confidentialite">Privacy</a></li>
+            <li><a href="./#mobile">Mobile</a></li>
+            <li><a href="docs.html">Documentation</a></li>
+            <li><a href="support.html">Support</a></li>
+          </ul>
+        </nav>
+        <div class="nav-actions">
+          <a class="icon-btn lang-switch" href="../privacy.html" hreflang="fr" lang="fr" aria-label="Version française">FR</a>
+          <a class="icon-btn" href="https://github.com/Mathieu-Lalande/browser" aria-label="Source code on GitHub">
+            <i data-icon="code-xml"></i>
+          </a>
+          <a class="btn btn-small btn-primary nav-cta" href="./#telecharger">
+            <i data-icon="download"></i>
+            <span>Download</span>
+          </a>
+          <button class="icon-btn menu-toggle" id="menu-toggle" type="button" aria-expanded="false" aria-controls="site-menu" aria-label="Open the menu">
+            <i data-icon="menu" class="when-closed"></i>
+            <i data-icon="x" class="when-open"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="docs-hero">
+      <div class="mesh mesh-soft" aria-hidden="true">
+        <span class="blob b1"></span>
+        <span class="blob b2"></span>
+        <span class="blob b3"></span>
+      </div>
+      <div class="container">
+        <p class="kicker">Privacy</p>
+        <h1>Privacy policy</h1>
+        <p class="lead-left">
+          Browser collects no data. This page describes, for the computer, iPhone, iPad and Android, what stays on
+          your device and what only leaves it if you decide so.
+        </p>
+      </div>
+    </div>
+
+    <main class="legal-layout container" id="contenu">
+      <div class="docs-content">
+        <section class="doc-section" id="resume" aria-labelledby="t-resume">
+          <h2 id="t-resume"><i data-icon="shield-check"></i>In short</h2>
+          <ul>
+            <li>No account, no ads, no trackers, no usage analytics, no crash report sent automatically.</li>
+            <li>The developer receives, stores and sells no data about you.</li>
+            <li>Your history, tabs, bookmarks, notes, passwords and settings stay on your device.</li>
+            <li>Features that contact a third-party service are optional, off by default, and use the server or key you provide.</li>
+          </ul>
+          <p>Last updated: November 3, 2026.</p>
+        </section>
+
+        <section class="doc-section" id="appareil" aria-labelledby="t-appareil">
+          <h2 id="t-appareil"><i data-icon="smartphone"></i>What stays on your device</h2>
+          <p>
+            History, tabs, spaces, bookmarks, notes and highlights, boosts, themes and settings are saved locally.
+            Passwords and form data are encrypted by the system (iOS keychain, Android Keystore, the computer's secure
+            storage). Private tabs and windows save nothing.
+          </p>
+          <p>
+            The pages you visit receive what any browser sends them (IP address, headers): how they handle it is up to
+            each site's policy.
+          </p>
+        </section>
+
+        <section class="doc-section" id="facultatif" aria-labelledby="t-facultatif">
+          <h2 id="t-facultatif"><i data-icon="toggle-left"></i>Optional features</h2>
+          <h3>Sync</h3>
+          <p>
+            Off by default. It goes through a server you deploy yourself. Data is encrypted on the device
+            (XChaCha20-Poly1305) before sending: the server never sees plain text. Nothing private is synced. QR-code
+            pairing uses the camera, only while scanning.
+          </p>
+          <h3>AI assistant</h3>
+          <p>
+            Off by default. If you turn it on with your own Anthropic key, the page's text and your question are sent to
+            Anthropic, only when you ask. Their handling is covered by Anthropic's privacy policy.
+          </p>
+          <h3>Translation</h3>
+          <p>
+            Off by default. If you choose a service (DeepL, LibreTranslate or Google) with your key, the page's text is
+            sent to it when you ask for a translation.
+          </p>
+          <h3>New tab weather</h3>
+          <p>If you add the weather widget, the name of the chosen city is sent to Open-Meteo, with no key or cookie.</p>
+          <h3>Desktop only</h3>
+          <p>
+            Browser checks for updates on GitHub (download of the release files, nothing about you). Crash reports stay
+            on the computer; they are only sent if you tick “Send crash reports” (off by default). The mobile app sends
+            no reports.
+          </p>
+        </section>
+
+        <section class="doc-section" id="droits" aria-labelledby="t-droits">
+          <h2 id="t-droits"><i data-icon="user-check"></i>Your rights and contact</h2>
+          <p>
+            Since no data is collected, there is nothing to access or delete on our side: uninstalling the app erases its
+            data; synced data lives on your own server. These apps are meant for adults (unfiltered Internet access).
+          </p>
+          <p>
+            Questions: <a href="https://github.com/Mathieu-Lalande/browser/issues">open a GitHub issue</a> or see the
+            <a href="support.html">Support</a> page. Any change to this policy will be published on this page.
+          </p>
+        </section>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="container footer-inner">
+        <div class="footer-brand">
+          <a class="brand" href="./">
+            <img src="/img/icon.png" width="24" height="24" alt="" loading="lazy" />
+            <span>Browser</span>
+          </a>
+          <p class="muted small">Fast, private, fully customizable.</p>
+        </div>
+        <nav aria-label="Footer">
+          <ul class="footer-links">
+            <li><a href="./">Home</a></li>
+            <li><a href="docs.html">Documentation</a></li>
+            <li><a href="support.html">Support</a></li>
+            <li><a href="privacy.html" aria-current="page">Privacy</a></li>
+            <li><a href="https://github.com/Mathieu-Lalande/browser">Source code</a></li>
+            <li><a href="../privacy.html" hreflang="fr" lang="fr">Français</a></li>
+          </ul>
+        </nav>
+        <p class="muted small">© 2026 Mathieu Lalande</p>
+      </div>
+    </footer>
+  </body>
+</html>

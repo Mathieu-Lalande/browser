@@ -43,6 +43,11 @@ export default defineConfig({
         // Linked from the App Store and Google Play listings (mobile/store/).
         privacy: fileURLToPath(new URL("./privacy.html", import.meta.url)),
         support: fileURLToPath(new URL("./support.html", import.meta.url)),
+        // English versions (ADR-052): same pages under /en/, linked by hreflang alternates.
+        "en/main": fileURLToPath(new URL("./en/index.html", import.meta.url)),
+        "en/docs": fileURLToPath(new URL("./en/docs.html", import.meta.url)),
+        "en/privacy": fileURLToPath(new URL("./en/privacy.html", import.meta.url)),
+        "en/support": fileURLToPath(new URL("./en/support.html", import.meta.url)),
       },
     },
   },

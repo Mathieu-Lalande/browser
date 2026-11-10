@@ -1,6 +1,7 @@
 import "./style.css";
 import "./docs.css";
 import { setupReveal, trackActiveLinks } from "./common";
+import { text } from "./i18n";
 
 const tocLinks = [...document.querySelectorAll<HTMLAnchorElement>(".toc a[href^='#']")];
 trackActiveLinks(tocLinks);
@@ -35,8 +36,8 @@ function filter(): void {
   if (status) {
     status.textContent = words.length
       ? shown
-        ? `${shown} section${shown > 1 ? "s" : ""} correspond${shown > 1 ? "ent" : ""}`
-        : "Aucune section ne correspond"
+        ? text.sections(shown)
+        : text.noSection
       : "";
   }
 }
