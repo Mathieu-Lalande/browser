@@ -2821,6 +2821,7 @@ export const en: Record<MessageKey, string> = {
   "assistantPrompts.summarizePage": "Summarize the page",
   "assistantPrompts.keyPoints": "Key points",
   "assistantPrompts.explainSelection": "Explain the selection",
+  "assistantPrompts.translateSelectionLabel": "Translate the selection",
   "assistantPrompts.translateSelection": "Translate the selected passage into {language}. Give only the translation, keeping the formatting.",
   "assistantPrompts.compareSelectedTabs": "Compare the selected tabs",
   "assistantPrompts.summarizePageFewShort": "Summarize this page in a few short paragraphs: its subject, its main ideas and its conclusion.",

@@ -17,7 +17,7 @@ export const ACTION_LABELS: Record<Exclude<AssistantAction, "ask">, string> = {
   get summarize() { return t("assistantPrompts.summarizePage") },
   get "key-points"() { return t("assistantPrompts.keyPoints") },
   get "explain-selection"() { return t("assistantPrompts.explainSelection") },
-  get "translate-selection"() { return t("assistantPrompts.translateSelection") },
+  get "translate-selection"() { return t("assistantPrompts.translateSelectionLabel") },
   get "compare-tabs"() { return t("assistantPrompts.compareSelectedTabs") },
 };
 

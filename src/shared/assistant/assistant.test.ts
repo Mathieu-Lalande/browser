@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { estimateTokens, packSources, readerPlainText, sentSources, truncateToTokens, TRUNCATION_MARK } from "./context";
 import { historyMessages, sanitizeAssistantRequest, type AssistantTurn } from "./conversation";
 import { markdownToNodes, parseInline } from "./markdown";
-import { buildPrompt, requestLabel, SYSTEM_PROMPT } from "./prompts";
+import { ACTION_LABELS, buildPrompt, requestLabel, SYSTEM_PROMPT } from "./prompts";
 import { emptyProgress, finalStatus, messageProgress, reduceStreamEvent } from "./stream";
 import { AssistantProvider } from "../omnibox/providers/assistant";
 import type { QueryContext } from "../omnibox/types";
@@ -177,5 +177,15 @@ describe("markdown", () => {
       { tag: "strong", children: ["gras ", { tag: "a", href: "https://a.test/", children: ["lien"] }] },
       " *pas*",
     ]);
+  });
+});
+
+describe("quick action labels", () => {
+  it("are short labels, never a prompt with its placeholders", () => {
+    for (const label of Object.values(ACTION_LABELS)) {
+      expect(label).not.toMatch(/[{}]/);
+      expect(label.length).toBeLessThan(40);
+    }
+    expect(requestLabel("translate-selection")).toBe("Traduire la sélection");
   });
 });

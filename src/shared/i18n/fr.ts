@@ -2822,6 +2822,7 @@ export const fr = {
   "assistantPrompts.summarizePage": "Résumer la page",
   "assistantPrompts.keyPoints": "Points clés",
   "assistantPrompts.explainSelection": "Expliquer la sélection",
+  "assistantPrompts.translateSelectionLabel": "Traduire la sélection",
   "assistantPrompts.translateSelection": "Traduis le passage sélectionné en {language}. Donne seulement la traduction, en gardant la mise en forme.",
   "assistantPrompts.compareSelectedTabs": "Comparer les onglets sélectionnés",
   "assistantPrompts.summarizePageFewShort": "Résume cette page en quelques paragraphes courts : son sujet, ses idées principales et sa conclusion.",
