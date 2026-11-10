@@ -63,6 +63,11 @@ export class ExtensionPopup {
     return this.view !== null;
   }
 
+  /** The open popup's page (the extension API bridge places its calls in this window, ADR-053). */
+  get contents(): Electron.WebContents | null {
+    return this.view?.webContents ?? null;
+  }
+
   /** Opens `url` (from `ExtensionService.popupUrl`) below `anchor`, replacing any open popup. */
   open(url: string, anchor: Bounds): void {
     if (this.host.window.isDestroyed()) return;

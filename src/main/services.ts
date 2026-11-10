@@ -16,6 +16,7 @@ import { ImportService } from "./import/service";
 import { browserLocations, detectSources, type BrowserLocation, type LocationEnv } from "./import/sources";
 import { newPasswordId, PasswordVaultStore } from "./passwords/vault";
 import { NotificationCenter, type ShownNotification } from "./notifications";
+import { ExtensionApiHost } from "./extensions/api/host";
 import { installPrivacy, isTabPage, permissionGranted } from "./privacy";
 import { ReaderService } from "./reader";
 import { extractArticle } from "./reader/page";
@@ -77,6 +78,8 @@ export interface AppConfig {
   paths: {
     /** The profile folder. */
     userData: string;
+    /** The extension-context preload (ADR-053), registered in tab sessions for extension pages and workers only. */
+    extensionPreload: string;
     /** The OS downloads folder. */
     downloads: string;
   };
@@ -138,6 +141,8 @@ export interface AppConfig {
 export class AppServices {
   readonly downloads: DownloadService;
   readonly extensions: ExtensionService;
+  /** The `chrome.*` APIs Electron lacks, for extension pages and workers (ADR-053). */
+  readonly extensionApi: ExtensionApiHost;
   readonly passwords: PasswordVaultStore;
   readonly startImage: StartImageCache;
   readonly reader = new ReaderService();
@@ -268,6 +273,12 @@ export class AppServices {
       allowed: (contents, origin) => permissionGranted(contents, origin, "notifications"),
       record: shownForTests ? (shown) => shownForTests.push(shown) : undefined,
     });
+    this.extensionApi = new ExtensionApiHost({
+      extensions: this.extensions,
+      preloadPath: paths.extensionPreload,
+      notify: (notification) => this.notifications.showExtension(notification),
+      clearNotification: (key) => this.notifications.clearExtension(key),
+    });
     this.spellcheck = new SpellcheckService({
       settings: () => config.settings(),
       onSettingsChanged: (listener) => config.onSettingsChanged(listener),
@@ -295,8 +306,9 @@ export class AppServices {
       windows,
     });
     // Downloads: tab pages only, no automatic opening, dangerous types confirmed first (ADR-013); a
-    // private session's ones never reach the history (ADR-014). Extensions: ADR-024.
-    this.sessionServices = [privacyService, this.downloads, this.extensions, certificateService, this.spellcheck, this.passkeys];
+    // private session's ones never reach the history (ADR-014). Extensions: ADR-024; their API bridge
+    // (ADR-053) before them, so that its preload is registered before any extension loads.
+    this.sessionServices = [privacyService, this.downloads, this.extensionApi, this.extensions, certificateService, this.spellcheck, this.passkeys];
     this.hardener = new SessionHardener({
       services: this.sessionServices,
       appName: () => config.appName,

@@ -61,7 +61,18 @@ export interface PageMenuContext {
 }
 
 export type PageMenuEntry =
-  | { id: string; label: string; enabled?: boolean; checked?: boolean; submenu?: PageMenuEntry[]; accelerator?: string }
+  | {
+      id: string;
+      label: string;
+      enabled?: boolean;
+      checked?: boolean;
+      /** A radio item (extension menus, ADR-053); otherwise `checked` makes a checkbox. */
+      radio?: boolean;
+      /** `data:` image (an extension's icon, ADR-053). */
+      icon?: string;
+      submenu?: PageMenuEntry[];
+      accelerator?: string;
+    }
   | { separator: true };
 
 /** Longest selection quoted in "Rechercher « … »". */

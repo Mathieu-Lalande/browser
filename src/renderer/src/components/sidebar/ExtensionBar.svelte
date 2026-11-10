@@ -23,11 +23,16 @@
     return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
   };
 
-  const titleOf = (extension: ExtensionInfo) =>
-    extension.action?.hasPopup ? extension.action.title : t("extensionBar.noWindowOpenHere", { p: extension.action?.title ?? extension.name });
+  /** The title the extension set (ADR-053), else its manifest's, with the badge read out. */
+  const titleOf = (extension: ExtensionInfo) => {
+    const state = extensionsUi.actionOf(extension.id);
+    const title = state.title || extension.action?.title || extension.name;
+    return state.badgeText ? t("extensionBar.withBadge", { title, badge: state.badgeText }) : title;
+  };
 
+  /** Its popup, or `action.onClicked` when it has none (main decides, ADR-053). */
   function open(extension: ExtensionInfo, event: MouseEvent & { currentTarget: HTMLElement }): void {
-    if (extension.action?.hasPopup) api.extensions.openPopup(extension.id, boundsOf(event.currentTarget));
+    api.extensions.openPopup(extension.id, boundsOf(event.currentTarget));
   }
 
   function menu(id: string | null, event: MouseEvent & { currentTarget: HTMLElement }): void {
@@ -39,20 +44,31 @@
 {#if !browser.isPrivate && extensionsUi.list.some((extension) => extension.enabled)}
   <div class="extension-bar" role="toolbar" aria-label={t("extensionBar.extensions")} data-testid="extension-bar">
     {#each visible as extension (extension.id)}
+      {@const state = extensionsUi.actionOf(extension.id)}
+      {@const icon = state.icon ?? extension.action?.icon}
       <IconButton
         size="sm"
-        label={extension.action?.title ?? extension.name}
+        label={titleOf(extension)}
         title={titleOf(extension)}
-        aria-disabled={!extension.action?.hasPopup}
-        class={extension.action?.hasPopup ? undefined : "inert"}
+        aria-disabled={state.enabled === false}
+        class={state.enabled === false ? "inert" : undefined}
         data-extension-action={extension.id}
         onclick={(event) => open(extension, event)}
         oncontextmenu={(event) => menu(extension.id, event)}
       >
-        {#if extension.action?.icon}
-          <img src={extension.action.icon} alt="" />
+        {#if icon}
+          <img src={icon} alt="" />
         {:else}
           <Icon name="extension" size={14} />
+        {/if}
+        {#if state.badgeText}
+          <span
+            class="badge"
+            data-extension-badge={extension.id}
+            style:background={state.badgeColor ?? null}
+            style:color={state.badgeTextColor ?? null}
+            aria-hidden="true">{state.badgeText}</span
+          >
         {/if}
       </IconButton>
     {/each}
@@ -89,5 +105,27 @@
   }
   :global(.extension-bar .inert) img {
     opacity: 0.55;
+  }
+  :global(.extension-bar [data-extension-action]) {
+    position: relative;
+  }
+  /* The badge an extension sets (chrome.action.setBadgeText, ADR-053), over the icon's corner. */
+  .badge {
+    position: absolute;
+    right: calc(-1 * var(--space-1) / 2);
+    bottom: calc(-1 * var(--space-1) / 2);
+    min-width: var(--space-3);
+    max-width: calc(var(--hit-min) + var(--space-2));
+    overflow: hidden;
+    padding: 0 calc(var(--space-1) / 2);
+    border-radius: var(--radius-sm);
+    background: var(--accent);
+    color: var(--on-accent);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    line-height: var(--space-3);
+    text-align: center;
+    pointer-events: none;
+    white-space: nowrap;
   }
 </style>

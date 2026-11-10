@@ -2521,12 +2521,11 @@ boutons de barre d'outils (bloqueurs, gestionnaires de mots de passe…).
   **octets** (jamais un chemin, `lib/extension-drop.ts`), main les décompresse dans le profil (mêmes limites) et
   montre la même boîte des autorisations (« fichier déposé, sans signature vérifiée »).
 
-**Limites (Electron 44).** Electron n'implémente pas `chrome.action` : pas de **badge** (texte, couleur), ni de
-titre ou d'icône changés par l'extension, ni de `chrome.action.onClicked` — un bouton sans `default_popup` est
-affiché grisé, son clic ne peut pas atteindre l'extension (aucune API pour émettre l'événement). Les implémenter
-demanderait un préchargement dans les sessions des onglets (comme `electron-chrome-extensions`), contraire à
-ADR-003 (aucun préchargement pour les pages web). Les autres API manquantes d'ADR-024 restent manquantes ; les
-thèmes et applications du store ne sont pas pris en charge (manifeste refusé ou sans effet).
+**Limites (Electron 44).** ~~Electron n'implémente pas `chrome.action` : pas de badge, ni titre ou icône changés,
+ni `chrome.action.onClicked` (bouton sans `default_popup` grisé).~~ Levé par ADR-053 : badges, titres, icônes,
+fenêtre changée par `setPopup` et `action.onClicked` passent par le pont d'API des extensions (préchargement limité
+aux contextes `chrome-extension:`). Restent hors de portée : les thèmes et applications du store (manifeste refusé ou
+sans effet), et tout en navigation privée.
 
 **Tests.** Unitaires : `src/shared/webstore.test.ts` (pages du store, adresses de téléchargement et de
 vérification, XML, ordre des versions, avertissements d'autorisations, boutons MV3/MV2),
@@ -2708,3 +2707,96 @@ l'extraction suivent le fichier (`settingsPage.…`, `mobile.settingsScreen.…`
 dupliqués entre zones. L'heuristique du contrôle ne voit pas un mot anglais ou un mot français sans accent ni mot
 courant : la revue reste nécessaire. Les identifiants d'ancres du site restent français dans les deux langues.
 
+## ADR-053 — API `chrome.*` manquantes pour les extensions (onglets, fenêtres, boutons, menus, notifications)
+
+**Contexte.** Electron n'implémente qu'une partie de `chrome.*` (ADR-024) : `tabs` partiel (get, query, update,
+sendMessage, executeScript…), ni `tabs.create`/`remove`, ni `windows`, ni `contextMenus`, ni `action` (badges,
+`onClicked`), ni `notifications`, ni `commands`. De vraies extensions cassent : ColorZilla (MV3) journalise depuis son
+service worker « Cannot read properties of undefined (reading 'getAll') » (`chrome.windows`/`contextMenus`/`commands`
+absents) et « browser.tabs.create is not a function » (Chromium définit désormais `browser` pour MV3, un objet distinct
+de `chrome`). La méthode connue est celle d'`electron-chrome-extensions` (samuelmaddock) : un préchargement dans les
+contextes d'extension qui complète `chrome.*` et renvoie chaque appel au processus principal.
+
+**Choix : implémentation maison du même principe, pas le paquet.** `electron-chrome-extensions` 4.10 (MIT) suit la
+même approche, mais : son préchargement de service worker s'injecte dans **tout** service worker de la session (test
+`process.type === "service-worker"`, donc aussi ceux des sites web) ; sa version publiée journalise chaque appel
+(`console.log` laissé actif) ; il suppose son propre modèle d'onglets (`addTab`/`selectTab`), son élément
+`<browser-action-list>` et son protocole `crx://` pour les icônes, là où nous avons `TabManager`, `ExtensionBar`, le
+menu de page d'ADR-021, le `NotificationCenter` d'ADR-041, i18n et le registre IPC validé. L'adapter aurait coûté
+autant que les ~900 lignes écrites, sans le contrôle d'émetteur voulu.
+
+**Décision.**
+- **Préchargement des contextes d'extension** `src/preload/extension-api.ts` (sortie `out/preload/extension-api.cjs`,
+  entrée séparée d'electron-vite qui n'embarque que `@shared/extension-bridge` : un préchargement en bac à sable ne
+  charge pas de morceau partagé). `ExtensionApiHost` (`src/main/extensions/api/host.ts`, `SessionService` installé par
+  `hardenSession` **avant** `ExtensionService`) l'enregistre sur chaque session d'onglets non privée avec
+  `session.registerPreloadScript` deux fois : `type: "frame"` et `type: "service-worker"`. Chromium l'exécute donc pour
+  chaque document et worker de ces sessions, pages web comprises : sa première instruction lit l'URL du contexte
+  (`location` du monde isolé, ou celle du worker lue dans son monde) et **s'arrête** si ce n'est pas
+  `chrome-extension://` — ni global, ni écouteur, ni IPC. Dans un contexte d'extension, il passe au monde principal,
+  par `contextBridge.executeInMainWorld` (arguments mandatés, aucun global nommé), un pont à trois fonctions (appeler,
+  écouter un événement, recevoir les événements) et complète `chrome` (et `browser` s'il existe) : `tabs`
+  (`get`, `getCurrent`, `query`, `create`, `update`, `remove`, `onCreated/onUpdated/onActivated/onRemoved`),
+  `windows` (`get`, `getAll`, `getCurrent`, `getLastFocused`, `create`, `update`, `remove`), `action` (+ `browserAction`
+  / `pageAction` en MV2 : badge texte/couleurs, titre, icône par chemin ou `ImageData`, `setPopup`, `enable/disable`,
+  `onClicked`), `contextMenus` (= `menus` : `create` synchrone avec id, `update`, `remove`, `removeAll`, `onClicked`,
+  `onclick` MV2 gardé côté page), `notifications`, `commands.getAll`, `permissions` (si Electron ne la fournit pas :
+  ce que le manifeste accorde ; les autorisations facultatives ne sont jamais accordées, ADR-049). Les méthodes
+  d'Electron sont gardées (`tabs.sendMessage`, `runtime`, `storage`…). `browser = chrome` si absent (MV3).
+- **Le processus principal revérifie tout.** Canaux `crx:call`/`crx:listen` (main → contexte : `crx:event`), hors
+  `ipc.ts` (ce ne sont pas des canaux de l'interface) : `ipcMain` pour les cadres, `ServiceWorkerMain.ipc` (attaché au
+  démarrage de chaque worker dont la portée est `chrome-extension://…`) pour les workers. Émetteur accepté seulement si
+  l'URL du cadre (`senderFrame.url`) ou la portée du worker est `chrome-extension://<id>/` et que `<id>` est, **dans
+  cette session**, une extension installée, activée et chargée (`ExtensionService.loaded`) ; l'interface, les pages
+  web, une extension désactivée ou inconnue reçoivent une erreur. Appels limités à une table (`apis.ts`, `namespace.méthode`),
+  8 arguments au plus, chaque argument validé.
+- **Onglets et fenêtres** : fenêtres normales seulement (jamais une fenêtre privée), onglets de tous les espaces, par un
+  port étroit (`ports.ts`, implémenté sur `BrowserController` par `browser.ts`, branché par `index.ts`). Identifiant
+  d'onglet = celui du `webContents` de sa page quand il en a une (ce que donnent `sender.tab.id` et `tabs.sendMessage`
+  d'Electron), sinon un numéro à partir de 1 000 000 ; stable pour la vie de l'onglet. Une extension ne voit l'URL, le
+  titre et l'icône d'un onglet (objets, `changeInfo` d'`onUpdated`, filtres `url`/`title` de `query`) qu'avec la
+  permission `tabs`, une permission d'hôte qui correspond (motifs de Chrome) ou un accord `activeTab` — donné par un
+  clic sur son bouton ou son entrée de menu, retiré quand l'onglet change d'adresse. URL ouvertes : pages web
+  (`isPageOpenableUrl`), pages de la même extension (relatives résolues sur son origine), page de démarrage ; jamais
+  `file:`, `javascript:`, `browser:` ni une autre extension ; `windows.create({ incognito: true })` refusé. Les
+  événements d'onglets viennent d'un instantané comparé après chaque changement d'état d'une fenêtre (30 ms).
+- **Événements** : un contexte s'abonne à son premier `addListener`. Un worker abonné est réveillé
+  (`startWorkerForScope`) pour ses événements, comme Chrome ; ses abonnements survivent à son arrêt.
+- **Boutons** (lève les limites d'ADR-049) : l'état `chrome.action` (global et par onglet, effacé à la fermeture de
+  l'onglet) est poussé aux fenêtres (`extensions:action-states`) ; `ExtensionBar` montre l'icône et le titre changés et
+  le badge (couleurs de l'extension, 8 caractères au plus) pour l'onglet actif. Un clic ouvre la fenêtre de l'extension
+  (celle du manifeste ou de `setPopup`) ; sans fenêtre, `action.onClicked` avec l'onglet actif (et `activeTab`).
+  `action.openPopup` refusé.
+- **Menus** : les entrées de `contextMenus` (validées : types, contextes, parents sans boucle, motifs de document et
+  de cible, 1 000 par extension) rejoignent le menu de page d'ADR-021 avant « Inspecter », pour les extensions chargées
+  dans la session de l'onglet ; modèle pur `extensionMenuEntries` comme Chrome : une seule entrée de premier niveau =
+  l'entrée avec l'icône de l'extension, plusieurs = un sous-menu au nom de l'extension ; `%s` = sélection ;
+  cases et boutons radio ; un clic envoie `contextMenus.onClicked(info, tab)`. Les entrées vivent en mémoire pour la
+  session (Chrome les garde d'un lancement à l'autre ; une extension qui ne les recrée qu'à `runtime.onInstalled` peut
+  les perdre au redémarrage).
+- **Notifications** : `NotificationCenter.showExtension` (nom de l'extension à la place du site, « Ne pas déranger »,
+  limitation de débit), `onClicked`/`onClosed` renvoyés ; boutons et images non affichés.
+- **Commandes** : `commands.getAll` lit le manifeste ; les raccourcis des extensions ne sont pas installés
+  (`shortcut` vide, `onCommand` jamais émis) : ils entreraient en conflit avec ADR-028.
+- Une extension désactivée, retirée ou mise à jour perd ses menus, l'état de son bouton et ses accords.
+
+**Compromis de sécurité.** C'est la seule exception à « aucun préchargement pour les pages web » (ADR-003) : le
+fichier est chargé dans le monde isolé de chaque page des sessions d'onglets (et de leurs service workers), mais n'y
+fait rien ; même s'il y faisait quelque chose, main refuse tout émetteur qui n'est pas une extension active. Le
+test e2e compare les globaux d'une page web à ceux d'une session sans préchargement et vérifie l'absence de
+`chrome.tabs`, `chrome.action`, `browser`. Les sessions des fenêtres privées et
+de l'interface n'ont pas ce préchargement. Une extension obtient ce qu'elle aurait dans Chrome, sans plus.
+
+**Limite d'Electron : bac à sable.** Electron n'exécute les préchargements de service worker que dans les renderers
+en bac à sable (`app.enableSandbox()`, fait par `hardenApp` sauf `--no-sandbox`). Lancé avec `--no-sandbox` (certains
+Linux, conteneurs en root), le service worker d'une extension n'a pas ces API ; ses pages (fenêtre, options, onglets)
+les gardent.
+
+**Tests.** Unitaires `src/shared/extension-api.test.ts` (motifs, masquage des onglets, `changeInfo`, `tabs.query`,
+état des boutons, couleurs, validation des menus, fusion dans le menu de page, radio, commandes). E2E
+`tests/e2e/extension-api.spec.ts`, extension MV3 locale `tests/e2e/extension-api/` : depuis sa page d'options (toujours)
+et depuis son service worker (bac à sable : `launch(…, { sandboxed: true })` passe par `tests/e2e/sandboxed-electron.sh`,
+qui retire `--no-sandbox` et, en root, lance Electron sous l'utilisateur « nobody » ; ignoré si les espaces de noms
+utilisateur manquent, comme sur les runners GitHub) — `windows.getAll`, `tabs.create` (refus de `file:`), badge et
+couleur sur le bouton, entrée dans le menu de page puis `onClicked` (onglet sans URL faute d'autorisation),
+`action.onClicked` au clic du bouton ; une page web n'a aucun global de plus.

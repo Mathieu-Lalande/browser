@@ -20,6 +20,7 @@ import { installMenu } from "./menu";
 import { flushProfile, openProfile, profile } from "./profile";
 import { hardenApp, hardenSession } from "./security";
 import { buildAppServices } from "./services";
+import { extensionBrowser } from "./extensions/api/browser";
 import { applyNativeTheme, onSettingsChanged, settings as currentSettings, updateSettings } from "./settings";
 import { startTabSleeper } from "./sleep";
 import { desktopAdapters } from "./sync/adapters";
@@ -165,7 +166,11 @@ if (!app.requestSingleInstanceLock()) {
     // The app's services (downloads, extensions, passwords…), each session service installed in
     // every tab session by `hardenSession`.
     const services = buildAppServices({
-      paths: { userData: app.getPath("userData"), downloads: app.getPath("downloads") },
+      paths: {
+        userData: app.getPath("userData"),
+        downloads: app.getPath("downloads"),
+        extensionPreload: join(import.meta.dirname, "../preload/extension-api.cjs"),
+      },
       profile,
       settings: currentSettings,
       updateSettings,
@@ -221,6 +226,8 @@ if (!app.requestSingleInstanceLock()) {
     services.crashes.start();
     if (!app.isPackaged) (globalThis as { __browserCrashReports?: unknown }).__browserCrashReports = services.crashes;
     BrowserController.watchServices(services);
+    // The chrome.* APIs Electron lacks, for extension pages and workers (ADR-053).
+    services.extensionApi.connect(extensionBrowser(), ipcMain);
     hardenSession();
     registerIpc();
     // Mini windows (ADR-048): the page in the default space's session, promoted into a tab of the

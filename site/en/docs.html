@@ -749,8 +749,10 @@
             puzzle piece lists them all, a click opens the extension's window.
           </p>
           <p class="muted">
-            Partial support, Electron's: content scripts, extension windows and part of the <code>chrome.*</code> APIs;
-            no badge on buttons, no click passed to an extension without a window, and never in a private window
+            The browser completes Electron's <code>chrome.*</code> APIs: tabs and windows (open, close, list), button
+            badges, titles and icons, clicks on a button without a window, items added to the page context menu (under
+            the extension's name), notifications. An extension only reads a tab's address and title when it has the
+            permission. Extension keyboard shortcuts aren't installed, and no extension runs in a private window
             (Electron doesn't load extensions in a session kept in memory).
           </p>
         </section>

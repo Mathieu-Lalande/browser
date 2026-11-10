@@ -15,7 +15,8 @@
   l'exposer dans `src/preload/index.ts`, l'ajouter à la table de sa fonctionnalité dans `src/main/ipc/` (arguments vérifiés, émetteur = fenêtre connue).
 - Registre IPC : `src/main/ipc/registry.ts` (validateurs typés `str`, `opt(…)`…, `on`/`handle`/`onUi`/`handleUi`,
   `defineHandlers`) ; `registerIpc` fusionne les tables et le compilateur exige un gestionnaire par canal de requête.
-- Les pages web ne reçoivent jamais de preload ni d'accès Node.
+- Les pages web ne reçoivent jamais de preload ni d'accès Node (seule exception, ADR-053 : le preload des contextes
+  d'extension `src/preload/extension-api.ts`, enregistré sur les sessions d'onglets, qui ne fait rien hors `chrome-extension:`).
 - L'interface (chrome) ne peut pas dessiner au-dessus des pages (`WebContentsView` est natif) : un panneau
   doit soit réduire la zone `viewport`, soit masquer la vue active, soit vivre dans le calque overlay
   (`src/main/overlay.ts`, entrée `src/renderer/overlay.html`) comme la palette de commandes (ADR-010).
@@ -205,7 +206,13 @@
   du store (agent texte `@shared/webstore-page`, monde isolé 1022, `WebStorePages` `store-page.ts`, clic par console à secret),
   progression `StoreInstall`, popover `extension-installed`, `browser://extensions` (`ExtensionRow`, Détails, options en onglet
   `extensionPage`, dépôt de .crx/.zip/dossier en octets `lib/extension-drop.ts`), limites `ZIP_LIMITS` (`unpack.ts`) ; `settings.extensions.autoUpdate` ; crochet
-  `BROWSER_TEST_WEBSTORE_URL`, CRX de test `tests/crx-pack.ts`. Pas de badge ni `onClicked` (Electron), rien en privé.
+  `BROWSER_TEST_WEBSTORE_URL`, CRX de test `tests/crx-pack.ts`. Rien en privé.
+- API `chrome.*` complétées (ADR-053) : preload `src/preload/extension-api.ts` (`registerPreloadScript` frame + service-worker
+  par `ExtensionApiHost`, `src/main/extensions/api/` : `host.ts` contrôle d'émetteur `chrome-extension://<id>/` + événements,
+  `apis.ts` tabs/windows/action/contextMenus/notifications/commands/permissions, port `ports.ts` → `browser.ts`), canaux
+  `@shared/extension-bridge` (pas dans `ipc.ts` : le preload n'embarque rien d'autre), modèle pur `src/shared/extension-api.ts`
+  (motifs, onglets masqués sans autorisation, fusion des menus) ; badges dans `ExtensionBar`, entrées `ext-menu:` du menu de page.
+  Le preload des service workers ne tourne qu'avec le bac à sable : e2e `extension-api.spec.ts` lancé via `tests/e2e/sandboxed-electron.sh`.
 - Bloqueur mobile (ADR-051) : conversion pure `src/shared/blocklist/` (WebKit JSON, index Android, cosmétique),
   `mobile/scripts/build-blocklists.mjs` (postinstall, sorties générées non commitées), module local
   `mobile/modules/content-blocker` (Swift/Kotlin + plugin), correctif `mobile/patches/` de react-native-webview,

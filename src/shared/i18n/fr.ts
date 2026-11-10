@@ -2187,7 +2187,7 @@ export const fr = {
   "sidebar.splitView": "Vue scindée : {label}",
 
   // extensionBar
-  "extensionBar.noWindowOpenHere": "{p} (pas de fenêtre à ouvrir ici)",
+  "extensionBar.withBadge": "{title} ({badge})",
   "extensionBar.extensions": "Extensions",
   "extensionBar.extensionsNotShown": "Extensions ({hidden, plural, one {# non affichée} other {# non affichées}})",
   "extensionBar.extensionsOpenPinManage": "Extensions : ouvrir, épingler, gérer",

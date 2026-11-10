@@ -1,5 +1,7 @@
+import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -370,12 +372,19 @@ function startServer(): Promise<{ server: Server; origin: string; log: ServerLog
  * Launches the app on `profile`; tests that restart the app call it directly. `env`: extra test
  * hooks (e.g. `BROWSER_TEST_SLEEP_MS`).
  */
-export function launch(profile: string, env: Record<string, string> = {}, extraArgs: string[] = []): Promise<ElectronApplication> {
+export function launch(
+  profile: string,
+  env: Record<string, string> = {},
+  extraArgs: string[] = [],
+  options: { sandboxed?: boolean } = {},
+): Promise<ElectronApplication> {
   return electron.launch({
+    // `sandboxed`: the OS sandbox on (see `sandboxAvailable`), through a wrapper that drops root.
+    ...(options.sandboxed ? { executablePath: SANDBOX_WRAPPER } : {}),
     // `*.test` hosts resolve to the local server, to exercise HTTPS-Only on a "public" hostname.
     // `extraArgs`: what the OS would hand over (a link, a file to open: ADR-039).
     // `--disable-component-update`: no Widevine download per test profile, no startup wait (ADR-040).
-    args: ["--no-sandbox", "--disable-gpu", "--disable-component-update", "--host-resolver-rules=MAP insecure.test 127.0.0.1,MAP *.test 127.0.0.1", ".", ...(extraArgs.length ? ["--", ...extraArgs] : [])],
+    args: [...(options.sandboxed ? [] : ["--no-sandbox"]), "--disable-gpu", "--disable-component-update", "--host-resolver-rules=MAP insecure.test 127.0.0.1,MAP *.test 127.0.0.1", ".", ...(extraArgs.length ? ["--", ...extraArgs] : [])],
     // `BROWSER_TEST_SKIP_WELCOME`: a fresh profile would open on browser://welcome (ADR-043); the
     // onboarding test turns it back on with an empty value. `BROWSER_TEST_LOCALE`: the suite runs
     // in French whatever the machine's language (ADR-052); the i18n spec switches to English.
@@ -387,12 +396,30 @@ export function launch(profile: string, env: Record<string, string> = {}, extraA
       BROWSER_TEST_FILTERS: TEST_FILTERS,
       BROWSER_TEST_SKIP_WELCOME: "1",
       BROWSER_TEST_LOCALE: "fr",
+      ...(options.sandboxed ? { SANDBOXED_ELECTRON: electronBinary } : {}),
       ...env,
     },
   });
 }
 
 /** The chrome UI and the overlay are served from the app's own privileged scheme (ADR-018). */
+const SANDBOX_WRAPPER = fileURLToPath(new URL("./sandboxed-electron.sh", import.meta.url));
+const electronBinary = createRequire(import.meta.url)("electron") as unknown as string;
+
+/**
+ * Whether Electron can run with its OS sandbox here (ADR-053: the extension service-worker preload
+ * needs sandboxed renderers): Linux user namespaces for an unprivileged user — as root (containers),
+ * the wrapper runs it as "nobody" through `setpriv`. CI runners usually cannot (AppArmor).
+ */
+export const sandboxAvailable = (() => {
+  if (process.platform !== "linux") return false;
+  const asRoot = process.getuid?.() === 0;
+  const probe = asRoot
+    ? spawnSync("setpriv", ["--reuid=65534", "--regid=65534", "--clear-groups", "--", "unshare", "-Ur", "true"])
+    : spawnSync("unshare", ["-Ur", "true"]);
+  return probe.status === 0;
+})();
+
 export const CHROME_URL = "app://browser/index.html";
 export const OVERLAY_URL = "app://browser/overlay.html";
 

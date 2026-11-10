@@ -5,6 +5,7 @@ import { isSiteName } from "@shared/site-info";
 import {
   answerExtensionReview,
   extensionDetails,
+  extensionActionStates,
   installDroppedExtension,
   openExtensionOptions,
   showInstalledExtension,
@@ -129,4 +130,6 @@ export const extensionHandlers = defineHandlers({
   [Channels.extensionsOpenOptions]: handle([isExtensionId], (c, extensionId) => !c.isPrivate && openExtensionOptions(c, extensionId)),
   [Channels.extensionsInstallDropped]: handle([droppedExtension], (c, dropped) => (c.isPrivate ? privateRefusal : installDroppedExtension(c, dropped))),
   [Channels.extensionsShowInstalled]: on([isExtensionId, bounds], (c, extensionId, anchor) => showInstalledExtension(c, extensionId, anchor), { privateRefused: true }),
+  // ADR-053: badges, titles and icons the extensions set (none in a private window: they do not run there).
+  [Channels.extensionsGetActionStates]: handle([], (c) => (c.isPrivate ? {} : extensionActionStates())),
 });

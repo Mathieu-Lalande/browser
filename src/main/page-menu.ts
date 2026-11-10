@@ -1,4 +1,5 @@
-import { Menu, clipboard, type ContextMenuParams, type MenuItemConstructorOptions, type WebContents } from "electron";
+import { Menu, clipboard, nativeImage, type ContextMenuParams, type MenuItemConstructorOptions, type WebContents } from "electron";
+import { parseExtensionMenuEntryId, type MenuTarget } from "@shared/extension-api";
 import { annotationUrl, isHighlightColor } from "@shared/annotations/model";
 import type { CaptureMode } from "@shared/capture";
 import { effectiveAccelerator } from "@shared/commands";
@@ -79,6 +80,11 @@ function runEntry(id: string, c: BrowserController, tabId: TabId, contents: WebC
     const url = contents.getURL();
     if (!c.isPrivate && /^https?:/.test(url)) void appServices().sync.controller.sendTab(id.slice("page-send:".length), url, contents.getTitle());
     return;
+  }
+  const extensionItem = parseExtensionMenuEntryId(id);
+  if (extensionItem) {
+    // ADR-053: the extension hears the click (contextMenus.onClicked) and gets activeTab on the tab.
+    return appServices().extensionApi.menuClicked(extensionItem.extensionId, extensionItem.itemId, menuTarget(contents, params), tabId);
   }
   if (id.startsWith("spell-") && /^spell-\d$/.test(id)) {
     const word = params.dictionarySuggestions[Number(id.slice(6))];
@@ -193,18 +199,37 @@ function runEntry(id: string, c: BrowserController, tabId: TabId, contents: WebC
   }
 }
 
+/** What an extension's menu item hears about the click (ADR-053). */
+function menuTarget(contents: WebContents, params: ContextMenuParams): MenuTarget {
+  return {
+    pageUrl: contents.getURL(),
+    frameUrl: params.frameURL || contents.getURL(),
+    linkUrl: params.linkURL,
+    srcUrl: params.srcURL,
+    mediaType: params.mediaType,
+    selectionText: params.selectionText,
+    isEditable: params.isEditable,
+  };
+}
+
+const menuIcon = (icon: string | undefined) => {
+  const image = icon ? nativeImage.createFromDataURL(icon) : null;
+  return image && !image.isEmpty() ? { icon: image.resize({ width: 16, height: 16, quality: "best" }) } : {};
+};
+
 function toTemplate(entries: PageMenuEntry[], click: (id: string) => void): MenuItemConstructorOptions[] {
   return entries.map((entry) => {
     if ("separator" in entry) return { type: "separator" };
-    const { id, label, enabled, checked, submenu, accelerator } = entry;
-    if (submenu) return { id, label, enabled, submenu: toTemplate(submenu, click) };
+    const { id, label, enabled, checked, radio, icon, submenu, accelerator } = entry;
+    if (submenu) return { id, label, enabled, ...menuIcon(icon), submenu: toTemplate(submenu, click) };
     return {
       id,
       label,
       enabled,
+      ...menuIcon(icon),
       // A hint only: the application menu owns the shortcuts.
       ...(accelerator ? { accelerator, registerAccelerator: false } : {}),
-      ...(checked === undefined ? {} : { type: "checkbox" as const, checked }),
+      ...(checked === undefined ? {} : { type: radio ? ("radio" as const) : ("checkbox" as const), checked }),
       click: () => click(id),
     };
   });
@@ -241,6 +266,12 @@ export function buildPageContextMenu(c: BrowserController, tabId: TabId, params:
     devices: sendableDevices(c),
     shortcut: (command) => effectiveAccelerator(command, process.platform, settings().shortcuts),
   });
+  // The extensions' items (ADR-053), before "Inspecter", for extensions loaded in this tab's session.
+  const extensionEntries = c.isPrivate ? [] : appServices().extensionApi.menuEntries(contents.session, menuTarget(contents, params));
+  if (extensionEntries.length) {
+    const last = entries.map((entry) => "separator" in entry).lastIndexOf(true);
+    entries.splice(last < 0 ? entries.length : last, 0, { separator: true }, ...extensionEntries);
+  }
   return Menu.buildFromTemplate(
     toTemplate(entries, (id) => {
       // The page may have gone while the menu was open.

@@ -109,6 +109,8 @@ export interface WindowOptions {
 export class BrowserController {
   /** A window showed for the first time (the taskbar's thumbnail toolbar, ADR-048). */
   static readonly shown = new Emitter<BrowserController>();
+  /** Some window's tabs changed, or a window closed (the extension tab events, ADR-053). */
+  static readonly changed = new Emitter();
   readonly window: BrowserWindow;
   /** One TabManager per space; only the active space's pages are shown. */
   readonly spaces: SpaceManager;
@@ -251,6 +253,7 @@ export class BrowserController {
   /** A new state of the spaces and their tabs: every UI of the window gets it. */
   private stateChanged(spaceState: BrowserState): void {
     this.bridge.pushState(this.withFavorites(spaceState));
+    BrowserController.changed.emit();
     if (!this.isPrivate) BrowserController.saveSession();
     this.media.sync();
     this.autoPip.sync(spaceState.activeTabId);
@@ -291,6 +294,7 @@ export class BrowserController {
     // "Rouvrir la fenêtre fermée" (ADR-042): normal windows only, in memory.
     if (outcome === "forget") appServices().recovery.rememberWindow(this.spaces.snapshot());
     windows.remove(chromeId);
+    BrowserController.changed.emit();
     if (outcome === "forget") BrowserController.saveSession();
     this.media.destroy();
     this.extensionPopup.close();

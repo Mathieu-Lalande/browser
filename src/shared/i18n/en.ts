@@ -2186,7 +2186,7 @@ export const en: Record<MessageKey, string> = {
   "sidebar.splitView": "Split view: {label}",
 
   // extensionBar
-  "extensionBar.noWindowOpenHere": "{p} (no window to open here)",
+  "extensionBar.withBadge": "{title} ({badge})",
   "extensionBar.extensions": "Extensions",
   "extensionBar.extensionsNotShown": "Extensions ({hidden} not shown)",
   "extensionBar.extensionsOpenPinManage": "Extensions: open, pin, manage",

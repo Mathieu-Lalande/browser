@@ -2,6 +2,7 @@ import { t } from "@shared/i18n";
 import { dialog, type BaseWindow } from "electron";
 import type { DroppedExtension, ExtensionDetailsInfo, ExtensionInfo, ExtensionInstallResult, ExtensionReview, ExtensionUpdateResult } from "@shared/extensions";
 import type { StoreInstall } from "@shared/webstore-page";
+import type { ActionState } from "@shared/extension-api";
 import type { Bounds } from "@shared/types";
 import { appServices } from "../app-services-ref";
 import type { Overlay } from "../overlay";
@@ -18,6 +19,7 @@ export interface ExtensionWindow {
   readonly overlay: Overlay;
   readonly extensionPopup: ExtensionPopup;
   readonly tabSession: Electron.Session;
+  readonly tabs: { readonly activeTabId: string | null };
   openExtensions(): void;
   /** Opens an extension page main built (its options) in a new tab of the window. */
   openExtensionPage(url: string): void;
@@ -87,10 +89,21 @@ export function showInstalledExtension(c: ExtensionWindow, id: string, anchor: B
 
 export const updateExtensions =(c: ExtensionWindow): Promise<ExtensionUpdateResult> => extensions().checkUpdates(reviewIn(c));
 
-/** Opens an extension's popup below its toolbar button, in the session of the window's pages. */
+/** The badges, titles and icons the extensions set (ADR-053). */
+export const extensionActionStates = (): Record<string, ActionState> => appServices().extensionApi.actionStates();
+
+/**
+ * A click on an extension's button: its popup below the button, in the session of the window's
+ * pages; without one (or after `action.setPopup({ popup: "" })`), `action.onClicked` (ADR-053).
+ */
 export function openExtensionPopup(c: ExtensionWindow, id: string, anchor: Bounds): void {
-  const url = extensions().popupUrl(c.tabSession, id);
+  const api = appServices().extensionApi;
+  const tabId = c.tabs.activeTabId;
+  if (!api.actionEnabled(id, tabId)) return;
+  const override = api.popupFor(id, tabId);
+  const url = override === "" ? null : extensions().popupUrl(c.tabSession, id, override);
   if (url) c.extensionPopup.open(url, anchor);
+  else api.clickAction(id, c.window.id);
 }
 
 /** The puzzle menu (`id` null) or an extension button's menu. */

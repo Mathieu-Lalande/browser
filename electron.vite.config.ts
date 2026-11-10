@@ -11,7 +11,14 @@ export default defineConfig({
   preload: {
     resolve: { alias: shared },
     build: {
-      rollupOptions: { output: { format: "cjs", entryFileNames: "[name].cjs" } },
+      rollupOptions: {
+        input: {
+          index: resolve(import.meta.dirname, "src/preload/index.ts"),
+          // Extension pages and service workers only (ADR-053): it does nothing elsewhere.
+          "extension-api": resolve(import.meta.dirname, "src/preload/extension-api.ts"),
+        },
+        output: { format: "cjs", entryFileNames: "[name].cjs" },
+      },
     },
   },
   renderer: {

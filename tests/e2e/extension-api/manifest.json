@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "API de test",
+  "version": "1.0.0",
+  "description": "Appelle les API chrome.* ajoutées par le navigateur (tests e2e, ADR-053).",
+  "permissions": ["contextMenus", "notifications"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_title": "API de test" },
+  "options_page": "options.html",
+  "commands": { "say-hello": { "description": "Dire bonjour" } }
+}

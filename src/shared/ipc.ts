@@ -8,6 +8,7 @@ import type { MiniAction, MiniState } from "./mini";
 import type { WidevineStatus } from "./drm";
 import type { HistoryClearRange, HistoryCursor, HistoryPage } from "./history";
 import type { ImportItem, ImportProgress, ImportSource, ImportSummary, PasswordImportSummary } from "./import/types";
+import type { ActionState } from "./extension-api";
 import type { DroppedExtension, ExtensionDetailsInfo, ExtensionInfo, ExtensionInstallResult, ExtensionReview, ExtensionUpdateResult } from "./extensions";
 import type { StoreInstall } from "./webstore-page";
 import type { FolderId, FolderInput } from "./folders";
@@ -253,6 +254,8 @@ export const Channels = {
   extensionsInstallDropped: "extensions:install-dropped",
   extensionsInstalled: "extensions:installed",
   extensionsShowInstalled: "extensions:show-installed",
+  extensionsActionStates: "extensions:action-states",
+  extensionsGetActionStates: "extensions:get-action-states",
   passwordsStatus: "passwords:status",
   passwordsList: "passwords:list",
   passwordsNeverList: "passwords:never-list",
@@ -483,6 +486,9 @@ export interface BrowserApi {
     onInstalled(listener: (id: string) => void): () => void;
     /** The confirmation popover after an install, hanging from `anchor` (the extension bar). */
     showInstalled(id: string, anchor: Bounds): void;
+    /** ADR-053: the toolbar buttons' states set by the extensions (badge, title, icon), by extension id; resolved for the active tab. */
+    actionStates(): Promise<Record<string, ActionState>>;
+    onActionStates(listener: (states: Record<string, ActionState>) => void): () => void;
   };
   /**
    * Password manager (ADR-025). Lists carry no password: one reaches the UI only through `reveal`,

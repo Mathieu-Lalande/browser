@@ -774,9 +774,12 @@
             barre d'adresse ; la pièce de puzzle les liste toutes, un clic ouvre la fenêtre de l'extension.
           </p>
           <p class="muted">
-            Support partiel, celui d'Electron : scripts de contenu, fenêtres d'extension et une partie des API
-            <code>chrome.*</code> ; pas de badge sur les boutons, pas de clic transmis à une extension sans fenêtre, et
-            jamais en fenêtre privée (Electron ne charge pas d'extension dans une session gardée en mémoire).
+            Les API <code>chrome.*</code> d'Electron sont complétées par le navigateur : onglets et fenêtres
+            (ouvrir, fermer, lister), badges, titres et icônes des boutons, clic sur un bouton sans fenêtre, entrées
+            ajoutées au menu contextuel des pages (sous le nom de l'extension), notifications. Une extension ne lit
+            l'adresse et le titre d'un onglet que si elle en a l'autorisation. Les raccourcis propres aux extensions ne
+            sont pas installés, et aucune extension ne s'exécute en fenêtre privée (Electron ne charge pas d'extension
+            dans une session gardée en mémoire).
           </p>
         </section>
 

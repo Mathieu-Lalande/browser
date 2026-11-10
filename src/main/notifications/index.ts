@@ -6,6 +6,7 @@ import { passwordOrigin } from "@shared/passwords";
 import type { Settings } from "@shared/settings";
 import type { TabId } from "@shared/types";
 import type { WindowPort } from "../ports";
+import type { ExtensionNotification } from "../extensions/api/host";
 
 /** Isolated world of the notification relay (… 1014/1015 autofill, 1016 notifications). */
 export const NOTIFY_WORLD_ID = 1016;
@@ -169,6 +170,39 @@ export class NotificationCenter {
     if (!token || contents.isDestroyed()) return;
     const code = `document.dispatchEvent(new CustomEvent(${JSON.stringify(`${token}:click`)}, { detail: ${JSON.stringify(id)} }))`;
     contents.executeJavaScriptInIsolatedWorld(NOTIFY_WORLD_ID, [{ code }]).catch(() => undefined);
+  }
+
+  /**
+   * A notification of an extension (`chrome.notifications`, ADR-053): named after the extension,
+   * "Ne pas déranger" applies; clicks and closes go back to the extension.
+   */
+  showExtension(notification: ExtensionNotification): void {
+    if (this.deps.settings().notifications.doNotDisturb) return;
+    if (!this.throttle.take(notification.source, (this.deps.now ?? Date.now)())) return;
+    const icon = notification.icon ? nativeImage.createFromDataURL(notification.icon) : undefined;
+    this.deps.record?.({ site: notification.source, title: notification.title, body: notification.body, hasIcon: !!icon && !icon.isEmpty(), tabId: "", click: notification.onClick });
+    if (!Notification.isSupported()) return;
+    const key = `extension\n${notification.key}`;
+    this.shown.get(key)?.close();
+    const native = new Notification({ title: notificationTitle(notification.source, notification.title), body: notification.body, icon, silent: notification.silent });
+    native.on("click", notification.onClick);
+    native.on("close", () => {
+      if (this.shown.get(key) === native) this.shown.delete(key);
+      notification.onClose();
+    });
+    this.shown.set(key, native);
+    native.show();
+  }
+
+  /** Closes an extension's notification; false when it was not shown. */
+  clearExtension(key: string): boolean {
+    const native = this.shown.get(`extension\n${key}`);
+    if (!native) return false;
+    this.shown.delete(`extension\n${key}`);
+    // Cleared by the extension: no onClosed back to it.
+    native.removeAllListeners("close");
+    native.close();
+    return true;
   }
 
   dispose(): void {

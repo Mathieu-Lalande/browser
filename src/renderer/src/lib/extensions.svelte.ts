@@ -1,3 +1,4 @@
+import { resolveAction, type ActionProps, type ActionState } from "@shared/extension-api";
 import type { ExtensionInfo } from "@shared/extensions";
 import type { Bounds } from "@shared/types";
 import { webStoreIdFromUrl } from "@shared/webstore";
@@ -14,6 +15,8 @@ import { api, browser } from "./browser.svelte";
 class ExtensionsUi {
   list = $state<ExtensionInfo[]>([]);
   installs = $state<StoreInstall[]>([]);
+  /** Badges, titles and icons the extensions set (`chrome.action`, ADR-053), by extension id. */
+  actions = $state<Record<string, ActionState>>({});
   /** A local fake store's origin (dev-only test hook), or null. */
   storeOrigin = $state<string | null>(null);
   private started = false;
@@ -40,7 +43,14 @@ class ExtensionsUi {
     void this.refresh();
     api.extensions.onChanged(() => void this.refresh());
     api.extensions.onInstalled((id) => void this.confirm(id));
+    api.extensions.onActionStates((states) => (this.actions = states));
+    void api.extensions.actionStates().then((states) => (this.actions = states), () => null);
     void api.extensions.storeOrigin().then((origin) => (this.storeOrigin = origin), () => null);
+  }
+
+  /** An extension's button as the active tab shows it (its own values over the global ones). */
+  actionOf(id: string): ActionProps {
+    return resolveAction(this.actions[id], browser.activeTab?.id);
   }
 
   async refresh(): Promise<void> {

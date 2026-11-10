@@ -7,6 +7,7 @@ import type { MiniState } from "@shared/mini";
 import type { PeekState } from "@shared/peek";
 import type { Settings } from "@shared/settings";
 import type { KeyPress } from "@shared/accelerators";
+import type { ActionState } from "@shared/extension-api";
 import type { SyncStatus } from "@shared/sync/controller";
 import type { UpdateStatus } from "@shared/updates";
 import type { BrowserState, OverlayBackdrop, OverlayRequest, PageSwipeIndicator, UiCommand } from "@shared/types";
@@ -86,6 +87,8 @@ const api: BrowserApi = {
     installDropped: (dropped) => ipcRenderer.invoke(Channels.extensionsInstallDropped, dropped),
     onInstalled: (listener) => subscribe<string>(Channels.extensionsInstalled, listener),
     showInstalled: (id, anchor) => send(Channels.extensionsShowInstalled, id, anchor),
+    actionStates: () => ipcRenderer.invoke(Channels.extensionsGetActionStates),
+    onActionStates: (listener) => subscribe<Record<string, ActionState>>(Channels.extensionsActionStates, listener),
   },
   boosts: {
     list: () => ipcRenderer.invoke(Channels.boostsList),

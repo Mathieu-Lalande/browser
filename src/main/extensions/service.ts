@@ -50,6 +50,20 @@ interface SessionState {
   loaded: Map<string, string>;
 }
 
+/** An extension running in a session, as the extension API bridge sees it (ADR-053). */
+export interface LoadedExtension {
+  /** Our id (`extensions.json`). */
+  id: string;
+  /** Electron's id in that session: the `chrome-extension://<electronId>/` origin. */
+  electronId: string;
+  name: string;
+  /** Its folder. */
+  root: string;
+  icon: string | null;
+  manifestVersion: 2 | 3;
+  manifest: Record<string, unknown>;
+}
+
 /** Asks the user to confirm a Web Store install or update (the overlay's permission review, ADR-049). */
 export type ExtensionReviewer = (review: ExtensionReview) => Promise<boolean>;
 
@@ -155,6 +169,8 @@ export class ExtensionService implements SessionService {
   private updateTimer: ReturnType<typeof setTimeout> | null = null;
   /** Store installs in progress or failed, by store id (ADR-049). */
   private readonly storeProgress = new Map<string, StoreInstall>();
+  /** Parsed manifests by folder (an update unpacks to a new folder). */
+  private readonly manifests = new Map<string, Record<string, unknown>>();
 
   /** `profileDir`: where `extensions.json` and the unpacked extensions (`extensions/`) live. */
   constructor(
@@ -205,14 +221,56 @@ export class ExtensionService implements SessionService {
   }
 
   /**
+   * The installed, enabled extension Electron knows as `electronId` in `ses`, or null: the sender
+   * check of the extension API bridge (ADR-053).
+   */
+  loaded(ses: Session, electronId: string): LoadedExtension | null {
+    const session = this.sessions.get(ses);
+    if (!session || !electronId) return null;
+    for (const [id, loadedId] of session.loaded) {
+      if (loadedId !== electronId) continue;
+      const record = this.opened().store.get(id);
+      return record && shouldLoad(record, session) ? this.loadedOf(record, electronId) : null;
+    }
+    return null;
+  }
+
+  /** Where an extension runs: each session and Electron's id for it there. */
+  placesOf(id: string): { session: Session; electronId: string }[] {
+    const places: { session: Session; electronId: string }[] = [];
+    for (const [ses, session] of this.sessions) {
+      const electronId = session.loaded.get(id);
+      if (electronId) places.push({ session: ses, electronId });
+    }
+    return places;
+  }
+
+  /** An enabled extension running somewhere (menus and buttons name it), or null. */
+  running(id: string): LoadedExtension | null {
+    const place = this.placesOf(id)[0];
+    const record = this.opened().store.get(id);
+    return place && record?.enabled ? this.loadedOf(record, place.electronId) : null;
+  }
+
+  private loadedOf(record: ExtensionRecord, electronId: string): LoadedExtension {
+    let manifest = this.manifests.get(record.path);
+    if (!manifest) {
+      manifest = readFolder(record.path)?.raw ?? {};
+      this.manifests.set(record.path, manifest);
+    }
+    return { id: record.id, electronId, name: record.name, root: record.path, icon: record.icon, manifestVersion: record.manifestVersion, manifest };
+  }
+
+  /**
    * The `chrome-extension://` URL of an extension's popup page in `ses`, if it is loaded there and
    * declares one (ADR-049). Electron's id comes from the folder, or from the manifest's `key`.
    */
-  popupUrl(ses: Session, id: string): string | null {
+  popupUrl(ses: Session, id: string, override?: string): string | null {
     const electronId = this.sessions.get(ses)?.loaded.get(id);
     const record = this.opened().store.get(id);
     if (!electronId || !record) return null;
-    const popup = readFolder(record.path)?.action?.popup;
+    // `chrome.action.setPopup` (ADR-053): a path inside the extension, "" for none.
+    const popup = override !== undefined ? (isSafeRelativePath(override.replace(/^\.?\//, "")) ? override.replace(/^\.?\//, "") : null) : readFolder(record.path)?.action?.popup;
     return popup ? `chrome-extension://${electronId}/${popup.split("/").map(encodeURIComponent).join("/")}` : null;
   }
 
