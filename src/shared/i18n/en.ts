@@ -2319,6 +2319,7 @@ export const en: Record<MessageKey, string> = {
   // calendarWidget
   "calendarWidget.calendar": "Calendar of {title}",
   "calendarWidget.week": "Week",
+  "calendarWidget.weekShort": "W",
 
   // devicesWidget
   "devicesWidget.otherDevices": "Other devices",

@@ -2320,6 +2320,7 @@ export const fr = {
   // calendarWidget
   "calendarWidget.calendar": "Calendrier de {title}",
   "calendarWidget.week": "Semaine",
+  "calendarWidget.weekShort": "S",
 
   // devicesWidget
   "devicesWidget.otherDevices": "Autres appareils",

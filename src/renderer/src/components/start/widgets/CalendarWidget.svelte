@@ -4,7 +4,8 @@
   import type { WidgetProps } from "../types";
 
   let { widget }: WidgetProps<"calendar"> = $props();
-  const WEEKDAYS = ["L", "M", "M", "J", "V", "S", "D"];
+  // Monday first (as `monthGrid`): 2024-01-01 was a Monday. Narrow names in the UI language ("L M M…", "M T W…").
+  const WEEKDAYS = Array.from({ length: 7 }, (_, index) => new Date(2024, 0, 1 + index).toLocaleDateString(intlLocale(), { weekday: "narrow" }));
 
   let today = $state(new Date());
   $effect(() => {
@@ -22,7 +23,7 @@
 <table class:weeks={widget.options.weekNumbers} aria-label={t("calendarWidget.calendar", { title })}>
   <thead>
     <tr>
-      {#if widget.options.weekNumbers}<th scope="col" class="week" aria-label={t("calendarWidget.week")}>S</th>{/if}
+      {#if widget.options.weekNumbers}<th scope="col" class="week" aria-label={t("calendarWidget.week")}>{t("calendarWidget.weekShort")}</th>{/if}
       {#each WEEKDAYS as day, index (index)}<th scope="col">{day}</th>{/each}
     </tr>
   </thead>
