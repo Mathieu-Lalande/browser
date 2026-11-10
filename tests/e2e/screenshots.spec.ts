@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { _electron as electron, type ElectronApplication, type Page } from "@playwright/test";
 import type { BrowserApi } from "@shared/ipc";
 import type { BrowserState, SpaceId, SpaceInput, TabId } from "@shared/types";
+import { crx3, testKey, zipOf } from "../crx-pack";
 import { chromeOf, expect, openPrivateWindow, overlayOf, test } from "./fixtures";
 
 /**
@@ -16,10 +17,12 @@ import { chromeOf, expect, openPrivateWindow, overlayOf, test } from "./fixtures
  *   SCREENSHOTS=1 SCREENSHOT_THEME=dark  xvfb-run -a -s "-screen 0 1600x1000x24" npx playwright test screenshots
  *   SCREENSHOTS=1 SCREENSHOT_THEME=light xvfb-run -a -s "-screen 0 1600x1000x24" npx playwright test screenshots
  *
- * Needs root (the fake web listens on port 443), ImageMagick and openssl. Every host resolves to
+ * Needs root (the fake web listens on port 443), ImageMagick and openssl (pngquant optional). Every host resolves to
  * a local HTTPS server serving made-up sites with their own favicons (`--host-resolver-rules`), so
  * the address bar shows real-looking addresses and nothing touches the network. The window is
  * 1440×900; the X screen is captured (`capturePage()` would miss the native page views).
+ * A few key screens are also shot with the English UI (`<screen>-en-<theme>.png`, ADR-052).
+ * The site's WebP copies (site/public/img/screens/) are made from these PNGs, see docs/INSTALL.md.
  */
 test.skip(!process.env.SCREENSHOTS, "set SCREENSHOTS=1 to refresh docs/screenshots");
 test.describe.configure({ mode: "serial" });
@@ -201,9 +204,124 @@ const iconData = (host: string) => `data:image/png;base64,${icons.get(host)!.toS
 let web: Server;
 let certDir: string;
 
+// --- Fake Chrome Web Store (ADR-049) and fake Anthropic API (ADR-044) --------------------------
+
+/** The store's origin for `BROWSER_TEST_WEBSTORE_URL`: a neutral host of the fake web. */
+const STORE_ORIGIN = "https://store.example";
+const storeKey = testKey();
+const STORE_EXTENSION = "Surligneur";
+/** The store fixture with a made-up extension and a little style (the real page's CSS is not kept). */
+const STORE_PAGE = readFileSync(fileURLToPath(new URL("../fixtures/webstore/detail-fr.html", import.meta.url)), "utf8")
+  .replace(/<title>[^<]*<\/title>/, `<title>${STORE_EXTENSION} - Chrome Web Store</title>`)
+  .replace(/<h1 class="Pa2dE">[^<]*<\/h1>/, `<h1 class="Pa2dE">${STORE_EXTENSION}</h1>`)
+  .replace(/<img class="rBxtY"[^>]*>/, `<img class="rBxtY" src="/icon.png" alt="" />`)
+  .replace(/<a href="https:\/\/www.wappalyzer.com">[^<]*<\/a>/, "<a>atelier.dev</a>")
+  .replace(/4,6 étoiles · 2 000 000 utilisateurs/, "4,8 étoiles · 12 000 utilisateurs")
+  .replace(/<section class="T7rvce">[\s\S]*?<\/section>/, `<section class="T7rvce"><h2>Présentation</h2><p>Surlignez les passages importants de n'importe quelle page et retrouvez-les plus tard, classés par site.</p></section>`)
+  .replace(
+    "</head>",
+    `<style>
+  body { margin: 0; font: 15px/1.6 Inter, system-ui, sans-serif; color: #1f2328; background: #fff; }
+  header { display: flex; align-items: center; gap: 24px; padding: 14px 32px; border-bottom: 1px solid #e3e3e3; }
+  header a { color: #444; text-decoration: none; font-weight: 600; } header input { width: 420px; height: 36px; border-radius: 18px; border: 1px solid #ddd; padding: 0 16px; }
+  .material-icons { display: none; } .Sb7Fwe { padding: 10px 32px; background: #f1f3f4; }
+  main { max-width: 900px; margin: 32px auto; padding: 0 24px; } .OdjmDb { display: flex; gap: 20px; align-items: center; }
+  .rBxtY { width: 64px; height: 64px; border-radius: 14px; } h1 { margin: 0; font-size: 28px; } .cJI8ee a { color: #1a73e8; } .Vq0ZA { color: #666; }
+  .mwZwEf { margin-left: auto; } .T7rvce { margin-top: 36px; max-width: 640px; }
+</style></head>`,
+  );
+
+function storeExtensionZip(): Buffer {
+  const manifest = {
+    manifest_version: 3,
+    name: STORE_EXTENSION,
+    version: "1.4.0",
+    description: "Surligne les passages importants et les retrouve plus tard.",
+    icons: { "128": "icon.png" },
+    permissions: ["storage", "tabs", "contextMenus"],
+    host_permissions: ["https://*/*"],
+    action: { default_title: "Surligneur", default_popup: "popup.html", default_icon: "icon.png" },
+    options_ui: { page: "options.html" },
+  };
+  return zipOf({
+    "manifest.json": JSON.stringify(manifest),
+    "popup.html": `<!doctype html><title>Surligneur</title><body style="width:240px;height:120px;margin:0;font:14px sans-serif"><p>3 passages surlignés</p></body>`,
+    "options.html": `<!doctype html><title>Options du Surligneur</title><h1>Options</h1>`,
+    "icon.png": favicon({ name: STORE_EXTENSION, color: "#f59f00", letter: "S" }),
+  });
+}
+
+function handleStore(path: string, query: URLSearchParams, res: ServerResponse): void {
+  if (path.startsWith("/detail/")) {
+    res.setHeader("content-type", "text/html; charset=utf-8");
+    return void res.end(STORE_PAGE);
+  }
+  if (path === "/icon.png" || path === "/favicon.ico") {
+    res.setHeader("content-type", "image/png");
+    return void res.end(favicon({ name: STORE_EXTENSION, color: "#f59f00", letter: "S" }));
+  }
+  if (path === "/service/update2/crx") {
+    const x = new URLSearchParams(query.get("x") ?? "");
+    if (x.get("id") !== storeKey.id) return void res.writeHead(204).end();
+    if (query.get("response") === "redirect") return void res.writeHead(302, { location: `/crx/${storeKey.id}.crx` }).end();
+    res.setHeader("content-type", "text/xml");
+    return void res.end(`<gupdate protocol="2.0"><app appid="${storeKey.id}" status="ok"><updatecheck status="ok" version="1.4.0"/></app></gupdate>`);
+  }
+  if (path.startsWith("/crx/")) {
+    res.setHeader("content-type", "application/x-chrome-extension");
+    return void res.end(crx3(storeExtensionZip(), storeKey));
+  }
+  res.writeHead(404).end();
+}
+
+const sse = (event: string, data: unknown) => `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+const ASSISTANT_ANSWER = [
+  "## En bref\n\n",
+  "L'article explique comment les **onglets verticaux**, les **espaces** et la **barre universelle** ",
+  "ont changé la façon de naviguer.\n\n",
+  "- Les espaces séparent le travail des loisirs, chacun avec ses cookies.\n",
+  "- La barre universelle cherche partout à la fois, sans quitter le clavier.\n",
+  "- Le blocage des traqueurs et le mode lecture deviennent la norme.\n",
+];
+let anthropic: ReturnType<typeof createServer>;
+let anthropicOrigin = "";
+
+/** An Anthropic-compatible stub (the main process's SDK does not go through Chromium's host rules). */
+function startAnthropic(): Promise<void> {
+  anthropic = createServer((req, res) => {
+    const path = req.url ?? "/";
+    if (req.method === "GET" && path.startsWith("/v1/models/")) {
+      res.setHeader("content-type", "application/json");
+      return void res.end(JSON.stringify({ id: path.split("/")[3], type: "model", display_name: "Test", created_at: "2026-01-01T00:00:00Z" }));
+    }
+    if (req.method !== "POST" || !path.startsWith("/v1/messages")) return void res.writeHead(404).end();
+    req.resume();
+    req.on("end", async () => {
+      res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache" });
+      res.write(sse("message_start", { type: "message_start", message: { id: "msg_shot", type: "message", role: "assistant", model: "claude-opus-5-5", content: [], stop_reason: null, stop_sequence: null, usage: { input_tokens: 10, output_tokens: 1 } } }));
+      res.write(sse("content_block_start", { type: "content_block_start", index: 0, content_block: { type: "text", text: "" } }));
+      for (const text of ASSISTANT_ANSWER) {
+        res.write(sse("content_block_delta", { type: "content_block_delta", index: 0, delta: { type: "text_delta", text } }));
+        await pause(40);
+      }
+      res.write(sse("content_block_stop", { type: "content_block_stop", index: 0 }));
+      res.write(sse("message_delta", { type: "message_delta", delta: { stop_reason: "end_turn", stop_sequence: null }, usage: { output_tokens: 60 } }));
+      res.end(sse("message_stop", { type: "message_stop" }));
+    });
+  });
+  return new Promise((resolve) =>
+    anthropic.listen(0, "127.0.0.1", () => {
+      anthropicOrigin = `http://127.0.0.1:${(anthropic.address() as { port: number }).port}`;
+      resolve();
+    }),
+  );
+}
+
 function handle(req: IncomingMessage, res: ServerResponse): void {
   const host = (req.headers.host ?? "").replace(/:\d+$/, "").replace(/^(www|comptes)\./, "");
-  const path = new URL(req.url ?? "/", "https://x").pathname;
+  const requested = new URL(req.url ?? "/", "https://x");
+  const path = requested.pathname;
+  if (`https://${host}` === STORE_ORIGIN) return handleStore(path, requested.searchParams, res);
   if (host === "api.open-meteo.com") {
     res.setHeader("content-type", "application/json");
     return void res.end(JSON.stringify(FORECAST));
@@ -255,10 +373,13 @@ test.beforeAll(async () => {
   });
   redirect.listen(80, "127.0.0.1");
   web.on("close", () => redirect.close());
+  await startAnthropic();
 });
 
 test.afterAll(() => {
   web?.close();
+  anthropic?.closeAllConnections();
+  anthropic?.close();
   if (certDir) rmSync(certDir, { recursive: true, force: true });
 });
 
@@ -635,6 +756,7 @@ test("internal pages", async ({ profile }) => {
 
     await run(chrome, "open-passwords");
     await expect(chrome.getByTestId("passwords-page").getByRole("list", { name: "Mots de passe enregistrés" }).getByRole("listitem")).toHaveCount(3);
+    await chrome.getByText("Aucun trousseau système", { exact: false }).evaluate((element) => (element.closest(".notice") ?? element).remove()).catch(() => {});
     await shoot(app, "passwords");
     await run(chrome, "close-tab");
 
@@ -729,6 +851,304 @@ test("private window", async ({ profile }) => {
     await priv.locator(".start input").first().blur();
     await priv.mouse.move(WIDTH - 20, HEIGHT - 20);
     await shoot(app, "private", 800);
+  } finally {
+    await app.close();
+    rmSync(downloads, { recursive: true, force: true });
+  }
+});
+
+/** Counters of the privacy dashboard over the last two weeks (ADR-046), written before the launch. */
+function seedPrivacyStats(profile: string): void {
+  const sites = ["lejournal.fr", "recettes.fr", "trajets.fr", "courrier.app", "carto.app", "ondes.fm"];
+  const trackers = ["pub-reseau.example", "mesure-audience.example", "pixel-social.example", "cdn-annonces.example", "suivi-clics.example"];
+  const days: Record<string, unknown> = {};
+  for (let ago = 0; ago < 14; ago++) {
+    const date = new Date(Date.now() - ago * 24 * 60 * MINUTE);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    const wave = 1 + ((ago * 7) % 5) / 4;
+    const counts = (weight: number) => ({
+      trackers: Math.round(14 * weight * wave),
+      cookieBanners: Math.round(2 * weight),
+      httpsUpgrades: Math.round(3 * weight * wave),
+      thirdPartyCookies: Math.round(5 * weight),
+      fingerprinting: Math.round(1 * weight),
+    });
+    const perSite = Object.fromEntries(sites.map((site, index) => [site, counts(1.6 - index * 0.22)]));
+    const totals = Object.values(perSite).reduce<Record<string, number>>((sum, entry) => {
+      for (const [name, value] of Object.entries(entry)) sum[name] = (sum[name] ?? 0) + value;
+      return sum;
+    }, {});
+    days[key] = { totals, sites: perSite, trackers: Object.fromEntries(trackers.map((tracker, index) => [tracker, Math.round((40 - index * 7) * wave)])) };
+  }
+  writeFileSync(join(profile, "privacy-stats.json"), JSON.stringify({ version: 1, days }));
+}
+
+/** What another app does when it opens a link: a second launch of the browser with the URL. */
+const launchAgain = (app: ElectronApplication, args: string[]) =>
+  app.evaluate(({ app: electronApp }, argv) => void electronApp.emit("second-instance", {}, ["browser", ...argv], process.cwd(), {}), args);
+
+test("window bar, panels, reading list, privacy, tools and pages", async ({ profile }) => {
+  const downloads = mkdtempSync(join(tmpdir(), "browser-shots-dl-"));
+  seedProfile(profile, downloads);
+  seedPrivacyStats(profile);
+  const { app, chrome } = await launchApp(profile, { BROWSER_TEST_PLAIN_KEYCHAIN: "1", BROWSER_TEST_ANTHROPIC_URL: anthropicOrigin });
+  try {
+    await buildScene(chrome);
+    const overlay = await overlayOf(app);
+    const tabId = async (key: string) => (await state(chrome)).tabs.find((tab) => tab.title === titleOf(key))!.id;
+
+    // Window bar unfolded (sidebar mode switch, window buttons) with the energy saver's indicator.
+    await api(chrome, () => browser.settings.update({ behavior: { energySaver: "always" } }));
+    const strip = (await chrome.getByTestId("window-bar").boundingBox())!;
+    await chrome.mouse.move(strip.x + strip.width / 2, strip.y + 2);
+    await expect(chrome.getByTestId("energy-indicator")).toBeVisible();
+    await shoot(app, "window-bar", 900);
+    await api(chrome, () => browser.settings.update({ behavior: { energySaver: "off" } }));
+    await chrome.mouse.move(WIDTH - 20, HEIGHT - 20);
+
+    // Web panels: three pinned, the mail one open beside the page (its unread count on its icon).
+    const added: string[] = [];
+    for (const [key, title] of [
+      ["courrier.app/boite", "Courrier"],
+      ["agenda.app/semaine", "Agenda"],
+      ["ondes.fm/radio", "Ondes"],
+    ]) {
+      const result = await api<{ ok: boolean; panel?: { id: string } }, [string, string]>(chrome, ([target, name]) => browser.panels.add(target, name), [url(key), title]);
+      if (result.ok && result.panel) added.push(result.panel.id);
+    }
+    await api(chrome, (id: string) => browser.panels.toggle(id), added[0]);
+    await expect(chrome.getByTestId("web-panel")).toBeVisible();
+    await expect(chrome.getByTestId("panel-strip").getByRole("button", { name: /\(3 non lus\)/ })).toBeVisible({ timeout: 15_000 });
+    await chrome.mouse.move(WIDTH - 20, HEIGHT - 20);
+    await shoot(app, "panels", 1500);
+    await api(chrome, () => browser.panels.close());
+    await expect(chrome.getByTestId("web-panel")).toHaveCount(0);
+
+    // AI assistant: a summary of the article, streamed from the stub.
+    await api(chrome, () => browser.settings.update({ assistant: { enabled: true } }));
+    await api(chrome, () => browser.assistant.setKey("sk-ant-screenshot"));
+    await api(chrome, (id: TabId) => browser.tabs.activate(id), await tabId("lejournal.fr/navigateurs"));
+    await run(chrome, "toggle-assistant");
+    const panel = chrome.getByTestId("assistant-panel");
+    await expect(panel).toBeVisible();
+    await panel.getByRole("button", { name: "Résumer la page" }).click();
+    await panel.getByTestId("assistant-notice").getByRole("button", { name: "Accepter et envoyer" }).click();
+    await expect(panel.getByTestId("assistant-answer").last()).toHaveAttribute("data-status", "done");
+    await chrome.mouse.move(WIDTH - 20, HEIGHT - 20);
+    await shoot(app, "assistant", 900);
+    await run(chrome, "toggle-assistant");
+    await expect(panel).toHaveCount(0);
+
+    // Reading list: three articles kept with their text, one already read.
+    for (const key of ["lejournal.fr/navigateurs", "recettes.fr/courge-rotie", "trajets.fr/lisbonne"]) {
+      await api(chrome, (id: TabId) => browser.reading.toggleTab(id), await tabId(key));
+    }
+    await expect.poll(async () => (await api<{ offline: boolean }[]>(chrome, () => browser.reading.list())).filter((entry) => entry.offline).length, { timeout: 15_000 }).toBe(3);
+    const read = (await api<{ id: string; title: string }[]>(chrome, () => browser.reading.list())).find((entry) => entry.title === titleOf("trajets.fr/lisbonne"));
+    if (read) await api(chrome, (id: string) => browser.reading.setRead(id, true), read.id);
+    await run(chrome, "open-reading-list");
+    await expect(chrome.getByTestId("reading-list-page").locator("[data-reading-id]")).toHaveCount(2);
+    await chrome.mouse.move(WIDTH - 20, HEIGHT - 20);
+    await shoot(app, "reading-list", 700);
+    await run(chrome, "close-tab");
+
+    // Privacy dashboard (seeded counters), then the per-site settings.
+    await run(chrome, "open-privacy-dashboard");
+    await expect(chrome.getByTestId("privacy-page")).toBeVisible();
+    await chrome.mouse.move(WIDTH - 20, HEIGHT - 20);
+    await shoot(app, "privacy", 900);
+    await run(chrome, "close-tab");
+
+    for (const [site, key] of [
+      ["lejournal.fr", "cookieBanners"],
+      ["ondes.fm", "muted"],
+      ["studio.design", "javascript"],
+      ["forge.dev", "muted"],
+    ]) {
+      await api<unknown, [string, string]>(chrome, ([name, setting]) => browser.siteSettings.setSwitch(name, setting as never, true), [site, key]);
+    }
+    await run(chrome, "open-site-settings");
+    await expect(chrome.getByTestId("site-settings-page")).toBeVisible();
+    await chrome.mouse.move(WIDTH - 20, HEIGHT - 20);
+    await shoot(app, "site-settings", 900);
+    await run(chrome, "close-tab");
+
+    // History, import, profiles, task manager.
+    await run(chrome, "open-history");
+    await expect(chrome.getByTestId("history-page")).toBeVisible();
+    await chrome.mouse.move(WIDTH - 20, HEIGHT - 20);
+    await shoot(app, "history", 900);
+    await run(chrome, "close-tab");
+
+    await run(chrome, "import-data");
+    await expect(chrome.getByTestId("import-page")).toBeVisible();
+    await chrome.mouse.move(WIDTH - 20, HEIGHT - 20);
+    await shoot(app, "import", 700);
+    await run(chrome, "close-tab");
+
+    for (const input of [
+      { name: "Travail", color: "#4fc3a1" },
+      { name: "Famille", color: "#ffb454" },
+    ]) {
+      await api(chrome, (value: { name: string; color: string }) => browser.profiles.create(value), input);
+    }
+    await run(chrome, "open-profiles");
+    await expect(chrome.getByTestId("profiles-page")).toBeVisible();
+    await chrome.mouse.move(WIDTH - 20, HEIGHT - 20);
+    await shoot(app, "profiles", 700);
+    await run(chrome, "close-tab");
+
+    await run(chrome, "open-task-manager");
+    await expect(chrome.getByTestId("tasks-page").getByRole("row").nth(4)).toBeVisible();
+    await chrome.mouse.move(WIDTH - 20, HEIGHT - 20);
+    await shoot(app, "tasks", 1500);
+    await run(chrome, "close-tab");
+
+    // Addresses and cards (ADR-041), in the settings.
+    await api(chrome, () =>
+      browser.autofill.putAddress(null, {
+        name: "Camille Martin",
+        organization: "",
+        street: "12 rue des Lilas",
+        postalCode: "69003",
+        city: "Lyon",
+        region: "",
+        country: "FR",
+        phone: "+33 6 12 34 56 78",
+        email: "camille.martin@courrier.app",
+      }),
+    );
+    await api(chrome, () => browser.autofill.putCard(null, { name: "Camille Martin", number: "4970 1012 3456 7893", expMonth: 9, expYear: 2029, nickname: "Carte du quotidien" }));
+    await run(chrome, "open-autofill");
+    await expect(chrome.getByTestId("autofill-cards")).toBeVisible();
+    await chrome.getByTestId("autofill-addresses").evaluate((element) => element.scrollIntoView({ block: "center" }));
+    // The plain test keychain's warning is an artifact of this run, not what users see.
+    await chrome.getByText("Aucun trousseau système", { exact: false }).evaluate((element) => (element.closest(".notice") ?? element).remove()).catch(() => {});
+    await chrome.mouse.move(WIDTH - 20, HEIGHT - 20);
+    await shoot(app, "autofill", 900);
+    await run(chrome, "close-tab");
+
+    // Print preview of the article.
+    await api(chrome, (id: TabId) => browser.tabs.activate(id), await tabId("lejournal.fr/navigateurs"));
+    await run(chrome, "print");
+    await expect(overlay.getByTestId("print-preview")).toBeVisible();
+    await expect.poll(() => app.evaluate(({ webContents }) => webContents.getAllWebContents().some((c) => /preview-.*\.pdf/.test(c.getURL()))), { timeout: 20_000 }).toBe(true);
+    await shoot(app, "print", 2500);
+    await closeOverlay(app);
+    await pause(500);
+
+    // A link from another app, in a mini window above the browser (on its start page).
+    await api(chrome, () => browser.tabs.create());
+    await expect(chrome.locator(".start .site").first()).toBeVisible();
+    await chrome.locator(".start input").first().blur();
+    await launchAgain(app, [url("recettes.fr/tarte-tatin")]);
+    await expect.poll(() => app.windows().some((page) => page.url() === "app://browser/mini.html"), { timeout: 15_000 }).toBe(true);
+    await pause(1500);
+    await app.evaluate(({ BaseWindow, BrowserWindow }) => {
+      const main = BrowserWindow.getAllWindows()[0].getContentBounds();
+      for (const window of BaseWindow.getAllWindows()) {
+        if (window instanceof BrowserWindow) continue;
+        window.setBounds({ x: main.x + 420, y: main.y + 110, width: 860, height: 660 });
+        window.focus();
+      }
+    });
+    await shoot(app, "mini-window", 1200);
+    await app.evaluate(({ BaseWindow, BrowserWindow }) => {
+      for (const window of BaseWindow.getAllWindows()) if (!(window instanceof BrowserWindow)) window.close();
+    });
+    await pause(500);
+
+    // Welcome tour (reopened from Aide).
+    await run(chrome, "open-welcome");
+    await expect(chrome.getByTestId("welcome-page")).toBeVisible();
+    await chrome.mouse.move(WIDTH - 20, HEIGHT - 20);
+    await shoot(app, "welcome", 900);
+  } finally {
+    await app.close();
+    rmSync(downloads, { recursive: true, force: true });
+  }
+});
+
+test("chrome web store and extension details", async ({ profile }) => {
+  const downloads = mkdtempSync(join(tmpdir(), "browser-shots-dl-"));
+  seedProfile(profile, downloads);
+  const { app, chrome } = await launchApp(profile, { BROWSER_TEST_WEBSTORE_URL: STORE_ORIGIN });
+  try {
+    await buildScene(chrome);
+    const overlay = await overlayOf(app);
+    const detail = `${STORE_ORIGIN}/detail/surligneur/${storeKey.id}`;
+    await api(chrome, (target: string) => browser.tabs.create(target), detail);
+    await waitTitle(chrome, `${STORE_EXTENSION} - Chrome Web Store`);
+    // Our "Ajouter à Browser" replaces the store's greyed button.
+    await expect
+      .poll(() =>
+        app.evaluate(async ({ webContents }, prefix) => {
+          const page = webContents.getAllWebContents().find((contents) => contents.getURL().startsWith(prefix));
+          return page ? page.executeJavaScriptInIsolatedWorld(1022, [{ code: "!!globalThis.__browserStore?.host?.isConnected" }]) : false;
+        }, detail),
+      )
+      .toBe(true);
+    await chrome.mouse.move(WIDTH - 20, HEIGHT - 20);
+    await shoot(app, "webstore", 900);
+    // A real click on it, then the review of its permissions.
+    await app.evaluate(async ({ webContents }, prefix) => {
+      const page = webContents.getAllWebContents().find((contents) => contents.getURL().startsWith(prefix))!;
+      const rect: { x: number; y: number } = await page.executeJavaScript(
+        `(() => { const r = document.querySelector(".SwFHyf > span").getBoundingClientRect(); return { x: r.x + 30, y: r.y + 15 }; })()`,
+      );
+      const [x, y] = [Math.round(rect.x), Math.round(rect.y)];
+      page.sendInputEvent({ type: "mouseMove", x, y });
+      page.sendInputEvent({ type: "mouseDown", x, y, button: "left", clickCount: 1 });
+      page.sendInputEvent({ type: "mouseUp", x, y, button: "left", clickCount: 1 });
+    }, detail);
+    const review = overlay.getByRole("dialog", { name: `Ajouter « ${STORE_EXTENSION} » ?` });
+    await expect(review).toBeVisible({ timeout: 20_000 });
+    await shoot(app, "extension-install", 900);
+    await review.getByRole("button", { name: "Ajouter l'extension" }).click();
+    const installed = overlay.getByTestId("extension-installed");
+    await expect(installed).toBeVisible();
+    await installed.getByRole("button", { name: "Épingler" }).click();
+    await pause(500);
+
+    await run(chrome, "open-extensions");
+    const row = chrome.getByTestId("extensions-page").locator("[data-extension-id]").first();
+    await row.getByRole("button", { name: "Détails" }).click();
+    await expect(row.getByTestId("extension-details")).toBeVisible();
+    await chrome.mouse.move(WIDTH - 20, HEIGHT - 20);
+    await shoot(app, "extensions-details", 900);
+  } finally {
+    await app.close();
+    rmSync(downloads, { recursive: true, force: true });
+  }
+});
+
+test("english interface", async ({ profile }) => {
+  const downloads = mkdtempSync(join(tmpdir(), "browser-shots-dl-"));
+  seedProfile(profile, downloads, { appearance: { mode: theme, language: "en" } });
+  const { app, chrome } = await launchApp(profile, { BROWSER_TEST_LOCALE: "en" });
+  try {
+    await buildScene(chrome);
+    await shoot(app, "sidebar-en", 1200);
+
+    const overlay = await overlayOf(app);
+    await run(chrome, "command-palette");
+    const input = overlay.getByRole("combobox").first();
+    await expect(input).toBeFocused();
+    await input.pressSequentially("lisbonne");
+    await shoot(app, "omnibox-en", 900);
+    await closeOverlay(app);
+
+    await api(chrome, () => browser.tabs.create());
+    await expect(chrome.locator(".start .site").first()).toBeVisible();
+    await expect(chrome.locator("[data-widget-id=weather]")).toContainText("°");
+    await chrome.locator(".start input").first().blur();
+    await chrome.mouse.move(WIDTH - 20, HEIGHT - 20);
+    await shoot(app, "start-en", 900);
+
+    await run(chrome, "open-settings");
+    await expect(chrome.locator("[data-section]").first()).toBeVisible();
+    await chrome.mouse.move(WIDTH - 20, HEIGHT - 20);
+    await shoot(app, "settings-en", 900);
   } finally {
     await app.close();
     rmSync(downloads, { recursive: true, force: true });

@@ -94,7 +94,9 @@ function seed(): Record<string, unknown> {
   });
   return {
     "browser.settings": {
-      appearance: { mode: theme },
+      // French UI whatever the shell's language (ADR-052): the labels below are French.
+      appearance: { mode: theme, language: "fr" },
+      assistant: { enabled: true },
       startPage: {
         greetingName: "Camille",
         widgets: [
@@ -118,6 +120,19 @@ function seed(): Record<string, unknown> {
         ],
       },
     },
+    "browser.reading-list": [
+      ["https://lejournal.fr/navigateurs", "Les navigateurs rapides changent nos habitudes", "Le Journal du Web", 0],
+      ["https://recettes.fr/courge-rotie", "Courge rôtie au miel et au thym", "Carnet de recettes", 1],
+      ["https://trajets.fr/porto", "Porto, que voir en 3 jours", "Trajets", 2],
+    ].map(([url, title, siteName, index]) => ({
+      url,
+      title,
+      siteName,
+      excerpt: "",
+      text: "Un bon navigateur s'efface derrière les pages. Onglets verticaux, espaces séparés et barre universelle : la façon de naviguer a changé.\n\nLes espaces regroupent les onglets d'un même contexte, chacun avec ses cookies.",
+      addedAt: now - (index as number) * 3_600_000,
+      readAt: index === 2 ? now - 600_000 : null,
+    })),
     "browser.history": sites.map(([url, title], index) => ({ url, title, favicon: null, visitCount: 30 - index * 3, lastVisit: now - index * 600_000 })),
     "browser.boosts": [
       boost("journal", "Lecture confortable", "lejournal.fr", { font: "serif", filters: { invert: false, grayscale: 0, sepia: 20, brightness: 100, contrast: 105 } }),
@@ -216,6 +231,49 @@ test("mobile settings", async () => {
     await shoot(page, "themes", 700);
     await page.getByText("Boosts", { exact: true }).first().evaluate((element) => element.scrollIntoView({ block: "start" }));
     await shoot(page, "boosts", 700);
+  } finally {
+    await app.close();
+  }
+});
+
+/** A row of the page menu (the action sheet), by its label. */
+async function menuItem(page: Page, label: string): Promise<void> {
+  await page.getByRole("button", { name: "Plus d'actions" }).click();
+  await pause(400);
+  await page.getByText(label, { exact: true }).last().click();
+  await pause(500);
+}
+
+test("mobile reading list, notes, shields, assistant", async () => {
+  const { app, page } = await launchPhone();
+  try {
+    await visit(page, "lejournal.fr/navigateurs");
+
+    // Site info: the per-site shield (blocker, cookie banners).
+    await menuItem(page, "Infos sur le site");
+    await shoot(page, "shields", 900);
+    await page.keyboard.press("Escape");
+    await page.mouse.click(device.width / 2, 80);
+    await pause(400);
+
+    // A note on the page.
+    await menuItem(page, "Note de la page");
+    const note = page.getByRole("textbox").last();
+    await note.fill("À relire avant la réunion : la partie sur les espaces et la barre universelle.");
+    await shoot(page, "note", 900);
+    await page.getByText("OK", { exact: true }).last().click();
+    await pause(400);
+
+    // The AI assistant sheet (no key here: it says where to add one).
+    await menuItem(page, "Assistant IA");
+    await shoot(page, "assistant", 900);
+    await page.getByRole("button", { name: "Fermer l'assistant" }).click().catch(() => page.keyboard.press("Escape"));
+    await pause(400);
+
+    // Reading list.
+    await menuItem(page, "Liste de lecture");
+    await expect(page.getByText("Courge rôtie au miel et au thym").first()).toBeVisible();
+    await shoot(page, "reading-list", 900);
   } finally {
     await app.close();
   }
