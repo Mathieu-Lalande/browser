@@ -51,6 +51,10 @@ export interface BrowserMenusDeps {
   toggleTranslation: () => void;
   desktopSite: boolean;
   toggleDesktopSite: (tabId: string) => void;
+  /** "Rechercher dans la page" (ADR-055). */
+  findInPage: () => void;
+  /** The downloads list (ADR-055; not offered in private browsing). */
+  openDownloads: () => void;
 }
 
 /**
@@ -83,6 +87,7 @@ export function useBrowserMenus(deps: BrowserMenusDeps) {
           icon: section === "card" ? ("credit-card" as const) : ("map-pin" as const),
           onPress: () => deps.autofillMenu(section) ?? undefined,
         })),
+        ...(/^https?:/i.test(tab.url) ? [{ key: "find", label: t("mobile.useBrowserMenus.findInPage"), icon: "findInPage" as const, onPress: deps.findInPage }] : []),
         { key: "reader", label: t("mobile.useBrowserMenus.readerMode"), icon: "reader", onPress: () => deps.openReader(tab.id) },
         ...(deps.editPageNote ? [{ key: "page-note", label: t("mobile.useBrowserMenus.pageNote"), icon: "notebook" as const, onPress: deps.editPageNote }] : []),
         ...(deps.readLater && /^https?:/i.test(tab.url)
@@ -119,6 +124,7 @@ export function useBrowserMenus(deps: BrowserMenusDeps) {
       { key: "new", label: t("mobile.useBrowserMenus.newTab"), icon: "plus", onPress: () => newTab(false) },
       { key: "private", label: t("mobile.useBrowserMenus.newPrivateTab"), icon: "mask", onPress: () => newTab(true) },
       ...(isPrivate ? [] : [{ key: "reading-list", label: t("mobile.useBrowserMenus.readingList"), icon: "bookMarked" as const, onPress: deps.openReadingList }]),
+      ...(isPrivate ? [] : [{ key: "downloads", label: t("mobile.useBrowserMenus.downloads"), icon: "download" as const, onPress: deps.openDownloads }]),
       { key: "settings", label: t("mobile.useBrowserMenus.settings"), icon: "settings", onPress: deps.openSettings },
     );
     setMenu({ title: tab?.title || (tab?.url ? displayUrl(tab.url) : t("mobile.useBrowserMenus.startPage")), subtitle: tab?.url ? displayUrl(tab.url) : undefined, siteUrl: tab?.url, items });

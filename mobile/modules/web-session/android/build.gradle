@@ -1,0 +1,20 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.websession'
+version = '1.0.0'
+
+android {
+  namespace "expo.modules.websession"
+  defaultConfig {
+    versionCode 1
+    versionName '1.0.0'
+  }
+}
+
+dependencies {
+  // Same androidx.webkit as react-native-webview 14 (ProfileStore, MULTI_PROFILE: 1.9+).
+  implementation "androidx.webkit:webkit:1.14.0"
+}

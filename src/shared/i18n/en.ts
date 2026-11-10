@@ -502,6 +502,36 @@ export const en: Record<MessageKey, string> = {
   "mobile.useLinkMenu.copyLink": "Copy link",
   "mobile.useLinkMenu.shareLink": "Share link",
 
+  // mobile leftovers (ADR-055)
+  "mobile.useLinkMenu.downloadLink": "Download link",
+  "mobile.useBrowserMenus.findInPage": "Find in page",
+  "mobile.useBrowserMenus.downloads": "Downloads",
+  "mobile.launchActions.newTab": "New tab",
+  "mobile.launchActions.privateTab": "Private tab",
+  "mobile.launchActions.search": "Search",
+  "mobile.findBar.placeholder": "Find in page",
+  "mobile.findBar.count": "{current} of {total}",
+  "mobile.findBar.noMatch": "No matches",
+  "mobile.findBar.previous": "Previous match",
+  "mobile.findBar.next": "Next match",
+  "mobile.findBar.close": "Close find in page",
+  "mobile.downloads.title": "Downloads",
+  "mobile.downloads.close": "Close downloads",
+  "mobile.downloads.empty": "Downloaded files will appear here. Hold a link to download it.",
+  "mobile.downloads.open": "Open {name}",
+  "mobile.downloads.share": "Share {name}",
+  "mobile.downloads.remove": "Delete {name}",
+  "mobile.downloads.started": "Downloading {name}…",
+  "mobile.downloads.done": "Download complete",
+  "mobile.downloads.failed": "Download failed",
+  "mobile.downloads.failedDetail": "{name} could not be downloaded.",
+  "mobile.downloads.openFile": "Open",
+  "mobile.downloads.shareFile": "Share",
+  "mobile.downloads.showAll": "Show downloads",
+  "mobile.downloads.privateNote": "Private tab: the file is not kept in the list.",
+  "mobile.downloads.ok": "OK",
+  "mobile.downloads.detail": "{size} · {date}",
+
   // mobile.usePasswordMenus
   "mobile.usePasswordMenus.update": "Update",
   "mobile.usePasswordMenus.save": "Save",
@@ -557,7 +587,8 @@ export const en: Record<MessageKey, string> = {
 
   // mobile.navigation
   "mobile.navigation.pagesArentSavedHistory": "Pages aren’t saved in history. Cookies and data of each private tab are erased when it closes.",
-  "mobile.navigation.cookiesSharedNormalTabs": "Cookies shared with normal tabs on Android. Pages aren’t saved in history or in the cache.",
+  "mobile.navigation.cookiesSharedNormalTabs": "Cookies shared with normal tabs on this Android version: those of the sites visited are deleted when the last private tab closes. Pages aren’t saved in history or in the cache.",
+  "mobile.navigation.privateProfileAndroid": "Pages aren’t saved in history. Cookies and data of private tabs are kept apart and deleted when the last one closes.",
 
   // mobile.libPasswords
   "mobile.libPasswords.tooMuchDataSaved": "Too much data saved.",

@@ -25,6 +25,63 @@ index 209b855..63ed41f 100644
      @Override
      public void onPageFinished(WebView webView, String url) {
          super.onPageFinished(webView, url);
+diff --git a/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewManagerImpl.kt b/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewManagerImpl.kt
+index f83033b..9baede7 100644
+--- a/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewManagerImpl.kt
++++ b/node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewManagerImpl.kt
+@@ -34,6 +34,16 @@ val invalidCharRegex = "[\\\\/%\"]".toRegex()
+ class RNCWebViewManagerImpl(private val newArch: Boolean = false) {
+     companion object {
+         const val NAME = "RNCWebView"
++
++        /**
++         * Browser patch (ADR-055, patch-package): the app's `web-session` module (set by reflection)
++         * may take a download over; true skips DownloadManager. Details: url, userAgent,
++         * contentDisposition, mimeType, contentLength.
++         */
++        @JvmField @Volatile var downloadInterceptor: java.util.function.BiPredicate<WebView, android.os.Bundle>? = null
++
++        /** Browser patch (ADR-055): the WebView profile of private tabs (androidx.webkit MULTI_PROFILE). */
++        const val PRIVATE_PROFILE = "browser-private"
+     }
+ 
+     private val TAG = "RNCWebViewManagerImpl"
+@@ -92,6 +102,16 @@ class RNCWebViewManagerImpl(private val newArch: Boolean = false) {
+             WebView.setWebContentsDebuggingEnabled(true)
+         }
+         webView.setDownloadListener(DownloadListener { url, userAgent, contentDisposition, mimetype, contentLength ->
++            val interceptor = downloadInterceptor
++            if (interceptor != null) {
++                val details = android.os.Bundle()
++                details.putString("url", url)
++                details.putString("userAgent", userAgent)
++                details.putString("contentDisposition", contentDisposition)
++                details.putString("mimeType", mimetype)
++                details.putLong("contentLength", contentLength)
++                if (interceptor.test(webView, details)) return@DownloadListener
++            }
+             val module = webView.reactApplicationContext.getNativeModule(RNCWebViewModule::class.java) ?: return@DownloadListener
+             val request: DownloadManager.Request = try {
+                 DownloadManager.Request(Uri.parse(url))
+@@ -473,8 +493,16 @@ class RNCWebViewManagerImpl(private val newArch: Boolean = false) {
+             return;
+         }
+ 
+-        // Remove all previous cookies
+-        CookieManager.getInstance().removeAllCookies(null);
++        // Browser patch (ADR-055): never wipe the shared cookie jar (it would sign every normal tab
++        // out). Where the WebView supports profiles, private WebViews get their own one, set before
++        // the first load (the source is loaded after the props, in onAfterUpdateTransaction).
++        if (WebViewFeature.isFeatureSupported(WebViewFeature.MULTI_PROFILE)) {
++            try {
++                androidx.webkit.WebViewCompat.setProfile(view, PRIVATE_PROFILE)
++            } catch (e: Exception) {
++                Log.w(TAG, "Private profile not set", e)
++            }
++        }
+ 
+         // Disable caching
+         view.settings.cacheMode = WebSettings.LOAD_NO_CACHE
 diff --git a/node_modules/react-native-webview/apple/RNCWebViewImpl.m b/node_modules/react-native-webview/apple/RNCWebViewImpl.m
 index 3890426..409899d 100644
 --- a/node_modules/react-native-webview/apple/RNCWebViewImpl.m

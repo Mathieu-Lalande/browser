@@ -78,9 +78,18 @@ des onglets (« Autres appareils ») et dans la recherche. Rien de la navigation
   haut, **espaces** sous forme de pastilles (maintenir une pastille pour la renommer, changer son
   icône et sa couleur, ou la supprimer), bouton « + ».
 - **Navigation privée** : pastille « Privé » de la vue des onglets, ou « Nouvel onglet privé ».
-  Rien n'est enregistré (ni historique ni session). Sur iPhone, chaque onglet privé a ses propres
-  cookies, effacés à sa fermeture. Sur Android, voir les limites ci-dessous.
-- **Maintenir un lien** : ouvrir dans un nouvel onglet, en arrière-plan, en privé, copier ou partager.
+  Rien n'est enregistré (ni historique, ni session, ni miniature, ni téléchargement listé). Sur iPhone,
+  chaque onglet privé a ses propres cookies, effacés à sa fermeture ; sur Android, un profil WebView
+  séparé, effacé quand le dernier onglet privé se ferme (voir les limites ci-dessous) — ADR-055.
+- **Maintenir un lien** : ouvrir dans un nouvel onglet, en arrière-plan, en privé, copier, partager ou télécharger.
+- **Rechercher dans la page** (menu de la page) : barre au-dessus du clavier, compteur, précédent/suivant ;
+  les surlignages disparaissent à la fermeture ou au changement de page (ADR-055).
+- **Téléchargements** : fichiers que la page ne peut pas afficher et liens téléchargés, enregistrés dans
+  l'application puis proposés (ouvrir, partager) ; liste « Téléchargements » du menu de la page (nom,
+  taille, date ; ouvrir, partager, supprimer). En privé, le fichier est seulement proposé au partage.
+- **Miniatures** des onglets dans la vue des onglets (jamais pour un onglet privé).
+- **Écran d'accueil** : appui long sur l'icône (Nouvel onglet, Onglet privé, Rechercher) et « Browser » dans
+  la feuille de partage du système (un lien ou un texte partagé s'ouvre dans un nouvel onglet).
 - **Gestes** : bord de l'écran pour revenir en arrière (iPhone), bouton/geste retour du système
   (Android), tirer la page vers le bas pour l'actualiser (iPhone), retours haptiques.
 - **Page d'accueil** : salutation, heure, favoris et sites les plus visités.
@@ -107,11 +116,16 @@ des onglets (« Autres appareils ») et dans la recherche. Rien de la navigation
   `modules/content-blocker` (règles de contenu WebKit sur iOS, interception des requêtes sur Android),
   donc la version compilée (client de développement ou build EAS : `docs/INSTALL.md`, section 1). Dans
   Expo Go, seuls le masquage des emplacements publicitaires et le refus des bandeaux cookies fonctionnent.
-- **Android, onglets privés** : l'option « incognito » de la WebView Android effacerait les cookies
-  de *tous* les onglets ; elle n'est donc pas utilisée. Les onglets privés n'ont ni historique, ni
-  cache, ni formulaires mémorisés, mais partagent encore les cookies des autres onglets.
-- **Pas de miniatures de pages** dans la vue des onglets (il faudrait `react-native-view-shot`,
-  absent d'Expo Go) : chaque carte, neutre, affiche le favicon du site (ou son initiale).
+- **Android, onglets privés** : isolés (cookies, stockage, cache) dans un profil WebView séparé quand la
+  WebView du téléphone gère les profils (WebView 110 ou plus récent, version compilée). Sinon (WebView plus
+  ancienne, ou Expo Go), ils partagent les cookies des onglets normaux : quand le dernier onglet privé se
+  ferme, les cookies et le stockage des sites visités en privé sont effacés, ce qui déconnecte aussi les
+  onglets normaux de ces sites. Les cookies posés sur un autre chemin que `/` peuvent rester.
+- **Téléchargements** : sur iPhone, l'application télécharge le fichier sans les cookies de la page (un fichier
+  qui demande d'être connecté peut échouer) ; ni `blob:` ni `data:` ; pas de barre de progression. Dans Expo Go,
+  Android garde son gestionnaire de téléchargements (le fichier va dans « Téléchargements » du système).
+- **Expo Go** : pas de raccourcis de l'écran d'accueil ni de cible de partage (modules natifs) ; pas de
+  widgets de l'écran d'accueil (il faudrait des extensions natives WidgetKit / AppWidget, hors plugin Expo).
 - **Tirer pour actualiser** n'existe que sur iPhone (la WebView Android ne le propose pas) ;
   sur Android, utilisez le bouton Recharger de la barre d'adresse.
 - « Effacer les données du site » vide son stockage et ses cookies accessibles aux pages ; les cookies
@@ -137,6 +151,7 @@ mobile/
   metro.config.js         résolution de `@shared/*` vers ../src/shared (sans copie)
   app.json, app.config.ts, eas.json   configuration Expo et EAS (INSTALL 2.3)
   modules/content-blocker/            module natif du bloqueur (Swift, Kotlin, plugin), ADR-051
+  modules/web-session/                téléchargements et profil privé de la WebView Android (Kotlin), ADR-055
   patches/                correctif de react-native-webview (patch-package)
   scripts/                listes du bloqueur, icônes, captures des stores
   store/                  fiches FR/EN, réponses confidentialité et chiffrement, captures

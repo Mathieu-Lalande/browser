@@ -23,6 +23,7 @@ import Animated, { useAnimatedStyle, useSharedValue } from "react-native-reanima
 import { scheduleOnRN } from "react-native-worklets";
 import { withAlpha } from "../lib/colors";
 import { privateModeNotice } from "../lib/navigation";
+import { WebSession } from "../../modules/web-session";
 import { dropIndex, widgetWidth } from "../lib/startWidgets";
 import { useBrowserActions, useBrowserState, useEvent } from "../state/BrowserProvider";
 import { useTheme } from "../state/theme";
@@ -156,7 +157,7 @@ export const StartPage = memo(function StartPage({ bottomInset, onSearch, onOpen
             <Text style={[styles.heading, { color: colors.text }]} accessibilityRole="header">
               {t("mobile.startPage.privateBrowsing")}
             </Text>
-            <Text style={[styles.privateText, { color: colors.textMuted }]}>{privateModeNotice(Platform.OS)}</Text>
+            <Text style={[styles.privateText, { color: colors.textMuted }]}>{privateModeNotice(Platform.OS, !!WebSession?.privateProfiles())}</Text>
           </View>
         )}
         <View style={[styles.grid, { width: gridWidth }]}>

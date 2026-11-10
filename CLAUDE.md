@@ -227,6 +227,14 @@
   `mobile/scripts/build-blocklists.mjs` (postinstall, sorties générées non commitées), module local
   `mobile/modules/content-blocker` (Swift/Kotlin + plugin), correctif `mobile/patches/` de react-native-webview,
   `lib/shields.ts` (masquage, bandeaux cookies à nonce, bouclier `mobile.shieldsOff`), `lib/privacyStats.ts`.
+- Restes du téléphone (ADR-055) : recherche dans la page `mobile/src/lib/findInPage.ts` (`FindBridge`, nonce par
+  recherche, `FindBar`, `useFindInPage`) ; téléchargements `lib/downloads.ts` (purs) + `state/downloads.ts`
+  (`expo-file-system`, liste `browser.downloads`, privé = partage seul, jamais listé), `DownloadsScreen`, `useDownloads`
+  (iOS `onFileDownload`, Android module local `modules/web-session` via `downloadInterceptor` du correctif) ; miniatures
+  `lib/thumbnails.ts` + `state/thumbnails.ts` (`react-native-view-shot`, LRU mémoire + fichiers, jamais en privé) ;
+  onglets privés Android = profil WebView `browser-private` (correctif de `setIncognito`), sinon `clearOrigins` à la
+  fin de session (`usePrivateSession`, `lib/privateSession.ts`) ; actions rapides `expo-quick-actions` et cible de
+  partage `expo-share-intent` dans `useIncomingLinks` (`lib/launchActions.ts`). Pas de widgets (code natif requis).
 - Langues (ADR-052) : `settings.appearance.language` (`auto`/`fr`/`en`), résolue par `resolveLocale` (système : `app.getPreferredSystemLanguages()`,
   `Intl` sur Hermes ; ni français ni anglais → anglais) ; main `src/main/locale.ts` (`applyUiLanguage` avant les écouteurs de
   réglages, crochet `BROWSER_TEST_LOCALE`, `fr` imposé par les fixtures e2e), `onLocaleChange` reconstruit menu, Jump List,

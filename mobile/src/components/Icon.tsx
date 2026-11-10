@@ -33,6 +33,9 @@ import Camera from "lucide-react-native/icons/camera";
 import Check from "lucide-react-native/icons/check";
 import ChefHat from "lucide-react-native/icons/chef-hat";
 import ChevronDown from "lucide-react-native/icons/chevron-down";
+import ChevronUp from "lucide-react-native/icons/chevron-up";
+import Download from "lucide-react-native/icons/download";
+import TextSearch from "lucide-react-native/icons/text-search";
 import ChevronLeft from "lucide-react-native/icons/chevron-left";
 import ChevronRight from "lucide-react-native/icons/chevron-right";
 import CircleUser from "lucide-react-native/icons/circle-user";
@@ -157,6 +160,9 @@ const ui = {
   info: Info,
   sparkles: Sparkles,
   chevronDown: ChevronDown,
+  chevronUp: ChevronUp,
+  download: Download,
+  findInPage: TextSearch,
   // Sync (ADR-019).
   cloud: Cloud,
   cloudOff: CloudOff,

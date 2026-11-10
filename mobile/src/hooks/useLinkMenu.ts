@@ -21,6 +21,7 @@ export function useLinkMenu({
   setPeek,
   copy,
   share,
+  downloadLink,
 }: {
   busy: boolean;
   isPrivate: boolean;
@@ -31,6 +32,8 @@ export function useLinkMenu({
   setPeek: (peek: PeekRequest) => void;
   copy: (text: string) => void;
   share: (url: string, title?: string) => void;
+  /** "Télécharger le lien" (ADR-055). */
+  downloadLink?: (url: string, isPrivate: boolean) => void;
 }) {
   return useEvent((_tabId: string, request: LinkMenuRequest) => {
     if (busy) return;
@@ -50,6 +53,7 @@ export function useLinkMenu({
       { key: "copy", label: t("mobile.useLinkMenu.copyLink"), icon: "link", onPress: () => copy(request.url) },
       { key: "share", label: t("mobile.useLinkMenu.shareLink"), icon: "share", onPress: () => share(request.url, request.text) },
     );
+    if (downloadLink) items.push({ key: "download", label: t("mobile.useLinkMenu.downloadLink"), icon: "download", onPress: () => downloadLink(request.url, isPrivate) });
     setMenu({ title: request.text || displayUrl(request.url), subtitle: request.url, siteUrl: request.url, items });
   });
 }

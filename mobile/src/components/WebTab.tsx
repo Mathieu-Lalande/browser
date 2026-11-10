@@ -1,6 +1,6 @@
 import { t } from "@shared/i18n";
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type Ref } from "react";
-import { Linking, Platform, StyleSheet, View } from "react-native";
+import { Linking, Platform, StyleSheet, View, findNodeHandle } from "react-native";
 import { WebView as RNWebView } from "react-native-webview";
 import type { WebViewProps } from "react-native-webview/lib/WebView";
 import type { ShouldStartLoadRequest, WebViewNavigation } from "react-native-webview/lib/WebViewTypes";
@@ -17,6 +17,8 @@ import { desktopUserAgent, parseReaderMessage, readerScript } from "../lib/reade
 import { TranslateBridge, translateNonce } from "../lib/translate";
 import { AnnotateBridge, annotateNonce, marksFor } from "../lib/annotations";
 import { AutofillBridge, autofillNonce } from "../lib/autofill";
+import { FindBridge, findNonce } from "../lib/findInPage";
+import { parseDownloadRequest } from "../lib/downloads";
 import { CookieBannerGuard, cosmeticScript, shieldBanners, shieldCss } from "../lib/shields";
 import { useBrowserActions, useEvent } from "../state/BrowserProvider";
 import { LoadError } from "./LoadError";
@@ -35,6 +37,7 @@ const newTranslateNonce = () => translateNonce(getRandomBytes);
 const newAnnotateNonce = () => annotateNonce(getRandomBytes);
 const newAutofillNonce = () => autofillNonce(getRandomBytes);
 const newBannerNonce = () => captureNonce(getRandomBytes);
+const newFindNonce = () => findNonce(getRandomBytes);
 /** The selection menu's extra item (ADR-037). */
 const HIGHLIGHT_MENU = [{ get label() { return t("mobile.webTab.highlight") }, key: "highlight" }];
 /** Only these schemes may ever reach the native view (navigation policy: `decideNavigation`). */
@@ -76,6 +79,10 @@ export const WebTab = memo(function WebTab({
   onThemeColor,
   shield,
   onCookieBanner,
+  findRequest = null,
+  onFindResult,
+  onDownload,
+  onNativeTag,
 }: WebTabProps) {
   const actions = useBrowserActions();
   const ref = useRef<WebViewHandle | null>(null);
@@ -175,6 +182,28 @@ export const WebTab = memo(function WebTab({
     if (script) ref.current?.injectJavaScript(script);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autofillRequest?.seq]);
+  // Find in page (ADR-055): a nonce per search, marks cleared on close; a new document drops them.
+  const findBridge = useRef<FindBridge | null>(null);
+  findBridge.current ??= new FindBridge(newFindNonce);
+  useEffect(() => {
+    if (!findRequest) return;
+    const bridge = findBridge.current!;
+    const script =
+      findRequest.action === "search"
+        ? bridge.search(currentUrl.current, findRequest.query)
+        : findRequest.action === "clear"
+          ? bridge.clear()
+          : bridge.step(findRequest.action);
+    if (script) ref.current?.injectJavaScript(script);
+    else if (findRequest.action === "search") onFindResult?.(id, { current: 0, total: 0 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [findRequest?.seq]);
+  // iOS: a response the WebView cannot show (react-native-webview cancels it and reports it here).
+  const onFileDownload = useEvent((event: { nativeEvent: { downloadUrl?: string } }) => {
+    const request = parseDownloadRequest(event.nativeEvent);
+    if (request) onDownload?.(id, request);
+  });
+
   const onCustomMenu = useEvent((event: { nativeEvent: { key: string } }) => {
     if (event.nativeEvent.key !== "highlight") return;
     const script = annotateBridge.current?.capture();
@@ -182,6 +211,8 @@ export const WebTab = memo(function WebTab({
   });
 
   const onLoadStart = useEvent(() => {
+    if (findBridge.current?.active) onFindResult?.(id, null);
+    findBridge.current?.loadStarted();
     bannerGuard.current?.loadStarted();
     annotateBridge.current?.loadStarted();
     autofillBridge.current?.loadStarted();
@@ -236,8 +267,16 @@ export const WebTab = memo(function WebTab({
     (view: WebViewHandle | null) => {
       ref.current = view;
       actions.registerWebView(id, view);
+      // Android downloads come from native code with the view's React tag (`web-session` module).
+      let tag: number | null = null;
+      try {
+        tag = view ? (findNodeHandle(view as unknown as Parameters<typeof findNodeHandle>[0]) ?? null) : null;
+      } catch {
+        tag = null;
+      }
+      onNativeTag?.(id, tag);
     },
-    [actions, id],
+    [actions, id, onNativeTag],
   );
 
   const onShouldStart = useEvent((request: ShouldStartLoadRequest) => {
@@ -288,6 +327,12 @@ export const WebTab = memo(function WebTab({
     }
     // Untrusted page input: validated, rate limited, and only for the tab on screen.
     if (!activeRef.current) return;
+    // Find counts: this search's nonce, from the searched origin only.
+    const found = findBridge.current?.parse(event.nativeEvent.data, event.nativeEvent.url, currentUrl.current);
+    if (found !== undefined) {
+      if (found) onFindResult?.(id, found);
+      return;
+    }
     const now = Date.now();
     // A reader answer: only for the pending request, checked against this tab's own page (ADR-026).
     const article = parseReaderMessage(event.nativeEvent.data, readerTokenRef.current, currentUrl.current);
@@ -394,6 +439,7 @@ export const WebTab = memo(function WebTab({
         onRenderProcessGone={revive}
         onLoadStart={onLoadStart}
         onLoadEnd={onLoadEnd}
+        onFileDownload={onFileDownload}
         menuItems={isPrivate || !onHighlight ? undefined : HIGHLIGHT_MENU}
         onCustomMenuSelection={onCustomMenu}
         injectedJavaScript={INJECTED}
@@ -401,10 +447,10 @@ export const WebTab = memo(function WebTab({
         injectedJavaScriptBeforeContentLoaded={bootstrap}
         injectedJavaScriptBeforeContentLoadedForMainFrameOnly
         userAgent={desktopSite ? desktopUserAgent(Platform.OS) : undefined}
-        // Security. iOS: each private tab gets its own non-persistent data store. Android's
-        // `incognito` wipes the cookies of every tab (global CookieManager), so it is not used
-        // there: private tabs skip cache, form data and history but share cookies (ADR-016).
-        incognito={isPrivate && Platform.OS === "ios"}
+        // Security. iOS: each private tab gets its own non-persistent data store. Android (patched,
+        // ADR-055): the "browser-private" WebView profile where supported, never a wipe of the
+        // shared cookie jar; without profiles, cookies are shared and cleared at the session's end.
+        incognito={isPrivate}
         javaScriptCanOpenWindowsAutomatically={false}
         setSupportMultipleWindows
         allowFileAccess={false}

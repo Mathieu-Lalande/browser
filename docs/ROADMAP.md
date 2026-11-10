@@ -14,7 +14,7 @@ dynamique (ADR-038), navigateur par défaut, PDF, historique et import (ADR-039)
 bandeaux cookies et tableau de bord de confidentialité (ADR-046), panneaux web et « Lire plus tard » (ADR-047),
 mini-fenêtre, économiseur d'énergie et intégration au système (ADR-048), bloqueur natif sur le téléphone (ADR-051),
 interface en français et en anglais (ADR-052), API `chrome.*` des extensions (ADR-053), raccourcis et menus
-persistants des extensions, téléchargements repris après un redémarrage, mémoire libérée par la veille (ADR-054) ; releases GitHub et site vitrine bilingue (ADR-023) ; application
+persistants des extensions, téléchargements repris après un redémarrage, mémoire libérée par la veille (ADR-054), recherche dans la page, téléchargements, miniatures, onglets privés isolés sur Android et écran d'accueil sur le téléphone (ADR-055) ; releases GitHub et site vitrine bilingue (ADR-023) ; application
 mobile compilée avec EAS et workflow de publication vers les stores (INSTALL 2.3).
 
 ## À venir (vérifié dans le code)
@@ -23,9 +23,8 @@ mobile compilée avec EAS et workflow de publication vers les stores (INSTALL 2.
   castLabs sont prêtes, actives dès que leurs secrets existent (ADR-040).
 - **Publication mobile** : première mise en ligne sur l'App Store et Google Play (le workflow `mobile-release.yml`
   est prêt) ; droit « navigateur par défaut » d'Apple à demander (`IOS_DEFAULT_BROWSER=1` seulement après l'accord).
-- **Mobile** : onglets privés isolés sur Android (seul iOS a `incognito`), espaces isolés (conteneurs), miniatures
-  des onglets, recherche dans la page, téléchargements, widgets et raccourcis de l'écran d'accueil, extension de
-  partage.
+- **Mobile** : espaces isolés (conteneurs), widgets de l'écran d'accueil (extensions natives WidgetKit / AppWidget,
+  ADR-055), progression des téléchargements et cookies des téléchargements sur iPhone.
 - **Synchronisation** : révoquer un seul appareil sans tout réinitialiser, fusion fine des titres, favicons.
 - **Téléchargements** : image dans l'image pour les vidéos dans des iframes.
 - **Mise en veille** : préchargement intelligent.
@@ -127,6 +126,7 @@ retours haptiques.
 - (fait) Navigateur par défaut sur Android (liens entrants dans un nouvel onglet) ; iOS : en attente du droit
   d'Apple (INSTALL 2.3).
 - (fait) Fiches des stores, captures aux tailles exigées, workflow `mobile-release.yml` (build et envoi EAS).
-- Reste : onglets privés vraiment isolés sur Android (profils WebView), espaces isolés (conteneurs) ; miniatures
-  des onglets, recherche dans la page, téléchargements ; widgets et raccourcis de l'écran d'accueil, extension de
-  partage (« Ouvrir dans Browser ») ; première publication sur l'App Store et le Play Store.
+- (fait) Recherche dans la page, téléchargements, miniatures des onglets, onglets privés isolés sur Android
+  (profil WebView séparé), raccourcis de l'écran d'accueil et cible de partage « Browser » (ADR-055).
+- Reste : espaces isolés (conteneurs), widgets de l'écran d'accueil ; première publication sur l'App Store et le
+  Play Store.

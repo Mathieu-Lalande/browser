@@ -9,7 +9,15 @@ import { Alert, Platform, StyleSheet, View, useWindowDimensions } from "react-na
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAndroidBack } from "../hooks/useAndroidBack";
-import { useIncomingLinks } from "../hooks/useIncomingLinks";
+import { useIncomingLinks, useQuickActions } from "../hooks/useIncomingLinks";
+import { useDownloads } from "../hooks/useDownloads";
+import { useFindInPage } from "../hooks/useFindInPage";
+import { usePrivateSession } from "../hooks/usePrivateSession";
+import { useTabThumbnails } from "../hooks/useTabThumbnails";
+import { searchEngineOf } from "@shared/settings";
+import { searchUrl } from "@shared/url";
+import { DownloadsScreen } from "./DownloadsScreen";
+import { FindBar } from "./FindBar";
 import { useBrowserMenus } from "../hooks/useBrowserMenus";
 import { useEvent } from "../hooks/useEvent";
 import { useHighlights } from "../hooks/useHighlights";
@@ -54,7 +62,7 @@ import { WebTab } from "./WebTab";
 /** WebViews kept alive besides the active one (unmounted tabs reload when shown again). */
 const MAX_LIVE_TABS = 4;
 
-type Overlay = "none" | "search" | "tabs" | "settings" | "reading";
+type Overlay = "none" | "search" | "tabs" | "settings" | "reading" | "downloads";
 
 /**
  * The browser: the pages (live WebViews), the bottom toolbar, and what opens over them (search
@@ -92,6 +100,12 @@ export function BrowserScreen() {
     siteAccentStore.set(dynamicTheme && tab && !isPrivateTab(tab) ? (siteColors[tab.id] ?? null) : null);
   }, [dynamicTheme, tab, siteColors]);
   const tabs = useMemo(() => orderedTabs(model), [model]);
+  const showStart = !tab || tab.url === "";
+  /** Find in page, downloads, private session end, thumbnails (ADR-055). */
+  const find = useFindInPage(tab?.id);
+  const downloads = useDownloads({ tabs: model.tabs, haptic, setMenu, showList: () => setOverlay("downloads") });
+  usePrivateSession(model.tabs);
+  const thumbs = useTabThumbnails({ tab, tabs: model.tabs, visible: overlay === "none" && !showStart && !tab?.interstitial });
   const { copy, share } = useShareActions(haptic);
 
   useEffect(() => {
@@ -159,12 +173,25 @@ export function BrowserScreen() {
     }
   });
 
-  // Links opened with the app (Android default browser, iOS once entitled): a new tab each.
-  useIncomingLinks((url) => {
+  // Links opened with the app (Android default browser, iOS once entitled) and pages or text
+  // shared to it (ADR-055): a new tab each.
+  const openIncoming = useEvent((url: string) => {
     actions.openUrl(url);
     overview.reset();
     setMenu(null);
     setOverlay("none");
+  });
+  useIncomingLinks(openIncoming, (text) => openIncoming(searchUrl(text, searchEngineOf(settings))));
+  // Home screen quick actions (ADR-055).
+  useQuickActions((action) => {
+    setMenu(null);
+    if (action === "new-tab") newTab(false);
+    else if (action === "private-tab") newTab(true);
+    else {
+      overview.reset();
+      setSearchText("");
+      setOverlay("search");
+    }
   });
 
   const shields = useShield({ mobile, settings, tabs: model.tabs });
@@ -262,16 +289,26 @@ export function BrowserScreen() {
           setOverlay("none");
           share(tab.url, tab.title);
         } else if (action.id === "new-private-tab") newTab(true);
-        else if (action.id === "show-tabs") overview.open();
+        else if (action.id === "show-tabs") openOverview();
         break;
       case "scope":
         break;
     }
   });
 
-  const { shiftStyle, canSwipe, onSwipeTab } = usePageSwipe({ model, width, reduceMotion, haptic, onActivate: actions.activate, onNewTab: () => newTab(isPrivate) });
+  // Leaving the tab: its thumbnail is taken first (the capture ignores the transition's transform).
+  const openOverview = useEvent(() => {
+    void thumbs.captureNow();
+    overview.open();
+  });
+  const { shiftStyle, canSwipe, onSwipeTab: swipeTab } = usePageSwipe({ model, width, reduceMotion, haptic, onActivate: actions.activate, onNewTab: () => newTab(isPrivate) });
 
-  const onLinkMenu = useLinkMenu({ busy: !!menu || !!peek || overlay !== "none", isPrivate, tabId: tab?.id, actions, haptic, setMenu, setPeek, copy, share });
+  const onSwipeTab = useEvent((direction: 1 | -1) => {
+    void thumbs.captureNow();
+    swipeTab(direction);
+  });
+
+  const onLinkMenu = useLinkMenu({ busy: !!menu || !!peek || overlay !== "none", isPrivate, tabId: tab?.id, actions, haptic, setMenu, setPeek, copy, share, downloadLink: downloads.downloadLink });
   const highlights = useHighlights({ model, annotations, activeId: tab?.id, busy: !!menu || overlay !== "none", actions, haptic, setMenu, copy, setNote: setNoteTarget });
   const { onHighlight, onHighlightPress } = highlights;
   const mini = useMiniPlayer({ tab, shown: overlay === "none", actions });
@@ -350,6 +387,8 @@ export function BrowserScreen() {
     toggleTranslation: () => void (tab && translation.toggle(tab.id, isPrivateTab(tab))),
     desktopSite: !!tab && desktopTabs.has(tab.id),
     toggleDesktopSite,
+    findInPage: find.open,
+    openDownloads: () => setOverlay("downloads"),
   });
 
   const toggleFolder = useEvent((id: string) => actions.toggleFolder(id));
@@ -378,6 +417,7 @@ export function BrowserScreen() {
   // Android back: close what is open, then go back in the page.
   useAndroidBack(() => {
     if (menu) return setMenu(null), true;
+    if (find.shown) return find.close(), true;
     if (peek) return setPeek(null), true;
     if (editingSpace) return setEditingSpace(null), true;
     if (renamingFolder) return setRenamingFolder(null), true;
@@ -389,8 +429,6 @@ export function BrowserScreen() {
     if (tab?.canGoBack) return actions.goBack(), true;
     return false;
   });
-
-  const showStart = !tab || tab.url === "";
 
   return (
     <View style={[styles.root, { backgroundColor: colors.bg }]}>
@@ -422,6 +460,7 @@ export function BrowserScreen() {
             onRestoreArchived={restoreArchived}
             onRemoveArchived={removeArchived}
             onClearArchive={clearArchive}
+            thumbnails={thumbs.thumbnails}
           />
         </View>
       )}
@@ -430,7 +469,7 @@ export function BrowserScreen() {
         style={[styles.page, { top: pageTop, width, zIndex: overlay === "tabs" ? 2 : 0, backgroundColor: colors.bg }, overview.pageStyle]}
         pointerEvents={overlay === "tabs" ? "none" : "auto"}
       >
-        <Animated.View style={[{ height: pageHeight, width }, shiftStyle]}>
+        <Animated.View ref={thumbs.pageRef} collapsable={false} style={[{ height: pageHeight, width }, shiftStyle]}>
           {liveTabs.map((candidate) => (
             <WebTab
               key={candidate.id}
@@ -461,6 +500,10 @@ export function BrowserScreen() {
               onHighlightPress={onHighlightPress}
               shield={shields.shield}
               onCookieBanner={isPrivateTab(candidate) ? undefined : shields.onCookieBanner}
+              findRequest={find.requests[candidate.id] ?? null}
+              onFindResult={find.onResult}
+              onDownload={downloads.onDownload}
+              onNativeTag={downloads.onNativeTag}
             />
           ))}
           {showStart && (
@@ -488,7 +531,15 @@ export function BrowserScreen() {
           <MiniBar {...mini.miniBar} onToggle={mini.toggle} onClose={mini.close} />
         </View>
       )}
-      <Animated.View style={[StyleSheet.absoluteFill, { zIndex: 3 }, overview.barStyle]} pointerEvents={overlay === "none" ? "box-none" : "none"}>
+      {find.shown && overlay === "none" && (
+        <View style={[StyleSheet.absoluteFill, { zIndex: 4 }]} pointerEvents="box-none">
+          <FindBar result={find.result} onSearch={find.search} onStep={find.step} onClose={find.close} />
+        </View>
+      )}
+      <Animated.View
+        style={[StyleSheet.absoluteFill, { zIndex: 3 }, overview.barStyle, find.shown && styles.hidden]}
+        pointerEvents={overlay === "none" && !find.shown ? "box-none" : "none"}
+      >
         <BottomBar
           tab={tab}
           tabCount={tabs.length}
@@ -498,7 +549,7 @@ export function BrowserScreen() {
           interactive={overlay === "none"}
           canSwipe={canSwipe}
           onSwipeTab={onSwipeTab}
-          onSwipeUp={overview.open}
+          onSwipeUp={openOverview}
           onOpenSearch={openSearch}
           onExpand={expand}
           onLongPressAddress={menus.addressMenu}
@@ -508,7 +559,7 @@ export function BrowserScreen() {
           onBack={goBack}
           onForward={goForward}
           onShare={shareActive}
-          onTabs={overview.open}
+          onTabs={openOverview}
           onTabsLongPress={menus.tabsMenu}
           onMenu={menus.pageMenu}
           onReload={reload}
@@ -553,6 +604,11 @@ export function BrowserScreen() {
           />
         </View>
       )}
+      {overlay === "downloads" && (
+        <View style={[StyleSheet.absoluteFill, { zIndex: 4 }]}>
+          <DownloadsScreen onClose={closeSearch} />
+        </View>
+      )}
       {overlay === "settings" && (
         <View style={[StyleSheet.absoluteFill, { zIndex: 4 }]}>
           <SettingsScreen onClose={closeSearch} />
@@ -583,4 +639,5 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   page: { position: "absolute", left: 0, overflow: "hidden", transformOrigin: "left top" },
   miniBar: { position: "absolute", left: 0, right: 0, zIndex: 3 },
+  hidden: { opacity: 0 },
 });

@@ -68,9 +68,11 @@ export function decideOpenWindow(url: string, httpExceptions: ReadonlySet<string
   return decision;
 }
 
-/** What the start page of a private tab says is kept, per platform (ADR-016, audit LOW-5). */
-export function privateModeNotice(platform: string): string {
-  return platform === "ios"
-    ? t("mobile.navigation.pagesArentSavedHistory")
-    : t("mobile.navigation.cookiesSharedNormalTabs");
+/**
+ * What the start page of a private tab says is kept, per platform (ADR-016, audit LOW-5) and, on
+ * Android, whether the WebView gives private tabs their own profile (ADR-055).
+ */
+export function privateModeNotice(platform: string, androidProfiles = false): string {
+  if (platform === "ios") return t("mobile.navigation.pagesArentSavedHistory");
+  return androidProfiles ? t("mobile.navigation.privateProfileAndroid") : t("mobile.navigation.cookiesSharedNormalTabs");
 }

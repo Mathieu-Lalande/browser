@@ -8,6 +8,8 @@ import type { BoostPayload } from "../lib/boosts";
 import type { LinkMenuRequest } from "../lib/linkMenu";
 import type { TabShield } from "../lib/shields";
 import type { BannerResult } from "@shared/cookie-banners";
+import type { DownloadRequest } from "../lib/downloads";
+import type { FindResult, FindStep } from "../lib/findInPage";
 
 export interface WebTabProps {
   id: string;
@@ -59,4 +61,12 @@ export interface WebTabProps {
   shield?: TabShield;
   /** A cookie banner was refused or hidden on `url` (only given for normal tabs: nothing is counted in private). */
   onCookieBanner?: (tabId: string, url: string, result: BannerResult) => void;
+  /** Find in page (ADR-055): a new `seq` searches, steps or clears. */
+  findRequest?: { seq: number; action: "search" | FindStep | "clear"; query: string } | null;
+  /** Counts of the running search; null when a new document dropped it. */
+  onFindResult?: (tabId: string, result: FindResult | null) => void;
+  /** iOS: a file the WebView cannot show, to download (ADR-055). */
+  onDownload?: (tabId: string, request: DownloadRequest) => void;
+  /** The WebView's React tag (null when unmounted): Android downloads name it. */
+  onNativeTag?: (tabId: string, tag: number | null) => void;
 }

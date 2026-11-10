@@ -487,6 +487,8 @@ versions épinglées), un onglet = une `react-native-webview`.
   l'utilisateur de tous ses sites ; il n'est donc pas utilisé. Les onglets privés Android n'ont ni
   historique, ni session, ni cache, ni formulaires, mais partagent les cookies (dit explicitement dans
   l'interface : « Cookies partagés avec les onglets normaux sur Android »). Isolation réelle en phase 2 (profils `WebViewCompat`/`ProfileStore`).
+  *Levé par ADR-055* : profil WebView `browser-private` quand la WebView le permet, sinon effacement des sites
+  visités en privé à la fin de la session privée.
 - **Ergonomie.** Barre d'adresse et outils en bas (zone du pouce), repli en nom de domaine au
   défilement (logique pure `nextCollapse`), balayage horizontal de la barre pour changer d'onglet
   et vers le haut pour la vue des onglets, transition zoom page ↔ carte calculée (géométrie de la
@@ -2869,3 +2871,64 @@ fermeture, privé), `sleep-memory.test.ts`, `tabs/lifecycle.test.ts`. E2E : `ext
 revenu après un redémarrage puis effacé à la désactivation), `downloads.spec.ts` (fermeture en plein téléchargement,
 relance, « Reprendre » : une seule requête `Range`, fichier identique octet pour octet), `sleep.spec.ts` (estimation
 et résumé du gestionnaire de tâches).
+
+## ADR-055 — Restes du téléphone : recherche dans la page, téléchargements, miniatures, onglets privés Android, écran d'accueil
+
+**Contexte.** Le téléphone n'avait ni recherche dans la page, ni téléchargements, ni miniatures dans la vue des
+onglets ; sur Android, les onglets privés partageaient les cookies des onglets normaux (ADR-016 : l'option
+`incognito` de react-native-webview vide le `CookieManager` global, donc les cookies de *tous* les onglets) ; rien
+depuis l'écran d'accueil ni la feuille de partage.
+
+**Décision.**
+- **Recherche dans la page** : `mobile/src/lib/findInPage.ts` (`FindBridge`, `findScript`), comme la traduction
+  (ADR-036) : un nonce aléatoire par recherche, réponses acceptées de l'origine cherchée seulement, la requête
+  n'entre dans la page qu'en chaîne JSON. Le script marque les occurrences (`<mark data-browser-find>`, 1 000 au
+  plus, texte visible hors champs, scripts et styles), fait défiler jusqu'à l'occurrence courante et renvoie
+  `{ current, total }` ; état dans une propriété non énumérable de la page. `FindBar` (au-dessus du clavier, à la
+  place de la barre d'outils, sans animation), entrée « Rechercher dans la page » du menu de la page
+  (`useFindInPage`). Fermer la barre retire les marques ; changer d'onglet ou de document ferme la barre.
+- **Téléchargements** : iOS `onFileDownload` (réponse que WKWebView ne peut pas afficher) ; Android : le correctif
+  de react-native-webview ajoute `RNCWebViewManagerImpl.downloadInterceptor`, que le module local
+  `mobile/modules/web-session` (Kotlin) pose par réflexion et qui envoie `onDownload` (étiquette React de la vue,
+  cookies du profil de la WebView) au lieu de `DownloadManager` ; « Télécharger le lien » dans le menu d'un lien.
+  L'application télécharge avec `expo-file-system` (`File.downloadFileAsync`) dans `<documents>/Downloads`, nom
+  tiré de `Content-Disposition` puis de l'URL, assaini et rendu unique (`lib/downloads.ts`), liste
+  `browser.downloads` (200 au plus, `state/downloads.ts`), écran `DownloadsScreen` (nom, taille, date, source ;
+  ouvrir, partager, supprimer). « Ouvrir » (`File.preview` : Quick Look / application par défaut) seulement pour
+  les types sans code de la liste du bureau (`isSafeToOpenName`, ADR-013) ; sinon partage (`expo-sharing`).
+  Seuls `http(s)`. **Onglet privé** : fichier dans `<cache>/private-downloads`, proposé une fois par la feuille
+  de partage, jamais listé ; dossier vidé à la fin de la session privée et au démarrage.
+- **Miniatures** : `react-native-view-shot` capture la vue de la page affichée (JPEG 360 px, qualité 0,55) après
+  qu'une page s'est posée (900 ms) et quand on la quitte (ouverture de la vue des onglets, balayage) ; jamais un
+  onglet privé, la page d'accueil, une page en chargement ou l'écran HTTPS. Deux LRU (`lib/thumbnails.ts`) :
+  12 en mémoire (`data:`), 60 fichiers dans `<cache>/thumbnails/<onglet>-<version>.jpg` (gardés au redémarrage,
+  réindexés) ; un onglet fermé perd la sienne (`state/thumbnails.ts`, `useTabThumbnails`, `TabCard`).
+- **Onglets privés sur Android** : `incognito` sur les deux plateformes. Le correctif remplace, dans `setIncognito`,
+  l'effacement global des cookies par `WebViewCompat.setProfile(vue, "browser-private")` quand la WebView gère
+  `MULTI_PROFILE` (WebView 110+, androidx.webkit 1.9+ ; posé avant le premier chargement, la source étant chargée
+  après les propriétés) : cookies, stockage et cache séparés, partagés entre onglets privés comme une fenêtre
+  privée du bureau. Fin de la session privée (dernier onglet privé fermé, `PrivateSessionTracker`,
+  `usePrivateSession`) et démarrage : `clearPrivateProfile` (cookies, stockage, suppression du profil s'il n'est
+  plus utilisé). **Sans profils** (WebView ancienne, Expo Go) : cookies partagés ; à la fin de la session privée,
+  `clearOrigins` supprime le stockage (`WebStorage.deleteOrigin`) et les cookies (expirés pour l'hôte et ses
+  domaines parents, chemin `/`) des origines visitées en privé (gardées en mémoire, 500 au plus). Limite assumée :
+  cela déconnecte aussi les onglets normaux de ces sites ; des cookies d'un autre chemin peuvent rester.
+- **Écran d'accueil** : `expo-quick-actions` (Nouvel onglet, Onglet privé, Rechercher ; titres i18n posés au
+  démarrage ; icônes système sur iOS, aucune sur Android) ; `expo-share-intent` (intent `SEND` `text/*` sur
+  Android, extension de partage iOS pour les URL, pages et textes) relayé par `useIncomingLinks` :
+  `sharedContentTarget` ouvre le lien marqué ou la première URL `http(s)` du texte (repassée par
+  `incomingPageUrl`), sinon une recherche du texte (1 000 caractères) dans un nouvel onglet. Les deux modules sont
+  absents d'Expo Go : rien n'y est installé (module natif facultatif).
+- **Widgets de l'écran d'accueil : non faits.** Ils demandent une cible WidgetKit (Swift/SwiftUI, groupe
+  d'applications) et un `AppWidgetProvider` Android avec ses mises en page natives : aucun plugin de configuration
+  Expo maintenu ne les fournit sans écrire et maintenir ce code natif hors de `modules/`.
+
+**Conséquences.** Nouveau module natif `modules/web-session` (Android seulement, autolié ; iOS n'en a pas besoin) ;
+le correctif `patches/react-native-webview+14.0.1.patch` grossit (à revérifier à chaque mise à jour de
+react-native-webview). Sur iPhone, le téléchargement se fait sans les cookies de la page (WKWebView ne les donne
+pas sans module natif) : un fichier qui exige une connexion peut échouer. Pas de progression ni de reprise.
+
+**Tests.** `mobile/src/lib/mobileLeftovers.test.ts` : nonce par recherche, origine, bornes des compteurs,
+nettoyage de la requête ; noms de fichiers (`Content-Disposition` RFC 5987, assainissement, unicité), validation
+des demandes et de la liste, plafond, types ouvrables ; LRU, noms et index des miniatures, onglets jamais
+capturés ; isolation par plateforme et fin de session privée ; actions rapides et contenu partagé.

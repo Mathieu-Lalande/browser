@@ -117,6 +117,8 @@ interface Props {
   onRestoreArchived: (id: string) => void;
   onRemoveArchived: (id: string) => void;
   onClearArchive: () => void;
+  /** Thumbnails of the cards (ADR-055), by tab id; none for private tabs. */
+  thumbnails?: Readonly<Record<string, string>>;
 }
 
 /**
@@ -190,6 +192,7 @@ export const TabOverview = memo(function TabOverview(props: Props) {
       onPress={props.onSelect}
       onClose={props.onCloseTab}
       onLongPress={props.onTabMenu}
+      thumbnail={props.thumbnails?.[tab.id]}
     />
   );
 

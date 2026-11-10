@@ -27,7 +27,8 @@ describe("new windows (audit MEDIUM-1)", () => {
 
 describe("private mode notice (audit LOW-5)", () => {
   it("says explicitly on Android that cookies are shared", () => {
-    expect(privateModeNotice("android")).toContain("Cookies partagés avec les onglets normaux sur Android");
+    expect(privateModeNotice("android")).toContain("Cookies partagés avec les onglets normaux");
+    expect(privateModeNotice("android", true)).not.toContain("partagés");
     expect(privateModeNotice("ios")).not.toContain("partagés");
   });
 });

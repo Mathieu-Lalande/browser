@@ -94,7 +94,10 @@ const SAFE_TO_OPEN = new Set([
 ]);
 
 /** "Ouvrir" is offered: the file is in place and of a type whose default app does not run code. */
-export const canOpenFile = (entry: DownloadEntry) => isOpenable(entry) && SAFE_TO_OPEN.has(fileExtension(entry.path));
+export const canOpenFile = (entry: DownloadEntry) => isOpenable(entry) && isSafeToOpenName(entry.path);
+
+/** A file of this name may be handed to its default viewer (also the phone's "Ouvrir", ADR-055). */
+export const isSafeToOpenName = (filename: string) => SAFE_TO_OPEN.has(fileExtension(filename));
 
 const UNITS = ["o", "Ko", "Mo", "Go", "To"];
 const decimal = (value: number, digits: number) =>

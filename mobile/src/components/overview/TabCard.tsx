@@ -1,6 +1,6 @@
 import { t } from "@shared/i18n";
 import { memo } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
 import Animated, { interpolate, useAnimatedStyle, type SharedValue } from "react-native-reanimated";
 import type { GridLayout } from "../../lib/overviewLayout";
 import { siteLabel } from "../../lib/site";
@@ -20,6 +20,7 @@ export const TabCard = memo(function TabCard({
   onPress,
   onClose,
   onLongPress,
+  thumbnail,
 }: {
   tab: MobileTab;
   layout: GridLayout;
@@ -28,6 +29,8 @@ export const TabCard = memo(function TabCard({
   onPress: (id: string) => void;
   onClose: (id: string) => void;
   onLongPress: (tab: MobileTab) => void;
+  /** The page as last seen (ADR-055); never for a private tab. */
+  thumbnail?: string;
 }) {
   const { colors, haptic } = useTheme();
   const width = layout.cardWidth;
@@ -94,6 +97,9 @@ export const TabCard = memo(function TabCard({
               <Text style={[styles.previewLabel, { color: colors.text }]} numberOfLines={1}>
                 {label}
               </Text>
+              {thumbnail && !privateTab && tab.url ? (
+                <Image source={{ uri: thumbnail }} style={styles.thumbnail} resizeMode="cover" accessibilityIgnoresInvertColors fadeDuration={0} />
+              ) : null}
               {tab.isLoading && <View style={[styles.loadingDot, { backgroundColor: colors.accent }]} />}
             </View>
           </Tap>
@@ -155,5 +161,6 @@ const styles = StyleSheet.create({
   preview: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, overflow: "hidden", borderTopWidth: StyleSheet.hairlineWidth },
   previewIcon: { width: 60, height: 60, borderRadius: 16, alignItems: "center", justifyContent: "center", borderWidth: StyleSheet.hairlineWidth },
   previewLabel: { fontSize: 12, fontWeight: "600", opacity: 0.75, paddingHorizontal: 10 },
+  thumbnail: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
   loadingDot: { position: "absolute", top: 10, right: 10, width: 7, height: 7, borderRadius: 4 },
 });

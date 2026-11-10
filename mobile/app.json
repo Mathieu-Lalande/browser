@@ -90,7 +90,22 @@
         }
       ],
       "expo-updates",
-      "expo-dev-client"
+      "expo-dev-client",
+      "expo-sharing",
+      "expo-quick-actions",
+      [
+        "expo-share-intent",
+        {
+          "iosActivationRules": {
+            "NSExtensionActivationSupportsWebURLWithMaxCount": 1,
+            "NSExtensionActivationSupportsWebPageWithMaxCount": 1,
+            "NSExtensionActivationSupportsText": true
+          },
+          "androidIntentFilters": [
+            "text/*"
+          ]
+        }
+      ]
     ]
   }
 }

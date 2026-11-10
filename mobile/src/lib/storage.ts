@@ -25,6 +25,8 @@ export const KEYS = {
   reading: "browser.reading-list",
   /** Privacy counters (ADR-051, never synced). */
   privacyStats: "browser.privacy-stats",
+  /** Downloaded files of normal tabs (ADR-055; never private ones). */
+  downloads: "browser.downloads",
 } as const;
 
 export type StorageKey = (typeof KEYS)[keyof typeof KEYS];

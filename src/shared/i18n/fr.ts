@@ -503,6 +503,36 @@ export const fr = {
   "mobile.useLinkMenu.copyLink": "Copier le lien",
   "mobile.useLinkMenu.shareLink": "Partager le lien",
 
+  // mobile leftovers (ADR-055)
+  "mobile.useLinkMenu.downloadLink": "Télécharger le lien",
+  "mobile.useBrowserMenus.findInPage": "Rechercher dans la page",
+  "mobile.useBrowserMenus.downloads": "Téléchargements",
+  "mobile.launchActions.newTab": "Nouvel onglet",
+  "mobile.launchActions.privateTab": "Onglet privé",
+  "mobile.launchActions.search": "Rechercher",
+  "mobile.findBar.placeholder": "Rechercher dans la page",
+  "mobile.findBar.count": "{current} sur {total}",
+  "mobile.findBar.noMatch": "Aucun résultat",
+  "mobile.findBar.previous": "Résultat précédent",
+  "mobile.findBar.next": "Résultat suivant",
+  "mobile.findBar.close": "Fermer la recherche dans la page",
+  "mobile.downloads.title": "Téléchargements",
+  "mobile.downloads.close": "Fermer les téléchargements",
+  "mobile.downloads.empty": "Les fichiers téléchargés apparaîtront ici. Maintenez un lien pour le télécharger.",
+  "mobile.downloads.open": "Ouvrir {name}",
+  "mobile.downloads.share": "Partager {name}",
+  "mobile.downloads.remove": "Supprimer {name}",
+  "mobile.downloads.started": "Téléchargement de {name}…",
+  "mobile.downloads.done": "Téléchargement terminé",
+  "mobile.downloads.failed": "Échec du téléchargement",
+  "mobile.downloads.failedDetail": "{name} n'a pas pu être téléchargé.",
+  "mobile.downloads.openFile": "Ouvrir",
+  "mobile.downloads.shareFile": "Partager",
+  "mobile.downloads.showAll": "Voir les téléchargements",
+  "mobile.downloads.privateNote": "Onglet privé : le fichier n'est pas gardé dans la liste.",
+  "mobile.downloads.ok": "OK",
+  "mobile.downloads.detail": "{size} · {date}",
+
   // mobile.usePasswordMenus
   "mobile.usePasswordMenus.update": "Mettre à jour",
   "mobile.usePasswordMenus.save": "Enregistrer",
@@ -558,7 +588,8 @@ export const fr = {
 
   // mobile.navigation
   "mobile.navigation.pagesArentSavedHistory": "Les pages ne sont pas enregistrées dans l'historique. Cookies et données de chaque onglet privé sont effacés à sa fermeture.",
-  "mobile.navigation.cookiesSharedNormalTabs": "Cookies partagés avec les onglets normaux sur Android. Les pages ne sont pas enregistrées dans l'historique ni dans le cache.",
+  "mobile.navigation.cookiesSharedNormalTabs": "Cookies partagés avec les onglets normaux sur cette version d'Android : ceux des sites visités sont effacés quand le dernier onglet privé se ferme. Les pages ne sont pas enregistrées dans l'historique ni dans le cache.",
+  "mobile.navigation.privateProfileAndroid": "Les pages ne sont pas enregistrées dans l'historique. Cookies et données des onglets privés sont séparés et effacés quand le dernier se ferme.",
 
   // mobile.libPasswords
   "mobile.libPasswords.tooMuchDataSaved": "Trop de données enregistrées.",
