@@ -17,7 +17,7 @@ export const listDownloads = (viewer: DownloadViewer): DownloadEntry[] => downlo
 export const isDownloadVisible = (id: string, viewer: DownloadViewer): boolean => downloads().isVisible(id, viewer);
 export const downloadViewerOf = (ses: Session | null): DownloadViewer => downloads().viewerOf(ses);
 export const pauseDownload = (id: string): void => downloads().pause(id);
-export const resumeDownload = (id: string): void => downloads().resume(id);
+export const resumeDownload = (id: string, fallback?: Session): void => downloads().resume(id, fallback);
 export const cancelDownload = (id: string): void => downloads().cancel(id);
 export const keepDownload = (id: string, window?: BaseWindow): Promise<void> => downloads().keep(id, window);
 export const openDownload = (id: string): void => downloads().open(id);

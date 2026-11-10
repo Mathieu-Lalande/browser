@@ -8,6 +8,12 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === "api-page") report(`page-menu:${tab && "url" in tab ? "url" : "nourl"}`);
 });
 chrome.action.onClicked.addListener((tab) => report(`page-action:${tab && "url" in tab ? "url" : "nourl"}`));
+// ADR-054: a shortcut of the manifest's `commands` reaches the extension with the active tab, and
+// `commands.getAll` reports the installed shortcuts (none for the one the browser keeps).
+chrome.commands.onCommand.addListener(async (name, tab) => {
+  const shortcuts = (await chrome.commands.getAll()).map((command) => `${command.name}=${command.shortcut}`).join(",");
+  report(`command:${name}:${tab && typeof tab.id === "number" ? "tab" : "notab"}:${shortcuts}`);
+});
 
 (async () => {
   const windows = await chrome.windows.getAll({ populate: true });

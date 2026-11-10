@@ -36,6 +36,8 @@ export interface TabPreview {
   /** `data:image/jpeg;base64,…`, or null (sleeping tab never captured, internal page…). */
   thumbnail: string | null;
   asleep: boolean;
+  /** A sleeping tab: memory freed, estimated (kilobytes, ADR-054); absent when not measured. */
+  freedKb?: number;
   audible: boolean;
   muted: boolean;
 }

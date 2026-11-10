@@ -352,6 +352,11 @@ export class BrowserController {
   }
 
   /** An extension was installed from this window: the chrome UI anchors the confirmation (ADR-049). */
+  /** An extension's `_execute_action` shortcut (ADR-054): the chrome UI presses its button (popup below it). */
+  activateExtension(id: string): void {
+    this.bridge.toChrome(Channels.extensionsActivate, id);
+  }
+
   extensionInstalled(id: string): void {
     this.bridge.toChrome(Channels.extensionsInstalled, id);
   }

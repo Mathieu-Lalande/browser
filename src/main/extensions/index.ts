@@ -3,6 +3,7 @@ import { dialog, type BaseWindow } from "electron";
 import type { DroppedExtension, ExtensionDetailsInfo, ExtensionInfo, ExtensionInstallResult, ExtensionReview, ExtensionUpdateResult } from "@shared/extensions";
 import type { StoreInstall } from "@shared/webstore-page";
 import type { ActionState } from "@shared/extension-api";
+import { isExecuteAction } from "@shared/extension-commands";
 import type { Bounds } from "@shared/types";
 import { appServices } from "../app-services-ref";
 import type { Overlay } from "../overlay";
@@ -54,7 +55,7 @@ export const installFromWebStore =(c: ExtensionWindow, webStoreId: string): Prom
   extensions().installFromWebStore(webStoreId, reviewIn(c)).then(announce(c));
 
 export const storeInstalls = (): StoreInstall[] => extensions().storeInstalls();
-export const extensionDetails = (id: string): ExtensionDetailsInfo | null => extensions().detailsOf(id);
+export const extensionDetails = (id: string): ExtensionDetailsInfo | null => extensionDetailsWithShortcuts(id);
 
 /** A package dropped on `browser://extensions`: installed after the permission review. */
 export const installDroppedExtension = (c: ExtensionWindow, dropped: DroppedExtension): Promise<ExtensionInstallResult> =>
@@ -104,6 +105,59 @@ export function openExtensionPopup(c: ExtensionWindow, id: string, anchor: Bound
   const url = override === "" ? null : extensions().popupUrl(c.tabSession, id, override);
   if (url) c.extensionPopup.open(url, anchor);
   else api.clickAction(id, c.window.id);
+}
+
+export const onExtensionsChanged = (listener: () => void): (() => void) => extensions().onChanged(listener);
+
+/** An installed extension shortcut, for the application menu (ADR-054). */
+export interface ExtensionShortcutItem {
+  extensionId: string;
+  extensionName: string;
+  command: string;
+  description: string;
+  accelerator: string;
+}
+
+/** The extensions' shortcuts that are installed: valid, free (browser shortcuts win), four per extension at most. */
+export function activeExtensionShortcuts(): ExtensionShortcutItem[] {
+  const names = new Map(listExtensions().map((extension) => [extension.id, extension.name]));
+  return appServices()
+    .extensionApi.commandShortcuts()
+    .flatMap((shortcut) =>
+      shortcut.active && shortcut.accelerator
+        ? [{ extensionId: shortcut.extensionId, extensionName: names.get(shortcut.extensionId) ?? "", command: shortcut.command, description: shortcut.description, accelerator: shortcut.accelerator }]
+        : [],
+    );
+}
+
+/** The window an extension shortcut runs in (a BrowserController). */
+export interface ExtensionCommandWindow {
+  readonly isPrivate: boolean;
+  readonly window: BaseWindow;
+  /** Presses the extension's toolbar button (its chrome UI knows where the button is). */
+  activateExtension(id: string): void;
+}
+
+/**
+ * An extension's shortcut was pressed (ADR-054): `_execute_action` (and MV2's `_execute_browser_action`
+ * / `_execute_page_action`) presses its button; any other command fires `commands.onCommand`.
+ * Never in a private window: extensions do not run there.
+ */
+export function runExtensionCommand(c: ExtensionCommandWindow, extensionId: string, command: string): void {
+  if (c.isPrivate || !appServices().extensions.running(extensionId)) return;
+  if (isExecuteAction(command)) c.activateExtension(extensionId);
+  else appServices().extensionApi.runCommand(extensionId, command, c.window.id);
+}
+
+/** "Détails" of `browser://extensions`, with the extension's shortcuts and their conflicts. */
+export function extensionDetailsWithShortcuts(id: string): ExtensionDetailsInfo | null {
+  const details = extensions().detailsOf(id);
+  if (!details) return null;
+  const shortcuts = appServices()
+    .extensionApi.commandShortcuts(id)
+    .filter((shortcut) => shortcut.extensionId === id)
+    .map(({ command, description, accelerator, active, issue }) => ({ command, description, accelerator, active, issue }));
+  return { ...details, shortcuts };
 }
 
 /** The puzzle menu (`id` null) or an extension button's menu. */

@@ -66,4 +66,12 @@ test("tabs can be put to sleep on demand from the command registry", async ({ ap
   await expect(chrome.locator(".tab.active .title")).toHaveText("Page three");
   await expect.poll(() => tabUrls(app)).toEqual([server.url("/three")]);
   await expect(chrome.locator(".tabs [role=tab]", { hasText: "Page one" })).toHaveClass(/asleep/);
+
+  // ADR-054: what their sleep freed, an estimate measured before each page closed.
+  const savings = await chrome.evaluate(() => (globalThis as unknown as { browser: BrowserApi }).browser.tasks.sleepSavings());
+  expect(savings).toMatchObject({ asleep: 2, measured: 2 });
+  expect(savings.freedKb).toBeGreaterThan(1000);
+  await run(chrome, "open-task-manager");
+  await expect(chrome.getByTestId("tasks-sleep-savings")).toContainText("2 onglets en veille · environ");
+  await expect(chrome.getByTestId("tasks-sleep-savings")).toContainText("Estimation");
 });

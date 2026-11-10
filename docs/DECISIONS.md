@@ -2773,11 +2773,11 @@ autant que les ~900 lignes écrites, sans le contrôle d'émetteur voulu.
   l'entrée avec l'icône de l'extension, plusieurs = un sous-menu au nom de l'extension ; `%s` = sélection ;
   cases et boutons radio ; un clic envoie `contextMenus.onClicked(info, tab)`. Les entrées vivent en mémoire pour la
   session (Chrome les garde d'un lancement à l'autre ; une extension qui ne les recrée qu'à `runtime.onInstalled` peut
-  les perdre au redémarrage).
+  les perdre au redémarrage ; levé par ADR-054 : elles sont gardées d'un lancement à l'autre).
 - **Notifications** : `NotificationCenter.showExtension` (nom de l'extension à la place du site, « Ne pas déranger »,
   limitation de débit), `onClicked`/`onClosed` renvoyés ; boutons et images non affichés.
 - **Commandes** : `commands.getAll` lit le manifeste ; les raccourcis des extensions ne sont pas installés
-  (`shortcut` vide, `onCommand` jamais émis) : ils entreraient en conflit avec ADR-028.
+  (`shortcut` vide, `onCommand` jamais émis) : ils entreraient en conflit avec ADR-028 (levé par ADR-054 : installés, ceux du navigateur gagnent).
 - Une extension désactivée, retirée ou mise à jour perd ses menus, l'état de son bouton et ses accords.
 
 **Compromis de sécurité.** C'est la seule exception à « aucun préchargement pour les pages web » (ADR-003) : le
@@ -2800,3 +2800,72 @@ qui retire `--no-sandbox` et, en root, lance Electron sous l'utilisateur « nobo
 utilisateur manquent, comme sur les runners GitHub) — `windows.getAll`, `tabs.create` (refus de `file:`), badge et
 couleur sur le bouton, entrée dans le menu de page puis `onClicked` (onglet sans URL faute d'autorisation),
 `action.onClicked` au clic du bouton ; une page web n'a aucun global de plus.
+
+## ADR-054 — Raccourcis et menus persistants des extensions, téléchargements repris après un redémarrage, mémoire libérée par la veille
+
+**Contexte.** Quatre restes du bureau : les raccourcis `commands` des extensions n'étaient pas installés (ADR-053) ;
+les entrées `contextMenus` vivaient en mémoire (perdues au redémarrage pour une extension MV3 qui ne les crée qu'à
+`runtime.onInstalled`) ; « Réessayer » reprenait un téléchargement interrompu par un redémarrage depuis zéro
+(ADR-013) ; la mise en veille (ADR-014) libère de la mémoire sans le dire.
+
+**Décision — raccourcis des extensions.**
+- Modèle pur `src/shared/extension-commands.ts` : `suggested_key` (syntaxe de Chrome, clé de la plateforme sinon
+  `default`) → accélérateur Electron (`chromeShortcutToAccelerator` : « Ctrl » = Commande sur macOS, « MacCtrl » = la
+  vraie touche Contrôle ; Ctrl ou Alt (Commande sur macOS) obligatoire, jamais Ctrl+Alt (AltGr), touches multimédia
+  refusées) ; `extensionShortcuts` décide, extension par extension dans l'ordre d'installation : **les raccourcis du
+  navigateur gagnent** (registre avec les choix de l'utilisateur, alias, raccourcis fixes : `browserShortcutLabel`),
+  puis l'extension installée la première ; réservés au système ou invalides : inactifs ; quatre au plus par extension
+  (comme Chrome). Rien n'est modifiable par l'utilisateur pour l'instant (pas de page `chrome://extensions/shortcuts`).
+- Installés dans le menu de l'application (sous-menu « Extensions », reconstruit quand une extension ou
+  `settings.shortcuts` change) : ils ne marchent que si une fenêtre du navigateur a le focus — **jamais globaux**
+  (`"global": true` est ignoré). Une fenêtre privée les ignore (aucune extension n'y tourne).
+- `_execute_action` (et `_execute_browser_action`/`_execute_page_action` en MV2) = un clic sur le bouton : main
+  demande à l'interface (`extensions:activate`) d'ouvrir la fenêtre de l'extension sous son bouton (sinon sous la
+  pièce de puzzle), ou `action.onClicked`. Les autres : accord `activeTab` sur l'onglet actif, comme Chrome, puis
+  `commands.onCommand(name, tab)` (`ExtensionApiHost.runCommand`). `commands.getAll` rend le raccourci installé dans
+  l'écriture de Chrome (« Ctrl+Shift+Y », « ⇧⌘Y »), vide s'il est inactif.
+- `browser://extensions`, « Détails » : chaque commande, sa touche, et pourquoi elle est inactive (« déjà pris par
+  « Nouvel onglet » », par une autre extension, réservé, limite, invalide).
+
+**Décision — menus persistants.** `ExtensionApiHost` garde les entrées dans `extension-menus.json` (par extension,
+revalidées à la lecture par `parseStoredMenus` : `menuItemFrom`, parents présents, 1 000 au plus), écrites à chaque
+changement (`setMenus`) et à la fermeture. Elles reviennent au démarrage et s'affichent dès que l'extension est
+chargée dans la session de l'onglet. Une entrée restaurée que l'extension recrée (`create` au démarrage du worker)
+est **remplacée** sur place au lieu de l'erreur « duplicate id » (`createMenuItem`) ; une nouvelle en double reste
+refusée. Effacées par `removeAll`, et quand l'extension est désactivée ou retirée (sur disque aussi) ; gardées lors
+d'une mise à jour (l'extension les recrée ou les remplace). Rien en fenêtre privée (le pont n'y existe pas).
+
+**Décision — téléchargements repris après un redémarrage.**
+- Pendant un téléchargement, `DownloadEntry.resume` (`urlChain`, `ETag`, `Last-Modified`, heure de début) est
+  enregistré dans `downloads.json` dès que la réponse les donne — **jamais** pour une fenêtre privée (ses entrées ne
+  sont pas sur disque), ni pour un fichier dangereux (sa quarantaine est vidée au démarrage), ni sans validateur
+  (le serveur ne pourrait pas garantir que c'est le même fichier). Ce champ ne traverse jamais l'IPC (`publicEntry`).
+- **À la fermeture, Chromium supprime le fichier partiel** d'un téléchargement en cours (constaté en e2e). Sur
+  `will-quit`, `DownloadService.keepForRestart` crée un lien physique `<nom>.crdownload` vers chaque fichier partiel
+  reprenable (il survit à la suppression ; sans liens physiques, FAT, le téléchargement repartira de zéro) et
+  enregistre l'entrée « interrompue », reprenable ; les éléments qui finissent ensuite ne changent plus rien. Une
+  annulation que l'utilisateur n'a pas demandée garde aussi l'entrée reprenable ; la sienne efface tout.
+- Au lancement suivant, la ligne montre « Reprendre ». « Reprendre » ou « Réessayer » : le fichier `.crdownload`
+  reprend sa place, `resumePlan` (pur, `src/shared/download-resume.ts`) vérifie fichier présent, plus petit que
+  annoncé, validateurs, URL web, puis `session.createInterruptedDownload` (décalage = taille sur disque) ; l'élément
+  arrive par `will-download` sans page (accepté seulement pour un chemin que main a demandé) et garde son entrée.
+  Un serveur sans `Range` ou dont le fichier a changé : Chromium recommence lui-même depuis le début ; une reprise qui
+  échoue sans un octet de plus efface `resume` (la suivante repart de l'URL). Sinon : l'ancien « Réessayer ».
+
+**Décision — mémoire libérée.** Juste avant qu'un onglet s'endorme (`TabLifecycle.discard`),
+`measurePageMemoryKb` (`src/main/sleep-memory.ts`) lit `app.getAppMetrics()` : l'ensemble de travail du processus de
+la page, partagé à parts égales entre les pages de ce processus (`estimateFreedKb`, pur `src/shared/sleep-memory.ts`).
+`TabState.sleepFreedKb` le porte tant que l'onglet dort (effacé au réveil ; un onglet restauré, jamais chargé, n'en a
+pas). Affiché discrètement et **toujours comme une estimation** : bulle de l'onglet et carte d'aperçu (« En veille ·
+environ 85 Mo libérés (estimation) »), et sous le tableau de `browser://tasks` (« 3 onglets en veille · environ
+240 Mo libérés » + comment c'est calculé, `tasks:sleep-savings`). Honnêteté : l'ensemble de travail compte de la
+mémoire partagée, et le système ne rend pas forcément tout ; aucun chiffre pour ce qui n'a pas été mesuré.
+
+**Tests.** Unitaires : `extension-commands.test.ts` (syntaxe, plateformes, conflits, ordre, limite, écriture de
+Chrome), `extension-api.test.ts` (`createMenuItem`, `parseStoredMenus`, `manifestCommands`), `download-resume.test.ts`,
+`downloads/list.test.ts`, `downloads/service.test.ts` (reprise après redémarrage, `.crdownload`, annulation à la
+fermeture, privé), `sleep-memory.test.ts`, `tabs/lifecycle.test.ts`. E2E : `extension-api.spec.ts` (Alt+Maj+H →
+`onCommand` avec l'onglet et `getAll`, Ctrl+Maj+Y → bouton, Ctrl+T reste au navigateur, « Détails », menu de page
+revenu après un redémarrage puis effacé à la désactivation), `downloads.spec.ts` (fermeture en plein téléchargement,
+relance, « Reprendre » : une seule requête `Range`, fichier identique octet pour octet), `sleep.spec.ts` (estimation
+et résumé du gestionnaire de tâches).

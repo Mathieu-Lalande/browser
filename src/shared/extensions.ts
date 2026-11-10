@@ -5,6 +5,7 @@
 
 /** An installed extension, as `browser://extensions` lists it. */
 import { t, intlLocale } from "./i18n";
+import type { ExtensionShortcut } from "./extension-commands";
 
 export interface ExtensionInfo {
   /** Our own Chrome-style id (32 letters a–p), stable across launches. */
@@ -315,6 +316,8 @@ export interface ExtensionDetailsInfo {
   lastUpdateCheck: number | null;
   /** Its folder, for an unpacked extension the user picked (null when the browser unpacked it). */
   folder: string | null;
+  /** Its manifest commands and their shortcuts: installed, or why not (ADR-054). */
+  shortcuts?: Omit<ExtensionShortcut, "extensionId">[];
 }
 
 /** A size in French units ("1,2 Mo"). */

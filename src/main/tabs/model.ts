@@ -39,6 +39,8 @@ export interface Tab {
   lastSeenAt: number;
   /** Back/forward entries of a tab put to sleep, restored when it wakes. */
   sleptHistory?: SleptHistory;
+  /** Memory its page freed by going to sleep, estimated (kilobytes, ADR-054); cleared when it wakes. */
+  sleepFreedKb?: number;
   /**
    * The start page or internal page the user left with Back to the live page kept below it:
    * Forward shows it again (until the page goes elsewhere).

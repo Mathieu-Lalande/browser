@@ -1,6 +1,7 @@
 import { onLocaleChange, t } from "@shared/i18n";
 import { Menu, app, type MenuItemConstructorOptions } from "electron";
 import { commandMenuItems } from "./commands";
+import { activeExtensionShortcuts, onExtensionsChanged, runExtensionCommand } from "./extensions";
 import { onSettingsChanged, settings } from "./settings";
 import { onUpdateStatus, updateService } from "./updates";
 import { BrowserController } from "./window";
@@ -25,6 +26,18 @@ onUpdateStatus(() => {
   if (builtShortcuts !== null && updateReady() !== builtUpdateReady) installMenu();
 });
 
+/** The extension shortcuts the menu was built with: rebuilt when an extension changes them (ADR-054). */
+let builtExtensionShortcuts = "";
+let watchingExtensions = false;
+
+function extensionShortcutItems(): MenuItemConstructorOptions[] {
+  return activeExtensionShortcuts().map((shortcut) => ({
+    label: t("menu.extensionCommand", { name: shortcut.extensionName, command: shortcut.description || shortcut.command }),
+    accelerator: shortcut.accelerator,
+    click: withFocused((c) => runExtensionCommand(c, shortcut.extensionId, shortcut.command)),
+  }));
+}
+
 /** Run an action against the focused browser window, if any. */
 function withFocused(action: (controller: BrowserController) => void): () => void {
   return () => {
@@ -40,6 +53,13 @@ function withFocused(action: (controller: BrowserController) => void): () => voi
  */
 export function installMenu(): void {
   const isMac = process.platform === "darwin";
+  if (!watchingExtensions) {
+    watchingExtensions = true;
+    onExtensionsChanged(() => {
+      if (JSON.stringify(activeExtensionShortcuts()) !== builtExtensionShortcuts) installMenu();
+    });
+  }
+  const extensionShortcuts = extensionShortcutItems();
   const tabNumbers: MenuItemConstructorOptions[] = Array.from({ length: 9 }, (_, i) => ({
     label: i === 8 ? t("menu.lastTab") : t("menu.tab", { p: i + 1 }),
     accelerator: `CmdOrCtrl+${i + 1}`,
@@ -170,6 +190,8 @@ export function installMenu(): void {
       label: t("menu.bookmarks"),
       submenu: commandMenuItems("toggle-bookmark"),
     },
+    // Extension shortcuts (ADR-054): only while a browser window has focus, never global.
+    ...(extensionShortcuts.length ? [{ label: t("menu.extensions"), submenu: extensionShortcuts }] : []),
     {
       label: t("menu.help"),
       submenu: [...commandMenuItems("keyboard-shortcuts"), ...commandMenuItems("open-welcome"), ...commandMenuItems("report-issue"), { type: "separator" }, ...commandMenuItems("about")],
@@ -182,4 +204,5 @@ export function installMenu(): void {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
   builtShortcuts = JSON.stringify(settings().shortcuts);
   builtUpdateReady = updateReady();
+  builtExtensionShortcuts = JSON.stringify(activeExtensionShortcuts());
 }

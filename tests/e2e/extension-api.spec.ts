@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Page } from "@playwright/test";
 import type { BrowserApi } from "@shared/ipc";
@@ -105,6 +107,71 @@ test("an extension page opens tabs, lists windows, sets the badge, adds a page m
   ]);
 });
 
+/** Native key press through main, so menu accelerators fire (extension shortcuts live in the app menu). */
+async function press(app: ElectronApplication, keyCode: string, modifiers: ("control" | "shift" | "alt")[]): Promise<void> {
+  await app.evaluate(
+    ({ BrowserWindow }, { keyCode, modifiers }) => {
+      const contents = BrowserWindow.getAllWindows()[0].webContents;
+      contents.sendInputEvent({ type: "keyDown", keyCode, modifiers });
+      contents.sendInputEvent({ type: "keyUp", keyCode, modifiers });
+    },
+    { keyCode, modifiers },
+  );
+}
+
+test("extension shortcuts fire commands.onCommand and press the button; the browser's win; menus survive a restart (ADR-054)", async ({ profile, server }) => {
+  let app = await launch(profile);
+  let id = "";
+  try {
+    const chrome = await chromeOf(app);
+    id = await install(app, chrome);
+
+    // browser://extensions, Détails: the shortcuts, the one the browser keeps (Ctrl+T) marked inactive.
+    const row = chrome.locator(`[data-extension-id="${id}"]`);
+    await row.getByRole("button", { name: "Détails" }).click();
+    const shortcuts = row.getByTestId("extension-shortcuts");
+    await expect(shortcuts.locator('[data-command="say-hello"]')).toHaveAttribute("data-active", "true");
+    await expect(shortcuts.locator('[data-command="_execute_action"]')).toHaveAttribute("data-active", "true");
+    await expect(shortcuts.locator('[data-command="steal-new-tab"]')).toHaveAttribute("data-active", "false");
+    await expect(shortcuts.locator('[data-command="steal-new-tab"]')).toContainText("Nouvel onglet");
+
+    // The options page listens to onCommand (and to action.onClicked) and creates its page menu item.
+    expect(await chrome.evaluate((extensionId) => (globalThis as unknown as Global).browser.extensions.openOptions(extensionId), id)).toBe(true);
+    await expect.poll(() => reports(app)).toContain("page-ready:1:tab:function:yes");
+    const page = server.url("/menu-page");
+    await chrome.evaluate(() => (globalThis as unknown as Global).browser.commands.run("new-tab"));
+    await visit(chrome, page, "Page menu-page");
+
+    await press(app, "H", ["alt", "shift"]);
+    await expect.poll(() => reports(app)).toContain("command:say-hello:tab:say-hello=Alt+Shift+H,_execute_action=Ctrl+Shift+Y,steal-new-tab=");
+    // _execute_action: as a click on its button (no popup: action.onClicked).
+    await press(app, "Y", ["control", "shift"]);
+    await expect.poll(() => reports(app)).toContain("page-action:nourl");
+    // Ctrl+T stays the browser's: a new tab, no command.
+    const before = await chrome.locator(".tab").count();
+    await press(app, "T", ["control"]);
+    await expect.poll(() => chrome.locator(".tab").count()).toBeGreaterThan(before);
+    expect((await reports(app)).some((report) => report.startsWith("command:steal-new-tab"))).toBe(false);
+  } finally {
+    await app.close();
+  }
+
+  // Next run: the page menu item the options page created is still there, without the page running.
+  app = await launch(profile);
+  try {
+    const chrome = await chromeOf(app);
+    await expect(chrome.locator(`[data-extension-action="${id}"]`)).toBeVisible();
+    const page = server.url("/menu-page");
+    await visit(chrome, page, "Page menu-page");
+    await expect.poll(async () => (await rightClick(app, page, "none")).includes(`ext-menu:${id}:api-page`), { timeout: 10_000 }).toBe(true);
+    // Disabling the extension forgets them, on disk too.
+    await chrome.evaluate((extensionId) => (globalThis as unknown as Global).browser.extensions.setEnabled(extensionId, false), id);
+    await expect.poll(() => readFileSync(join(profile, "extension-menus.json"), "utf8")).not.toContain(id);
+  } finally {
+    await app.close();
+  }
+});
+
 test("an extension's service worker opens tabs, lists windows, sets its badge, adds a page menu item and hears its button", async ({ profile, server }) => {
   test.skip(!sandboxAvailable, "the service-worker preload needs the OS sandbox, which cannot start here");
   const app = await launch(profile, {}, [], { sandboxed: true });
@@ -118,7 +185,7 @@ test("an extension's service worker opens tabs, lists windows, sets its badge, a
     const button = chrome.locator(`[data-extension-action="${id}"]`);
     await expect
       .poll(async () => JSON.parse(((await button.getAttribute("title")) ?? "{}").replace(/ \(7\)$/, "")))
-      .toEqual({ windows: 1, tabs: expect.any(Number), urls: 0, browser: "function", commands: "say-hello" });
+      .toEqual({ windows: 1, tabs: expect.any(Number), urls: 0, browser: "function", commands: "say-hello,_execute_action,steal-new-tab" });
 
     // contextMenus.create from the worker, in the page menu; the click wakes onClicked, which calls tabs.create.
     const page = server.url("/menu-page");

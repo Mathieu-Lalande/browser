@@ -44,6 +44,7 @@ class ExtensionsUi {
     api.extensions.onChanged(() => void this.refresh());
     api.extensions.onInstalled((id) => void this.confirm(id));
     api.extensions.onActionStates((states) => (this.actions = states));
+    api.extensions.onActivate((id) => this.activate(id));
     void api.extensions.actionStates().then((states) => (this.actions = states), () => null);
     void api.extensions.storeOrigin().then((origin) => (this.storeOrigin = origin), () => null);
   }
@@ -72,6 +73,19 @@ class ExtensionsUi {
   }
 
   /** After an install from this window: the confirmation hangs from the extension bar (its puzzle button). */
+  /**
+   * An extension's `_execute_action` shortcut (ADR-054): as a click on its button, its popup hanging
+   * from the button (or from the puzzle button when it is not pinned, else the top of the sidebar).
+   */
+  private activate(id: string): void {
+    const anchor =
+      document.querySelector<HTMLElement>(`[data-extension-action="${CSS.escape(id)}"]`) ??
+      document.querySelector<HTMLElement>("[data-extensions-anchor]") ??
+      document.querySelector<HTMLElement>(".address-bar, form");
+    const rect = anchor?.getBoundingClientRect();
+    api.extensions.openPopup(id, rect ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height } : { x: 8, y: 8, width: 0, height: 0 });
+  }
+
   private async confirm(id: string): Promise<void> {
     await this.refresh();
     // Let the extension bar appear if this was the first extension.

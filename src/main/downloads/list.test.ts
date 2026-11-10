@@ -77,6 +77,17 @@ describe("sanitizeEntry", () => {
     expect(sanitizeEntry(entry({ state: "paused" }))).toMatchObject({ state: "interrupted" });
   });
 
+  it("keeps what an unfinished download needs to continue (ADR-054)", () => {
+    const resume = { urlChain: ["https://a.example/f"], etag: '"x"', lastModified: "", startTime: 3 };
+    const path = "/downloads/f.zip";
+    expect(sanitizeEntry(entry({ state: "progressing", path, resume }))).toMatchObject({ state: "interrupted", canResume: true, resume });
+    // Finished, dangerous, without a file, or with a broken state: nothing to continue.
+    expect(sanitizeEntry(entry({ state: "completed", path, resume }))?.resume).toBeUndefined();
+    expect(sanitizeEntry(entry({ state: "interrupted", path, dangerous: true, resume }))?.resume).toBeUndefined();
+    expect(sanitizeEntry(entry({ state: "interrupted", path: "", resume }))?.canResume).toBe(false);
+    expect(sanitizeEntry({ ...entry({ state: "interrupted", path }), resume: { urlChain: ["javascript:x"], etag: "e" } })?.canResume).toBe(false);
+  });
+
   it("brings unconfirmed dangerous files back as cancelled (they are deleted at startup)", () => {
     expect(sanitizeEntry(entry({ dangerous: true, awaitingConfirmation: true, state: "completed" }))).toMatchObject({
       state: "cancelled",

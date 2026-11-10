@@ -213,6 +213,16 @@
   `@shared/extension-bridge` (pas dans `ipc.ts` : le preload n'embarque rien d'autre), modèle pur `src/shared/extension-api.ts`
   (motifs, onglets masqués sans autorisation, fusion des menus) ; badges dans `ExtensionBar`, entrées `ext-menu:` du menu de page.
   Le preload des service workers ne tourne qu'avec le bac à sable : e2e `extension-api.spec.ts` lancé via `tests/e2e/sandboxed-electron.sh`.
+- Restes du bureau (ADR-054) : raccourcis `commands` des extensions, modèle pur `src/shared/extension-commands.ts`
+  (syntaxe de Chrome → accélérateur, ceux du navigateur gagnent, puis l'ordre d'installation, 4 par extension), installés
+  dans le sous-menu « Extensions » du menu de l'application (jamais globaux), `_execute_action` → `extensions:activate`
+  (l'interface « clique » le bouton), sinon `ExtensionApiHost.runCommand` → `commands.onCommand` ; conflits dans « Détails ».
+  Menus `contextMenus` gardés dans `extension-menus.json` (`setMenus`, `parseStoredMenus`, `createMenuItem` remplace une
+  entrée restaurée), effacés à la désactivation/retrait. Téléchargements : `DownloadEntry.resume` (jamais en privé, jamais
+  vers l'UI : `publicEntry`), `keepForRestart` sur `will-quit` (lien physique `<nom>.crdownload`, Chromium supprime le
+  partiel à la fermeture), `resumePlan` (`src/shared/download-resume.ts`) → `session.createInterruptedDownload`.
+  Veille : `measurePageMemoryKb` (`src/main/sleep-memory.ts`) avant `discard` → `TabState.sleepFreedKb`, totaux purs
+  `src/shared/sleep-memory.ts`, bulle d'onglet, carte d'aperçu, résumé de `browser://tasks` (`tasks:sleep-savings`), toujours « estimation ».
 - Bloqueur mobile (ADR-051) : conversion pure `src/shared/blocklist/` (WebKit JSON, index Android, cosmétique),
   `mobile/scripts/build-blocklists.mjs` (postinstall, sorties générées non commitées), module local
   `mobile/modules/content-blocker` (Swift/Kotlin + plugin), correctif `mobile/patches/` de react-native-webview,

@@ -61,6 +61,8 @@ export interface TabState {
    * url/title/favicon and reloads when activated (ADR-014).
    */
   isAsleep?: boolean;
+  /** Memory freed by putting it to sleep, estimated just before (kilobytes, ADR-054); absent when not measured. */
+  sleepFreedKb?: number;
   /** The page is playing sound (even if muted). */
   isAudible: boolean;
   isMuted: boolean;

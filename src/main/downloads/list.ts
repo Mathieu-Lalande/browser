@@ -1,4 +1,5 @@
 import { isActiveDownload, type DownloadEntry, type DownloadState } from "@shared/downloads";
+import { sanitizeResume } from "@shared/download-resume";
 
 /** Download history (`downloads.json`) and the state reducer. Pure: no Electron, no I/O. */
 
@@ -59,6 +60,8 @@ export function sanitizeEntry(value: unknown): DownloadEntry | null {
   if (state === "progressing" || state === "paused") state = "interrupted";
   if (awaiting) state = "cancelled";
   const startedAt = count(e.startedAt);
+  // An unfinished download keeps what continuing it needs (ADR-054): "Reprendre" is offered.
+  const resume = state === "interrupted" && !awaiting && e.dangerous !== true && text(e.path) ? sanitizeResume(e.resume) : undefined;
   return {
     id: e.id.slice(0, 64),
     url: text(e.url),
@@ -71,9 +74,10 @@ export function sanitizeEntry(value: unknown): DownloadEntry | null {
     speed: 0,
     dangerous: e.dangerous === true,
     awaitingConfirmation: false,
-    canResume: false,
+    canResume: !!resume,
     startedAt,
     endedAt: typeof e.endedAt === "number" && Number.isFinite(e.endedAt) ? e.endedAt : startedAt,
+    ...(resume ? { resume } : {}),
   };
 }
 

@@ -1,7 +1,7 @@
 # Roadmap
 
 ## En bref : où on en est
-Tout ce qui suit est livré (détails dans les sprints ci-dessous et dans `docs/DECISIONS.md`, ADR-001 à 052) :
+Tout ce qui suit est livré (détails dans les sprints ci-dessous et dans `docs/DECISIONS.md`, ADR-001 à 054) :
 onglets, espaces et gestes, vue scindée, dossiers, grille des favoris, archivage (ADR-022), barre universelle
 (ADR-032), aperçu des liens (ADR-027), mode lecture (ADR-026), boosts (ADR-029), mots de passe (ADR-025) et leur
 synchronisation facultative (ADR-050), extensions et Chrome Web Store (ADR-024, 049), options de la page, captures
@@ -13,7 +13,8 @@ dynamique (ADR-038), navigateur par défaut, PDF, historique et import (ADR-039)
 (ADR-042), premiers pas et diagnostic (ADR-043), assistant IA (ADR-044), barre de fenêtre et menu unique (ADR-045),
 bandeaux cookies et tableau de bord de confidentialité (ADR-046), panneaux web et « Lire plus tard » (ADR-047),
 mini-fenêtre, économiseur d'énergie et intégration au système (ADR-048), bloqueur natif sur le téléphone (ADR-051),
-interface en français et en anglais (ADR-052) ; releases GitHub et site vitrine bilingue (ADR-023) ; application
+interface en français et en anglais (ADR-052), API `chrome.*` des extensions (ADR-053), raccourcis et menus
+persistants des extensions, téléchargements repris après un redémarrage, mémoire libérée par la veille (ADR-054) ; releases GitHub et site vitrine bilingue (ADR-023) ; application
 mobile compilée avec EAS et workflow de publication vers les stores (INSTALL 2.3).
 
 ## À venir (vérifié dans le code)
@@ -26,9 +27,8 @@ mobile compilée avec EAS et workflow de publication vers les stores (INSTALL 2.
   des onglets, recherche dans la page, téléchargements, widgets et raccourcis de l'écran d'accueil, extension de
   partage.
 - **Synchronisation** : révoquer un seul appareil sans tout réinitialiser, fusion fine des titres, favicons.
-- **Téléchargements** : reprise d'un téléchargement interrompu par un redémarrage (aujourd'hui « Réessayer »
-  repart de zéro) ; image dans l'image pour les vidéos dans des iframes.
-- **Mise en veille** : préchargement intelligent, indicateur de mémoire libérée.
+- **Téléchargements** : image dans l'image pour les vidéos dans des iframes.
+- **Mise en veille** : préchargement intelligent.
 - **Connexion Google dans Browser** : les pages de `accounts.google.com` s'ouvrent encore dans le navigateur
   système (Google refuse les navigateurs intégrés, ADR-040).
 - **Extensions** : badges et `action.onClicked` (non fournis par Electron), extensions en fenêtre privée (ADR-049).

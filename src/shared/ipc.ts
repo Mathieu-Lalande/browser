@@ -49,6 +49,7 @@ import type { Settings, SettingsPatch, SettingsSection } from "./settings";
 import type { ClosedLists } from "./recovery";
 import type { ProfileId, ProfileInfo, ProfileInput, ProfilesView } from "./profiles";
 import type { TaskRow } from "./tasks";
+import type { SleepSavings } from "./sleep-memory";
 import type { PrivacySummary } from "./privacy-stats";
 import type { SiteListSetting, SiteSettingsEntry } from "./site-settings";
 import type { PrintOptions, PrintPrinter, PrintResult } from "./print";
@@ -256,6 +257,7 @@ export const Channels = {
   extensionsShowInstalled: "extensions:show-installed",
   extensionsActionStates: "extensions:action-states",
   extensionsGetActionStates: "extensions:get-action-states",
+  extensionsActivate: "extensions:activate",
   passwordsStatus: "passwords:status",
   passwordsList: "passwords:list",
   passwordsNeverList: "passwords:never-list",
@@ -351,6 +353,7 @@ export const Channels = {
   profilesSetAsk: "profiles:set-ask",
   tasksList: "tasks:list",
   tasksKill: "tasks:kill",
+  tasksSleepSavings: "tasks:sleep-savings",
   printUpdate: "print:update",
   printPrinters: "print:printers",
   printRun: "print:run",
@@ -489,6 +492,8 @@ export interface BrowserApi {
     /** ADR-053: the toolbar buttons' states set by the extensions (badge, title, icon), by extension id; resolved for the active tab. */
     actionStates(): Promise<Record<string, ActionState>>;
     onActionStates(listener: (states: Record<string, ActionState>) => void): () => void;
+    /** ADR-054: an extension's `_execute_action` shortcut was pressed; the UI opens it as if its button was clicked. */
+    onActivate(listener: (id: string) => void): () => void;
   };
   /**
    * Password manager (ADR-025). Lists carry no password: one reaches the UI only through `reveal`,
@@ -1002,6 +1007,8 @@ export interface BrowserApi {
     list(): Promise<TaskRow[]>;
     /** Ends a tab renderer process (the tab shows its crash page). */
     kill(pid: number): Promise<boolean>;
+    /** ADR-054: tabs asleep and the memory their sleep freed (an estimate). */
+    sleepSavings(): Promise<SleepSavings>;
   };
   /** ADR-042: the print preview (overlay page only). */
   print: {

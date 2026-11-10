@@ -1,5 +1,6 @@
 <script lang="ts">
   import { t } from "@shared/i18n";
+  import { formatBytes } from "@shared/downloads";
   import { isThumbnailUrl, type TabPreview } from "@shared/tab-preview";
   import Favicon from "../components/Favicon.svelte";
   import Icon from "../components/Icon.svelte";
@@ -30,7 +31,10 @@
         </span>
       {/if}
       {#if preview.asleep}
-        <span class="badge sleep"><Icon name="moon" size={12} /> {t("tabPreviewCard.asleep")}</span>
+        <span class="badge sleep" data-testid="tab-preview-sleep">
+          <Icon name="moon" size={12} />
+          {preview.freedKb ? t("sleepMemory.asleepFreed", { size: formatBytes(preview.freedKb * 1024) }) : t("tabPreviewCard.asleep")}
+        </span>
       {/if}
     </div>
   </div>

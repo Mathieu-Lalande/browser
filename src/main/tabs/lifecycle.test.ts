@@ -57,6 +57,7 @@ function setup() {
     applyZoom: vi.fn(),
     shieldsFor: () => true,
     emit: vi.fn(),
+    measureMemory: vi.fn(() => 42_000),
   };
   const lifecycle = new TabLifecycle(deps);
   const add = (url: string) => store.insert({ url, title: "", favicon: null, pinned: false }, store.length, { shieldsEnabled: true, defaultZoom: 1 });
@@ -79,7 +80,7 @@ describe("TabLifecycle", () => {
   });
 
   it("puts a background tab to sleep and wakes it with its history", async () => {
-    const { store, layout, lifecycle, views, add } = setup();
+    const { store, layout, lifecycle, views, add, deps } = setup();
     const tab = add("https://a.example/");
     const other = add("https://b.example/");
     store.setActive(tab.id);
@@ -98,9 +99,13 @@ describe("TabLifecycle", () => {
     expect(tab.view).toBeNull();
     expect(isDiscarded(tab)).toBe(true);
     expect(tab.sleptHistory?.index).toBe(1);
+    // "Mémoire libérée" (ADR-054): measured before the page closed.
+    expect(deps.measureMemory).toHaveBeenCalledWith(contents);
+    expect(tab.sleepFreedKb).toBe(42_000);
 
     store.setActive(tab.id);
     lifecycle.wake(tab);
+    expect(tab.sleepFreedKb).toBeUndefined();
     const woken = views[1].webContents;
     expect(woken.navigationHistory.restore).toHaveBeenCalledWith({ entries: [{ url: "https://a.example/" }, { url: "https://a.example/next" }], index: 1 });
     expect(woken.loadURL).not.toHaveBeenCalled();

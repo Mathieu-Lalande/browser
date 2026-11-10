@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type { IpcMain, IpcMainEvent, IpcMainInvokeEvent, IpcMainServiceWorkerEvent, IpcMainServiceWorkerInvokeEvent, ServiceWorkerMain, Session, WebContents } from "electron";
 import { EXTENSION_CHANNELS } from "@shared/extension-bridge";
+import { chromeShortcutText, extensionShortcuts, type ExtensionShortcut } from "@shared/extension-commands";
+import type { ShortcutOverrides } from "@shared/commands";
 import {
   afterMenuClick,
   canReadTab,
@@ -35,13 +37,25 @@ export interface ExtensionNotification {
   onClose(): void;
 }
 
+/** Where the extensions' context menus are kept between runs (`extension-menus.json`, ADR-054). */
+export interface MenuStore {
+  load(): Record<string, MenuItem[]> | null;
+  scheduleSave(snapshot: () => Record<string, MenuItem[]>): void;
+  flush(): void;
+}
+
 export interface ExtensionApiDeps {
-  extensions: Pick<ExtensionService, "loaded" | "placesOf" | "running" | "onChanged">;
+  extensions: Pick<ExtensionService, "loaded" | "placesOf" | "running" | "onChanged" | "list" | "manifestOf">;
   /** The extension-context preload (`out/preload/extension-api.cjs`). */
   preloadPath: string;
   notify(notification: ExtensionNotification): void;
   /** Closes a notification shown by `notify`; false when there was none. */
   clearNotification(key: string): boolean;
+  /** Context menus kept from one run to the next; absent (tests): in memory only. */
+  menuStore?: MenuStore;
+  /** The browser's shortcuts as the user set them (`settings.shortcuts`, ADR-028): they win over the extensions'. */
+  shortcutOverrides?: () => ShortcutOverrides;
+  platform?: string;
 }
 
 /** Who calls: an extension page (popup, options, tab) or its background service worker. */
@@ -94,12 +108,18 @@ export class ExtensionApiHost implements SessionService {
   private readonly grants = new Map<string, Set<TabId>>();
   /** Toolbar button states (`chrome.action`), by extension id. */
   readonly actions = new Map<string, ActionState>();
-  /** Context menu items (`chrome.contextMenus`), by extension id, in creation order. */
+  /** Context menu items (`chrome.contextMenus`), by extension id, in creation order (changed through `setMenus`). */
   readonly menus = new Map<string, MenuItem[]>();
+  /** Items restored from the previous run and not created again yet, by extension id (`createMenuItem`). */
+  private readonly restored = new Map<string, Set<string>>();
   /** Notifications shown, by extension id. */
   readonly notifications = new Map<string, Set<string>>();
 
   constructor(readonly deps: ExtensionApiDeps) {
+    for (const [id, items] of Object.entries(deps.menuStore?.load() ?? {})) {
+      this.menus.set(id, items);
+      this.restored.set(id, new Set(items.map((item) => item.id)));
+    }
     deps.extensions.onChanged(() => this.prune());
   }
 
@@ -132,6 +152,12 @@ export class ExtensionApiHost implements SessionService {
 
   dispose(): void {
     if (this.timer) clearTimeout(this.timer);
+    this.flushMenus();
+  }
+
+  /** Writes the context menus now (the app quits). */
+  flushMenus(): void {
+    this.deps.menuStore?.flush();
   }
 
   // -------------------------------------------------------------------------------------------
@@ -405,11 +431,81 @@ export class ExtensionApiHost implements SessionService {
     const items = this.menus.get(extensionId);
     const item = items?.find((entry) => entry.id === itemId);
     if (!items || !item) return;
-    this.menus.set(extensionId, afterMenuClick(items, itemId));
+    this.setMenus(extensionId, afterMenuClick(items, itemId));
     this.grant(extensionId, key);
     const tab = this.browser?.tabs().find((entry) => entry.key === key);
     const info = menuClickInfo(item, target, item.checked);
     this.dispatch("contextMenus.onClicked", (extension) => [info, tab ? this.tabFor(extension, tab) : undefined], extensionId);
+  }
+
+  /**
+   * Replaces an extension's menu items and keeps them for the next run (Chrome keeps MV3 menus
+   * across restarts, ADR-054). `created`: an item the extension made again (no longer "restored").
+   */
+  setMenus(extensionId: string, items: MenuItem[], created?: string): void {
+    if (items.length) this.menus.set(extensionId, items);
+    else this.menus.delete(extensionId);
+    const restored = this.restored.get(extensionId);
+    if (restored) {
+      if (created !== undefined) restored.delete(created);
+      const ids = new Set(items.map((item) => item.id));
+      for (const id of restored) if (!ids.has(id)) restored.delete(id);
+      if (!restored.size) this.restored.delete(extensionId);
+    }
+    this.saveMenus();
+  }
+
+  /** Ids of the items restored from the previous run that the extension has not created again. */
+  restoredMenuIds(extensionId: string): ReadonlySet<string> {
+    return this.restored.get(extensionId) ?? new Set();
+  }
+
+  private saveMenus(): void {
+    this.deps.menuStore?.scheduleSave(() => Object.fromEntries(this.menus));
+  }
+
+  // -------------------------------------------------------------------------------------------
+  // Keyboard shortcuts (`commands`, ADR-054)
+  // -------------------------------------------------------------------------------------------
+
+  /**
+   * The commands of the enabled extensions (install order) with their shortcut: installed, or why
+   * not (browser shortcut, earlier extension, OS, invalid). `include`: a disabled extension to list
+   * as well (its "Détails"), never active.
+   */
+  commandShortcuts(include?: string): ExtensionShortcut[] {
+    const platform = this.deps.platform ?? process.platform;
+    const overrides = this.deps.shortcutOverrides?.() ?? {};
+    const sources = this.deps.extensions
+      .list()
+      .filter((extension) => extension.enabled || extension.id === include)
+      .map((extension) => ({ id: extension.id, name: extension.name, enabled: extension.enabled, manifest: this.deps.extensions.manifestOf(extension.id) }));
+    const enabled = sources.filter((source) => source.enabled);
+    const shortcuts = extensionShortcuts(enabled, platform, overrides);
+    const extra = sources.find((source) => !source.enabled);
+    if (!extra) return shortcuts;
+    const own = extensionShortcuts([...enabled, extra], platform, overrides).filter((shortcut) => shortcut.extensionId === extra.id);
+    return [...shortcuts, ...own.map((shortcut) => ({ ...shortcut, active: false }))];
+  }
+
+  /** `commands.getAll()`'s shortcuts of one extension: command → Chrome's spelling, installed ones only. */
+  shortcutsOf(extensionId: string): Record<string, string> {
+    const platform = this.deps.platform ?? process.platform;
+    return Object.fromEntries(
+      this.commandShortcuts()
+        .filter((shortcut) => shortcut.extensionId === extensionId && shortcut.active && shortcut.accelerator)
+        .map((shortcut) => [shortcut.command, chromeShortcutText(shortcut.accelerator as string, platform)]),
+    );
+  }
+
+  /**
+   * A command's shortcut was pressed in window `windowId` (other than Chrome's `_execute_*`): the
+   * window's active tab gets an `activeTab` grant, as in Chrome, then `commands.onCommand(name, tab)`.
+   */
+  runCommand(extensionId: string, command: string, windowId: number | null): void {
+    const tab = this.browser?.tabs().find((item) => item.windowId === windowId && item.active);
+    if (tab) this.grant(extensionId, tab.key);
+    this.dispatch("commands.onCommand", (extension) => (tab ? [command, this.tabFor(extension, tab)] : [command]), extensionId);
   }
 
   /** A notification of an extension, shown by the notification center; its clicks and closes come back as events. */
@@ -439,15 +535,25 @@ export class ExtensionApiHost implements SessionService {
     return randomUUID();
   }
 
-  /** An extension went away (disabled, removed, updated): its menus, button state and grants go too. */
+  /**
+   * An extension went away (disabled, removed, updated): its button state and grants go too. Its
+   * menus stay while it is installed and enabled (an update, a restart before it loads, ADR-054); a
+   * disabled or removed extension loses them, on disk too.
+   */
   private prune(): void {
     let changed = false;
-    for (const id of new Set([...this.actions.keys(), ...this.menus.keys(), ...this.grants.keys()])) {
+    for (const id of new Set([...this.actions.keys(), ...this.grants.keys()])) {
       if (this.deps.extensions.running(id)) continue;
       if (this.actions.delete(id)) changed = true;
-      this.menus.delete(id);
       this.grants.delete(id);
     }
     if (changed) this.pushActions();
+    const enabled = new Set(this.deps.extensions.list().filter((extension) => extension.enabled).map((extension) => extension.id));
+    const gone = [...this.menus.keys()].filter((id) => !enabled.has(id));
+    for (const id of gone) {
+      this.menus.delete(id);
+      this.restored.delete(id);
+    }
+    if (gone.length) this.saveMenus();
   }
 }

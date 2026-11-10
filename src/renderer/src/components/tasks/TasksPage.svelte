@@ -1,6 +1,7 @@
 <script lang="ts">
   import { t, intlLocale } from "@shared/i18n";
   import { TASKS_REFRESH_MS, formatMemory, sortTaskRows, type TaskRow, type TaskSortKey } from "@shared/tasks";
+  import type { SleepSavings } from "@shared/sleep-memory";
   import { api } from "../../lib/browser.svelte";
   import Icon from "../Icon.svelte";
   import Button from "../ui/Button.svelte";
@@ -23,8 +24,11 @@
     memory: rows.reduce((sum, row) => sum + row.memoryKb, 0),
   });
 
+  /** Sleeping tabs and what their sleep freed (ADR-054): an estimate, said as one. */
+  let savings = $state<SleepSavings | null>(null);
+
   async function refresh(): Promise<void> {
-    rows = await api.tasks.list().catch(() => rows);
+    [rows, savings] = await Promise.all([api.tasks.list().catch(() => rows), api.tasks.sleepSavings().catch(() => savings)]);
   }
 
   $effect(() => {
@@ -100,9 +104,32 @@
       </tfoot>
     </table>
   </Card>
+  {#if savings?.asleep}
+    <p class="sleep" data-testid="tasks-sleep-savings">
+      <Icon name="moon" size={14} />
+      <span>
+        {savings.measured
+          ? t("sleepMemory.summary", { count: savings.asleep, size: formatMemory(savings.freedKb) })
+          : t("sleepMemory.summaryUnmeasured", { count: savings.asleep })}
+        <span class="hint">{t("sleepMemory.estimateHint")}</span>
+      </span>
+    </p>
+  {/if}
 </Page>
 
 <style>
+  .sleep {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    margin: var(--space-3) 0 0;
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+  }
+  .sleep .hint {
+    display: block;
+    font-size: var(--text-xs);
+  }
   table {
     width: 100%;
     border-collapse: collapse;

@@ -364,7 +364,9 @@
             Un onglet inactif depuis le délai choisi (Paramètres, Comportement : jamais, 15 min, 30 min…) est mis en
             veille : sa mémoire est libérée et il se recharge quand vous y revenez. Jamais pour un onglet qui joue du
             son, attend une autorisation ou contient un formulaire en cours. Les commandes « Mettre l'onglet en veille »
-            et « Mettre les autres onglets en veille » le font tout de suite.
+            et « Mettre les autres onglets en veille » le font tout de suite. La bulle d'un onglet en veille et le
+            gestionnaire de tâches (<kbd>Maj</kbd> <kbd>Échap</kbd>) indiquent environ combien de mémoire la mise en
+            veille a libérée : une estimation, mesurée juste avant que la page se ferme.
           </p>
         </section>
 
@@ -776,10 +778,12 @@
           <p class="muted">
             Les API <code>chrome.*</code> d'Electron sont complétées par le navigateur : onglets et fenêtres
             (ouvrir, fermer, lister), badges, titres et icônes des boutons, clic sur un bouton sans fenêtre, entrées
-            ajoutées au menu contextuel des pages (sous le nom de l'extension), notifications. Une extension ne lit
-            l'adresse et le titre d'un onglet que si elle en a l'autorisation. Les raccourcis propres aux extensions ne
-            sont pas installés, et aucune extension ne s'exécute en fenêtre privée (Electron ne charge pas d'extension
-            dans une session gardée en mémoire).
+            ajoutées au menu contextuel des pages (sous le nom de l'extension, gardées d'un lancement à l'autre),
+            notifications. Une extension ne lit l'adresse et le titre d'un onglet que si elle en a l'autorisation. Ses
+            <strong>raccourcis clavier</strong> marchent tant qu'elle est activée et qu'une fenêtre du navigateur a le
+            focus (jamais à l'échelle du système) ; ceux du navigateur passent en premier, et « Détails » indique un
+            raccourci inactif et ce qui le prend déjà. Aucune extension ne s'exécute en fenêtre privée (Electron ne
+            charge pas d'extension dans une session gardée en mémoire).
           </p>
         </section>
 
@@ -816,7 +820,7 @@
               alt="Page browser://downloads avec trois téléchargements terminés" />
           </figure>
           <ul>
-            <li><strong>Téléchargements</strong> : enregistrés sans boîte de dialogue (ou toujours demander où, Paramètres, Téléchargements), avec pause, reprise et annulation. Les programmes et scripts attendent votre confirmation ; rien n'est ouvert automatiquement. Liste : <kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>J</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>L</kbd>) ou <code>browser://downloads</code>.</li>
+            <li><strong>Téléchargements</strong> : enregistrés sans boîte de dialogue (ou toujours demander où, Paramètres, Téléchargements), avec pause, reprise et annulation ; un téléchargement interrompu par la fermeture du navigateur reprend là où il s'était arrêté (« Reprendre »), si le serveur le permet. Les programmes et scripts attendent votre confirmation ; rien n'est ouvert automatiquement. Liste : <kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>J</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>L</kbd>) ou <code>browser://downloads</code>.</li>
             <li><strong>Rechercher dans la page</strong> : <kbd>Ctrl</kbd> <kbd>F</kbd>, puis <kbd>Entrée</kbd> / <kbd>Maj</kbd> <kbd>Entrée</kbd>, <kbd>F3</kbd> ou <kbd>Ctrl</kbd> <kbd>G</kbd> pour l'occurrence suivante. Le compteur et la casse sont gardés par onglet.</li>
             <li><strong>Zoom</strong> : <kbd>Ctrl</kbd> <kbd>+</kbd> / <kbd>-</kbd> / <kbd>0</kbd>, pincement ou <kbd>Ctrl</kbd> + molette, mémorisé par site ; zoom par défaut dans Paramètres, Apparence.</li>
             <li><strong>Médias</strong> : <kbd>Ctrl</kbd> <kbd>M</kbd> coupe le son de l'onglet ; « Image dans l'image » détache la vidéo, et le fait tout seul quand vous quittez un onglet qui lit une vidéo si « Image dans l'image automatique » est activée (Paramètres, Comportement ; les sites qui l'interdisent sont respectés) ; <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>P</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>P</kbd>) met tout en pause.</li>

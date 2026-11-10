@@ -44,6 +44,7 @@ export const lifecycleHandlers = defineHandlers({
   [Channels.crashesInfo]: handle([], () => appServices().crashes.info()),
   [Channels.crashesClear]: handle([], () => appServices().crashes.clear(), { privateRefused: true }),
   [Channels.tasksKill]: handle([pid], (_c, target) => appServices().tasks.kill(target)),
+  [Channels.tasksSleepSavings]: handle([], () => appServices().tasks.sleepSavings()),
 
   [Channels.printUpdate]: handle([isPrintOptions], (c, options) => appServices().print.update(c, options)),
   [Channels.printPrinters]: handle([], (c) => appServices().print.printers(c)),

@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ElectronApplication, Page } from "@playwright/test";
-import { DOWNLOAD_CONTENT, chromeOf, evalInTab, expect, launch, overlayOf, test } from "./fixtures";
+import { DOWNLOAD_CONTENT, RESUMABLE_SIZE, chromeOf, evalInTab, expect, launch, overlayOf, resumableBytes, test } from "./fixtures";
 
 /** Native key press through the main process, so Electron menu accelerators fire (see library.spec.ts). */
 async function press(app: ElectronApplication, keyCode: string, modifiers: ("control" | "shift")[] = ["control"]): Promise<void> {
@@ -140,6 +140,45 @@ test("downloads work in an isolated space too (every space session gets the hand
     await evalInTab(app, server.url("/downloads"), `document.getElementById("exe").click()`);
     await expect(chrome.getByRole("button", { name: "Téléchargements : un fichier attend votre confirmation" })).toBeVisible();
     expect(readdirSync(folder)).toEqual(["report.pdf"]);
+  } finally {
+    await app.close();
+  }
+});
+
+test("a download interrupted by quitting continues from its partial file after a restart (ADR-054)", async ({ profile, server }) => {
+  type Listed = { id: string; state: string; canResume: boolean; receivedBytes: number; path: string };
+  const list = (chrome: Page) => chrome.evaluate(() => (globalThis as unknown as { browser: { downloads: { list(): Promise<Listed[]> } } }).browser.downloads.list());
+  let app = await launchWithFolder(profile, folder);
+  let id = "";
+  let path = "";
+  try {
+    const chrome = await chromeOf(app);
+    await visit(chrome, server.url("/downloads"), "Downloads");
+    await evalInTab(app, server.url("/downloads"), `Object.assign(document.createElement("a"), { href: "/files/resumable.bin", download: "" }).click()`);
+    await expect.poll(async () => (await list(chrome))[0]?.receivedBytes ?? 0, { timeout: 15_000 }).toBeGreaterThan(64 * 1024);
+    [{ id, path }] = await list(chrome);
+    // Kept for the next run, never shown to the UI.
+    await expect.poll(() => (existsSync(join(profile, "downloads.json")) ? readFileSync(join(profile, "downloads.json"), "utf8") : "")).toContain("resumable-v1");
+  } finally {
+    await app.close();
+  }
+  // Chromium deletes the partial file at shutdown: its bytes stay under `<name>.crdownload` (a hard link).
+  const partial = readFileSync(`${path}.crdownload`).length;
+  expect(partial).toBeGreaterThan(0);
+  expect(partial).toBeLessThan(RESUMABLE_SIZE);
+
+  app = await launch(profile);
+  try {
+    const chrome = await chromeOf(app);
+    await expect.poll(async () => (await list(chrome)).find((entry) => entry.id === id)).toMatchObject({ state: "interrupted", canResume: true });
+    expect(JSON.stringify(await list(chrome))).not.toContain("resumable-v1");
+    const before = server.log.ranges.length;
+    await chrome.evaluate((downloadId) => (globalThis as unknown as { browser: { downloads: { resume(id: string): void } } }).browser.downloads.resume(downloadId), id);
+    await expect.poll(async () => (await list(chrome)).find((entry) => entry.id === id)?.state, { timeout: 15_000 }).toBe("completed");
+    // One request, for the rest of the file only; the result is the whole file, byte for byte.
+    expect(server.log.ranges.slice(before)).toEqual([expect.stringMatching(/^bytes=[1-9]\d*-$/)]);
+    expect(readFileSync(path).equals(resumableBytes(0, RESUMABLE_SIZE))).toBe(true);
+    expect(existsSync(`${path}.crdownload`)).toBe(false);
   } finally {
     await app.close();
   }

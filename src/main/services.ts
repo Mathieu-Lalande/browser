@@ -17,6 +17,8 @@ import { browserLocations, detectSources, type BrowserLocation, type LocationEnv
 import { newPasswordId, PasswordVaultStore } from "./passwords/vault";
 import { NotificationCenter, type ShownNotification } from "./notifications";
 import { ExtensionApiHost } from "./extensions/api/host";
+import { parseStoredMenus, type MenuItem } from "@shared/extension-api";
+import { JsonFile } from "./storage/json-file";
 import { installPrivacy, isTabPage, permissionGranted } from "./privacy";
 import { ReaderService } from "./reader";
 import { extractArticle } from "./reader/page";
@@ -278,6 +280,13 @@ export class AppServices {
       preloadPath: paths.extensionPreload,
       notify: (notification) => this.notifications.showExtension(notification),
       clearNotification: (key) => this.notifications.clearExtension(key),
+      menuStore: new JsonFile<Record<string, MenuItem[]>>({
+        path: join(paths.userData, "extension-menus.json"),
+        version: 1,
+        parse: (data) => parseStoredMenus(data),
+      }),
+      shortcutOverrides: () => config.settings().shortcuts,
+      platform: config.platform,
     });
     this.spellcheck = new SpellcheckService({
       settings: () => config.settings(),

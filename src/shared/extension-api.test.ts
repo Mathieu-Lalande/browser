@@ -3,7 +3,9 @@ import {
   afterMenuClick,
   badgeColor,
   canReadTab,
+  createMenuItem,
   extensionMenuEntries,
+  parseStoredMenus,
   manifestCommands,
   manifestTabAccess,
   matchesPattern,
@@ -208,10 +210,46 @@ describe("context menus", () => {
 });
 
 describe("chrome.commands", () => {
-  it("lists the manifest's commands, without installed shortcuts", () => {
-    expect(manifestCommands({ commands: { "say-hello": { description: "Bonjour", suggested_key: { default: "Ctrl+Shift+Y" } } } })).toEqual([
+  it("lists the manifest's commands with the installed shortcuts (ADR-054)", () => {
+    const raw = { commands: { "say-hello": { description: "Bonjour", suggested_key: { default: "Ctrl+Shift+Y" } }, other: {} } };
+    expect(manifestCommands(raw)).toEqual([
       { name: "say-hello", description: "Bonjour", shortcut: "" },
+      { name: "other", description: "", shortcut: "" },
     ]);
+    expect(manifestCommands(raw, { "say-hello": "Ctrl+Shift+Y" })[0].shortcut).toBe("Ctrl+Shift+Y");
+    expect(manifestCommands(raw, { toString: "x" } as Record<string, string>)[1].shortcut).toBe("");
     expect(manifestCommands({})).toEqual([]);
+  });
+});
+
+describe("menus kept across restarts (ADR-054)", () => {
+  const items = (): MenuItem[] => {
+    const parent = menuItemFrom({ id: "parent", title: "Parent" }, []) as MenuItem;
+    const child = menuItemFrom({ id: "child", title: "Enfant", parentId: "parent", type: "checkbox", checked: true }, [parent]) as MenuItem;
+    return [parent, child];
+  };
+
+  it("reads back what was saved, validated again", () => {
+    const stored = JSON.parse(JSON.stringify({ [ID]: items(), [OTHER]: [] }));
+    expect(parseStoredMenus(stored)).toEqual({ [ID]: items() });
+    // An orphan (its parent missing) and garbage are dropped; a bad extension key is skipped.
+    expect(parseStoredMenus({ [ID]: [items()[1], { id: "ok", title: "OK" }, 42], "../x": items() })).toEqual({ [ID]: [menuItemFrom({ id: "ok", title: "OK" }, [])] });
+    expect(parseStoredMenus([])).toBeNull();
+    expect(parseStoredMenus("x")).toBeNull();
+  });
+
+  it("creates an item again over the restored one (no duplicate id error), else refuses duplicates", () => {
+    const restored = new Set(["parent", "child"]);
+    const again = createMenuItem(items(), { id: "parent", title: "Nouveau titre" }, restored);
+    expect(again).not.toBeTypeOf("string");
+    if (typeof again === "string") return;
+    expect(again.items.map((item) => [item.id, item.title])).toEqual([
+      ["parent", "Nouveau titre"],
+      ["child", "Enfant"],
+    ]);
+    expect(createMenuItem(items(), { id: "parent", title: "Deux fois" })).toBe("Cannot create item with duplicate id parent");
+    const added = createMenuItem(items(), { id: "new", title: "Nouveau" });
+    expect(typeof added !== "string" && added.items.map((item) => item.id)).toEqual(["parent", "child", "new"]);
+    expect(createMenuItem([], { title: "" })).toBeTypeOf("string");
   });
 });

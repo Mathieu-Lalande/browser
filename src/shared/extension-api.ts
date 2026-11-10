@@ -291,6 +291,42 @@ export function withDescendants(items: readonly MenuItem[], id: string): Set<str
   return gone;
 }
 
+/**
+ * `contextMenus.create` (ADR-054): a new item, or the item restored from the previous run under the
+ * same id, replaced in place (an extension recreating its menus at startup gets no "duplicate id"
+ * error for an item the browser kept for it). Returns the next items, or an error message.
+ */
+export function createMenuItem(items: readonly MenuItem[], props: unknown, restored: ReadonlySet<string> = new Set()): { items: MenuItem[]; id: string } | string {
+  const id = typeof props === "object" && props !== null ? menuId((props as Record<string, unknown>).id) : null;
+  const index = id !== null && restored.has(id) ? items.findIndex((item) => item.id === id) : -1;
+  if (index < 0) {
+    const item = menuItemFrom(props, items);
+    return typeof item === "string" ? item : { items: [...items, item], id: item.id };
+  }
+  const item = menuItemFrom(props, items.filter((_, at) => at !== index));
+  if (typeof item === "string") return item;
+  return { items: items.map((current, at) => (at === index ? item : current)), id: item.id };
+}
+
+/**
+ * Menus kept from one run to the next (`extension-menus.json`, ADR-054), by extension id. Each item
+ * is validated again as if the extension created it; a parent that is missing drops its children.
+ */
+export function parseStoredMenus(data: unknown): Record<string, MenuItem[]> | null {
+  if (typeof data !== "object" || data === null || Array.isArray(data)) return null;
+  const menus: Record<string, MenuItem[]> = {};
+  for (const [extensionId, list] of Object.entries(data as Record<string, unknown>).slice(0, 500)) {
+    if (!/^[\w-]{1,64}$/.test(extensionId) || !Array.isArray(list)) continue;
+    let items: MenuItem[] = [];
+    for (const raw of list.slice(0, MAX_MENU_ITEMS)) {
+      const item = menuItemFrom(raw, items);
+      if (typeof item !== "string") items = [...items, item];
+    }
+    if (items.length) menus[extensionId] = items;
+  }
+  return menus;
+}
+
 /** What a right click on a page is about (Chromium's `context-menu` parameters, the parts menus read). */
 export interface MenuTarget {
   pageUrl: string;
@@ -443,14 +479,17 @@ export interface ExtensionCommand {
   shortcut: string;
 }
 
-/** `chrome.commands.getAll()` from the manifest. Shortcuts are not installed (ADR-053): `shortcut` is empty. */
-export function manifestCommands(raw: unknown): ExtensionCommand[] {
+/**
+ * `chrome.commands.getAll()` from the manifest; `shortcuts`: the installed ones by command name, in
+ * Chrome's spelling (ADR-054). A command without one (none suggested, or taken by the browser) has "".
+ */
+export function manifestCommands(raw: unknown, shortcuts: Readonly<Record<string, string>> = {}): ExtensionCommand[] {
   const manifest = typeof raw === "object" && raw !== null ? (raw as Record<string, unknown>) : {};
   const commands = manifest.commands;
   if (typeof commands !== "object" || commands === null || Array.isArray(commands)) return [];
   return Object.entries(commands as Record<string, unknown>).map(([name, value]) => {
     const description = typeof value === "object" && value !== null ? (value as Record<string, unknown>).description : undefined;
-    return { name, description: typeof description === "string" ? description : "", shortcut: "" };
+    return { name, description: typeof description === "string" ? description : "", shortcut: Object.hasOwn(shortcuts, name) ? shortcuts[name] : "" };
   });
 }
 

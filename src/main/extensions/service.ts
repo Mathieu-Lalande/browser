@@ -253,12 +253,23 @@ export class ExtensionService implements SessionService {
   }
 
   private loadedOf(record: ExtensionRecord, electronId: string): LoadedExtension {
-    let manifest = this.manifests.get(record.path);
-    if (!manifest) {
-      manifest = readFolder(record.path)?.raw ?? {};
-      this.manifests.set(record.path, manifest);
-    }
+    const manifest = this.manifestAt(record.path);
     return { id: record.id, electronId, name: record.name, root: record.path, icon: record.icon, manifestVersion: record.manifestVersion, manifest };
+  }
+
+  /** An installed extension's raw manifest (read once per folder), or null when unknown. */
+  manifestOf(id: string): Record<string, unknown> | null {
+    const record = this.opened().store.get(id);
+    return record ? this.manifestAt(record.path) : null;
+  }
+
+  private manifestAt(path: string): Record<string, unknown> {
+    let manifest = this.manifests.get(path);
+    if (!manifest) {
+      manifest = readFolder(path)?.raw ?? {};
+      this.manifests.set(path, manifest);
+    }
+    return manifest;
   }
 
   /**

@@ -1,6 +1,7 @@
 import { t } from "@shared/i18n";
 import { randomUUID } from "node:crypto";
-import { copyFileSync, existsSync, mkdirSync, renameSync, rmSync } from "node:fs";
+import { copyFileSync, existsSync, linkSync, mkdirSync, renameSync, rmSync, statSync } from "node:fs";
+import { publicEntry, resumePlan, resumeStateOf, sameResumeState, type ResumeSource } from "@shared/download-resume";
 import { basename, dirname, join } from "node:path";
 import { dialog, shell, type BaseWindow, type DownloadItem, type Session, type WebContents } from "electron";
 import { canOpenFile, isOpenable, type DownloadEntry, type DownloadsChange } from "@shared/downloads";
@@ -53,6 +54,14 @@ export class DownloadService implements SessionService {
   private readonly privateViewers = new WeakMap<Session, string>();
   /** Entries to drop once their item settles (a private window closed while they ran). */
   private readonly forgetWhenDone = new Set<string>();
+  /** Downloads continued from a partial file (`createInterruptedDownload`), by session: save path → entry id. */
+  private readonly resuming = new WeakMap<Session, Map<string, string>>();
+  /** Entries continued from a partial file in this run → the offset they continued from. */
+  private readonly resumedFrom = new Map<string, number>();
+  /** Downloads the user cancelled (any other cancel, at shutdown, keeps what continuing needs). */
+  private readonly userCancelled = new Set<string>();
+  /** The app is quitting: the entries were set aside by `keepForRestart`, items ending now change nothing. */
+  private quitting = false;
 
   constructor(private readonly deps: DownloadDeps) {}
 
@@ -66,7 +75,7 @@ export class DownloadService implements SessionService {
 
   /** The downloads a window sees (`viewerOf` its private session, or null for a normal window). */
   list(viewer: DownloadViewer): DownloadEntry[] {
-    return this.deps.history().downloads.list(viewer);
+    return this.deps.history().downloads.list(viewer).map(publicEntry);
   }
 
   /** Whether a window may see (and act on) a download: private windows' ones stay theirs (audit LOW-3). */
@@ -98,6 +107,9 @@ export class DownloadService implements SessionService {
       rmSync(this.deps.quarantineDir, { recursive: true, force: true });
     }
     ses.on("will-download", (event, item, contents) => {
+      // A download continued from its partial file (ADR-054): it keeps its entry.
+      const resumed = this.takeResuming(ses, item);
+      if (resumed) return this.adopt(resumed, item, ses);
       // Only tab pages download: never the browser UI, nor anything else in the session, except a
       // retry the user asked for in the downloads list (main's own record of the URL).
       const retry = this.retries.get(ses);
@@ -136,17 +148,36 @@ export class DownloadService implements SessionService {
     if (item?.getState() === "progressing" && !item.isPaused()) item.pause();
   }
 
-  resume(id: string): void {
+  /**
+   * "Reprendre": a paused download continues; an interrupted one (in this run or a previous one)
+   * continues from its partial file when it can (ADR-054), else starts over (`retry`).
+   */
+  resume(id: string, fallback?: Session): void {
     const item = this.items.get(id);
-    if (item?.canResume()) item.resume();
+    if (item) {
+      if (item.canResume()) item.resume();
+      return;
+    }
+    if (fallback) this.retry(id, fallback);
   }
 
   /** Cancels a running download, or discards a dangerous file waiting for confirmation. */
   cancel(id: string): void {
     const item = this.items.get(id);
-    if (item) return item.cancel();
+    if (item) {
+      this.userCancelled.add(id);
+      return item.cancel();
+    }
     const { downloads, saveDownloads } = this.deps.history();
     const entry = downloads.get(id);
+    if (entry?.resume && entry.state === "interrupted") {
+      // An unfinished download of a previous run: its partial file goes, as Chrome does.
+      discardFile(entry.path);
+      discardFile(partialPath(entry.path));
+      downloads.update(id, ({ resume: _resume, ...current }) => ({ ...current, state: "cancelled", canResume: false }));
+      saveDownloads();
+      return this.push(id, true);
+    }
     if (!entry?.awaitingConfirmation) return;
     discardFile(this.quarantined(id));
     downloads.update(id, (current) => ({ ...current, state: "cancelled", awaitingConfirmation: false, path: "" }));
@@ -215,9 +246,11 @@ export class DownloadService implements SessionService {
   }
 
   /**
-   * "Réessayer": a failed or interrupted download starts again from its original URL, in the
-   * session it came from (`fallback`, the window's tab session, when it is from a previous run).
-   * The old entry gives way to the new one.
+   * "Réessayer": a failed or interrupted download, in the session it came from (`fallback`, the
+   * window's tab session, when it is from a previous run). It continues from its partial file when
+   * the server's validators were kept (ADR-054: `session.createInterruptedDownload`; a server that
+   * refuses the range makes Chromium start over); otherwise it starts again from its original URL
+   * and the old entry gives way to the new one.
    */
   retry(id: string, fallback: Session): void {
     const entry = this.deps.history().downloads.get(id);
@@ -225,6 +258,24 @@ export class DownloadService implements SessionService {
     if (!/^https?:/i.test(entry.url)) return;
     const ses = this.itemSessions.get(id) ?? fallback;
     if (!this.sessions.has(ses)) return;
+    if (entry.resume) restorePartial(entry.path);
+    const plan = resumePlan(entry, fileSize(entry.path));
+    if (plan && !this.privateDownloads.has(ses) && !this.reserved.has(plan.path)) {
+      let pending = this.resuming.get(ses);
+      if (!pending) this.resuming.set(ses, (pending = new Map()));
+      pending.set(plan.path, id);
+      this.reserved.add(plan.path);
+      this.resumedFrom.set(id, plan.offset);
+      try {
+        ses.createInterruptedDownload(plan);
+        return;
+      } catch (error) {
+        console.error("[downloads] cannot continue", entry.filename, error);
+        pending.delete(plan.path);
+        this.reserved.delete(plan.path);
+        this.resumedFrom.delete(id);
+      }
+    }
     let pending = this.retries.get(ses);
     if (!pending) this.retries.set(ses, (pending = new Set()));
     pending.add(entry.url);
@@ -232,6 +283,46 @@ export class DownloadService implements SessionService {
     this.itemSessions.delete(id);
     this.forget(id);
     ses.downloadURL(entry.url);
+  }
+
+  /**
+   * The app quits (ADR-054, `will-quit`): Chromium cancels running downloads at shutdown and deletes
+   * their partial file. Each unfinished download that can continue (validators kept, not private, not
+   * dangerous) gets a hard link to its file, `<name>.crdownload`, which outlives that deletion and is
+   * put back when it continues; its entry is saved as interrupted, ready for "Reprendre".
+   */
+  keepForRestart(): void {
+    if (this.quitting) return;
+    this.quitting = true;
+    const { downloads, saveDownloads } = this.deps.history();
+    let changed = false;
+    for (const entry of downloads.list()) {
+      const unfinished = entry.state === "progressing" || entry.state === "paused" || entry.state === "interrupted";
+      if (!unfinished || entry.dangerous || entry.awaitingConfirmation || !entry.path || downloads.isEphemeral(entry.id)) continue;
+      const item = this.items.get(entry.id);
+      const resume = (item && resumeStateOf(resumeSourceOf(item))) ?? entry.resume;
+      if (!resume || fileSize(entry.path) === null) continue;
+      try {
+        const kept = partialPath(entry.path);
+        rmSync(kept, { force: true });
+        linkSync(entry.path, kept);
+      } catch (error) {
+        // A file system without hard links (FAT): the download will start over.
+        console.error("[downloads] cannot keep", entry.filename, error);
+        continue;
+      }
+      downloads.update(entry.id, (current) => ({
+        ...current,
+        state: "interrupted",
+        canResume: true,
+        speed: 0,
+        receivedBytes: item ? Math.max(0, item.getReceivedBytes()) : current.receivedBytes,
+        endedAt: current.endedAt ?? Date.now(),
+        resume,
+      }));
+      changed = true;
+    }
+    if (changed) saveDownloads();
   }
 
   /** Forgets the finished downloads `viewer` sees (other windows' entries stay). */
@@ -318,13 +409,48 @@ export class DownloadService implements SessionService {
     const dropped = downloads.add(entry, { owner: owner?.viewer });
     saveDownloads();
     this.push(id, true, dropped);
+    this.track(id, item, reservedPath);
+    return id;
+  }
 
+  /** The entry a download continued from its partial file belongs to (and forgets the request). */
+  private takeResuming(ses: Session, item: DownloadItem): string | null {
+    const pending = this.resuming.get(ses);
+    if (!pending) return null;
+    const path = item.getSavePath();
+    const id = pending.get(path);
+    if (id === undefined) return null;
+    pending.delete(path);
+    return this.deps.history().downloads.get(id) ? id : null;
+  }
+
+  /**
+   * A download continued from its partial file (ADR-054): Electron hands it over interrupted; it keeps
+   * its entry, its path stays reserved until it ends, and it starts again.
+   */
+  private adopt(id: string, item: DownloadItem, ses: Session): void {
+    this.items.set(id, item);
+    this.itemSessions.set(id, ses);
+    this.userCancelled.delete(id);
+    const { downloads, saveDownloads } = this.deps.history();
+    downloads.update(id, (entry) => ({ ...entry, state: "progressing", canResume: false, endedAt: null, speed: 0 }));
+    saveDownloads();
+    this.push(id, true);
+    this.track(id, item, item.getSavePath());
+    item.resume();
+  }
+
+  private track(id: string, item: DownloadItem, reservedPath: string | null): void {
     item.on("updated", () => this.update(id, item, false));
     item.once("done", () => {
       this.items.delete(id);
       if (reservedPath) this.reserved.delete(reservedPath);
       const done = this.update(id, item, true);
-      if (!done) return;
+      this.userCancelled.delete(id);
+      this.resumedFrom.delete(id);
+      if (!done || this.quitting) return;
+      // A partial file kept at the last quit (same bytes, another name) is not needed any more.
+      if (done.state !== "interrupted" && done.path) discardFile(partialPath(done.path));
       if (this.forgetWhenDone.delete(id)) {
         if (done.dangerous) discardFile(item.getSavePath());
         return this.forget(id);
@@ -334,14 +460,13 @@ export class DownloadService implements SessionService {
       // A dangerous download that did not complete leaves nothing behind.
       if (done.dangerous && !done.awaitingConfirmation && done.state !== "completed") discardFile(item.getSavePath());
     });
-    return id;
   }
 
   /** Applies the item's current state; state changes are saved and pushed immediately. */
   private update(id: string, item: DownloadItem, final: boolean): DownloadEntry | undefined {
     const { downloads, saveDownloads } = this.deps.history();
     const before = downloads.get(id);
-    if (!before) return undefined;
+    if (!before || this.quitting) return before;
     const after = downloads.update(id, (entry) => {
       const next = applySnapshot(entry, snapshot(item), Date.now());
       // Save dialog: the path is known once the user picked it.
@@ -349,12 +474,36 @@ export class DownloadService implements SessionService {
         next.path = item.getSavePath();
         next.filename = basename(next.path);
       }
-      return next;
+      return this.withResumeState(id, item, next, final);
     })!;
-    const changed = final || after.state !== before.state || after.path !== before.path;
+    const changed = final || after.state !== before.state || after.path !== before.path || !sameResumeState(after.resume, before.resume);
     if (changed) saveDownloads();
     this.push(id, changed);
     return after;
+  }
+
+  /**
+   * What continuing after a restart needs (ADR-054), kept while the download is unfinished: never for
+   * a private window's download nor a dangerous file (its quarantine is emptied at startup). A cancel
+   * the user did not ask for (the app quitting) leaves it interrupted, ready to continue; one that
+   * continued from its partial file and failed again without a byte more starts over next time.
+   */
+  private withResumeState(id: string, item: DownloadItem, entry: DownloadEntry, final: boolean): DownloadEntry {
+    const { downloads } = this.deps.history();
+    const { resume: kept, ...rest } = entry;
+    if (entry.state === "completed" || this.userCancelled.has(id) || entry.dangerous || !entry.path || downloads.isEphemeral(id)) return rest;
+    const resume = resumeStateOf(resumeSourceOf(item)) ?? kept;
+    let next: DownloadEntry = entry;
+    if (final && entry.state === "cancelled" && resume) next = { ...entry, state: "interrupted" };
+    if (next.state === "cancelled") return rest;
+    const offset = this.resumedFrom.get(id);
+    if (final && offset !== undefined && next.state === "interrupted" && item.getReceivedBytes() <= offset) {
+      const { resume: _dropped, ...restarted } = next;
+      return { ...restarted, canResume: false };
+    }
+    next = resume ? { ...next, resume } : { ...rest, state: next.state };
+    // After the item ends, Electron cannot resume it any more: continuing goes through the partial file.
+    return final && next.state === "interrupted" ? { ...next, canResume: !!next.resume } : next;
   }
 
   /** Queues an entry for the next push (now for state changes). */
@@ -370,7 +519,7 @@ export class DownloadService implements SessionService {
     const { downloads } = this.deps.history();
     const updated = [...this.pending].map((id) => downloads.get(id)).filter((entry) => entry !== undefined);
     this.pending.clear();
-    this.changes.emit({ updated: updated.map((entry) => ({ ...entry })), removed });
+    this.changes.emit({ updated: updated.map(publicEntry), removed });
   }
 
   private forget(id: string): void {
@@ -396,6 +545,40 @@ function snapshot(item: DownloadItem): ItemSnapshot {
     bytesPerSecond: item.getCurrentBytesPerSecond(),
     canResume: item.canResume(),
   };
+}
+
+/** The response details a download needs to continue after a restart (ADR-054). */
+function resumeSourceOf(item: DownloadItem): ResumeSource {
+  try {
+    return { urlChain: item.getURLChain(), etag: item.getETag(), lastModified: item.getLastModifiedTime(), startTime: item.getStartTime() };
+  } catch {
+    return { urlChain: [], etag: "", lastModified: "", startTime: 0 };
+  }
+}
+
+/** Where an unfinished download's bytes are kept across a restart (a hard link, see `keepForRestart`). */
+const partialPath = (path: string) => `${path}.crdownload`;
+
+/** Puts a kept partial file back in its place (Chromium deleted the original name at the last quit). */
+function restorePartial(path: string): void {
+  const kept = partialPath(path);
+  if (!path || fileSize(path) !== null || fileSize(kept) === null) return;
+  try {
+    renameSync(kept, path);
+  } catch (error) {
+    console.error("[downloads] cannot restore", path, error);
+  }
+}
+
+/** Bytes of a file on disk, or null when there is none. */
+function fileSize(path: string): number | null {
+  if (!path) return null;
+  try {
+    const stats = statSync(path);
+    return stats.isFile() ? stats.size : null;
+  } catch {
+    return null;
+  }
 }
 
 function discardFile(path: string): void {

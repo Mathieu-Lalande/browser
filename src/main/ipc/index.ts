@@ -39,6 +39,7 @@ type EventChannel = (typeof Channels)[
   | "extensionsChanged"
   | "extensionsInstalled"
   | "extensionsActionStates"
+  | "extensionsActivate"
   | "passwordsChanged"
   | "autofillChanged"
   | "boostsChanged"

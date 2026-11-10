@@ -26,7 +26,7 @@ const onDownload = (action: (downloadId: string, c: BrowserController) => void):
 export const downloadHandlers = defineHandlers({
   [Channels.downloadsList]: handle([], (c) => listDownloads(c.downloadViewer)),
   [Channels.downloadsPause]: onDownload(pauseDownload),
-  [Channels.downloadsResume]: onDownload(resumeDownload),
+  [Channels.downloadsResume]: onDownload((downloadId, c) => resumeDownload(downloadId, c.tabSession)),
   [Channels.downloadsCancel]: onDownload(cancelDownload),
   [Channels.downloadsKeep]: onDownload((downloadId, c) => void keepDownload(downloadId, c.window)),
   [Channels.downloadsOpen]: onDownload(openDownload),

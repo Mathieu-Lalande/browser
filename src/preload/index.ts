@@ -89,6 +89,7 @@ const api: BrowserApi = {
     showInstalled: (id, anchor) => send(Channels.extensionsShowInstalled, id, anchor),
     actionStates: () => ipcRenderer.invoke(Channels.extensionsGetActionStates),
     onActionStates: (listener) => subscribe<Record<string, ActionState>>(Channels.extensionsActionStates, listener),
+    onActivate: (listener) => subscribe<string>(Channels.extensionsActivate, listener),
   },
   boosts: {
     list: () => ipcRenderer.invoke(Channels.boostsList),
@@ -407,6 +408,7 @@ const api: BrowserApi = {
   tasks: {
     list: () => ipcRenderer.invoke(Channels.tasksList),
     kill: (pid) => ipcRenderer.invoke(Channels.tasksKill, pid),
+    sleepSavings: () => ipcRenderer.invoke(Channels.tasksSleepSavings),
   },
   print: {
     update: (options) => ipcRenderer.invoke(Channels.printUpdate, options),

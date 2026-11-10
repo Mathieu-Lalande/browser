@@ -1,7 +1,10 @@
 <script lang="ts">
   import { t, intlLocale } from "@shared/i18n";
   import { formatSize, type ExtensionDetailsInfo, type ExtensionInfo } from "@shared/extensions";
+  import { acceleratorText } from "@shared/accelerators";
+  import type { ShortcutIssue } from "@shared/extension-commands";
   import { api, browser } from "../../lib/browser.svelte";
+  import { platform } from "../../lib/platform.svelte";
   import Icon from "../Icon.svelte";
   import Button from "../ui/Button.svelte";
   import ConfirmButton from "../ui/ConfirmButton.svelte";
@@ -30,6 +33,22 @@
 
   async function openOptions(): Promise<void> {
     optionsMissing = !(await api.extensions.openOptions(extension.id).catch(() => false));
+  }
+
+  /** Why a shortcut of the extension is not installed (ADR-054: the browser's win). */
+  function issueText(issue: ShortcutIssue): string {
+    switch (issue.kind) {
+      case "browser":
+        return t("extensionRow.shortcutTakenByBrowser", { label: issue.label });
+      case "extension":
+        return t("extensionRow.shortcutTakenByExtension", { name: issue.name });
+      case "reserved":
+        return t("extensionRow.shortcutReserved");
+      case "limit":
+        return t("extensionRow.shortcutLimit");
+      default:
+        return t("extensionRow.shortcutInvalid");
+    }
   }
 
   const source = $derived(extension.webStoreId ? "Chrome Web Store" : extension.managed ? t("extensionRow.installedFromFile") : t("extensionRow.unpackedFolder"));
@@ -83,6 +102,26 @@
             <p class="faint">{t("extensionRow.declared", { p: details.apiPermissions.join(", ") })}</p>
           {/if}
         </section>
+        {#if details?.shortcuts?.length}
+          <section data-testid="extension-shortcuts">
+            <h3>{t("extensionRow.shortcuts")}</h3>
+            <ul class="plain shortcuts">
+              {#each details.shortcuts as shortcut (shortcut.command)}
+                <li data-command={shortcut.command} data-active={shortcut.active}>
+                  <span class="command">{shortcut.description || shortcut.command}</span>
+                  {#if shortcut.accelerator && shortcut.issue?.kind !== "invalid"}
+                    <kbd class:off={!shortcut.active}>{acceleratorText(shortcut.accelerator, platform.name)}</kbd>
+                  {:else if !shortcut.accelerator}
+                    <span class="faint">{t("extensionRow.noShortcut")}</span>
+                  {/if}
+                  {#if shortcut.issue}
+                    <span class="conflict"><Icon name="warning" size={12} /> {issueText(shortcut.issue)}</span>
+                  {/if}
+                </li>
+              {/each}
+            </ul>
+          </section>
+        {/if}
         <section class="facts">
           {#if details}
             <span>{t("extensionRow.size", { p: formatSize(details.size) })}</span>
@@ -252,6 +291,25 @@
     display: flex;
     align-items: baseline;
     gap: var(--space-2);
+  }
+  .shortcuts li {
+    flex-wrap: wrap;
+  }
+  kbd {
+    padding: 0 var(--space-1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font: inherit;
+  }
+  kbd.off {
+    color: var(--text-muted);
+    text-decoration: line-through;
+  }
+  .conflict {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    color: var(--text-muted);
   }
   .facts {
     display: flex;

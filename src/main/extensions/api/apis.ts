@@ -3,6 +3,7 @@ import { extname, resolve, sep } from "node:path";
 import { nativeImage } from "electron";
 import {
   badgeColor,
+  createMenuItem,
   manifestCommands,
   manifestPermissions,
   matchesTabQuery,
@@ -230,37 +231,34 @@ const action: Record<string, Api> = {
 
 // --- chrome.contextMenus ---------------------------------------------------------------------
 
-function menuItems(context: ApiContext) {
-  const { id } = context.caller.extension;
-  let items = context.host.menus.get(id);
-  if (!items) context.host.menus.set(id, (items = []));
-  return items;
-}
+const menuItems = (context: ApiContext) => context.host.menus.get(context.caller.extension.id) ?? [];
 
+// Every change goes through `host.setMenus`, which keeps them for the next run (ADR-054).
 const contextMenus: Record<string, Api> = {
   create: (context, [props]) => {
-    const items = menuItems(context);
-    const item = menuItemFrom(props, items);
-    if (typeof item === "string") return fail(item);
-    items.push(item);
-    return item.id;
+    const { id } = context.caller.extension;
+    const created = createMenuItem(menuItems(context), props, context.host.restoredMenuIds(id));
+    if (typeof created === "string") return fail(created);
+    context.host.setMenus(id, created.items, created.id);
+    return created.id;
   },
   update: (context, [id, props]) => {
-    const items = menuItems(context);
+    const items = [...menuItems(context)];
     const index = items.findIndex((item) => item.id === String(id));
     if (index < 0) return fail(`Cannot find menu item with id ${String(id)}`);
     const item = menuItemFrom(props, items, items[index]);
     if (typeof item === "string") return fail(item);
     items[index] = item;
+    context.host.setMenus(context.caller.extension.id, items);
   },
   remove: (context, [id]) => {
     const items = menuItems(context);
     if (!items.some((item) => item.id === String(id))) return fail(`Cannot find menu item with id ${String(id)}`);
     const gone = withDescendants(items, String(id));
-    context.host.menus.set(context.caller.extension.id, items.filter((item) => !gone.has(item.id)));
+    context.host.setMenus(context.caller.extension.id, items.filter((item) => !gone.has(item.id)));
   },
   removeAll: (context) => {
-    context.host.menus.set(context.caller.extension.id, []);
+    context.host.setMenus(context.caller.extension.id, []);
   },
 };
 
@@ -362,7 +360,7 @@ const notifications: Record<string, Api> = {
 };
 
 const commands: Record<string, Api> = {
-  getAll: (context) => manifestCommands(context.caller.extension.manifest),
+  getAll: (context) => manifestCommands(context.caller.extension.manifest, context.host.shortcutsOf(context.caller.extension.id)),
 };
 
 function containsPermissions(context: ApiContext, wanted: unknown): boolean {

@@ -11,6 +11,7 @@ import type { SleepCandidate } from "../sleep";
 import type { SessionTab, SessionTabList } from "../storage/session";
 import { TAB_WEB_PREFERENCES, autoplayPolicyFor, type PopupOptions } from "../security";
 import { settings } from "../settings";
+import { measurePageMemoryKb } from "../sleep-memory";
 import { BROWSER_PAGES_ZOOM, onSiteZoomChange } from "../zoom";
 import { sameFactor } from "../zoom/levels";
 import { TabEvents } from "./events";
@@ -91,6 +92,7 @@ export class TabManager {
       applyZoom: (tab) => this.actions.applyZoom(tab),
       shieldsFor,
       emit,
+      measureMemory: measurePageMemoryKb,
     });
     this.events = new TabEvents({
       store,
@@ -131,6 +133,7 @@ export class TabManager {
         isBookmarked: this.isBookmarked(tab.state.url),
         isFavorite: tab.state.url !== "" && (this.hooks.isFavorite?.(tab.state.url) ?? false),
         isAsleep: isDiscarded(tab),
+        ...(isDiscarded(tab) && tab.sleepFreedKb ? { sleepFreedKb: tab.sleepFreedKb } : {}),
         inReadingList: showsWebPage(tab.state.url) && (this.hooks.isInReadingList?.(tab.state.url) ?? false),
         hasPasswords: showsWebPage(tab.state.url) && (this.hooks.hasPasswords?.(tab.state.url) ?? false),
         reader: this.layout.showsReader(tab),

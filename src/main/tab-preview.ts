@@ -122,6 +122,7 @@ export class TabPreviews {
         favicon: tab.favicon,
         thumbnail,
         asleep: !!tab.isAsleep,
+        ...(tab.isAsleep && tab.sleepFreedKb ? { freedKb: tab.sleepFreedKb } : {}),
         audible: tab.isAudible,
         muted: tab.isMuted,
       };

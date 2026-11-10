@@ -20,6 +20,8 @@ export interface LifecycleDeps {
   /** Whether content blocking is on for `url` in the manager's session. */
   shieldsFor(url: string): boolean;
   emit(): void;
+  /** The memory a page frees by closing, estimated just before a tab sleeps (ADR-054); absent: not measured. */
+  measureMemory?(contents: WebContents): number | null;
 }
 
 /**
@@ -44,6 +46,7 @@ export class TabLifecycle {
   wake(tab: Tab): void {
     if (!isDiscarded(tab)) return;
     tab.waking = tab.state.url;
+    tab.sleepFreedKb = undefined;
     const contents = this.ensureView(tab).webContents;
     const load = () => contents.loadURL(tab.state.url).catch(() => {
       // Load failures are reported through did-fail-load.
@@ -64,6 +67,8 @@ export class TabLifecycle {
     this.deps.layout.detachView(tab.view);
     tab.sleptHistory = historyOf(tab) ?? tab.sleptHistory;
     const contents = liveContents(tab);
+    // "Mémoire libérée" (ADR-054): measured while the page still runs.
+    tab.sleepFreedKb = (contents && this.deps.measureMemory?.(contents)) ?? undefined;
     unwire(tab);
     tab.view = null;
     contents?.close();

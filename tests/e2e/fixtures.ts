@@ -14,7 +14,13 @@ export interface ServerLog {
   icons: { url: string; cookie?: string; gpc?: string }[];
   /** Texts the fake LibreTranslate server was asked to translate (ADR-036). */
   translations: { q: string[]; source: string; target: string; cookie?: string }[];
+  /** `Range` headers of the requests for /files/resumable.bin (ADR-054); "" for a full request. */
+  ranges: string[];
 }
+
+/** /files/resumable.bin: 40 chunks of 64 KB, each byte its offset modulo 251 (a resumed file must match). */
+export const RESUMABLE_SIZE = 40 * 64 * 1024;
+export const resumableBytes = (start: number, end: number): Buffer => Buffer.from(Array.from({ length: end - start }, (_, i) => (start + i) % 251));
 
 type Fixtures = {
   /** Fresh profile directory, removed after the test. */
@@ -96,7 +102,7 @@ function fakeLibreTranslate(req: IncomingMessage, res: ServerResponse, log: Serv
 
 /** Tiny local site so tests never touch the network. */
 function startServer(): Promise<{ server: Server; origin: string; log: ServerLog }> {
-  const log: ServerLog = { icons: [], translations: [] };
+  const log: ServerLog = { icons: [], translations: [], ranges: [] };
   const server = createServer((req, res) => {
     const path = req.url ?? "/";
     if (req.method === "POST" && path === "/translate") return fakeLibreTranslate(req, res, log);
@@ -202,6 +208,28 @@ function startServer(): Promise<{ server: Server; origin: string; log: ServerLog
       // Download targets: a document, an executable, and a slow one (to watch the progress).
       const name = path.slice("/files/".length);
       res.setHeader("content-type", name.endsWith(".pdf") ? "application/pdf" : "application/octet-stream");
+      if (name === "resumable.bin") {
+        // ADR-054: validators and ranges; slow when downloaded from the start, fast when continued.
+        const range = req.headers.range ?? "";
+        log.ranges.push(range);
+        res.setHeader("etag", '"resumable-v1"');
+        res.setHeader("accept-ranges", "bytes");
+        const start = Number(/^bytes=(\d+)-$/.exec(range)?.[1] ?? 0);
+        if (start > 0) {
+          res.statusCode = 206;
+          res.setHeader("content-range", `bytes ${start}-${RESUMABLE_SIZE - 1}/${RESUMABLE_SIZE}`);
+          res.setHeader("content-length", String(RESUMABLE_SIZE - start));
+          return res.end(resumableBytes(start, RESUMABLE_SIZE));
+        }
+        res.setHeader("content-length", String(RESUMABLE_SIZE));
+        let sent = 0;
+        const timer = setInterval(() => {
+          if (res.destroyed || sent >= RESUMABLE_SIZE) return clearInterval(timer), res.end();
+          res.write(resumableBytes(sent, sent + 64 * 1024));
+          sent += 64 * 1024;
+        }, 250);
+        return;
+      }
       if (name === "slow.zip") {
         const chunk = Buffer.alloc(64 * 1024, 7);
         const chunks = 40;

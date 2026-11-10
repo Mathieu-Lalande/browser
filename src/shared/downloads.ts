@@ -28,11 +28,31 @@ export interface DownloadEntry {
    * discards it: it never sits in the downloads folder under its real name before that.
    */
   awaitingConfirmation: boolean;
-  /** An interrupted or paused download that can continue where it stopped (this run only). */
+  /**
+   * An interrupted or paused download that can continue where it stopped: in this run, or after a
+   * restart when `resume` was kept (ADR-054).
+   */
   canResume: boolean;
   /** Epoch milliseconds. */
   startedAt: number;
   endedAt: number | null;
+  /**
+   * What continuing after a restart needs (ADR-054), kept in `downloads.json` while the download is
+   * unfinished; main only (stripped before the UI gets the entry). Never for private windows.
+   */
+  resume?: DownloadResumeState;
+}
+
+/** Server validators and redirects of an unfinished download, for `session.createInterruptedDownload`. */
+export interface DownloadResumeState {
+  /** Every URL of the redirect chain, the final one last. */
+  urlChain: string[];
+  /** `ETag` of the response ("" when none). */
+  etag: string;
+  /** `Last-Modified` of the response ("" when none). */
+  lastModified: string;
+  /** Chromium's start time, seconds since the epoch. */
+  startTime: number;
 }
 
 /** Pushed by main to every browser UI: entries added or updated, and ids removed from the list. */

@@ -1,6 +1,7 @@
 import { t } from "@shared/i18n";
 import type { ProcessMetric, WebContents } from "electron";
 import { buildTaskRows, type ProcessOwner, type ProcessSample, type TaskRow } from "@shared/tasks";
+import { sleepSavings, type SleepSavings } from "@shared/sleep-memory";
 import type { WindowDirectory } from "./ports";
 
 export interface TaskManagerDeps {
@@ -62,6 +63,11 @@ export class TaskManagerService {
 
   list(): TaskRow[] {
     return buildTaskRows(this.deps.metrics().map(toSample), this.owners());
+  }
+
+  /** Tabs asleep in every window and the memory their sleep freed, estimated (ADR-054). */
+  sleepSavings(): SleepSavings {
+    return sleepSavings(this.deps.windows.all().flatMap((window) => window.spaces.allTabs().map(({ tab }) => tab)));
   }
 
   /** Ends a tab renderer process; false for any other process (the browser, the GPU, the interface…). */

@@ -323,6 +323,16 @@ if (!app.requestSingleInstanceLock()) {
     });
   });
 
+  // ADR-054: unfinished downloads keep their partial file (Chromium deletes it at shutdown), before
+  // the profile is written for the last time; the extensions' context menus are written now.
+  app.on("will-quit", () => {
+    try {
+      appServices().downloads.keepForRestart();
+      appServices().extensionApi.flushMenus();
+    } catch {
+      // Quitting before startup finished: nothing downloaded yet.
+    }
+  });
   // Last chance to write pending history/bookmarks/session changes.
   app.on("will-quit", flushProfile);
 

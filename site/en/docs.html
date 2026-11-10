@@ -352,6 +352,8 @@
             A tab inactive for the chosen delay (Settings, Behavior: never, 15 min, 30 min…) is put to sleep: its memory
             is freed and it reloads when you come back to it. Never for a tab playing sound, waiting for a permission or
             holding a form in progress. The “Put tab to sleep” and “Put other tabs to sleep” commands do it right away.
+            A sleeping tab's tooltip and the task manager (<kbd>Shift</kbd> <kbd>Esc</kbd>) show roughly how much memory
+            sleeping freed: an estimate, measured just before the page closed.
           </p>
         </section>
 
@@ -751,8 +753,10 @@
           <p class="muted">
             The browser completes Electron's <code>chrome.*</code> APIs: tabs and windows (open, close, list), button
             badges, titles and icons, clicks on a button without a window, items added to the page context menu (under
-            the extension's name), notifications. An extension only reads a tab's address and title when it has the
-            permission. Extension keyboard shortcuts aren't installed, and no extension runs in a private window
+            the extension's name, kept from one launch to the next), notifications. An extension only reads a tab's
+            address and title when it has the permission. Its <strong>keyboard shortcuts</strong> work while it is
+            enabled and a browser window has focus (never system-wide); the browser's own shortcuts come first, and
+            “Details” shows an inactive shortcut and what already uses it. No extension runs in a private window
             (Electron doesn't load extensions in a session kept in memory).
           </p>
         </section>
@@ -790,7 +794,7 @@
               alt="The browser://downloads page with three finished downloads" />
           </figure>
           <ul>
-            <li><strong>Downloads</strong>: saved without a dialog (or always ask where, Settings, Downloads), with pause, resume and cancel. Programs and scripts wait for your confirmation; nothing is opened automatically. List: <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>J</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>L</kbd>) or <code>browser://downloads</code>.</li>
+            <li><strong>Downloads</strong>: saved without a dialog (or always ask where, Settings, Downloads), with pause, resume and cancel; a download interrupted by closing the browser picks up where it stopped (“Resume”), when the server allows it. Programs and scripts wait for your confirmation; nothing is opened automatically. List: <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>J</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>L</kbd>) or <code>browser://downloads</code>.</li>
             <li><strong>Find in page</strong>: <kbd>Ctrl</kbd> <kbd>F</kbd>, then <kbd>Enter</kbd> / <kbd>Shift</kbd> <kbd>Enter</kbd>, <kbd>F3</kbd> or <kbd>Ctrl</kbd> <kbd>G</kbd> for the next match. The counter and case are kept per tab.</li>
             <li><strong>Zoom</strong>: <kbd>Ctrl</kbd> <kbd>+</kbd> / <kbd>-</kbd> / <kbd>0</kbd>, pinch or <kbd>Ctrl</kbd> + wheel, remembered per site; default zoom in Settings, Appearance.</li>
             <li><strong>Media</strong>: <kbd>Ctrl</kbd> <kbd>M</kbd> mutes the tab; “Picture in picture” detaches the video, and does it by itself when you leave a tab playing a video if “Automatic picture in picture” is on (Settings, Behavior; sites that forbid it are respected); <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>P</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>P</kbd>) pauses everything.</li>

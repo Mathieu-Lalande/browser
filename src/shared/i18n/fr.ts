@@ -835,6 +835,8 @@ export const fr = {
   "menu.spaces": "Espaces",
   "menu.bookmarks": "Favoris",
   "menu.help": "Aide",
+  "menu.extensions": "Extensions",
+  "menu.extensionCommand": "{name} : {command}",
   "menu.interfaceDevtools": "DevTools de l'interface",
 
   // miniMiniWindow
@@ -3831,6 +3833,18 @@ export const fr = {
   // extensionRow
   "extensionRow.updatesLastCheck": "Mises à jour : dernière vérification le {date}",
   "extensionRow.updatesNeverChecked": "Mises à jour : jamais vérifiées",
+  "extensionRow.shortcuts": "Raccourcis clavier",
+  "extensionRow.noShortcut": "Aucun raccourci",
+  "extensionRow.shortcutTakenByBrowser": "Inactif : déjà pris par « {label} » (les raccourcis du navigateur passent en premier)",
+  "extensionRow.shortcutTakenByExtension": "Inactif : déjà pris par l'extension {name}",
+  "extensionRow.shortcutReserved": "Inactif : réservé par le système",
+  "extensionRow.shortcutLimit": "Inactif : quatre raccourcis au plus par extension",
+  "extensionRow.shortcutInvalid": "Raccourci proposé invalide",
+  "extensionShortcuts.activate": "Activer l'extension",
+  "sleepMemory.asleepFreed": "En veille · environ {size} libérés (estimation)",
+  "sleepMemory.summary": "{count, plural, one {# onglet en veille} other {# onglets en veille}} · environ {size} libérés",
+  "sleepMemory.summaryUnmeasured": "{count, plural, one {# onglet en veille} other {# onglets en veille}}",
+  "sleepMemory.estimateHint": "Estimation : mémoire du processus de chaque page mesurée juste avant sa mise en veille, partagée entre les pages de ce processus.",
 
   // folderEditor
   "folderEditor.quotedName": "« {name} »",

@@ -2,6 +2,7 @@
   import { t } from "@shared/i18n";
   import type { TabState } from "@shared/types";
   import { displayUrl } from "@shared/url";
+  import { formatBytes } from "@shared/downloads";
   import { api } from "../lib/browser.svelte";
   import { platform } from "../lib/platform.svelte";
   import { previewsEnabled, tabPreview } from "../lib/tab-preview";
@@ -16,7 +17,15 @@
   let { tab, active, focusable = active }: { tab: TabState; active: boolean; focusable?: boolean } = $props();
 
   /** Title, then the address on a second line. */
-  const tooltip = $derived(tab.url && tab.url !== tab.title ? `${tab.title}\n${displayUrl(tab.url)}` : tab.title);
+  const tooltip = $derived(
+    [
+      tab.url && tab.url !== tab.title ? `${tab.title}\n${displayUrl(tab.url)}` : tab.title,
+      // A sleeping tab: what it freed, labelled as an estimate (ADR-054).
+      tab.isAsleep && tab.sleepFreedKb ? t("sleepMemory.asleepFreed", { size: formatBytes(tab.sleepFreedKb * 1024) }) : "",
+    ]
+      .filter(Boolean)
+      .join("\n"),
+  );
 
   function onAuxClick(event: MouseEvent): void {
     if (event.button === 1) api.tabs.close(tab.id);

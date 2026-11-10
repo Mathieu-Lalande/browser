@@ -834,6 +834,8 @@ export const en: Record<MessageKey, string> = {
   "menu.spaces": "Spaces",
   "menu.bookmarks": "Bookmarks",
   "menu.help": "Help",
+  "menu.extensions": "Extensions",
+  "menu.extensionCommand": "{name}: {command}",
   "menu.interfaceDevtools": "Interface DevTools",
 
   // miniMiniWindow
@@ -3830,6 +3832,18 @@ export const en: Record<MessageKey, string> = {
   // extensionRow
   "extensionRow.updatesLastCheck": "Updates: last checked on {date}",
   "extensionRow.updatesNeverChecked": "Updates: never checked",
+  "extensionRow.shortcuts": "Keyboard shortcuts",
+  "extensionRow.noShortcut": "No shortcut",
+  "extensionRow.shortcutTakenByBrowser": "Inactive: already used by “{label}” (browser shortcuts come first)",
+  "extensionRow.shortcutTakenByExtension": "Inactive: already used by the {name} extension",
+  "extensionRow.shortcutReserved": "Inactive: reserved by the system",
+  "extensionRow.shortcutLimit": "Inactive: four shortcuts per extension at most",
+  "extensionRow.shortcutInvalid": "Invalid suggested shortcut",
+  "extensionShortcuts.activate": "Activate the extension",
+  "sleepMemory.asleepFreed": "Asleep · about {size} freed (estimate)",
+  "sleepMemory.summary": "{count, plural, one {# tab asleep} other {# tabs asleep}} · about {size} freed",
+  "sleepMemory.summaryUnmeasured": "{count, plural, one {# tab asleep} other {# tabs asleep}}",
+  "sleepMemory.estimateHint": "Estimate: each page's process memory, measured just before it went to sleep, shared among the pages of that process.",
 
   // folderEditor
   "folderEditor.quotedName": "“{name}”",
