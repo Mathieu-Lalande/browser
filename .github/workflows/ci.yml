@@ -1,4 +1,5 @@
-# Checks every push and pull request; on master, also builds unsigned packages for the three OSes.
+# Checks every push to master and every pull request; on master, also packages and smoke-tests Linux.
+# Windows and macOS packages (10x the minutes for macOS) are built only on a manual run (workflow_dispatch).
 # Auto-update and code signing are not set up (see docs/ROADMAP.md and ADR-015).
 name: CI
 
@@ -40,7 +41,7 @@ jobs:
         with:
           name: playwright-results
           path: test-results/
-          retention-days: 7
+          retention-days: 3
           if-no-files-found: ignore
 
   server:
@@ -64,11 +65,11 @@ jobs:
   package:
     name: Package (${{ matrix.os }})
     needs: check
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/master') || github.event_name == 'workflow_dispatch'
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '["ubuntu-latest","windows-latest","macos-latest"]' || '["ubuntu-latest"]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     env:
@@ -88,11 +89,13 @@ jobs:
         run: xvfb-run -a npx playwright test packaging
         env:
           BROWSER_PACKAGED: release/linux-unpacked/browser
+      # Packages are kept only for manual runs, and briefly: artifact storage counts against the free quota.
       - uses: actions/upload-artifact@v4
+        if: github.event_name == 'workflow_dispatch'
         with:
           name: browser-${{ runner.os }}
           path: |
             release/*-unpacked/
             release/mac*/
-          retention-days: 14
+          retention-days: 3
           if-no-files-found: error

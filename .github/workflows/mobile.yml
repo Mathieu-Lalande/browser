@@ -2,12 +2,17 @@ name: Mobile
 
 on:
   push:
+    branches: [master]
     paths: ["mobile/**", "src/shared/**", ".github/workflows/mobile.yml"]
   pull_request:
     paths: ["mobile/**", "src/shared/**", ".github/workflows/mobile.yml"]
 
 permissions:
   contents: read
+
+concurrency:
+  group: mobile-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:

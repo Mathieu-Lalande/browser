@@ -73,7 +73,7 @@ barre d'adresse, page d'accueil, raccourcis, durcissement sécurité, tests unit
 - (fait) Anti-fingerprinting modeste : UA réduit, client hints cohérents, `Accept-Language` uniformisable.
   Hors périmètre (scripts injectés) : canvas, WebGL, polices (ADR-014).
 - (fait) Packaging electron-builder (AppImage/deb, NSIS, dmg ; asar vérifié avec le worker du bloqueur)
-  et CI GitHub Actions (vérifications + e2e, paquets non signés sur `master`) (ADR-015).
+  et CI GitHub Actions (vérifications + e2e ; sur `master`, paquet Linux testé ; Windows et macOS au lancement manuel) (ADR-015).
 - (fait) Mises à jour automatiques (ADR-030) : `electron-updater` sur les releases GitHub, contrôle 30 s
   après le démarrage puis toutes les 6 h, téléchargement en arrière-plan, installation au redémarrage
   (jamais forcée), canaux Stable et Bêta. Signature Windows (Azure Trusted Signing ou

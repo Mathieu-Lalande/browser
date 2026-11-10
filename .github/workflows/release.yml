@@ -196,7 +196,7 @@ jobs:
             release/*.deb
             release/latest*.yml
             release/*.blockmap
-          retention-days: 7
+          retention-days: 3
           if-no-files-found: error
 
   publish:
