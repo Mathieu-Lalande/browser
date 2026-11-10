@@ -91,12 +91,22 @@ des onglets (« Autres appareils ») et dans la recherche. Rien de la navigation
   `mailto:`/`tel:`/`sms:` ouvrent l'application du système, pas d'accès aux fichiers, pas de
   contenu mixte, pas de fenêtres surgissantes automatiques (les liens « nouvelle fenêtre » ouvrent
   un onglet). Voir l'ADR-016 dans `docs/DECISIONS.md`.
+- **Comme sur le bureau** : dossiers, favoris et archivage (ADR-022), mode lecture avec images et version
+  ordinateur (ADR-026, 050), aperçu des liens (ADR-027), mots de passe (`expo-secure-store`, synchronisation
+  facultative, ADR-025/050), adresses et cartes (ADR-041), traduction (ADR-036), surlignages et notes, dont
+  « Note de la page » (ADR-037/050), liste de lecture (ADR-047), assistant IA avec votre clé (ADR-044), boosts
+  (ADR-029), thèmes partageables et thème dynamique (ADR-030/050), widgets de la page d'accueil (ADR-034),
+  mini-lecteur (ADR-035).
+- **Bouclier** (menu de la page → Infos sur le site) : bloqueur de pubs et traqueurs, bandeaux cookies
+  refusés, désactivation par site, effacement des données du site (ADR-051).
+- **Langue** : Paramètres → Apparence → Langue (Automatique suit le téléphone, Français, English), ADR-052.
 
-## Limites de la phase 1 (Expo Go)
+## Limites
 
-- **Pas encore de bloqueur de pubs et traqueurs** : il faut du code natif (règles de contenu
-  WebKit sur iOS, interception des requêtes sur Android), donc une version compilée de l'application
-  (« development build »). C'est prévu en phase 2 (voir `docs/ROADMAP.md`).
+- **Expo Go : bloqueur partiel.** Le blocage des requêtes demande le module natif
+  `modules/content-blocker` (règles de contenu WebKit sur iOS, interception des requêtes sur Android),
+  donc la version compilée (client de développement ou build EAS : `docs/INSTALL.md`, section 1). Dans
+  Expo Go, seuls le masquage des emplacements publicitaires et le refus des bandeaux cookies fonctionnent.
 - **Android, onglets privés** : l'option « incognito » de la WebView Android effacerait les cookies
   de *tous* les onglets ; elle n'est donc pas utilisée. Les onglets privés n'ont ni historique, ni
   cache, ni formulaires mémorisés, mais partagent encore les cookies des autres onglets.
@@ -104,7 +114,8 @@ des onglets (« Autres appareils ») et dans la recherche. Rien de la navigation
   absent d'Expo Go) : chaque carte, neutre, affiche le favicon du site (ou son initiale).
 - **Tirer pour actualiser** n'existe que sur iPhone (la WebView Android ne le propose pas) ;
   sur Android, utilisez le bouton Recharger de la barre d'adresse.
-- Les cookies des sites ne peuvent pas être effacés depuis l'application dans Expo Go.
+- « Effacer les données du site » vide son stockage et ses cookies accessibles aux pages ; les cookies
+  protégés (`HttpOnly`) ne peuvent pas être effacés site par site.
 
 ## Développement
 
@@ -115,6 +126,8 @@ des onglets (« Autres appareils ») et dans la recherche. Rien de la navigation
 | `npm test` | Tests unitaires (Jest, preset `jest-expo`) |
 | `npm run export:android` / `export:ios` | Bundle de production (vérifie toutes les importations) |
 | `npx expo start --web` | Aperçu de l'interface dans un navigateur (la page web y est simulée) |
+| `npm run blocklists` | Reconstruit les listes du bloqueur (`src/generated/`, jamais commitées ; aussi au `postinstall`) |
+| `npm run store:screenshots` / `store:icons` | Captures aux tailles des stores, icônes (`docs/INSTALL.md`, 2.3) |
 
 Structure :
 
@@ -122,11 +135,17 @@ Structure :
 mobile/
   index.ts                point d'entrée Expo
   metro.config.js         résolution de `@shared/*` vers ../src/shared (sans copie)
+  app.json, app.config.ts, eas.json   configuration Expo et EAS (INSTALL 2.3)
+  modules/content-blocker/            module natif du bloqueur (Swift, Kotlin, plugin), ADR-051
+  patches/                correctif de react-native-webview (patch-package)
+  scripts/                listes du bloqueur, icônes, captures des stores
+  store/                  fiches FR/EN, réponses confidentialité et chiffrement, captures
   src/
     App.tsx               fournisseurs (gestes, zones sûres, clavier, état, thème)
-    state/                état du navigateur (onglets, historique, favoris, paramètres) et thème
-    lib/                  logique pure et testée : onglets/espaces, navigation, gestes, recherche…
-    components/           écrans : barre du bas, onglet WebView, recherche, vue des onglets…
+    state/                `BrowserProvider` et stores (`stores/` : onglets, historique, favoris, paramètres…)
+    hooks/                hooks composés par `BrowserScreen` (menus, lecteur, bouclier, liens entrants…)
+    lib/                  logique pure et testée : onglets/espaces, navigation, gestes, recherche, synchro…
+    components/           écrans : barre du bas, onglet WebView, recherche, vue des onglets (`overview/`)…
 ```
 
 Le code partagé avec le bureau s'importe avec `@shared/…` (ex. `import { normalizeInput } from "@shared/url"`) :

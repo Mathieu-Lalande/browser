@@ -25,8 +25,38 @@ npm run dev        # ouvre le navigateur, l'interface se recharge à chaque modi
 
 Mise à jour : `git pull` puis `npm install` (si `package.json` a changé), puis `npm run dev`.
 
-Vérifications : `npm run typecheck`, `npm test` et `npm run test:e2e` (tests de bout en bout ; sous Linux
-sans affichage : `xvfb-run -a npm run test:e2e`).
+Vérifications, dans l'ordre de la CI (`.github/workflows/ci.yml`) :
+
+```powershell
+npm run typecheck      # TypeScript (main, preload, shared, tests) + svelte-check
+npm run check:cycles   # aucun cycle d'import dans src/main (scripts/check-cycles.mjs)
+npm run check:i18n     # pas de texte français en dur hors des catalogues (scripts/check-i18n.mjs, ADR-052)
+npm test               # Vitest
+npm run build          # electron-vite, sortie dans out/
+npm run test:e2e       # build + Playwright pilotant Electron (Linux sans affichage : xvfb-run -a npx playwright test)
+```
+
+Le serveur de synchronisation (`npm run test:server`) et le site (`cd site && npm ci && npm run build`) ont
+leurs propres jobs. Mesures de performance : `npm run bench` (démarrage, nouvel onglet, mémoire ; rapport dans
+`docs/perf/`, ADR-043).
+
+**Langues (ADR-052).** Le français est la langue source : un texte d'interface s'ajoute dans
+`src/shared/i18n/fr.ts` **et** `src/shared/i18n/en.ts` (une clé manquante en anglais casse le typecheck), puis
+s'affiche avec `t("zone.cle")`. Les tests e2e tournent en français (`BROWSER_TEST_LOCALE=fr`, mis par les
+fixtures) ; `tests/e2e/i18n.spec.ts` vérifie l'anglais.
+
+**Captures d'écran** (`docs/screenshots/`, en root sous Linux avec xvfb, openssl, ImageMagick et pngquant) :
+
+```bash
+npm run build
+SCREENSHOTS=1 SCREENSHOT_THEME=dark  xvfb-run -a -s "-screen 0 1600x1000x24" npx playwright test screenshots
+SCREENSHOTS=1 SCREENSHOT_THEME=light xvfb-run -a -s "-screen 0 1600x1000x24" npx playwright test screenshots
+```
+
+Le nom `screenshots` lance aussi `mobile-screenshots.spec.ts` (application mobile en version web, construite par
+`expo export --platform web`, ou `MOBILE_WEB_DIR=<dossier>` pour réutiliser une construction). Les écrans clés
+existent aussi en anglais (`*-en-<thème>.png`). Le site utilise des copies WebP de celles qu'il affiche :
+`convert docs/screenshots/<nom>.png -quality 82 -define webp:method=6 site/public/img/screens/<nom>.webp`.
 
 > Conseil : évite un dossier synchronisé par OneDrive pour le dépôt (ex. `C:\dev\browser`). OneDrive
 > verrouille parfois des fichiers de `node_modules` pendant `npm install` et ralentit tout.
@@ -237,9 +267,10 @@ réglage affiche « Widevine indisponible ».
 
 **Connexion Google.** Google refuse les « navigateurs intégrés ». Browser se présente comme Google
 Chrome de la même version (agent utilisateur sans « Electron » ni nom d'application, en-têtes
-`Sec-CH-UA` avec les marques de Chrome), ce qui est vérifié par les tests e2e. La connexion réelle à
-un compte Google reste à **vérifier à la main** à chaque montée de version d'Electron (Windows :
-accounts.google.com → se connecter, puis Gmail), Google pouvant changer ses contrôles.
+`Sec-CH-UA` avec les marques de Chrome), ce qui est vérifié par les tests e2e ; malgré cela, les pages
+HTTPS de `accounts.google.com` s'ouvrent dans le **navigateur système** (`src/main/security.ts`, ADR-040), les
+autres connexions (Okta…) restant dans Browser. À revérifier à chaque montée de version d'Electron, Google
+pouvant changer ses contrôles.
 
 **Site vitrine.** Le dossier `site/` (Vite + TypeScript, sans framework) est publié sur GitHub Pages par
 `.github/workflows/site.yml` à chaque push sur `master` qui touche `site/`. **Une seule fois** :
@@ -425,15 +456,16 @@ Apple sur demande :
    le profil de provisionnement ne pourrait pas être créé.
 5. Sur l'iPhone : *Réglages → Apps → Browser → App de navigation par défaut*.
 
-**Phase 2 mobile** (`docs/ROADMAP.md`) : la version compilée permet d'ajouter du code natif, et
-donc le bloqueur de pubs et de vrais onglets privés isolés sur Android. La synchronisation avec le
-bureau, elle, fonctionne déjà dans Expo Go (section 3).
+**Phase 2 mobile** (`docs/ROADMAP.md`) : la version compilée porte le bloqueur de pubs natif (ADR-051,
+section 1 « Client de développement ») ; restent notamment de vrais onglets privés isolés sur Android. La
+synchronisation avec le bureau, elle, fonctionne déjà dans Expo Go (section 3).
 
 ---
 
 ## 3. Synchroniser le PC et l'iPhone
 
-La synchronisation (favoris, historique récent, onglets ouverts, espaces, thème) passe par **votre
+La synchronisation (favoris, historique récent, onglets ouverts, espaces, thème, boosts, grille des favoris,
+liste de lecture ; au choix notes, panneaux web, adresses et mots de passe) passe par **votre
 propre serveur**, qui ne voit que des données chiffrées (ADR-019). Aucun serveur n'est fourni :
 tant que vous n'en avez pas déployé un, elle reste simplement désactivée.
 
@@ -462,5 +494,5 @@ Vérifications du serveur : `cd server && npm test` (ou `npm run test:server` à
 | --- | --- | --- |
 | Développer | `npm run dev` | Expo Go + `npx expo start` |
 | L'utiliser au quotidien soi-même | `npm run dist` → installateur | EAS Build → TestFlight (compte Apple Developer) |
-| Le distribuer | `npm run release:version` → release GitHub + site vitrine (signature à venir) | App Store (revue Apple) |
+| Le distribuer | `npm run release:version` → release GitHub + site vitrine (signée dès que les secrets existent) | `mobile-release.yml` / EAS → App Store et Google Play |
 | Synchroniser | Paramètres → Synchronisation (serveur auto-hébergé, `server/`) | Paramètres → Synchronisation → Scanner |

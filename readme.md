@@ -1,10 +1,18 @@
 # Browser
 
-Un navigateur **rapide, privé et entièrement personnalisable**, dans l'esprit d'Arc et de Zen, pour
-Windows, macOS et Linux, avec son application iPhone et Android.
+[![CI](https://github.com/Mathieu-Lalande/browser/actions/workflows/ci.yml/badge.svg)](https://github.com/Mathieu-Lalande/browser/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/Mathieu-Lalande/browser?include_prereleases&label=version)](https://github.com/Mathieu-Lalande/browser/releases)
+[![Licence](https://img.shields.io/badge/licence-propri%C3%A9taire-lightgrey)](LICENSE)
 
-- **Site et téléchargements** : https://mathieu-lalande.github.io/browser/
-- **Guide d'utilisation** : https://mathieu-lalande.github.io/browser/docs.html
+Un navigateur **rapide, privé et entièrement personnalisable**, dans l'esprit d'Arc et de Zen, pour
+Windows, macOS et Linux, avec son application iPhone et Android. Interface en français et en anglais.
+
+*English version: [`readme.en.md`](readme.en.md).*
+
+- **Site et téléchargements** : https://mathieu-lalande.github.io/browser/ (English :
+  https://mathieu-lalande.github.io/browser/en/)
+- **Guide d'utilisation** : https://mathieu-lalande.github.io/browser/docs.html (English :
+  https://mathieu-lalande.github.io/browser/en/docs.html)
 - **Installer, développer, publier** : [`docs/INSTALL.md`](docs/INSTALL.md) · **Décisions** :
   [`docs/DECISIONS.md`](docs/DECISIONS.md) · **Feuille de route** : [`docs/ROADMAP.md`](docs/ROADMAP.md)
 - **Guides** : [`docs/USER.md`](docs/USER.md) · [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) ·
@@ -28,6 +36,9 @@ Windows, macOS et Linux, avec son application iPhone et Android.
   droit sur l'espace vide de la barre latérale (mode compact en rail d'icônes, côté de la barre) et sur les
   pastilles d'espace (renommer, réordonner, supprimer) ; sélection de plusieurs onglets (`Ctrl`+clic) avec barre
   d'actions ; rouvrir l'onglet fermé (`Ctrl+Maj+T`).
+- Barre de fenêtre escamotable (ADR-045) : dépliée quand la souris touche le haut, avec le mode de la barre
+  latérale (complète, compacte en rail d'icônes, zen) et les boutons de la fenêtre ; un seul menu « … » ; barre
+  d'adresse allégée (favori et options de la page au survol) ; onglet lâché au milieu d'un autre = vue scindée.
 
 **Premiers pas, diagnostic, performances** (ADR-043)
 - Visite guidée au premier lancement (`browser://welcome`, rouvrable depuis Aide) : thème, import du navigateur
@@ -90,7 +101,11 @@ Windows, macOS et Linux, avec son application iPhone et Android.
 - Galerie de 8 thèmes et thèmes partageables (code `browser-theme:v1:…`, fichier `.browsertheme`, QR code) (ADR-030).
 - Boosts par site : filtres de couleur, police, éléments masqués, CSS, script optionnel (`browser://boosts`) (ADR-029).
 - Extensions Chrome non empaquetées, `.zip` ou `.crx` (`browser://extensions`, support partiel) (ADR-024).
-- Installation depuis le Chrome Web Store (« Ajouter à Browser », signature CRX3 vérifiée, autorisations affichées avant), mises à jour quotidiennes, boutons et fenêtres d'extension dans la barre latérale (ADR-049).
+- Installation depuis le Chrome Web Store (« Ajouter à Browser » dans la page du store, signature CRX3 vérifiée,
+  autorisations affichées avant), mises à jour quotidiennes, boutons et fenêtres d'extension dans la barre
+  latérale, détails (sites, taille, options) (ADR-049).
+- Interface en français ou en anglais (Paramètres → Apparence → Langue, « Automatique » suit le système),
+  changée à chaud, aussi sur le téléphone ; site en deux langues (ADR-052).
 
 **Protéger**
 - Recherche privée par défaut (DuckDuckGo), modèle de sécurité strict : pages sans preload ni Node, interface
@@ -108,8 +123,9 @@ Windows, macOS et Linux, avec son application iPhone et Android.
   trousseau, jamais de CVC, adresses synchronisables (facultatif), cartes jamais ; clés d'accès (Windows Hello,
   clés USB), notifications natives avec « Ne pas déranger », langues de l'orthographe (ADR-041).
 - Synchronisation chiffrée de bout en bout avec le téléphone (favoris, historique récent, onglets ouverts,
-  espaces, thème, boosts) via un petit serveur que vous hébergez ([`server/`](server/README.md)), jumelage
-  par QR code ; jamais la navigation privée (ADR-019). « Envoyer à un appareil » : un onglet vers un autre
+  espaces, thème, boosts, grille des favoris, liste de lecture ; au choix notes, panneaux web, adresses et mots
+  de passe, ces derniers scellés aussi sur le disque) via un petit serveur que vous hébergez
+  ([`server/`](server/README.md)), jumelage par QR code ; jamais la navigation privée (ADR-019, 050). « Envoyer à un appareil » : un onglet vers un autre
   appareil, chiffré, expiré après 7 jours (ADR-033).
 - Mises à jour automatiques depuis les releases GitHub, canal stable ou bêta (ADR-030).
 - Reprise après plantage : session enregistrée en continu, carte « Restaurer la session ? » après une fermeture
@@ -125,12 +141,18 @@ Windows, macOS et Linux, avec son application iPhone et Android.
 | --- | --- |
 | ![Barre latérale : favoris, dossiers, espaces](docs/screenshots/sidebar-dark.png) | ![Page d'accueil personnalisable](docs/screenshots/start-light.png) |
 | ![Barre universelle](docs/screenshots/omnibox-dark.png) | ![Réponse instantanée de la barre universelle](docs/screenshots/omnibox-answer-light.png) |
+| ![Barre de fenêtre dépliée : mode de la barre latérale, économiseur d'énergie](docs/screenshots/window-bar-dark.png) | ![Panneau web ouvert à côté de la page](docs/screenshots/panels-light.png) |
 | ![Vue scindée](docs/screenshots/split-dark.png) | ![Mode lecture](docs/screenshots/reader-light.png) |
+| ![Assistant IA : résumé de la page](docs/screenshots/assistant-dark.png) | ![Liste de lecture](docs/screenshots/reading-list-light.png) |
 | ![Aperçu d'un lien](docs/screenshots/peek-dark.png) | ![Options de la page](docs/screenshots/page-options-light.png) |
+| ![Tableau de bord de confidentialité](docs/screenshots/privacy-dark.png) | ![Paramètres des sites](docs/screenshots/site-settings-light.png) |
+| ![« Ajouter à Browser » dans le Chrome Web Store](docs/screenshots/webstore-dark.png) | ![Autorisations avant l'installation d'une extension](docs/screenshots/extension-install-light.png) |
+| ![Mini-fenêtre pour un lien venu d'une autre application](docs/screenshots/mini-window-dark.png) | ![Premiers pas](docs/screenshots/welcome-light.png) |
 | ![Menu de l'application](docs/screenshots/app-menu-dark.png) | ![Mode compact](docs/screenshots/compact-light.png) |
 | ![Paramètres et galerie de thèmes](docs/screenshots/settings-dark.png) | ![Raccourcis clavier](docs/screenshots/settings-shortcuts-light.png) |
-| ![Mots de passe](docs/screenshots/passwords-dark.png) | ![Boosts](docs/screenshots/boosts-light.png) |
-| ![Fenêtre privée](docs/screenshots/private-dark.png) | ![Mode édition de la page d'accueil](docs/screenshots/start-edit-light.png) |
+| ![Mots de passe](docs/screenshots/passwords-dark.png) | ![Adresses et cartes de paiement](docs/screenshots/autofill-light.png) |
+| ![Historique](docs/screenshots/history-dark.png) | ![Gestionnaire de tâches](docs/screenshots/tasks-light.png) |
+| ![Fenêtre privée](docs/screenshots/private-dark.png) | ![Aperçu avant impression](docs/screenshots/print-light.png) |
 
 Toutes les captures (clair et sombre) sont dans [`docs/screenshots/`](docs/screenshots/), régénérées par
 `tests/e2e/screenshots.spec.ts` et `tests/e2e/mobile-screenshots.spec.ts` (voir l'en-tête de chaque fichier).
@@ -140,7 +162,8 @@ Toutes les captures (clair et sombre) sont dans [`docs/screenshots/`](docs/scree
 Téléchargez la dernière version sur **https://mathieu-lalande.github.io/browser/** (le bouton détecte votre
 système) ou dans les [releases GitHub](https://github.com/Mathieu-Lalande/browser/releases) : installateur
 Windows (x64 et ARM, sans droits administrateur), version portable `.zip`, `.dmg` macOS (Apple Silicon et
-Intel), AppImage et `.deb` pour Linux, avec `SHA256SUMS.txt`. Les paquets ne sont pas encore signés (voir le
+Intel), AppImage et `.deb` pour Linux, avec `SHA256SUMS.txt`. Windows est signé quand les secrets de signature
+sont configurés (ADR-040) ; macOS ne l'est pas encore (voir le
 [dépannage](https://mathieu-lalande.github.io/browser/docs.html#depannage)).
 
 **Publier une version** : `npm run release:version -- 0.3.0` puis `git push --follow-tags`. Le workflow
@@ -167,9 +190,12 @@ balayage de la barre pour changer d'onglet, recherche plein écran, vue des ongl
 navigation privée. Elle réutilise directement `src/shared` (URL, historique, recherche floue,
 commandes, paramètres, thème, HTTPS uniquement) ; voir l'ADR-016.
 
-Elle reprend aussi dossiers, favoris, archivage, mode lecture, version ordinateur, aperçu des liens,
-mots de passe (`expo-secure-store`), traduction des pages, notes et surlignages, boosts et thèmes partageables ; le bloqueur de pubs viendra avec la
-version compilée (phase 2).
+Elle reprend aussi dossiers, favoris, archivage, mode lecture (avec images), version ordinateur, aperçu des
+liens, mots de passe (`expo-secure-store`, synchronisables), adresses et cartes, traduction des pages, notes et
+surlignages, liste de lecture, assistant IA, boosts, thèmes partageables et thème dynamique, en français ou en
+anglais. Le bloqueur de pubs et traqueurs complet (listes EasyList/EasyPrivacy converties, bouclier par site)
+vit dans la version compilée ; dans Expo Go, seuls le masquage des publicités et le refus des bandeaux cookies
+fonctionnent (ADR-051, [`docs/INSTALL.md`](docs/INSTALL.md) « Client de développement »).
 
 Pour l'essayer sur votre téléphone (Windows, macOS ou Linux) : installez **Expo Go** depuis
 l'App Store ou le Play Store, puis
@@ -183,6 +209,8 @@ npx expo start     # scannez le QR code ; même Wi-Fi, ou `npx expo start --tunn
 | Accueil | Onglets | Menu de la page | Paramètres |
 | --- | --- | --- | --- |
 | ![Accueil mobile](docs/screenshots/mobile-start-light.png) | ![Onglets mobile](docs/screenshots/mobile-tabs-dark.png) | ![Menu de la page](docs/screenshots/mobile-menu-light.png) | ![Thèmes](docs/screenshots/mobile-themes-dark.png) |
+| **Bouclier du site** | **Note de la page** | **Liste de lecture** | **Recherche** |
+| ![Infos sur le site et bouclier](docs/screenshots/mobile-shields-dark.png) | ![Note de la page](docs/screenshots/mobile-note-light.png) | ![Liste de lecture](docs/screenshots/mobile-reading-list-dark.png) | ![Recherche](docs/screenshots/mobile-search-light.png) |
 
 ## Scripts
 
@@ -191,8 +219,11 @@ npx expo start     # scannez le QR code ; même Wi-Fi, ou `npx expo start --tunn
 | `npm run dev` | Développement |
 | `npm run build` | Build de production dans `out/` |
 | `npm run typecheck` | TypeScript (process principal) + svelte-check (interface) |
+| `npm run check:cycles` | Aucun cycle d'import dans le process principal |
+| `npm run check:i18n` | Aucun texte français en dur hors des catalogues `src/shared/i18n/` (ADR-052) |
 | `npm test` | Tests unitaires (Vitest) |
-| `npm run test:e2e` | Tests end-to-end (Playwright pilotant Electron) |
+| `npm run test:e2e` | Build puis tests end-to-end (Playwright pilotant Electron) |
+| `npm run test:server` | Tests du serveur de synchronisation (`server/`) |
 | `npm run dist` | Paquets installables (electron-builder) dans `release/` |
 | `npm run dist:dir` | Application empaquetée non compressée (plus rapide, pour tester) |
 | `npm run dist:win` | Installateur NSIS et `.zip` Windows (x64 et arm64), à lancer sous Windows |
@@ -228,7 +259,7 @@ commandes (`src/shared/commands.ts`) : « Maj » pour Shift sous Windows/Linux, 
 | `Ctrl+Maj+B` | `⇧⌘B` | Mode zen (barre latérale masquée, page bord à bord) |
 | `Ctrl+Alt+1…9`, `Ctrl+Alt+←/→` | `⌥⌘1…9`, `⌥⌘←/→` | Aller à l'espace n / espace précédent, suivant |
 | `Ctrl+Maj+\` | `⇧⌘\` | Vue scindée (l'onglet actif et le suivant côte à côte) / la quitter |
-| `Ctrl+Maj+T` | `⇧⌘T` | Rouvrir l'onglet fermé |
+| `Ctrl+Maj+T` / `Ctrl+Alt+Maj+T` | `⇧⌘T` / `⌥⇧⌘T` | Rouvrir l'onglet fermé / la fenêtre fermée |
 | `Ctrl+U` / `Ctrl+P` | `⌘U` / `⌘P` | Code source / imprimer |
 | `F11` | `⌃⌘F` | Plein écran |
 | `Ctrl+Maj+Q` | `⌘Q` | Quitter |
@@ -239,6 +270,11 @@ commandes (`src/shared/commands.ts`) : « Maj » pour Shift sous Windows/Linux, 
 | `Ctrl+Maj+O` | `⇧⌘O` | Options de la page |
 | `Ctrl+Maj+S` / `Ctrl+Alt+S` | `⇧⌘S` / `⌥⌘S` | Capture de la zone visible / de la page entière |
 | `Ctrl+Alt+V` | `⌥⌘V` | Enregistrer une vidéo de l'onglet (bascule) |
+| `Ctrl+Alt+A` | `⌥⌘A` | Assistant IA (si activé) |
+| `Ctrl+Maj+E` | `⇧⌘E` | Afficher/masquer le dernier panneau web |
+| `Ctrl+Maj+D` | `⇧⌘D` | Lire plus tard (ajouter/retirer la page de la liste de lecture) |
+| `Ctrl+Alt+P` | `⌥⌘P` | Mettre en pause tous les médias |
+| `Maj+Échap` | `⇧⎋` | Gestionnaire de tâches |
 | `Ctrl+Maj+I` | `⌥⌘I` | Outils de développement |
 | `Ctrl+,` | `⌘,` | Paramètres |
 | `Ctrl+D` | `⌘D` | Ajouter/retirer la page des favoris |
@@ -258,10 +294,17 @@ src/
   preload/    pont sécurisé exposant window.browser à l'interface
   renderer/   interface du navigateur (Svelte 5)
   shared/     logique pure partagée bureau + mobile : types, contrat IPC, URL et recherche,
-              historique, HTTPS uniquement, paramètres, moteur de thème (testés)
+              historique, HTTPS uniquement, paramètres, moteur de thème, synchro, i18n (testés)
 mobile/       application iOS/Android (Expo / React Native), voir mobile/README.md
-tests/e2e/    tests Playwright + Electron
-docs/         installation, décisions d'architecture et roadmap
+tests/e2e/    tests Playwright + Electron (dont les captures de docs/screenshots/)
+build/        icônes et page de l'installateur Windows (installer.nsh)
+scripts/      Electron castLabs, contrôles (cycles, i18n), mesures, signature VMP
+docs/         installation, décisions d'architecture, roadmap, guides, captures
 server/       relais de synchronisation auto-hébergé (Node 22, Docker)
 site/         site vitrine et guide d'utilisation (Vite + TS, GitHub Pages)
 ```
+
+## Licence
+
+Logiciel **propriétaire**, tous droits réservés (voir [`LICENSE`](LICENSE) ; `package.json` le déclare
+`UNLICENSED`). Pour contribuer, voir [`CONTRIBUTING.md`](CONTRIBUTING.md). Les dépendances tierces restent sous leurs propres licences.

@@ -1,23 +1,37 @@
 # Roadmap
 
 ## En bref : où on en est
-Terminé (détails dans les sprints ci-dessous et dans `docs/DECISIONS.md`) : onglets, espaces et gestes, vue
-scindée, dossiers, grille des favoris, archivage, barre universelle (ADR-032), aperçu des liens (ADR-027), mode
-lecture (ADR-026), boosts (ADR-029), mots de passe (ADR-025), extensions (ADR-024), options de la page, captures
-et vidéo (ADR-031), raccourcis personnalisables (ADR-028), galerie et partage de thèmes, mises à jour
-automatiques (ADR-030), synchronisation chiffrée (ADR-019), fenêtres privées, boucliers, mise en veille,
-releases GitHub et site vitrine avec guide d'utilisation (ADR-023), application mobile phase 1.
+Tout ce qui suit est livré (détails dans les sprints ci-dessous et dans `docs/DECISIONS.md`, ADR-001 à 052) :
+onglets, espaces et gestes, vue scindée, dossiers, grille des favoris, archivage (ADR-022), barre universelle
+(ADR-032), aperçu des liens (ADR-027), mode lecture (ADR-026), boosts (ADR-029), mots de passe (ADR-025) et leur
+synchronisation facultative (ADR-050), extensions et Chrome Web Store (ADR-024, 049), options de la page, captures
+et vidéo (ADR-031), raccourcis personnalisables (ADR-028), galerie et partage de thèmes, mises à jour automatiques
+(ADR-030), synchronisation chiffrée (ADR-019), fenêtres privées, boucliers, mise en veille, nouvel onglet à widgets
+(ADR-034), mini-lecteur (ADR-035), traduction (ADR-036), notes et surlignages (ADR-037), aperçu des onglets et thème
+dynamique (ADR-038), navigateur par défaut, PDF, historique et import (ADR-039), Widevine et connexion Google
+(ADR-040), formulaires, clés d'accès, notifications (ADR-041), reprise, profils, tâches, impression, sauvegarde
+(ADR-042), premiers pas et diagnostic (ADR-043), assistant IA (ADR-044), barre de fenêtre et menu unique (ADR-045),
+bandeaux cookies et tableau de bord de confidentialité (ADR-046), panneaux web et « Lire plus tard » (ADR-047),
+mini-fenêtre, économiseur d'énergie et intégration au système (ADR-048), bloqueur natif sur le téléphone (ADR-051),
+interface en français et en anglais (ADR-052) ; releases GitHub et site vitrine bilingue (ADR-023) ; application
+mobile compilée avec EAS et workflow de publication vers les stores (INSTALL 2.3).
 
-## À venir
-- **Mobile phase 2** : version compilée (EAS), bloqueur de pubs et traqueurs natif, onglets privés isolés sur
-  Android (détail plus bas).
-- **Traduction des pages** (sans envoyer le contenu à un tiers par défaut).
-- **Nouvel onglet personnalisable** : widgets, disposition, fond par espace.
-- **Mini-lecteur multimédia** : contrôle de la vidéo ou de la musique d'un autre onglet depuis la barre latérale.
-- **Notes et surlignages** sur les pages, retrouvables dans la barre universelle.
-- **Aperçu des onglets au survol** (miniature de la page).
-- **Thème dynamique** : couleur d'accent tirée du site ou du fond d'écran.
-- **Refactorisation, phase 2** : découpage des gros modules de main et de l'interface, contrats IPC par fonctionnalité.
+## À venir (vérifié dans le code)
+- **Signature macOS** : Developer ID et notarisation (sans elles, macOS reste en « mise à jour manuelle ») ;
+  dépôt apt pour le `.deb`. La signature Windows (Azure Trusted Signing ou `.pfx`) et la signature VMP de
+  castLabs sont prêtes, actives dès que leurs secrets existent (ADR-040).
+- **Publication mobile** : première mise en ligne sur l'App Store et Google Play (le workflow `mobile-release.yml`
+  est prêt) ; droit « navigateur par défaut » d'Apple à demander (`IOS_DEFAULT_BROWSER=1` seulement après l'accord).
+- **Mobile** : onglets privés isolés sur Android (seul iOS a `incognito`), espaces isolés (conteneurs), miniatures
+  des onglets, recherche dans la page, téléchargements, widgets et raccourcis de l'écran d'accueil, extension de
+  partage.
+- **Synchronisation** : révoquer un seul appareil sans tout réinitialiser, fusion fine des titres, favicons.
+- **Téléchargements** : reprise d'un téléchargement interrompu par un redémarrage (aujourd'hui « Réessayer »
+  repart de zéro) ; image dans l'image pour les vidéos dans des iframes.
+- **Mise en veille** : préchargement intelligent, indicateur de mémoire libérée.
+- **Connexion Google dans Browser** : les pages de `accounts.google.com` s'ouvrent encore dans le navigateur
+  système (Google refuse les navigateurs intégrés, ADR-040).
+- **Extensions** : badges et `action.onClicked` (non fournis par Electron), extensions en fenêtre privée (ADR-049).
 
 ## Sprint 0 — Fondations (terminé)
 Migration Tauri → Electron + Svelte 5, onglets réels (`WebContentsView`), barre latérale verticale,
@@ -25,7 +39,7 @@ barre d'adresse, page d'accueil, raccourcis, durcissement sécurité, tests unit
 
 ## Sprint 1 — Le cœur d'un vrai navigateur
 - (fait) Persistance : session (onglets restaurés à la demande), historique, favoris, suggestions
-  dans la barre d'adresse, sites fréquents sur la page d'accueil. Reste : paramètres.
+  dans la barre d'adresse, sites fréquents sur la page d'accueil, paramètres (sprint 2).
 - (fait) Palette de commandes (Ctrl+K) façon Arc, devenue la barre universelle (ADR-032) : onglets ouverts, historique, favoris, actions,
   recherche floue ; calque flottant (« overlay ») au-dessus des pages, réutilisable pour menus et popovers.
 - (fait) Bloqueur de pubs & traqueurs intégré, mode HTTPS uniquement, compteur et désactivation par site.
@@ -41,7 +55,7 @@ barre d'adresse, page d'accueil, raccourcis, durcissement sécurité, tests unit
 - (fait) Espaces (workspaces) : onglets propres, icône (Lucide) et couleur d'accent, sessions isolées optionnelles
   (conteneurs), déplacement d'onglets, Ctrl+Alt+1…9 (ADR-009).
 - (fait) Vue scindée : 2 à 4 pages côte à côte, séparateurs déplaçables, Ctrl+Maj+\\ (ADR-009).
-  Reste : glisser-déposer d'un onglet sur un volet pour l'ajouter.
+  (fait, ADR-045) Un onglet lâché au milieu d'un autre ouvre la vue scindée.
 - (fait) Raccourcis clavier configurables (ADR-028) et personnalisation par site, les « boosts » (ADR-029).
 
 ## Sprint 3 — Confort & vitesse
@@ -62,8 +76,8 @@ barre d'adresse, page d'accueil, raccourcis, durcissement sécurité, tests unit
   et CI GitHub Actions (vérifications + e2e, paquets non signés sur `master`) (ADR-015).
 - (fait) Mises à jour automatiques (ADR-030) : `electron-updater` sur les releases GitHub, contrôle 30 s
   après le démarrage puis toutes les 6 h, téléchargement en arrière-plan, installation au redémarrage
-  (jamais forcée), canaux Stable et Bêta. Reste : signature Windows (Authenticode / Azure Trusted Signing)
-  et Developer ID + notarisation macOS (sans elle, macOS reste en « mise à jour manuelle »), dépôt apt
+  (jamais forcée), canaux Stable et Bêta. Signature Windows (Azure Trusted Signing ou
+  `.pfx`) prête dès que ses secrets existent (ADR-040). Reste : Developer ID + notarisation macOS (sans elle, macOS reste en « mise à jour manuelle »), dépôt apt
   pour le `.deb`.
 
 ## Organisation et outils (terminé)
@@ -101,17 +115,18 @@ onglets en grille avec espaces, onglets épinglés et transition zoom, navigatio
 sur les liens, page d'accueil, paramètres et thèmes (palette partagée), HTTPS uniquement, partage,
 retours haptiques.
 
-### Phase 2 — Version compilée (development build) — à venir
-- `expo-dev-client` + EAS Build ; module Expo local avec plugin de configuration.
-- Bloqueur de pubs et traqueurs : `WKContentRuleList` (iOS) et interception des requêtes
-  (Android), listes EasyList/EasyPrivacy via le moteur `@ghostery/adblocker` ; compteur et
-  désactivation par site comme sur le bureau.
-- Onglets privés vraiment isolés sur Android (profils WebView) ; effacement des cookies et des
-  données de site ; espaces isolés (conteneurs) sur les deux plateformes.
-- Miniatures des onglets (`react-native-view-shot`), recherche dans la page, téléchargements.
-  (Mode lecture et « version ordinateur » : faits dès Expo Go, ADR-026.)
-- (fait) Synchronisation chiffrée avec le bureau (favoris, onglets ouverts, historique, espaces) :
-  faite dès Expo Go (ADR-019), voir ci-dessus.
-- Widgets et raccourcis de l'écran d'accueil, extension de partage (« Ouvrir dans Browser »),
-  navigateur par défaut.
-- Publication sur l'App Store et le Play Store.
+### Phase 2 — Version compilée (development build)
+- (fait) `expo-dev-client` + EAS Build (profils `development`, `preview`, `production`), module Expo local
+  `mobile/modules/content-blocker` avec son plugin de configuration (ADR-051).
+- (fait) Bloqueur de pubs et traqueurs : `WKContentRuleList` (iOS) et `shouldInterceptRequest` (Android),
+  listes EasyList, EasyPrivacy et Peter Lowe converties par `src/shared/blocklist/`, masquage cosmétique,
+  bandeaux cookies, bouclier par site, compteurs (ADR-051).
+- (fait) Effacement des données d'un site, mode lecture et « version ordinateur » (ADR-026), synchronisation
+  chiffrée avec le bureau (ADR-019), mots de passe synchronisés, notes, images du lecteur, thème dynamique
+  (ADR-050), assistant IA (ADR-044), liste de lecture (ADR-047), interface en anglais (ADR-052).
+- (fait) Navigateur par défaut sur Android (liens entrants dans un nouvel onglet) ; iOS : en attente du droit
+  d'Apple (INSTALL 2.3).
+- (fait) Fiches des stores, captures aux tailles exigées, workflow `mobile-release.yml` (build et envoi EAS).
+- Reste : onglets privés vraiment isolés sur Android (profils WebView), espaces isolés (conteneurs) ; miniatures
+  des onglets, recherche dans la page, téléchargements ; widgets et raccourcis de l'écran d'accueil, extension de
+  partage (« Ouvrir dans Browser ») ; première publication sur l'App Store et le Play Store.

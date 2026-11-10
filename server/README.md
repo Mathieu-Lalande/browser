@@ -1,7 +1,8 @@
 # Serveur de synchronisation de Browser
 
 Petit relais à héberger soi-même pour synchroniser Browser entre le PC et le téléphone : favoris,
-historique récent (90 jours, 5 000 pages au plus), onglets ouverts, espaces et thème.
+historique récent (90 jours, 5 000 pages au plus), onglets ouverts, espaces, thème, boosts, grille des favoris,
+liste de lecture, onglets envoyés, et au choix notes, panneaux web, adresses et mots de passe (ADR-019, 050).
 
 **Il ne peut rien lire.** Tout est chiffré sur les appareils (XChaCha20-Poly1305, clé de 256 bits
 qui ne quitte jamais vos appareils, voir l'ADR-019 dans `docs/DECISIONS.md`). Le serveur stocke des

@@ -31,7 +31,7 @@ ordinateur (Windows, macOS, Linux).
 RANGEZ VOS ONGLETS
 • Espaces : un espace par contexte (travail, maison, projet), chacun avec ses onglets, sa couleur et son icône.
 • Dossiers d'onglets, onglets épinglés, grille de favoris et archivage automatique des onglets oubliés.
-• Vue d'ensemble des onglets avec aperçu, recherche et gestes.
+• Vue d'ensemble des onglets avec espaces, recherche et gestes.
 
 TROUVEZ TOUT, VITE
 • Barre universelle : onglets ouverts, favoris, historique, commandes et réponses instantanées (calculs, conversions) au même endroit.
@@ -41,6 +41,7 @@ LISEZ SANS DISTRACTION
 • Mode lecture : texte, images et titres, rien d'autre ; police, taille et thème réglables.
 • Notes et surlignages sur les pages, retrouvés à chaque visite.
 • Traduction des pages (facultative, avec le service de votre choix).
+• Liste de lecture : gardez une page pour plus tard, lisible même hors ligne, sur tous vos appareils.
 
 À VOTRE IMAGE
 • Thèmes et couleurs, clair, sombre ou automatique ; thèmes partageables.
@@ -49,6 +50,7 @@ LISEZ SANS DISTRACTION
 
 PRIVÉ PAR CONCEPTION
 • Aucun compte, aucune publicité, aucun traceur, aucune statistique d'utilisation.
+• Bloqueur de publicités et de traqueurs intégré, bandeaux cookies refusés automatiquement, bouclier désactivable par site.
 • Onglets privés : rien n'est enregistré.
 • HTTPS automatique, avertissement avant les pages non chiffrées.
 • Mots de passe et formulaires enregistrés dans le trousseau sécurisé de l'appareil.
@@ -57,7 +59,7 @@ PRIVÉ PAR CONCEPTION
 ASSISTANT FACULTATIF
 • Résumez ou interrogez une page avec Claude, uniquement si vous l'activez avec votre propre clé : le texte de la page n'est envoyé qu'à ce moment-là.
 
-Browser est un logiciel libre : le code source est public.
+Interface en français et en anglais.
 
 ## Nouveautés (version 0.1.0)
 

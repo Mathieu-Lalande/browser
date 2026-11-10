@@ -31,7 +31,7 @@ desktop (Windows, macOS, Linux).
 ORGANIZE YOUR TABS
 • Spaces: one space per context (work, home, a project), each with its own tabs, color and icon.
 • Tab folders, pinned tabs, a favorites grid and automatic archiving of forgotten tabs.
-• Tab overview with previews, search and gestures.
+• Tab overview with spaces, search and gestures.
 
 FIND EVERYTHING, FAST
 • Universal bar: open tabs, bookmarks, history, commands and instant answers (math, conversions) in one place.
@@ -41,6 +41,7 @@ READ WITHOUT DISTRACTIONS
 • Reader mode: text, images and headings only; adjustable font, size and theme.
 • Notes and highlights on pages, back on every visit.
 • Page translation (optional, with the service of your choice).
+• Reading list: keep a page for later, readable even offline, on all your devices.
 
 MAKE IT YOURS
 • Themes and colors, light, dark or automatic; shareable themes.
@@ -49,6 +50,7 @@ MAKE IT YOURS
 
 PRIVATE BY DESIGN
 • No account, no ads, no trackers, no usage analytics.
+• Built-in ad and tracker blocker, cookie banners refused automatically, a shield you can turn off per site.
 • Private tabs: nothing is saved.
 • Automatic HTTPS, with a warning before unencrypted pages.
 • Passwords and form data stored in the device's secure keychain.
@@ -57,7 +59,7 @@ PRIVATE BY DESIGN
 OPTIONAL ASSISTANT
 • Summarize or ask questions about a page with Claude, only if you turn it on with your own key: the page text is sent only then.
 
-Browser is open source: the source code is public.
+Available in English and French.
 
 ## What's new (version 0.1.0)
 

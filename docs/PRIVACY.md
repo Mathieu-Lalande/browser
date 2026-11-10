@@ -16,6 +16,11 @@ favicons et données sensibles passent par le process principal et les services 
 - La synchronisation chiffre les données sur les appareils avant l'envoi au relais ; le relais ne reçoit
   pas le clair. Voir [`../server/README.md`](../server/README.md).
 - Les rapports de plantage sont désactivés par défaut et nécessitent un accord explicite.
+- Le DNS sécurisé (DoH) interroge le fournisseur choisi dans les réglages ; la météo du nouvel onglet
+  envoie le nom de la ville choisie à Open-Meteo ; les extensions du Chrome Web Store sont téléchargées
+  et mises à jour depuis le service de Google.
+- Le tableau de bord `browser://privacy` ne garde que des totaux par jour, par site et par traqueur, sur
+  l'appareil, jamais pour une fenêtre privée, et n'est pas synchronisé.
 
 ## Limites
 

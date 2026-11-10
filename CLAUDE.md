@@ -37,8 +37,9 @@
   test Vitest + `npm run check:i18n`, aussi en CI). Texte calculé une fois au niveau module = getter ou fonction (la langue
   change à chaud) ; données à garder en français (mots analysés, règles de pages) : `// i18n-ignore`. Code, identifiants
   et commentaires en anglais.
-- Vérifications avant commit : `npm run typecheck && npm test && npm run check:i18n && npm run build && xvfb-run -a npx playwright test`
-  (en root/conteneur, l'app est lancée avec `--no-sandbox`, déjà géré par les fixtures e2e).
+- Vérifications avant commit : `npm run typecheck && npm run check:cycles && npm run check:i18n && npm test && npm run build && xvfb-run -a npx playwright test`
+  (en root/conteneur, l'app est lancée avec `--no-sandbox`, déjà géré par les fixtures e2e). Captures de `docs/screenshots/`
+  et WebP du site : `tests/e2e/screenshots.spec.ts`, `mobile-screenshots.spec.ts` (`SCREENSHOTS=1`, voir `docs/INSTALL.md`).
 - `npm install` : `.npmrc` active `legacy-peer-deps` (contourne un bug npm avec vitest 4). Electron 44 ne télécharge
   plus son binaire à l'installation : `scripts/ensure-electron.mjs` le fait (`postinstall`, `predev`).
 - Préférences : `src/shared/settings.ts` (modèle + validateur) et `src/shared/theme.ts` (palette → variables CSS),

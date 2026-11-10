@@ -28,7 +28,11 @@ d'animation de rebond.
 
 ## Données et réglages
 
-Les pages internes commencent par `browser://`. L'import depuis Chrome, Edge, Brave, Vivaldi, Opera,
+L'interface est en français ou en anglais : Paramètres → Apparence → Langue (« Automatique » suit le système).
+
+Les pages internes commencent par `browser://` : `settings`, `history`, `downloads`, `passwords`, `extensions`,
+`reading-list`, `notes`, `privacy` (tableau de bord), `site-settings`, `profiles`, `tasks` (`Maj+Échap`), `import`,
+`welcome`… L'import depuis Chrome, Edge, Brave, Vivaldi, Opera,
 Firefox et Arc se trouve dans `browser://import`. Les mots de passe importés nécessitent un export CSV.
 La synchronisation est facultative et chiffrée de bout en bout ; elle nécessite votre propre relais
 (`server/README.md`).
