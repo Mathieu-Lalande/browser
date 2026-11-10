@@ -314,13 +314,14 @@
           <li class="tile reveal-on-scroll">
             <i data-icon="key-round"></i>
             <h3>Mots de passe</h3>
-            <p>Enregistrés dans un coffre chiffré par le système, remplis sur le bon site uniquement, export CSV.</p>
+            <p>Enregistrés dans un coffre chiffré par le système, remplis sur le bon site uniquement, export CSV, synchronisation facultative.</p>
             <img class="tile-shot" src="/img/screens/passwords-dark.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Liste des mots de passe enregistrés" />
           </li>
           <li class="tile reveal-on-scroll">
             <i data-icon="puzzle"></i>
             <h3>Extensions</h3>
-            <p>Installez des extensions Chrome depuis un dossier, un <code>.zip</code> ou un <code>.crx</code>.</p>
+            <p>« Ajouter à Browser » directement dans le Chrome Web Store, autorisations affichées avant ; ou depuis un dossier, un <code>.zip</code>, un <code>.crx</code>.</p>
+            <img class="tile-shot" src="/img/screens/extension-install-dark.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Fenêtre « Ajouter Surligneur ? » listant les autorisations de l'extension" />
           </li>
           <li class="tile tile-wide reveal-on-scroll">
             <i data-icon="camera"></i>
@@ -369,7 +370,7 @@
           <li class="tile reveal-on-scroll">
             <i data-icon="cloud-cog"></i>
             <h3>Synchronisation chiffrée</h3>
-            <p>Favoris, onglets, historique récent, espaces, thème et boosts, via votre propre serveur.</p>
+            <p>Favoris, onglets, historique récent, espaces, thème, boosts, liste de lecture, et au choix notes, panneaux, adresses et mots de passe, via votre propre serveur.</p>
           </li>
           <li class="tile reveal-on-scroll">
             <i data-icon="eye-off"></i>
@@ -379,7 +380,7 @@
           <li class="tile reveal-on-scroll">
             <i data-icon="shield-check"></i>
             <h3>Boucliers</h3>
-            <p>Bloqueur de pubs et traqueurs, HTTPS uniquement, fenêtres surgissantes bloquées, désactivables par site.</p>
+            <p>Bloqueur de pubs et traqueurs, bandeaux cookies refusés, HTTPS uniquement, DNS sécurisé, fenêtres surgissantes bloquées ; tout se règle site par site.</p>
           </li>
           <li class="tile reveal-on-scroll">
             <i data-icon="moon-star"></i>
@@ -397,9 +398,73 @@
             <p>Recherche dans la page, zoom mémorisé par site, image dans l'image, son coupé onglet par onglet.</p>
           </li>
           <li class="tile tile-wide reveal-on-scroll">
+            <i data-icon="sparkles"></i>
+            <h3>Assistant IA</h3>
+            <p>Résumer une page, en tirer les points clés, expliquer ou traduire une sélection, comparer des onglets. Avec votre propre clé Claude, désactivé par défaut, et ce qui part est toujours indiqué. <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>A</kbd>.</p>
+            <img class="tile-shot" src="/img/screens/assistant-dark.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Panneau de l'assistant IA à côté d'un article, avec un résumé en points" />
+          </li>
+          <li class="tile reveal-on-scroll">
+            <i data-icon="panel-right"></i>
+            <h3>Panneaux web</h3>
+            <p>WhatsApp, Spotify, Gmail… épinglés dans la barre latérale et ouverts à côté de la page, avec leurs non-lus. <kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>E</kbd>.</p>
+            <img class="tile-shot" src="/img/screens/panels-dark.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Une messagerie ouverte en panneau à côté d'un article" />
+          </li>
+          <li class="tile reveal-on-scroll">
+            <i data-icon="book-marked"></i>
+            <h3>Lire plus tard</h3>
+            <p>Gardez un article et son texte, lisible hors ligne et sur le téléphone. <kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>D</kbd>.</p>
+            <img class="tile-shot" src="/img/screens/reading-list-dark.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Liste de lecture : deux articles non lus gardés hors ligne" />
+          </li>
+          <li class="tile tile-wide reveal-on-scroll">
+            <i data-icon="chart-column"></i>
+            <h3>Tableau de bord de confidentialité</h3>
+            <p>Traqueurs bloqués, bandeaux cookies refusés, connexions passées en HTTPS : 30 jours de chiffres, gardés sur votre appareil.</p>
+            <img class="tile-shot" src="/img/screens/privacy-dark.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Tableau de bord de confidentialité : compteurs, graphique par jour, sites et traqueurs" />
+          </li>
+          <li class="tile reveal-on-scroll">
+            <i data-icon="app-window"></i>
+            <h3>Mini-fenêtre</h3>
+            <p>Un lien venu d'une autre application s'ouvre dans une petite fenêtre ; <kbd>Ctrl</kbd> <kbd>O</kbd> en fait un onglet sans recharger.</p>
+            <img class="tile-shot" src="/img/screens/mini-window-dark.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Une recette ouverte dans une mini-fenêtre au-dessus du navigateur" />
+          </li>
+          <li class="tile reveal-on-scroll">
+            <i data-icon="leaf"></i>
+            <h3>Économiseur d'énergie</h3>
+            <p>Sur batterie ou toujours : veille plus rapide, pages en arrière-plan ralenties, animations coupées, indicateur dans la barre de fenêtre.</p>
+            <img class="tile-shot" src="/img/screens/window-bar-dark.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Barre de fenêtre dépliée : mode de la barre latérale et indicateur de l'économiseur d'énergie" />
+          </li>
+          <li class="tile reveal-on-scroll">
+            <i data-icon="monitor"></i>
+            <h3>Intégré à votre système</h3>
+            <p>Navigateur par défaut, liste de raccourcis et progression dans la barre des tâches, effet Mica sous Windows 11, menu du Dock sur macOS.</p>
+          </li>
+          <li class="tile reveal-on-scroll">
+            <i data-icon="history"></i>
+            <h3>Historique et import</h3>
+            <p>L'historique jour par jour, avec recherche ; import depuis Chrome, Edge, Brave, Vivaldi, Opera, Firefox et Arc.</p>
+            <img class="tile-shot" src="/img/screens/history-dark.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Page Historique : pages visitées aujourd'hui, avec recherche" />
+          </li>
+          <li class="tile reveal-on-scroll">
+            <i data-icon="users"></i>
+            <h3>Profils et sauvegarde</h3>
+            <p>Un profil par usage, avec ses réglages, ses mots de passe et sa synchronisation ; sauvegarde dans un fichier.</p>
+            <img class="tile-shot" src="/img/screens/profiles-dark.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Page Profils : trois profils et la sauvegarde du profil" />
+          </li>
+          <li class="tile reveal-on-scroll">
+            <i data-icon="credit-card"></i>
+            <h3>Formulaires et clés d'accès</h3>
+            <p>Adresses et cartes chiffrées par le système, jamais de code CVC ; clés d'accès et clés de sécurité.</p>
+            <img class="tile-shot" src="/img/screens/autofill-dark.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Adresses et cartes de paiement enregistrées dans les paramètres" />
+          </li>
+          <li class="tile reveal-on-scroll">
+            <i data-icon="languages"></i>
+            <h3>Français et anglais</h3>
+            <p>L'interface change de langue à chaud, sur l'ordinateur comme sur le téléphone.</p>
+          </li>
+          <li class="tile tile-wide reveal-on-scroll">
             <i data-icon="smartphone"></i>
             <h3>Application mobile</h3>
-            <p>Barre d'adresse en bas, balayage entre onglets, espaces, mode lecture, mots de passe, et vos onglets du PC grâce à la synchronisation.</p>
+            <p>Barre d'adresse en bas, balayage entre onglets, espaces, mode lecture, mots de passe, liste de lecture, assistant, bloqueur de pubs natif, et vos onglets du PC grâce à la synchronisation.</p>
           </li>
         </ul>
       </section>
@@ -421,13 +486,15 @@
               <li class="reveal-on-scroll"><i data-icon="key-round"></i><div><h3>Chiffré de bout en bout</h3><p>La synchronisation passe par votre serveur, qui ne voit que des données illisibles.</p></div></li>
               <li class="reveal-on-scroll"><i data-icon="fingerprint"></i><div><h3>Moins d'empreinte</h3><p>Global Privacy Control, identité de navigateur sans trace d'Electron, langue uniformisable.</p></div></li>
               <li class="reveal-on-scroll"><i data-icon="ban"></i><div><h3>Fenêtres surgissantes</h3><p>Une page ne peut ouvrir une fenêtre qu'après un vrai clic de votre part.</p></div></li>
+              <li class="reveal-on-scroll"><i data-icon="cookie"></i><div><h3>Bandeaux cookies refusés</h3><p>« Tout refuser » est cliqué pour vous sur les plateformes de consentement courantes, jamais « Accepter ».</p></div></li>
+              <li class="reveal-on-scroll"><i data-icon="chart-column"></i><div><h3>Ce qui a été bloqué</h3><p>Le tableau de bord <code>browser://privacy</code> compte, sur votre appareil seulement, ce que les protections ont fait.</p></div></li>
             </ul>
           </div>
           <div class="privacy-visual" data-depth="-0.08" data-box=".privacy">
             <div class="window">
-              <div class="window-bar private"><span></span><span></span><span></span><b><i data-icon="eye-off"></i>Fenêtre privée</b></div>
-              <img src="/img/screens/private-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
-                alt="Fenêtre de navigation privée de Browser et la liste de ses garanties" />
+              <div class="window-bar private"><span></span><span></span><span></span><b><i data-icon="shield-check"></i>Confidentialité</b></div>
+              <img src="/img/screens/privacy-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+                alt="Tableau de bord de confidentialité : traqueurs bloqués, bandeaux cookies refusés, connexions en HTTPS sur 30 jours" />
             </div>
           </div>
         </div>
@@ -461,8 +528,8 @@
             <h2 id="mobile-title">Aussi sur iPhone et Android</h2>
             <p>
               La même philosophie dans la main : barre d'adresse en bas, balayage pour changer d'onglet, espaces,
-              navigation privée, mode lecture, et vos onglets du PC à portée grâce à la synchronisation chiffrée
-              (jumelage par QR code).
+              navigation privée, mode lecture, liste de lecture, notes, bloqueur de pubs et traqueurs, et vos onglets
+              du PC à portée grâce à la synchronisation chiffrée (jumelage par QR code).
             </p>
             <div class="stores">
               <span class="store"><i data-icon="smartphone"></i><span><small>Bientôt sur</small>l'App Store</span></span>
@@ -480,8 +547,8 @@
                 alt="Page d'accueil de l'application mobile avec ses widgets, en thème clair" />
             </figure>
             <figure class="phone" data-depth="0.02" data-box=".mobile">
-              <img src="/img/screens/mobile-menu-dark.webp" width="390" height="844" loading="lazy" decoding="async"
-                alt="Menu de la page dans l'application mobile : favoris, infos sur le site, boost, mode lecture" />
+              <img src="/img/screens/mobile-shields-dark.webp" width="390" height="844" loading="lazy" decoding="async"
+                alt="Infos sur le site dans l'application mobile : connexion sécurisée, bouclier, effacer les données du site" />
             </figure>
           </div>
         </div>

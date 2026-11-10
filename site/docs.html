@@ -209,7 +209,7 @@
             <li>Mini-lecteur au-dessus de la barre d'outils quand la page joue un média.</li>
             <li>Synchronisation chiffrée avec le bureau (jumelage par QR code).</li>
           </ul>
-          <p class="muted">Le bloqueur de pubs mobile arrivera avec la version compilée (phase 2).</p>
+          <p class="muted">Le bloqueur de pubs et traqueurs complet (requêtes bloquées, bouclier par site) demande la version compilée ; dans Expo Go, seuls les emplacements publicitaires sont masqués et les bandeaux cookies refusés.</p>
         </section>
 
         <!-- First steps -->
@@ -257,6 +257,10 @@
         <!-- Main browser (ADR-039) -->
         <section class="doc-section" id="principal" aria-labelledby="t-principal">
           <h2 id="t-principal"><i data-icon="badge-check"></i>Navigateur principal, historique, import</h2>
+          <figure class="doc-shot">
+            <img src="/img/screens/history-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="Page browser://history : pages visitées aujourd'hui, avec recherche et suppression" />
+          </figure>
           <h3>Navigateur par défaut</h3>
           <p>
             Au premier lancement, la page d'accueil propose une fois de faire de Browser votre navigateur par défaut
@@ -304,6 +308,10 @@
         <!-- Mini window, energy saver, Windows (ADR-048) -->
         <section class="doc-section" id="mini-fenetre" aria-labelledby="t-mini-fenetre">
           <h2 id="t-mini-fenetre"><i data-icon="picture-in-picture-2"></i>Mini-fenêtre, économie d'énergie, Windows</h2>
+          <figure class="doc-shot">
+            <img src="/img/screens/mini-window-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="Une recette ouverte dans une mini-fenêtre au-dessus du navigateur, avec « Ouvrir dans le navigateur »" />
+          </figure>
           <h3>Mini-fenêtre</h3>
           <p>
             Un lien ouvert depuis une autre application (messagerie, e-mail…) s'affiche dans une petite fenêtre sans
@@ -561,6 +569,10 @@
         <!-- AI assistant -->
         <section class="doc-section" id="assistant" aria-labelledby="t-assistant">
           <h2 id="t-assistant"><i data-icon="sparkles"></i>Assistant IA</h2>
+          <figure class="doc-shot">
+            <img src="/img/screens/assistant-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="Panneau de l'assistant à côté d'un article : résumé en points, actions rapides et question" />
+          </figure>
           <p>
             Facultatif et désactivé par défaut. L'assistant utilise <strong>Claude</strong> d'Anthropic avec
             <strong>votre propre clé d'API</strong> (à créer sur console.anthropic.com, facturée sur votre compte) :
@@ -587,6 +599,10 @@
         <!-- Web panels (ADR-047) -->
         <section class="doc-section" id="panneaux" aria-labelledby="t-panneaux">
           <h2 id="t-panneaux"><i data-icon="panel-right"></i>Panneaux web</h2>
+          <figure class="doc-shot">
+            <img src="/img/screens/panels-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="Une messagerie ouverte en panneau web à côté de la page, son nombre de non-lus sur son icône" />
+          </figure>
           <p>
             Épinglez une application web (WhatsApp Web, Messenger, Spotify, ChatGPT, Gmail… ou n'importe quelle adresse)
             dans la barre latérale : le bouton <strong>+</strong> au-dessus du pied de la barre propose des suggestions,
@@ -607,6 +623,10 @@
         <!-- Reading list (ADR-047) -->
         <section class="doc-section" id="lire-plus-tard" aria-labelledby="t-lire-plus-tard">
           <h2 id="t-lire-plus-tard"><i data-icon="book-marked"></i>Lire plus tard</h2>
+          <figure class="doc-shot">
+            <img src="/img/screens/reading-list-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="Page browser://reading-list : articles non lus gardés hors ligne" />
+          </figure>
           <p>
             Gardez une page pour plus tard avec le bouton de la barre d'adresse (au survol), le clic droit sur la page,
             la barre universelle ou <kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>D</kbd> (<kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>D</kbd>).
@@ -692,6 +712,10 @@
         <!-- Autofill, passkeys (ADR-041) -->
         <section class="doc-section" id="formulaires" aria-labelledby="t-formulaires">
           <h2 id="t-formulaires"><i data-icon="credit-card"></i>Adresses, cartes et clés d'accès</h2>
+          <figure class="doc-shot">
+            <img src="/img/screens/autofill-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="Paramètres, Adresses et paiements : une adresse et une carte enregistrées" />
+          </figure>
           <ul>
             <li><strong>Enregistrer</strong> : après l'envoi d'un formulaire de livraison ou de paiement, Browser propose « Enregistrer cette adresse ? » ou « Enregistrer cette carte ? ». Les champs sont reconnus en français et en anglais (formats d'adresse France/Europe, Royaume-Uni, Amérique du Nord).</li>
             <li><strong>Remplir</strong> : en entrant dans un champ reconnu, une liste propose vos adresses ou cartes ; aussi « Remplir une adresse » du menu de la page (bureau et téléphone).</li>
@@ -730,8 +754,8 @@
         <section class="doc-section" id="extensions" aria-labelledby="t-extensions">
           <h2 id="t-extensions"><i data-icon="puzzle"></i>Extensions</h2>
           <figure class="doc-shot">
-            <img src="/img/screens/extensions-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
-              alt="Page browser://extensions avec trois extensions installées depuis un dossier" />
+            <img src="/img/screens/extensions-details-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="Page browser://extensions : une extension du Chrome Web Store et ses détails (sites, autorisations, taille, options)" />
           </figure>
           <p>
             Ouvrez une extension sur le <strong>Chrome Web Store</strong> : le bouton grisé « Ajouter à Chrome » devient
@@ -1072,8 +1096,8 @@
             <dd>C'est SmartScreen, qui avertit pour un programme non signé ou encore peu téléchargé. Tant que les paquets ne sont pas signés : « Informations complémentaires », puis « Exécuter quand même ». Vérifiez le fichier avec <code>SHA256SUMS.txt</code> si vous le souhaitez. La signature (Azure Trusted Signing) est prête et sera activée dans une prochaine version ; même signé, un nouvel exécutable peut être signalé quelques jours, le temps d'acquérir sa réputation.</dd>
             <dt>Netflix, Disney+, Prime Video ou Spotify refusent de lire.</dt>
             <dd>Ils exigent le module de contenus protégés Widevine. Vérifiez Paramètres, Confidentialité, « Contenus protégés (DRM) » : l'interrupteur doit être activé et une version de Widevine affichée. Au tout premier lancement, le module se télécharge en quelques secondes ; relancez le navigateur s'il indique « installation en cours ». Sous Linux, Widevine n'est pas disponible. Certains services réservent la haute définition aux navigateurs dont la plateforme est vérifiée (signature VMP des versions publiées).</dd>
-            <dt>Google refuse la connexion (« Ce navigateur ou cette application n'est peut-être pas sécurisé »).</dt>
-            <dd>Browser se présente comme Google Chrome de la même version, ce qui suffit d'ordinaire. Si Google refuse malgré tout, mettez Browser à jour, réessayez depuis <code>accounts.google.com</code> plutôt que depuis une fenêtre surgissante, et désactivez les protections pour ce site le temps de la connexion. Signalez-le sur GitHub en précisant la version : les contrôles de Google évoluent.</dd>
+            <dt>La connexion à un compte Google s'ouvre dans un autre navigateur.</dt>
+            <dd>Google refuse les connexions depuis les navigateurs intégrés : les pages de <code>accounts.google.com</code> s'ouvrent donc dans votre navigateur habituel, où la connexion se fait normalement. Les autres connexions (Okta, Microsoft…) restent dans Browser. Si un site Google reste bloqué, mettez Browser à jour et signalez-le sur GitHub en précisant la version : les contrôles de Google évoluent.</dd>
             <dt>Un site ne trouve pas ma clé d'accès (passkey) ou ma clé de sécurité.</dt>
             <dd>Sous Windows, la connexion passe par Windows Hello : vérifiez qu'il est configuré. Sous macOS et Linux, seules les clés de sécurité USB sans code PIN fonctionnent ; Touch ID, le trousseau iCloud et la connexion avec un téléphone ne sont pas disponibles. Voir « Adresses, cartes et clés d'accès ».</dd>
             <dt>Je ne reçois pas les notifications d'un site fermé.</dt>

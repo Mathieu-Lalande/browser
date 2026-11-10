@@ -177,7 +177,7 @@
         <section class="doc-section" id="mobile" aria-labelledby="t-mobile">
           <h2 id="t-mobile"><i data-icon="smartphone"></i>Mobile app</h2>
           <figure class="doc-shot doc-phones">
-            <img src="/img/screens/mobile-start-dark.webp" width="390" height="844" loading="lazy" decoding="async"
+            <img src="/img/screens/mobile-start-en-dark.webp" width="390" height="844" loading="lazy" decoding="async"
               alt="Mobile app: start page with its widgets, in the dark theme" />
             <img src="/img/screens/mobile-tabs-light.webp" width="390" height="844" loading="lazy" decoding="async"
               alt="Mobile app: tab view of the Personal space, in the light theme" />
@@ -208,14 +208,14 @@
             <li>Encrypted sync with the desktop (pairing by QR code).</li>
             <li>French or English, following the phone's language (Settings, Appearance, Language to choose).</li>
           </ul>
-          <p class="muted">The mobile ad blocker will come with the compiled version (phase 2).</p>
+          <p class="muted">The full ad and tracker blocker (blocked requests, per-site shield) needs the compiled app; in Expo Go, only ad slots are hidden and cookie banners refused.</p>
         </section>
 
         <!-- First steps -->
         <section class="doc-section" id="premiers-pas" aria-labelledby="t-premiers-pas">
           <h2 id="t-premiers-pas"><i data-icon="sparkles"></i>First steps</h2>
           <figure class="doc-shot">
-            <img src="/img/screens/start-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+            <img src="/img/screens/start-en-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
               alt="Customizable start page: clock, search, weather, calendar, tasks, notes and top sites" />
           </figure>
           <p>
@@ -251,6 +251,10 @@
         <!-- Main browser (ADR-039) -->
         <section class="doc-section" id="principal" aria-labelledby="t-principal">
           <h2 id="t-principal"><i data-icon="badge-check"></i>Default browser, history, import</h2>
+          <figure class="doc-shot">
+            <img src="/img/screens/history-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="The browser://history page: pages visited today, with search and deletion" />
+          </figure>
           <h3>Default browser</h3>
           <p>
             On first launch, the start page offers once to make Browser your default browser (“Later” makes it go away).
@@ -293,6 +297,10 @@
         <!-- Mini window, energy saver, Windows (ADR-048) -->
         <section class="doc-section" id="mini-fenetre" aria-labelledby="t-mini-fenetre">
           <h2 id="t-mini-fenetre"><i data-icon="picture-in-picture-2"></i>Mini window, energy saver, Windows</h2>
+          <figure class="doc-shot">
+            <img src="/img/screens/mini-window-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="A recipe opened in a mini window above the browser, with “Open in browser”" />
+          </figure>
           <h3>Mini window</h3>
           <p>
             A link opened from another app (messaging, email…) shows in a small frameless window: the site and the page
@@ -385,7 +393,7 @@
         <section class="doc-section" id="espaces" aria-labelledby="t-espaces">
           <h2 id="t-espaces"><i data-icon="layers"></i>Spaces and gestures</h2>
           <figure class="doc-shot">
-            <img src="/img/screens/sidebar-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+            <img src="/img/screens/sidebar-en-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
               alt="The sidebar with the favorites grid, a pinned tab, folders and the spaces at the bottom" />
           </figure>
           <p>
@@ -449,7 +457,7 @@
         <section class="doc-section" id="barre-universelle" aria-labelledby="t-barre-universelle">
           <h2 id="t-barre-universelle"><i data-icon="command"></i>Universal bar</h2>
           <figure class="doc-shot">
-            <img src="/img/screens/omnibox-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+            <img src="/img/screens/omnibox-en-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
               alt="Universal bar: results grouped into tabs, archived tabs and web search" />
           </figure>
           <p>
@@ -545,6 +553,10 @@
         <!-- AI assistant -->
         <section class="doc-section" id="assistant" aria-labelledby="t-assistant">
           <h2 id="t-assistant"><i data-icon="sparkles"></i>AI assistant</h2>
+          <figure class="doc-shot">
+            <img src="/img/screens/assistant-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="The assistant panel next to an article: a summary in bullet points, quick actions and a question box" />
+          </figure>
           <p>
             Optional and off by default. The assistant uses Anthropic's <strong>Claude</strong> with <strong>your own
             API key</strong> (to create on console.anthropic.com, billed to your account): Settings, “AI assistant”, turn
@@ -571,6 +583,10 @@
         <!-- Web panels (ADR-047) -->
         <section class="doc-section" id="panneaux" aria-labelledby="t-panneaux">
           <h2 id="t-panneaux"><i data-icon="panel-right"></i>Web panels</h2>
+          <figure class="doc-shot">
+            <img src="/img/screens/panels-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="A mail app opened as a web panel next to the page, its unread count on its icon" />
+          </figure>
           <p>
             Pin a web app (WhatsApp Web, Messenger, Spotify, ChatGPT, Gmail… or any address) to the sidebar: the
             <strong>+</strong> button above the bar's footer offers suggestions, the current page or an address to type.
@@ -590,6 +606,10 @@
         <!-- Reading list (ADR-047) -->
         <section class="doc-section" id="lire-plus-tard" aria-labelledby="t-lire-plus-tard">
           <h2 id="t-lire-plus-tard"><i data-icon="book-marked"></i>Read later</h2>
+          <figure class="doc-shot">
+            <img src="/img/screens/reading-list-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="The browser://reading-list page: unread articles kept offline" />
+          </figure>
           <p>
             Keep a page for later with the address bar's button (on hover), a right-click on the page, the universal bar
             or <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>D</kbd> (<kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>D</kbd>). The article's
@@ -669,6 +689,10 @@
         <!-- Autofill, passkeys (ADR-041) -->
         <section class="doc-section" id="formulaires" aria-labelledby="t-formulaires">
           <h2 id="t-formulaires"><i data-icon="credit-card"></i>Addresses, cards and passkeys</h2>
+          <figure class="doc-shot">
+            <img src="/img/screens/autofill-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="Settings, Addresses and payments: one saved address and one card" />
+          </figure>
           <ul>
             <li><strong>Save</strong>: after sending a shipping or payment form, Browser offers “Save this address?” or “Save this card?”. Fields are recognized in French and English (France/Europe, United Kingdom, North America address formats).</li>
             <li><strong>Fill</strong>: when entering a recognized field, a list offers your addresses or cards; also “Fill an address” in the page menu (desktop and phone).</li>
@@ -706,8 +730,8 @@
         <section class="doc-section" id="extensions" aria-labelledby="t-extensions">
           <h2 id="t-extensions"><i data-icon="puzzle"></i>Extensions</h2>
           <figure class="doc-shot">
-            <img src="/img/screens/extensions-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
-              alt="The browser://extensions page with three extensions installed from a folder" />
+            <img src="/img/screens/extensions-details-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+              alt="The browser://extensions page: a Chrome Web Store extension and its details (sites, permissions, size, options)" />
           </figure>
           <p>
             Open an extension on the <strong>Chrome Web Store</strong>: the grayed-out “Add to Chrome” button becomes
@@ -831,7 +855,7 @@
         <section class="doc-section" id="apparence" aria-labelledby="t-apparence">
           <h2 id="t-apparence"><i data-icon="palette"></i>Appearance and themes</h2>
           <figure class="doc-shot">
-            <img src="/img/screens/settings-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
+            <img src="/img/screens/settings-en-dark.webp" width="1440" height="900" loading="lazy" decoding="async"
               alt="Appearance settings: light or dark mode and theme gallery" />
           </figure>
           <p>
@@ -1043,8 +1067,8 @@
             <dd>That's SmartScreen, which warns about an unsigned or rarely downloaded program. As long as the packages aren't signed: “More info”, then “Run anyway”. Check the file with <code>SHA256SUMS.txt</code> if you wish. Signing (Azure Trusted Signing) is ready and will be turned on in an upcoming version; even signed, a new executable can be flagged for a few days while it builds its reputation.</dd>
             <dt>Netflix, Disney+, Prime Video or Spotify refuse to play.</dt>
             <dd>They require the Widevine protected content module. Check Settings, Privacy, “Protected content (DRM)”: the switch must be on and a Widevine version shown. On the very first launch, the module downloads in a few seconds; restart the browser if it says “installing”. On Linux, Widevine isn't available. Some services keep high definition for browsers whose platform is verified (VMP signature of published versions).</dd>
-            <dt>Google refuses the sign-in (“This browser or app may not be secure”).</dt>
-            <dd>Browser presents itself as Google Chrome of the same version, which is usually enough. If Google still refuses, update Browser, try again from <code>accounts.google.com</code> rather than from a pop-up, and turn off the protections for that site during the sign-in. Report it on GitHub with the version: Google's checks evolve.</dd>
+            <dt>Signing in to a Google account opens another browser.</dt>
+            <dd>Google refuses sign-ins from embedded browsers, so <code>accounts.google.com</code> pages open in your usual browser, where the sign-in works normally. Other sign-ins (Okta, Microsoft…) stay in Browser. If a Google site is still blocked, update Browser and report it on GitHub with the version: Google's checks evolve.</dd>
             <dt>A site doesn't find my passkey or security key.</dt>
             <dd>On Windows, sign-in goes through Windows Hello: check that it is set up. On macOS and Linux, only USB security keys without a PIN work; Touch ID, the iCloud keychain and sign-in with a phone aren't available. See “Addresses, cards and passkeys”.</dd>
             <dt>I don't get notifications from a closed site.</dt>

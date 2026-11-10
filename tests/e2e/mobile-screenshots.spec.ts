@@ -67,7 +67,7 @@ test.afterAll(() => {
 });
 
 /** What the app finds in its storage (AsyncStorage is localStorage on the web). */
-function seed(): Record<string, unknown> {
+function seed(language: "fr" | "en" = "fr"): Record<string, unknown> {
   const now = Date.now();
   const sites = [
     ["https://lejournal.fr/", "Le Journal du Web"],
@@ -94,8 +94,8 @@ function seed(): Record<string, unknown> {
   });
   return {
     "browser.settings": {
-      // French UI whatever the shell's language (ADR-052): the labels below are French.
-      appearance: { mode: theme, language: "fr" },
+      // The UI language, French unless asked (the shell may be English, ADR-052): the labels below are French.
+      appearance: { mode: theme, language },
       assistant: { enabled: true },
       startPage: {
         greetingName: "Camille",
@@ -142,7 +142,7 @@ function seed(): Record<string, unknown> {
   };
 }
 
-async function launchPhone(): Promise<{ app: ElectronApplication; page: Page }> {
+async function launchPhone(language: "fr" | "en" = "fr"): Promise<{ app: ElectronApplication; page: Page }> {
   const app = await electron.launch({
     args: ["--no-sandbox", `--force-device-scale-factor=${device.scale}`, SHELL],
     env: { ...process.env, MOBILE_URL: origin, MOBILE_THEME: theme, MOBILE_WIDTH: String(device.width), MOBILE_HEIGHT: String(device.height) },
@@ -152,7 +152,7 @@ async function launchPhone(): Promise<{ app: ElectronApplication; page: Page }> 
   await page.evaluate((documents) => {
     localStorage.clear();
     for (const [key, data] of Object.entries(documents)) localStorage.setItem(key, JSON.stringify({ version: 1, data }));
-  }, seed());
+  }, seed(language));
   await page.reload();
   await expect(page.getByText("Camille", { exact: false }).first()).toBeVisible();
   return { app, page };
@@ -274,6 +274,17 @@ test("mobile reading list, notes, shields, assistant", async () => {
     await menuItem(page, "Liste de lecture");
     await expect(page.getByText("Courge rôtie au miel et au thym").first()).toBeVisible();
     await shoot(page, "reading-list", 900);
+  } finally {
+    await app.close();
+  }
+});
+
+/** The start page with the English UI (`mobile-start-en-<theme>.png`, for the English site). */
+test("mobile start page in English", async () => {
+  const { app, page } = await launchPhone("en");
+  try {
+    await expect(page.getByLabel("Search or enter an address").first()).toBeVisible();
+    await shoot(page, "start-en", 1200);
   } finally {
     await app.close();
   }
