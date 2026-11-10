@@ -797,7 +797,7 @@
             <li><strong>Downloads</strong>: saved without a dialog (or always ask where, Settings, Downloads), with pause, resume and cancel; a download interrupted by closing the browser picks up where it stopped (“Resume”), when the server allows it. Programs and scripts wait for your confirmation; nothing is opened automatically. List: <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>J</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>L</kbd>) or <code>browser://downloads</code>.</li>
             <li><strong>Find in page</strong>: <kbd>Ctrl</kbd> <kbd>F</kbd>, then <kbd>Enter</kbd> / <kbd>Shift</kbd> <kbd>Enter</kbd>, <kbd>F3</kbd> or <kbd>Ctrl</kbd> <kbd>G</kbd> for the next match. The counter and case are kept per tab.</li>
             <li><strong>Zoom</strong>: <kbd>Ctrl</kbd> <kbd>+</kbd> / <kbd>-</kbd> / <kbd>0</kbd>, pinch or <kbd>Ctrl</kbd> + wheel, remembered per site; default zoom in Settings, Appearance.</li>
-            <li><strong>Media</strong>: <kbd>Ctrl</kbd> <kbd>M</kbd> mutes the tab; “Picture in picture” detaches the video, and does it by itself when you leave a tab playing a video if “Automatic picture in picture” is on (Settings, Behavior; sites that forbid it are respected); <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>P</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>P</kbd>) pauses everything.</li>
+            <li><strong>Media</strong>: <kbd>Ctrl</kbd> <kbd>M</kbd> mutes the tab; “Picture in picture” detaches the video, even one in an embedded player (YouTube in an article), and does it by itself when you leave a tab playing a video if “Automatic picture in picture” is on (Settings, Behavior; sites that forbid it are respected); <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>P</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>P</kbd>) pauses everything.</li>
           </ul>
           <h3 id="pause-medias">Pausing media</h3>
           <p>
@@ -1060,6 +1060,7 @@
           </p>
           <ul>
             <li><strong>Disconnect this device</strong>: stops sync here, the local data stays.</li>
+            <li><strong>Remove this device</strong> (in the list of other devices, for a lost or sold device): it loses access to the account and the others move to a new key, with no pairing again. It keeps what it already received.</li>
             <li><strong>Reset</strong> (lost code, stolen device): erases the account on the server and creates a new one with a new key; pair your devices again.</li>
           </ul>
           <p class="muted">To try it locally: <code>cd server &amp;&amp; npm ci &amp;&amp; npm run build &amp;&amp; npm start</code>, then the address <code>http://&lt;PC-IP&gt;:8787</code> (http is only accepted on the local network).</p>

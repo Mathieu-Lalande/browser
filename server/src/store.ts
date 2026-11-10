@@ -4,7 +4,8 @@ import { join } from "node:path";
 /**
  * Storage of the relay: one JSON file per account, written atomically (temporary file, fsync,
  * rename) before a write is acknowledged. Nothing in it is readable without the devices' key:
- * record payloads are ciphertext, record ids are keyed hashes, the token is stored hashed.
+ * record payloads are ciphertext, record ids are keyed hashes, tokens are stored hashed, wrapped keys
+ * are sealed under a key the server never had.
  *
  * Node 22's `node:sqlite` is still flagged experimental, so this dependency-free file store is
  * used; volumes are small (a few MB per account) and the process is single-threaded.
@@ -17,10 +18,35 @@ export interface StoredRecord {
   payload: string | null;
 }
 
+/** One device's own token (ADR-056). */
+export interface DeviceAuth {
+  /** SHA-256 of the device's bearer token, hex. */
+  tokenHash: string;
+  createdAt: number;
+  /** First request made with it; a pairing token never claimed expires (`PAIRING_TTL_MS`). */
+  claimedAt?: number;
+}
+
+/** The next sync key wrapped for each remaining device after a rotation (ADR-056); opaque here. */
+export interface KeyWraps {
+  epoch: number;
+  /** Device auth id → wrapped key (base64url), delivered only to that device. */
+  wraps: Record<string, string>;
+}
+
 export interface Account {
   id: string;
-  /** SHA-256 of the bearer token, hex. */
-  tokenHash: string;
+  /**
+   * SHA-256 of the account-wide token shared by every device paired before ADR-056 (hex), or
+   * null: such devices move to their own token at their next sync, and a rotation revokes it.
+   */
+  tokenHash: string | null;
+  /** Per-device tokens by auth id (ADR-056). Missing on accounts written before. */
+  devices?: Record<string, DeviceAuth>;
+  /** Generation of the sync key (0 until the first rotation). */
+  epoch?: number;
+  /** Last rotations, oldest first, so a device that slept through several can catch up. */
+  keyring?: KeyWraps[];
   createdAt: number;
   /** Last version handed out (per account, only grows). */
   version: number;

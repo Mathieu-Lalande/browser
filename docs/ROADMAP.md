@@ -14,7 +14,7 @@ dynamique (ADR-038), navigateur par défaut, PDF, historique et import (ADR-039)
 bandeaux cookies et tableau de bord de confidentialité (ADR-046), panneaux web et « Lire plus tard » (ADR-047),
 mini-fenêtre, économiseur d'énergie et intégration au système (ADR-048), bloqueur natif sur le téléphone (ADR-051),
 interface en français et en anglais (ADR-052), API `chrome.*` des extensions (ADR-053), raccourcis et menus
-persistants des extensions, téléchargements repris après un redémarrage, mémoire libérée par la veille (ADR-054), recherche dans la page, téléchargements, miniatures, onglets privés isolés sur Android et écran d'accueil sur le téléphone (ADR-055) ; releases GitHub et site vitrine bilingue (ADR-023) ; application
+persistants des extensions, téléchargements repris après un redémarrage, mémoire libérée par la veille (ADR-054), recherche dans la page, téléchargements, miniatures, onglets privés isolés sur Android et écran d'accueil sur le téléphone (ADR-055), retrait d'un seul appareil de la synchronisation et image dans l'image des vidéos dans des iframes (ADR-056) ; releases GitHub et site vitrine bilingue (ADR-023) ; application
 mobile compilée avec EAS et workflow de publication vers les stores (INSTALL 2.3).
 
 ## À venir (vérifié dans le code)
@@ -25,8 +25,7 @@ mobile compilée avec EAS et workflow de publication vers les stores (INSTALL 2.
   est prêt) ; droit « navigateur par défaut » d'Apple à demander (`IOS_DEFAULT_BROWSER=1` seulement après l'accord).
 - **Mobile** : espaces isolés (conteneurs), widgets de l'écran d'accueil (extensions natives WidgetKit / AppWidget,
   ADR-055), progression des téléchargements et cookies des téléchargements sur iPhone.
-- **Synchronisation** : révoquer un seul appareil sans tout réinitialiser, fusion fine des titres, favicons.
-- **Téléchargements** : image dans l'image pour les vidéos dans des iframes.
+- **Synchronisation** : fusion fine des titres, favicons.
 - **Mise en veille** : préchargement intelligent.
 - **Connexion Google dans Browser** : les pages de `accounts.google.com` s'ouvrent encore dans le navigateur
   système (Google refuse les navigateurs intégrés, ADR-040).
@@ -62,8 +61,7 @@ barre d'adresse, page d'accueil, raccourcis, durcissement sécurité, tests unit
   à confirmer, rien n'est ouvert automatiquement), popover dans l'overlay, `browser://downloads`,
   historique ; recherche dans la page (Ctrl+F, compteur, casse, requête gardée par onglet) ; zoom
   mémorisé par site et zoom par défaut ; image dans l'image ; indicateur de son et coupure par onglet.
-  Reste : reprise des téléchargements interrompus après un redémarrage, vidéos dans des iframes
-  pour l'image dans l'image.
+  Reste : reprise des téléchargements interrompus après un redémarrage.
 - (fait) Mise en veille des onglets inactifs (délai réglable, jamais pour le son, les autorisations en
   attente ni les formulaires en cours ; onglets estompés ; commandes « Mettre en veille ») (ADR-014).
   Reste : préchargement intelligent, indicateur de mémoire libérée.
@@ -101,8 +99,9 @@ barre d'adresse, page d'accueil, raccourcis, durcissement sécurité, tests unit
 - (fait, ADR-050) Synchronisation facultative des mots de passe et de la liste « Jamais pour ce site » (bureau et
   téléphone), désactivée par défaut ; l'état local du moteur pour cette collection est scellé par une clé dérivée
   de la clé de synchronisation (trousseau du système), plus aucun haché en clair sur le disque.
-- Reste : révoquer un seul appareil sans tout réinitialiser, fusion fine des titres, favicons, test sur un vrai
-  iPhone.
+- (fait, ADR-056) Retirer un seul appareil : jeton par appareil sur le relais, rotation de la clé de synchronisation
+  remise aux autres appareils chiffrée sous l'ancienne et seulement avec leur propre jeton.
+- Reste : fusion fine des titres, favicons, test sur un vrai iPhone.
 
 ## Mobile (iOS et Android) — voir ADR-016 et `mobile/README.md`
 

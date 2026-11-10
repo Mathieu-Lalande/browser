@@ -15,7 +15,16 @@ export interface SyncCredentials {
   token: string;
   /** 32 bytes, base64url. */
   syncKey: string;
+  /**
+   * This device's own auth id on the relay (ADR-056); absent for the account-wide token of devices
+   * paired before, replaced by a device token at their next sync.
+   */
+  authId?: string;
+  /** Generation of `syncKey` (0 until a device is revoked; ADR-056). */
+  epoch?: number;
 }
+
+export const isEpoch = (value: unknown): value is number => typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 
 const PAIRING_PREFIX = "browser-sync:1:";
 const MAX_URL = 512;
@@ -44,6 +53,7 @@ export function isSyncCredentials(value: unknown): value is SyncCredentials {
   const c = value as Record<string, unknown>;
   if (typeof c.serverUrl !== "string" || normalizeServerUrl(c.serverUrl) !== c.serverUrl) return false;
   if (!isAccountId(c.accountId) || !isToken(c.token) || typeof c.syncKey !== "string") return false;
+  if ((c.authId !== undefined && !isAccountId(c.authId)) || (c.epoch !== undefined && !isEpoch(c.epoch))) return false;
   try {
     return fromBase64Url(c.syncKey).length === SYNC_KEY_BYTES;
   } catch {
@@ -53,7 +63,7 @@ export function isSyncCredentials(value: unknown): value is SyncCredentials {
 
 /** The pairing code: shown as a QR code and as copyable text. */
 export function encodePairingCode(credentials: SyncCredentials): string {
-  const json = JSON.stringify({ s: credentials.serverUrl, a: credentials.accountId, t: credentials.token, k: credentials.syncKey });
+  const json = JSON.stringify({ s: credentials.serverUrl, a: credentials.accountId, t: credentials.token, k: credentials.syncKey, d: credentials.authId, e: credentials.epoch });
   return PAIRING_PREFIX + toBase64Url(utf8Encode(json));
 }
 
@@ -63,7 +73,14 @@ export function decodePairingCode(code: string): SyncCredentials | null {
   if (!text.startsWith(PAIRING_PREFIX) || text.length > 2048) return null;
   try {
     const value = JSON.parse(utf8Decode(fromBase64Url(text.slice(PAIRING_PREFIX.length)))) as Record<string, unknown>;
-    const credentials = { serverUrl: value.s, accountId: value.a, token: value.t, syncKey: value.k };
+    const credentials = {
+      serverUrl: value.s,
+      accountId: value.a,
+      token: value.t,
+      syncKey: value.k,
+      ...(value.d === undefined ? {} : { authId: value.d }),
+      ...(value.e === undefined ? {} : { epoch: value.e }),
+    };
     return isSyncCredentials(credentials) ? credentials : null;
   } catch {
     return null;

@@ -311,7 +311,7 @@ d'adresse affiche le zoom quand il diffère du défaut, un clic le réinitialise
 
 **Médias** : « Image dans l'image » exécute un court script dans un monde isolé (`executeJavaScriptInIsolatedWorld`,
 geste utilisateur transmis, aucun preload : ADR-003) qui choisit la vidéo en cours de lecture, sinon la
-plus visible, ou quitte le mode. Limite : les vidéos dans des iframes ne sont pas trouvées. Les onglets
+plus visible, ou quitte le mode. Les vidéos dans des iframes sont trouvées depuis l'ADR-056. Les onglets
 qui jouent du son (`audio-state-changed`) affichent un haut-parleur qui coupe/rétablit le son
 (`setAudioMuted`) ; commande « Couper le son de l'onglet », Ctrl+M (Ctrl et non ⌘ sous macOS, où ⌘M
 réduit la fenêtre ; c'est le raccourci de Firefox).
@@ -757,8 +757,7 @@ Dockerfile et guide de déploiement (VPS + Caddy, Fly.io, Render) dans `server/R
 **Limites.** Pas de fusion fine (un titre modifié en même temps sur deux appareils : le plus récent
 gagne entièrement) ; un appareil dont l'horloge avance gagne les conflits (dérive bornée à 24 h dans
 l'horloge, pas dans la comparaison) ; les changements faits hors ligne prennent l'heure de leur
-première synchronisation ; pas de rotation de clé sans réinitialisation, ni de révocation d'un seul
-appareil (il faut réinitialiser) ; pas de favicons ; l'historique n'est qu'une ligne par URL ;
+première synchronisation ; (révocation d'un seul appareil et rotation de clé : ADR-056) ; pas de favicons ; l'historique n'est qu'une ligne par URL ;
 `expo-camera` et le chiffrement n'ont été exécutés que dans les tests (Node/Jest) et dans le bundle
 Hermes compilé, pas encore sur un vrai téléphone.
 
@@ -2932,3 +2931,93 @@ pas sans module natif) : un fichier qui exige une connexion peut échouer. Pas d
 nettoyage de la requête ; noms de fichiers (`Content-Disposition` RFC 5987, assainissement, unicité), validation
 des demandes et de la liste, plafond, types ouvrables ; LRU, noms et index des miniatures, onglets jamais
 capturés ; isolation par plateforme et fin de session privée ; actions rapides et contenu partagé.
+
+## ADR-056 — Retirer un seul appareil de la synchronisation, image dans l'image des vidéos dans des iframes
+
+**Contexte.** Jusqu'ici, un appareil perdu ou vendu ne pouvait être exclu qu'en réinitialisant tout (ADR-019) :
+tous les appareils partageaient le même jeton d'accès au relais et la même clé de bout en bout, et il fallait les
+jumeler à nouveau un par un. Par ailleurs « Image dans l'image » (ADR-013/035) et l'image dans l'image
+automatique (ADR-047) ne voyaient que les vidéos du document principal : un lecteur intégré (YouTube, Vimeo dans
+un article) vit dans une iframe d'une autre origine.
+
+**Décision 1 — un jeton par appareil, rotation de clé au retrait.**
+
+- **Jetons** : le relais garde un jeton par appareil (`devices` du compte : haché SHA-256, date, première
+  utilisation), désigné par un identifiant aléatoire `authId` (32 hex). La création du compte en donne un au
+  premier appareil ; afficher le code de jumelage en crée un pour l'appareil qui va le lire (`POST /v1/devices`),
+  inutilisable s'il ne sert pas dans l'heure. Le code porte ce jeton, son `authId` et l'époque de la clé (champs
+  `d`, `e`, facultatifs : un ancien code reste lisible). « Déconnecter cet appareil » supprime aussi son propre
+  jeton (`DELETE /v1/devices/self`). 32 jetons au plus par compte.
+- **Migration** : un appareil jumelé avant (jeton commun du compte, sans `authId`) demande un jeton à lui à sa
+  synchronisation suivante et l'enregistre ; le jeton commun reste accepté jusqu'à la première rotation, qui le
+  supprime. Un relais d'avant (404 sur `/v1/devices`) garde l'ancien fonctionnement ; retirer un appareil y
+  affiche « serveur trop ancien ».
+- **Qui est qui** : la fiche chiffrée de chaque appareil (collection `clients`) contient son `authId`. Le relais ne
+  voit que des `authId` ; le lien avec un nom d'appareil n'existe que chiffré.
+- **Rotation** (`src/shared/sync/rotation.ts`, pur) : l'appareil qui retire tire une nouvelle clé de 256 bits et
+  l'emballe pour chaque appareil gardé (lui-même et les appareils de la liste sauf celui retiré) : XChaCha20-Poly1305
+  sous une sous-clé HKDF `key-wrap` de la clé actuelle, données associées `browser-sync/v1|key-wrap|<époque>|<authId>`
+  (un emballage ne sert ni à une autre époque ni à un autre appareil). `POST /v1/keyring` est atomique : il refuse
+  si l'époque n'est pas la suivante ou si les emballages ne couvrent pas exactement les appareils restants (409 :
+  l'appareil relit la liste), puis supprime les jetons révoqués **et tout jeton du relais qui n'est pas dans la
+  liste chiffrée** (code de jumelage en attente, jeton que l'appareil retiré aurait créé pour lui-même avant), ainsi
+  que le jeton commun, range les emballages (16 dernières époques), incrémente l'époque et **efface les données du
+  compte** chiffrées avec l'ancienne clé.
+- **Les autres appareils** : chaque requête de collection porte `X-Sync-Epoch` ; après une rotation le relais
+  répond 412. L'appareil lit alors *ses* emballages (`GET /v1/keyring?since=`, seulement avec son jeton, seulement
+  les siens), les ouvre l'un après l'autre (un appareil resté hors ligne pendant plusieurs rotations les rattrape),
+  repart d'un état neuf du moteur avec la nouvelle clé et l'époque, et synchronise comme un appareil qui rejoint
+  le compte : les données du compte gagnent, ses enregistrements locaux sont renvoyés, chiffrés avec la nouvelle
+  clé et sous de nouveaux identifiants HMAC. Emballage absent ou altéré : erreur « jumelez à nouveau ».
+- **Interface** : bureau, bouton « Retirer cet appareil » sur chaque appareil de la section Synchronisation
+  (deux clics, `sync:revoke-device`, refusé en fenêtre privée, note sur ce que l'appareil garde) ; téléphone,
+  icône corbeille sur chaque appareil, confirmation `Alert`.
+
+### Modèle de menace (ce que le retrait protège, honnêtement)
+
+- **Protégé** : après le retrait, l'appareil retiré ne peut plus ni lire ni écrire sur le relais (jeton supprimé,
+  401), ne reçoit pas la nouvelle clé, et ne peut pas déchiffrer ce que les autres envoient ensuite. Les données
+  chiffrées avec l'ancienne clé sont effacées du relais.
+- **Non protégé** : l'appareil retiré **garde tout ce qu'il avait déjà** (données locales, ancienne clé, historique
+  et mots de passe synchronisés jusque-là) ; changez les mots de passe importants s'il est perdu ou volé. L'ancienne
+  clé ouvre les emballages : seul le relais empêche de les lui remettre. Un relais malveillant **de connivence**
+  avec l'appareil retiré (ou une copie des fichiers du relais faite après la rotation, donnée à cet appareil) lui
+  donne donc la nouvelle clé ; un emballage par clé publique d'appareil l'éviterait, mais la clé publique devrait
+  elle-même être authentifiée hors de la clé partagée (que l'appareil retiré connaît) : écarté pour l'instant.
+  Un appareil compromis a pu ajouter de fausses fiches d'appareil (il avait la clé) : la liste montre tout ce que
+  la rotation garde, retirez chaque entrée inconnue. Un appareil jumelé dans l'heure qui n'a pas encore publié sa
+  fiche est retiré avec les autres jetons inconnus : il faut le jumeler à nouveau.
+- **Ce que le relais voit de plus** : le nombre de jetons (déjà déductible du nombre de fiches), leurs dates de
+  création et de première utilisation, le numéro d'époque et la date des rotations ; jamais de nom, jamais de clé.
+- Les suppressions faites pendant une rotation sur un appareil resté hors ligne peuvent revenir (premier passage
+  d'un appareil qui rejoint) ; les onglets envoyés en attente sont perdus (effacés avec les données).
+
+**Décision 2 — image dans l'image à travers les cadres.**
+
+- `src/shared/pip-frames.ts` (pur) : un script de relevé, exécuté dans chaque cadre web
+  (`mainFrame.framesInSubtree`, http(s)), répond des nombres (lecture en cours visible, refus
+  `disablePictureInPicture`, `pictureInPictureEnabled`, fenêtre déjà ouverte par l'automatique ou par
+  l'utilisateur) ; `parseFrameSurvey` les valide ; `chooseAutoPipFrame` choisit le cadre de la plus grande vidéo en
+  lecture visible (rien si une fenêtre est déjà ouverte, « disabled »/« unsupported » si les seules vidéos en
+  lecture refusent), `chooseManualPipFrame` ferme d'abord une fenêtre ouverte dans n'importe quel cadre, sinon
+  prend la vidéo en lecture puis la plus grande. Le script d'entrée ne s'exécute ensuite que dans le cadre choisi,
+  avec le geste utilisateur transmis ; la sortie automatique passe dans tous les cadres et ne ferme que ce
+  qu'elle a ouvert (`data-browser-auto-pip`).
+- `src/main/media/frames.ts` : le document principal garde ses mondes isolés (1002 commande, 1018 automatique).
+  **Limite d'Electron** : `WebFrameMain` n'offre que `executeJavaScript`, dans le monde principal du cadre ; les
+  scripts des sous-cadres ne font que lire le DOM et appeler l'API vidéo, et leurs réponses sont validées (jeu fixe
+  de résultats). Le pire qu'un cadre hostile puisse faire : se dire le meilleur candidat et faire détacher sa propre
+  vidéo, ou voir passer le script.
+- La surface visible est mesurée dans la fenêtre du cadre, pas rognée par la page parente : une iframe sortie de
+  l'écran par défilement peut encore compter comme visible pour l'automatique.
+
+**Tests.** Relais (Vitest, `server/`) : jetons par appareil hachés sur disque, expiration des codes inutilisés,
+rotation (emballages complets exigés, époque suivante, appareil retiré en 401, chacun ne reçoit que le sien, 412,
+données effacées), jeton commun révoqué à la première rotation. Moteur (`controller.test.ts`) : un jeton par
+appareil, retrait de bout en bout avec trois appareils (le retiré garde ses données, les autres suivent et
+renvoient tout, rien en clair sur le relais), migration du jeton commun ; rotation pure (emballages des seuls
+appareils gardés, chaîne d'époques, trous, altération, rejeu sous une autre époque). Mobile (Jest) : adaptateurs
+inchangés avec le nouveau relais en mémoire. `pip-frames.test.ts` : choix du cadre, refus, validation. e2e :
+`sync.spec.ts` retire le second bureau depuis l'interface ; `panels-reading.spec.ts` charge une page qui lit une
+petite vidéo et intègre un lecteur plus grand d'une autre origine (`localhost` contre `127.0.0.1`) : la commande
+et l'automatique détachent la vidéo de l'iframe, puis la remettent.

@@ -66,7 +66,7 @@ async function pair() {
   const a = device(server, "PC");
   const b = device(server, "iPhone");
   await a.controller.createAccount("http://127.0.0.1:1");
-  await b.controller.pair(a.controller.pairingCode()!);
+  await b.controller.pair((await a.controller.pairingCode())!);
   return { a, b };
 }
 

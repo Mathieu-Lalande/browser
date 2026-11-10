@@ -370,6 +370,11 @@ export const en: Record<MessageKey, string> = {
   "mobile.syncSettings.allDataServerErased": "All data on the server is erased and a new key is created. Your other devices will have to be paired again.",
   "mobile.syncSettings.reset": "Reset",
   "mobile.syncSettings.syncResetNewKey": "Sync reset with a new key.",
+  "mobile.syncSettings.removeDevice": "Remove this device",
+  "mobile.syncSettings.removeDeviceTitle": "Remove “{name}”?",
+  "mobile.syncSettings.removeDeviceMessage": "This device will lose access to the account. The others move to a new key and upload their encrypted data again. It keeps what it already received.",
+  "mobile.syncSettings.remove": "Remove",
+  "mobile.syncSettings.deviceRemoved": "Device removed, new key in place.",
   "mobile.syncSettings.never": "never",
   "mobile.syncSettings.justNow": "just now",
   "mobile.syncSettings.minAgo": "{minutes} min ago",
@@ -2130,6 +2135,9 @@ export const en: Record<MessageKey, string> = {
   "syncSection.erasesAllDataServer": "Erases all data on the server and creates a new key. Other devices are disconnected and will have to be paired again.",
   "syncSection.confirmReset": "Confirm the reset",
   "syncSection.reset": "Reset",
+  "syncSection.removeDevice": "Remove this device",
+  "syncSection.confirmRemove": "Confirm removal",
+  "syncSection.removeDeviceHint": "Removing a device cuts its access and moves the others to a new key (the data is encrypted and uploaded again). It keeps what it already received.",
 
   // themeShare
   "themeShare.themes": "Themes",
@@ -3467,10 +3475,14 @@ export const en: Record<MessageKey, string> = {
   "syncClient.accountQuotaReachedServer": "Account quota reached on the server",
   "syncClient.serverError": "Server error ({status})",
   "syncClient.unexpectedServerResponse2": "Unexpected server response ({status})",
+  "syncClient.serverTooOld": "This sync server is too old: update it to remove a device",
+  "syncClient.keyRotated": "The sync key changed",
 
   // syncController
   "syncController.invalidServerAddressHttps": "Invalid server address: https:// required (http:// only on a local network)",
   "syncController.invalidPairingCode": "Invalid pairing code",
+  "syncController.unknownDevice": "Unknown device",
+  "syncController.keyChangedPairAgain": "The sync key changed and this device cannot get it: pair it again",
 
   // syncEngine
   "syncEngine.serversDataCantDecrypted": "The server’s data can’t be decrypted with this device’s key",

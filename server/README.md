@@ -14,7 +14,7 @@ synchronisation dans l'application, Browser ne contacte rien.
 
 - Node.js 22, **aucune dépendance** à l'exécution (`node:http`, `node:crypto`, fichiers JSON).
 - Un fichier par compte dans `DATA_DIR/accounts/`, écrit de façon atomique.
-- Jeton d'accès stocké haché (SHA-256), limite de requêtes par adresse, corps de requête limité
+- Un jeton d'accès par appareil, stocké haché (SHA-256), limite de requêtes par adresse, corps de requête limité
   (2 Mo), quota par compte (64 Mo), pas de CORS : toute requête venant d'une page web est refusée.
 - Le TLS (https) est assuré par un proxy inverse (Caddy, Fly.io, Render…) : le relais parle http.
 
@@ -145,7 +145,8 @@ Gardez **une seule machine** (`fly scale count 1`) : les données sont dans un v
 4. Le téléphone récupère favoris, historique récent, espaces et thème du compte. Les onglets ouverts
    de chaque appareil apparaissent dans « Onglets de mes autres appareils » (PC : palette `Ctrl+K`
    et paramètres ; téléphone : vue des onglets, section « Autres appareils », et la recherche).
-5. Masquez le code une fois le jumelage fait. Pour un autre PC, collez le même code dans
+5. Masquez le code une fois le jumelage fait. Chaque code contient un jeton propre à l'appareil qui le
+   lit, valable une heure s'il ne sert pas : pour un autre PC, affichez un nouveau code et collez-le dans
    *Rejoindre un compte existant*.
 
 La synchronisation a lieu au démarrage, quelques secondes après chaque changement, toutes les
@@ -154,7 +155,12 @@ sont jamais synchronisés.
 
 - **Déconnecter cet appareil** : arrête la synchronisation sur l'appareil et le retire de la liste
   des autres ; ses données locales restent.
-- **Réinitialiser la synchronisation** (code perdu, appareil volé) : efface tout le compte sur le
+- **Retirer cet appareil** (sur un appareil de la liste, ADR-056) : le relais supprime son jeton et les
+  appareils restants passent à une nouvelle clé (emballée sous l'ancienne pour chacun d'eux, remise
+  seulement avec son propre jeton) ; les données chiffrées avec l'ancienne clé sont effacées du relais puis
+  renvoyées par les appareils. L'appareil retiré garde ce qu'il avait déjà reçu ; un relais de connivence
+  avec lui pourrait lui remettre la nouvelle clé (voir le modèle de menace de l'ADR-056).
+- **Réinitialiser la synchronisation** (code perdu, tout recommencer) : efface tout le compte sur le
   serveur et en crée un nouveau avec une nouvelle clé ; les autres appareils sont déconnectés et
   doivent être jumelés à nouveau avec le nouveau code.
 
@@ -171,8 +177,12 @@ sont jamais synchronisés.
 
 Voir `src/server.ts` (et `src/shared/sync/protocol.ts` côté application) :
 `POST /v1/accounts`, `GET /v1/collections/:nom?since=<version>`, `POST /v1/collections/:nom`
-(écriture par lot, concurrence optimiste, 409 en cas de conflit), `DELETE /v1/account`.
-Authentification : `Authorization: Bearer <compte>.<jeton>`.
+(écriture par lot, concurrence optimiste, 409 en cas de conflit), `DELETE /v1/account` ; appareils et
+rotation de clé (ADR-056) : `GET`/`POST /v1/devices`, `DELETE /v1/devices/self`, `GET /v1/keyring?since=<époque>`,
+`POST /v1/keyring` (révoque, range les clés emballées, efface les données ; atomique).
+Authentification : `Authorization: Bearer <compte>.<jeton de l'appareil>` ; les requêtes de collection portent
+`X-Sync-Epoch` (412 après une rotation). Les comptes créés avant gardent leur jeton commun jusqu'à la première
+rotation ; les appareils passent d'eux-mêmes à un jeton propre.
 
 ## Rapports de plantage (facultatif, ADR-043)
 

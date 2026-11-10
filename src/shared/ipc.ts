@@ -193,6 +193,7 @@ export const Channels = {
   syncNow: "sync:now",
   syncDisconnect: "sync:disconnect",
   syncReset: "sync:reset",
+  syncRevokeDevice: "sync:revoke-device",
   siteInfoShow: "site-info:show",
   pageOptionsShow: "page-options:show",
   captureCopy: "capture:copy",
@@ -929,6 +930,8 @@ export interface BrowserApi {
     disconnect(): Promise<SyncActionResult>;
     /** Erases the account on the server and starts over with a new key (other devices must pair again). */
     reset(): Promise<SyncActionResult>;
+    /** "Retirer cet appareil" (ADR-056): revokes another device and moves the others to a new key. */
+    revokeDevice(deviceId: string): Promise<SyncActionResult>;
   };
   /**
    * Site info popover (ADR-021). The UI only names the tab: main reads its URL and session (a

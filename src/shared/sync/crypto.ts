@@ -28,6 +28,8 @@ export interface SyncKeys {
   id: Uint8Array;
   /** Seals the local mirror of sensitive collections at rest (ADR-050); never leaves the device. */
   local: Uint8Array;
+  /** Wraps the next sync key for each remaining device when one is revoked (ADR-056). */
+  wrap: Uint8Array;
   /** Short fingerprint of the sync key, to tell keys apart in the UI and in tests (not secret-bearing). */
   fingerprint: string;
 }
@@ -43,6 +45,7 @@ export function deriveKeys(syncKey: Uint8Array): SyncKeys {
     enc: derive("record-encryption"),
     id: derive("record-id"),
     local: derive("local-state"),
+    wrap: derive("key-wrap"),
     fingerprint: toHex(derive("fingerprint").subarray(0, 4)),
   };
 }
@@ -89,3 +92,23 @@ const localData = (collection: string) => utf8Encode(`browser-sync/v1|local|${co
 /** Seals a sensitive collection's local mirror (ADR-050): the key derives from the sync key, kept in the OS keychain. */
 export const sealLocal = (keys: SyncKeys, rng: RandomBytes, collection: string, plaintext: string): string => sealWith(keys.local, rng, localData(collection), plaintext);
 export const openLocal = (keys: SyncKeys, collection: string, envelope: string): string => openWith(keys.local, localData(collection), envelope);
+
+const wrapData = (epoch: number, authId: string) => utf8Encode(`browser-sync/v1|key-wrap|${epoch}|${authId}`);
+
+/**
+ * Key rotation (ADR-056): the next sync key sealed under the current one, bound to its epoch and to
+ * the device it is for (the relay hands each device only its own, and never to a revoked token).
+ */
+export function wrapKey(current: SyncKeys, rng: RandomBytes, epoch: number, authId: string, next: Uint8Array): string {
+  if (next.length !== SYNC_KEY_BYTES) throw new Error("Sync key must be 32 bytes");
+  const nonce = randomBytesChecked(rng, NONCE_BYTES);
+  const sealed = xchacha20poly1305(current.wrap, nonce, wrapData(epoch, authId)).encrypt(next);
+  return toBase64Url(concatBytes(Uint8Array.of(ENVELOPE_VERSION), nonce, sealed));
+}
+
+/** Opens a wrap made by `wrapKey` for this epoch and device; throws if it was altered or moved. */
+export function unwrapKey(current: SyncKeys, epoch: number, authId: string, wrapped: string): Uint8Array {
+  const bytes = fromBase64Url(wrapped);
+  if (bytes.length !== 1 + NONCE_BYTES + SYNC_KEY_BYTES + 16 || bytes[0] !== ENVELOPE_VERSION) throw new Error("Invalid wrapped key");
+  return xchacha20poly1305(current.wrap, bytes.subarray(1, 1 + NONCE_BYTES), wrapData(epoch, authId)).decrypt(bytes.subarray(1 + NONCE_BYTES));
+}

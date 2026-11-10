@@ -371,6 +371,11 @@ export const fr = {
   "mobile.syncSettings.allDataServerErased": "Toutes les données du serveur sont effacées et une nouvelle clé est créée. Vos autres appareils devront être jumelés à nouveau.",
   "mobile.syncSettings.reset": "Réinitialiser",
   "mobile.syncSettings.syncResetNewKey": "Synchronisation réinitialisée avec une nouvelle clé.",
+  "mobile.syncSettings.removeDevice": "Retirer cet appareil",
+  "mobile.syncSettings.removeDeviceTitle": "Retirer « {name} » ?",
+  "mobile.syncSettings.removeDeviceMessage": "Cet appareil n'aura plus accès au compte. Les autres passent à une nouvelle clé et renvoient leurs données chiffrées. Il garde ce qu'il avait déjà reçu.",
+  "mobile.syncSettings.remove": "Retirer",
+  "mobile.syncSettings.deviceRemoved": "Appareil retiré, nouvelle clé en place.",
   "mobile.syncSettings.never": "jamais",
   "mobile.syncSettings.justNow": "à l'instant",
   "mobile.syncSettings.minAgo": "il y a {minutes} min",
@@ -2131,6 +2136,9 @@ export const fr = {
   "syncSection.erasesAllDataServer": "Efface toutes les données du serveur et crée une nouvelle clé. Les autres appareils sont déconnectés et devront être jumelés à nouveau.",
   "syncSection.confirmReset": "Confirmer la réinitialisation",
   "syncSection.reset": "Réinitialiser",
+  "syncSection.removeDevice": "Retirer cet appareil",
+  "syncSection.confirmRemove": "Confirmer le retrait",
+  "syncSection.removeDeviceHint": "Retirer un appareil lui coupe l'accès et fait passer les autres à une nouvelle clé (les données sont chiffrées et envoyées à nouveau). Il garde ce qu'il avait déjà reçu.",
 
   // themeShare
   "themeShare.themes": "Thèmes",
@@ -3468,10 +3476,14 @@ export const fr = {
   "syncClient.accountQuotaReachedServer": "Quota du compte atteint sur le serveur",
   "syncClient.serverError": "Erreur du serveur ({status})",
   "syncClient.unexpectedServerResponse2": "Réponse inattendue du serveur ({status})",
+  "syncClient.serverTooOld": "Ce serveur de synchronisation est trop ancien : mettez-le à jour pour retirer un appareil",
+  "syncClient.keyRotated": "La clé de synchronisation a changé",
 
   // syncController
   "syncController.invalidServerAddressHttps": "Adresse de serveur invalide : https:// obligatoire (http:// seulement en réseau local)",
   "syncController.invalidPairingCode": "Code de jumelage invalide",
+  "syncController.unknownDevice": "Appareil inconnu",
+  "syncController.keyChangedPairAgain": "La clé de synchronisation a changé et cet appareil ne peut pas la récupérer : jumelez-le à nouveau",
 
   // syncEngine
   "syncEngine.serversDataCantDecrypted": "Les données du serveur ne peuvent pas être déchiffrées avec la clé de cet appareil",

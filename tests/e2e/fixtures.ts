@@ -253,6 +253,15 @@ function startServer(): Promise<{ server: Server; origin: string; log: ServerLog
         `<title>Find</title><p>Le renard brun saute. Un renard, deux renards.</p>` +
           `<p>RENARD en majuscules, et encore un renard ici.</p><p style="margin-top:2000px">Dernier renard.</p>`,
       );
+    } else if (path.startsWith("/embedded-video")) {
+      // ADR-056: a small playing preview in the page, a larger player in a frame of another origin.
+      res.end(
+        `<title>Embedded video</title><canvas id="c" width="64" height="36"></canvas><video id="small" muted autoplay width="96" height="54"></video>` +
+          `<iframe id="frame" src="${query(path, "frame") ?? ""}" width="520" height="320"></iframe>` +
+          `<script>const c = document.getElementById("c"), g = c.getContext("2d"); let t = 0;` +
+          `setInterval(() => { g.fillStyle = "hsl(" + (t++ * 9) % 360 + " 70% 50%)"; g.fillRect(0, 0, 64, 36); }, 40);` +
+          `document.getElementById("small").srcObject = c.captureStream(25);</script>`,
+      );
     } else if (path.startsWith("/video")) {
       // A playing video without any media file: a canvas stream.
       res.end(

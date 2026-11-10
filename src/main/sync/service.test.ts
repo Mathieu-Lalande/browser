@@ -29,6 +29,7 @@ function fakeController() {
     sendTab: vi.fn(),
     disconnect: vi.fn(),
     reset: vi.fn(),
+    revokeDevice: vi.fn(),
   };
 }
 

@@ -1,42 +1,26 @@
 import type { WebContents } from "electron";
+import { chooseManualPipFrame, enterPipScript, exitPipScript } from "@shared/pip-frames";
+import { runInFrame, surveyFrames, webFrames } from "./frames";
 
 /** Isolated world of the picture-in-picture script (the cosmetic filter's scan uses 1001). */
 const PIP_WORLD_ID = 1002;
 
-/**
- * Picks the page's main video and toggles picture-in-picture on it. It runs in an isolated world
- * (shared DOM, separate JavaScript globals: the page cannot tamper with it, and nothing stays in
- * the page): no preload is involved (ADR-003). The best candidate is a playing video, then the
- * largest visible one.
- */
-const PIP_SCRIPT = `(() => {
-  if (!document.pictureInPictureEnabled) return "unsupported";
-  if (document.pictureInPictureElement) return document.exitPictureInPicture().then(() => "exited", () => "failed");
-  const visibleArea = (video) => {
-    const rect = video.getBoundingClientRect();
-    const width = Math.max(0, Math.min(rect.right, innerWidth) - Math.max(rect.left, 0));
-    const height = Math.max(0, Math.min(rect.bottom, innerHeight) - Math.max(rect.top, 0));
-    return width * height;
-  };
-  const candidates = [...document.querySelectorAll("video")]
-    .filter((video) => video.readyState > 0 && !video.disablePictureInPicture)
-    .map((video) => ({ video, playing: !video.paused && !video.ended, area: visibleArea(video) }))
-    .sort((a, b) => Number(b.playing) - Number(a.playing) || b.area - a.area);
-  const best = candidates[0];
-  if (!best) return "none";
-  return best.video.requestPictureInPicture().then(() => "entered", () => "failed");
-})()`;
-
 export type PictureInPictureResult = "entered" | "exited" | "none" | "unsupported" | "failed";
 
+const RESULTS: ReadonlySet<string> = new Set(["entered", "exited", "none", "unsupported", "failed"]);
+
 /**
- * `requestPictureInPicture` needs a user gesture: the command comes from one (shortcut, menu or
- * palette), which `userGesture` forwards to the page.
+ * Toggles picture-in-picture on the page's main video, whatever frame it is in (ADR-035, 056): a
+ * window already open in any frame is closed; otherwise the best video — playing first, then the
+ * largest visible one — is popped out. The top frame's script runs in an isolated world (no preload,
+ * ADR-003), subframes' as `frames.ts` explains. `requestPictureInPicture` needs a user gesture: the
+ * command comes from one (shortcut, menu or palette), forwarded to the frame.
  */
 export async function togglePictureInPicture(contents: WebContents): Promise<PictureInPictureResult> {
-  try {
-    return await contents.executeJavaScriptInIsolatedWorld(PIP_WORLD_ID, [{ code: PIP_SCRIPT }], true);
-  } catch {
-    return "failed";
-  }
+  const frames = webFrames(contents);
+  const decision = chooseManualPipFrame(await surveyFrames(contents, frames, PIP_WORLD_ID));
+  if (decision.kind !== "enter" && decision.kind !== "exit") return decision.kind === "unsupported" ? "unsupported" : "none";
+  const code = decision.kind === "enter" ? enterPipScript(false) : exitPipScript(false);
+  const result = String(await runInFrame(contents, frames[decision.frame], PIP_WORLD_ID, code));
+  return RESULTS.has(result) ? (result as PictureInPictureResult) : "failed";
 }

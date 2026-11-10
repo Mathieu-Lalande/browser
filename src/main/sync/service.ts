@@ -21,7 +21,7 @@ const TEST_INTERVAL_MS = (!app.isPackaged && Number(process.env.BROWSER_TEST_SYN
 /** What the sync service uses of the shared controller (a fake in tests). */
 export type SyncControllerLike = Pick<
   SyncController,
-  "init" | "getStatus" | "notifyChange" | "dismissReceivedTab" | "dispose" | "createAccount" | "pair" | "pairingCode" | "syncNow" | "sendTab" | "disconnect" | "reset"
+  "init" | "getStatus" | "notifyChange" | "dismissReceivedTab" | "dispose" | "createAccount" | "pair" | "pairingCode" | "syncNow" | "sendTab" | "disconnect" | "reset" | "revokeDevice"
 >;
 
 export interface SyncServiceDeps {

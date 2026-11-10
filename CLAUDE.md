@@ -63,7 +63,9 @@
   (`src/main/activation.ts`), fusibles Electron (`build.electronFuses`) ; crochets `BROWSER_*` ignorés une fois empaqueté.
 - Synchronisation chiffrée (ADR-019) : moteur pur `src/shared/sync/` (crypto `@noble/*`, HLC, LWW), adaptateurs
   `src/main/sync/` et `mobile/src/lib/sync/`, relais `server/` (`cd server && npm test`). Le serveur ne doit
-  jamais voir de clair ; rien de privé n'est synchronisé.
+  jamais voir de clair ; rien de privé n'est synchronisé. Retirer un appareil (ADR-056) : un jeton par appareil
+  (`authId` dans la fiche `clients` chiffrée), rotation pure `src/shared/sync/rotation.ts` (nouvelle clé emballée sous
+  l'ancienne par appareil gardé, `POST /v1/keyring` atomique, 412 `X-Sync-Epoch` → `followRotation`), `sync:revoke-device`.
 - Menu contextuel des pages, infos sur le site, données des sites, cookies tiers : ADR-021
   (`src/main/page-menu*.ts`, `src/main/site-info/` ; popover `overlay/SiteInfoPanel.svelte` + sections `overlay/site-info/`). Toute URL venue d'une page repasse par `isPageOpenableUrl`.
 - Releases et site vitrine (ADR-023) : workflow de release sur tag `v*` (`npm run release:version`), noms de
@@ -196,7 +198,7 @@
   paragraphes, plafonné, collection `reading`), `src/shared/auto-pip.ts` (`settings.media.autoPictureInPicture`) ; main
   `PanelService` + `PanelHost` par fenêtre (`src/main/panels/`, une partition `persist:panel-<id>` par panneau, vues
   durcies, jamais en privé), `ReadingListService` (`src/main/reading/`), `AutoPip` (`src/main/media/auto-pip.ts`, monde
-  isolé 1018, crochet `BROWSER_TEST_AUTO_PIP`) ; UI `components/panels/` (`PanelStrip`, `WebPanelFrame`, `PanelAddForm`,
+  isolé 1018, crochet `BROWSER_TEST_AUTO_PIP` ; vidéos des iframes, ADR-056 : choix pur `src/shared/pip-frames.ts`, `src/main/media/frames.ts` par `WebFrameMain`, monde principal des sous-cadres) ; UI `components/panels/` (`PanelStrip`, `WebPanelFrame`, `PanelAddForm`,
   `lib/panels.svelte.ts`), `browser://reading-list` (`components/reading/`) ; mobile `lib/readingList.ts`, `ReadingListScreen`.
 - Chrome Web Store et boutons d'extension (ADR-049) : pur `src/shared/webstore.ts` (pages du store, URL du service de mise à
   jour, XML) et `permissionLabels`/`manifestAction` (`src/shared/extensions.ts`) ; main `src/main/extensions/` (`crx.ts` vérifie

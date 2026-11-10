@@ -3,9 +3,15 @@ import { authorization, normalizeServerUrl, type SyncCredentials } from "./pairi
 import {
   PROTOCOL_PREFIX,
   parseAccountResponse,
+  parseDevicesResponse,
+  parseDeviceTokenResponse,
+  parseKeyringResponse,
   parsePullResponse,
   parsePushResponse,
   type AccountResponse,
+  type DeviceTokenResponse,
+  type DevicesResponse,
+  type KeyringResponse,
   type PullResponse,
   type PushRecord,
   type PushResponse,
@@ -42,7 +48,11 @@ export type SyncErrorKind =
   /** The answer was not what the protocol says (wrong server, proxy page…). */
   | "protocol"
   /** Records could not be decrypted: another sync key (reset elsewhere) or tampering. */
-  | "crypto";
+  | "crypto"
+  /** Another device rotated the sync key (412, ADR-056): fetch this device's wrap, then sync again. */
+  | "rotated"
+  /** The relay predates ADR-056 (no per-device tokens). */
+  | "unsupported";
 
 export class SyncError extends Error {
   constructor(
@@ -95,7 +105,7 @@ function parseJson(body: string): unknown {
 export class SyncClient {
   constructor(
     private readonly transport: Transport,
-    private readonly credentials: Pick<SyncCredentials, "serverUrl" | "accountId" | "token">,
+    private readonly credentials: Pick<SyncCredentials, "serverUrl" | "accountId" | "token" | "epoch">,
   ) {}
 
   /** Creates an account on `serverUrl` (the first device). */
@@ -114,7 +124,7 @@ export class SyncClient {
 
   async pull(collection: string, since: number, limit?: number): Promise<PullResponse> {
     const query = `since=${since}${limit ? `&limit=${limit}` : ""}`;
-    const response = await this.request("GET", `/collections/${collection}?${query}`);
+    const response = await this.request("GET", `/collections/${collection}?${query}`, undefined, true);
     check(response, [200]);
     const parsed = parsePullResponse(parseJson(response.body));
     if (!parsed) throw new SyncError("protocol", t("syncClient.unexpectedServerResponse"));
@@ -122,7 +132,7 @@ export class SyncClient {
   }
 
   async push(collection: string, records: PushRecord[]): Promise<PushResponse> {
-    const response = await this.request("POST", `/collections/${collection}`, JSON.stringify({ records }));
+    const response = await this.request("POST", `/collections/${collection}`, JSON.stringify({ records }), true);
     if (response.status === 409) throw new SyncError("conflict", t("syncClient.dataChangedServerMeantime"));
     check(response, [200]);
     const parsed = parsePushResponse(parseJson(response.body));
@@ -138,8 +148,48 @@ export class SyncClient {
     check(response, [204, 200]);
   }
 
-  private request(method: HttpRequest["method"], path: string, body?: string): Promise<HttpResponse> {
+  /** A token for a new device (pairing code, or a device leaving the legacy shared token). */
+  async createDevice(): Promise<DeviceTokenResponse> {
+    const response = await this.request("POST", "/devices", "{}");
+    unsupported(response);
+    check(response, [201]);
+    return parsed(parseDeviceTokenResponse(parseJson(response.body)));
+  }
+
+  async listDevices(): Promise<DevicesResponse> {
+    const response = await this.request("GET", "/devices");
+    unsupported(response);
+    check(response, [200]);
+    return parsed(parseDevicesResponse(parseJson(response.body)));
+  }
+
+  /** This device leaves: its token stops working (already gone counts as done). */
+  async leave(): Promise<void> {
+    const response = await this.request("DELETE", "/devices/self");
+    if ([401, 403, 404].includes(response.status)) return;
+    check(response, [204, 200]);
+  }
+
+  /** This device's wrapped keys for the epochs after `since`. */
+  async keyring(since: number): Promise<KeyringResponse> {
+    const response = await this.request("GET", `/keyring?since=${since}`);
+    unsupported(response);
+    check(response, [200]);
+    return parsed(parseKeyringResponse(parseJson(response.body)));
+  }
+
+  /** Rotates to `epoch` (revoking `revoke`); a 409 means another rotation or a new device came first. */
+  async rotate(epoch: number, revoke: string[], wraps: Record<string, string>): Promise<void> {
+    const response = await this.request("POST", "/keyring", JSON.stringify({ epoch, revoke, wraps }));
+    if (response.status === 409) throw new SyncError("conflict", t("syncClient.dataChangedServerMeantime"));
+    unsupported(response);
+    check(response, [200]);
+  }
+
+  private request(method: HttpRequest["method"], path: string, body?: string, keyed = false): Promise<HttpResponse> {
     const headers: Record<string, string> = { authorization: authorization(this.credentials) };
+    // Collection requests name the key generation they use: 412 once another device rotated it.
+    if (keyed) headers["x-sync-epoch"] = String(this.credentials.epoch ?? 0);
     if (body !== undefined) headers["content-type"] = "application/json";
     return send(this.transport, { method, url: `${this.credentials.serverUrl}${PROTOCOL_PREFIX}${path}`, headers, body });
   }
@@ -153,9 +203,20 @@ async function send(transport: Transport, request: HttpRequest): Promise<HttpRes
   }
 }
 
+function parsed<T>(value: T | null): T {
+  if (!value) throw new SyncError("protocol", t("syncClient.unexpectedServerResponse"));
+  return value;
+}
+
+/** Relays older than ADR-056 have no device routes. */
+function unsupported(response: HttpResponse): void {
+  if (response.status === 404 || response.status === 405) throw new SyncError("unsupported", t("syncClient.serverTooOld"));
+}
+
 function check(response: HttpResponse, ok: number[]): void {
   if (ok.includes(response.status)) return;
   const { status } = response;
+  if (status === 412) throw new SyncError("rotated", t("syncClient.keyRotated"));
   if (status === 401 || status === 403) throw new SyncError("auth", t("syncClient.syncAccountNoLonger"));
   if (status === 413) throw new SyncError("too-large", t("syncClient.requestTooLargeServer"));
   if (status === 429) throw new SyncError("rate-limited", t("syncClient.tooManyRequestsRetrying"), retryAfter(response));

@@ -9,10 +9,18 @@ import { FileStore, type Account, type StoredRecord } from "./store.js";
  * The sync relay (ADR-019). It stores opaque, end-to-end encrypted records for accounts and
  * never sees keys or plaintext. Protocol (also in `src/shared/sync/protocol.ts`):
  *
- *   POST   /v1/accounts                         → 201 { accountId, token }
+ *   POST   /v1/accounts                         → 201 { accountId, token, authId }
  *   GET    /v1/collections/:name?since=&limit=  → { records, version, more }
  *   POST   /v1/collections/:name { records }    → { version, previous, records } | 409 { conflicts }
  *   DELETE /v1/account                          → 204
+ *   GET    /v1/devices                          → { epoch, self, legacy, devices: [{ authId, createdAt, pending }] }
+ *   POST   /v1/devices                          → 201 { authId, token }   (a pairing token, ADR-056)
+ *   DELETE /v1/devices/self                     → 204
+ *   GET    /v1/keyring?since=<epoch>            → { epoch, wraps: [{ epoch, wrap }] }   (the caller's only)
+ *   POST   /v1/keyring { epoch, revoke, wraps } → { epoch } | 409   (rotation: revokes, wipes the data)
+ *
+ * Every device has its own token (ADR-056); collection requests carry `X-Sync-Epoch` (the key
+ * generation the device encrypts with) and get 412 when the key was rotated since.
  *   GET    /healthz                             → 200
  *   POST   /crash (multipart minidump, opt-in)  → 200 <report id>      (ADR-043, `crashReports`)
  *
@@ -56,6 +64,20 @@ const MAX_COLLECTIONS = 16;
 const COLLECTION = /^[a-z]{1,32}$/;
 const RECORD_ID = /^[0-9a-f]{32}$/;
 const AUTH = /^Bearer ([0-9a-f]{32})\.([A-Za-z0-9_-]{32,128})$/;
+const AUTH_ID = /^[0-9a-f]{32}$/;
+const WRAP = /^[A-Za-z0-9_-]{40,200}$/;
+/** Devices (tokens) per account, pending pairing tokens included. */
+const MAX_DEVICES = 32;
+/** A pairing token nobody used within this delay stops working. */
+export const PAIRING_TTL_MS = 60 * 60 * 1000;
+/** Rotations kept for devices that were offline through several. */
+const KEYRING_KEPT = 16;
+
+interface Caller {
+  account: Account;
+  /** The device's auth id; null for the legacy account-wide token. */
+  authId: string | null;
+}
 
 class HttpError extends Error {
   constructor(
@@ -135,13 +157,108 @@ export function createSyncServer(options: ServerOptions): { server: Server; stor
     return forwarded || req.socket.remoteAddress || "unknown";
   };
 
-  function authenticate(req: IncomingMessage): Account {
+  /** Drops pairing tokens never used in time (they are bearer secrets lying in a QR code). */
+  function prune(account: Account): boolean {
+    let changed = false;
+    for (const [authId, device] of Object.entries(account.devices ?? {})) {
+      if (!device.claimedAt && now() - device.createdAt > PAIRING_TTL_MS) {
+        delete account.devices![authId];
+        changed = true;
+      }
+    }
+    return changed;
+  }
+
+  function authenticate(req: IncomingMessage): Caller {
     const match = AUTH.exec(String(req.headers.authorization ?? ""));
     const account = match ? store.get(match[1]) : null;
-    const expected = Buffer.from(account?.tokenHash ?? "0".repeat(64), "hex");
     const actual = Buffer.from(sha256(match?.[2] ?? ""), "hex");
-    if (!match || !account || !timingSafeEqual(expected, actual)) throw new HttpError(401, "Unauthorized");
-    return account;
+    const same = (hash: string | null | undefined) => timingSafeEqual(Buffer.from(hash ?? "0".repeat(64), "hex"), actual);
+    if (!match || !account) {
+      same(null);
+      throw new HttpError(401, "Unauthorized");
+    }
+    if (prune(account)) store.save(account);
+    // Every candidate is compared, in constant time.
+    let authId: string | null | undefined;
+    if (same(account.tokenHash)) authId = null;
+    for (const [id, device] of Object.entries(account.devices ?? {})) if (same(device.tokenHash)) authId = id;
+    if (authId === undefined) throw new HttpError(401, "Unauthorized");
+    if (authId && !account.devices![authId].claimedAt) {
+      account.devices![authId].claimedAt = now();
+      store.save(account);
+    }
+    return { account, authId };
+  }
+
+  /** A new token for a device of `account` (first device, pairing code). */
+  function addDevice(account: Account): { authId: string; token: string } {
+    const devices = (account.devices ??= {});
+    prune(account);
+    if (Object.keys(devices).length >= MAX_DEVICES) throw new HttpError(409, "Too many devices");
+    let authId: string;
+    do authId = randomBytes(16).toString("hex");
+    while (devices[authId]);
+    const token = randomBytes(32).toString("base64url");
+    devices[authId] = { tokenHash: sha256(token), createdAt: now() };
+    return { authId, token };
+  }
+
+  /** Collection requests must use the current key generation (412 after a rotation). */
+  function checkEpoch(req: IncomingMessage, account: Account): void {
+    const given = Number(req.headers["x-sync-epoch"] ?? "0");
+    const epoch = account.epoch ?? 0;
+    if (given !== epoch) throw new HttpError(412, "Sync key rotated", {}, { error: "Sync key rotated", epoch });
+  }
+
+  function listDevices({ account, authId }: Caller) {
+    const devices = Object.entries(account.devices ?? {}).map(([id, device]) => ({ authId: id, createdAt: device.createdAt, pending: !device.claimedAt }));
+    return { epoch: account.epoch ?? 0, self: authId, legacy: account.tokenHash !== null, devices };
+  }
+
+  function keyring({ account, authId }: Caller, url: URL) {
+    const since = Number(url.searchParams.get("since") ?? "0");
+    if (!Number.isSafeInteger(since) || since < 0) throw new HttpError(400, "Invalid since");
+    const wraps = authId === null
+      ? []
+      : (account.keyring ?? []).filter((entry) => entry.epoch > since && entry.wraps[authId]).map((entry) => ({ epoch: entry.epoch, wrap: entry.wraps[authId] }));
+    return { epoch: account.epoch ?? 0, wraps };
+  }
+
+  /**
+   * Key rotation (ADR-056), atomic: the revoked tokens and the legacy shared token stop working,
+   * the next key wrapped for every remaining device is stored (each gets only its own), and the
+   * data encrypted with the old key is erased: the devices upload theirs again with the new key.
+   */
+  function rotate({ account, authId }: Caller, body: unknown) {
+    if (authId === null) throw new HttpError(403, "Device token needed");
+    const { epoch, revoke, wraps } = (body ?? {}) as Record<string, unknown>;
+    const current = account.epoch ?? 0;
+    if (epoch !== current + 1) throw new HttpError(409, "Stale epoch", {}, { error: "Stale epoch", epoch: current });
+    if (!Array.isArray(revoke) || revoke.length > MAX_DEVICES || !revoke.every((id) => typeof id === "string" && AUTH_ID.test(id))) {
+      throw new HttpError(400, "Invalid revoke");
+    }
+    if (revoke.includes(authId)) throw new HttpError(400, "A device cannot revoke itself");
+    if (typeof wraps !== "object" || wraps === null || Array.isArray(wraps)) throw new HttpError(400, "Invalid wraps");
+    const entries = Object.entries(wraps as Record<string, unknown>);
+    if (!entries.every(([id, wrap]) => AUTH_ID.test(id) && typeof wrap === "string" && WRAP.test(wrap))) throw new HttpError(400, "Invalid wraps");
+    prune(account);
+    const devices = account.devices ?? {};
+    const remaining = Object.keys(devices).filter((id) => !revoke.includes(id));
+    // Every remaining device needs its wrap and nobody else gets one: a device paired in the
+    // meantime makes the caller list the devices again.
+    if (remaining.length !== entries.length || !remaining.every((id) => typeof (wraps as Record<string, unknown>)[id] === "string")) {
+      throw new HttpError(409, "Devices changed", {}, { error: "Devices changed", epoch: current });
+    }
+    for (const id of revoke) delete devices[id];
+    account.devices = devices;
+    account.tokenHash = null;
+    account.epoch = current + 1;
+    account.keyring = [...(account.keyring ?? []), { epoch: current + 1, wraps: Object.fromEntries(entries) as Record<string, string> }].slice(-KEYRING_KEPT);
+    account.collections = {};
+    account.bytes = 0;
+    store.save(account);
+    return { epoch: account.epoch };
   }
 
   function createAccount(req: IncomingMessage): { accountId: string; token: string } {
@@ -154,9 +271,10 @@ export function createSyncServer(options: ServerOptions): { server: Server; stor
     let accountId: string;
     do accountId = randomBytes(16).toString("hex");
     while (store.has(accountId));
-    const token = randomBytes(32).toString("base64url");
-    store.save({ id: accountId, tokenHash: sha256(token), createdAt: now(), version: 0, bytes: 0, collections: {} });
-    return { accountId, token };
+    const account: Account = { id: accountId, tokenHash: null, devices: {}, epoch: 0, createdAt: now(), version: 0, bytes: 0, collections: {} };
+    const device = addDevice(account);
+    store.save(account);
+    return { accountId, ...device };
   }
 
   /** Stores one Crashpad upload as received (multipart, gzip when Crashpad compressed it). */
@@ -246,14 +364,42 @@ export function createSyncServer(options: ServerOptions): { server: Server; stor
       return send(res, 201, createAccount(req));
     }
     if (method === "DELETE" && url.pathname === "/v1/account") {
-      const account = authenticate(req);
+      const { account } = authenticate(req);
       store.delete(account.id);
       return send(res, 204);
+    }
+    if (url.pathname === "/v1/devices") {
+      const caller = authenticate(req);
+      if (method === "GET") return send(res, 200, listDevices(caller));
+      if (method === "POST") {
+        await readBody(req, 1024);
+        const device = addDevice(caller.account);
+        store.save(caller.account);
+        return send(res, 201, device);
+      }
+      throw new HttpError(405, "Method not allowed");
+    }
+    if (method === "DELETE" && url.pathname === "/v1/devices/self") {
+      const { account, authId } = authenticate(req);
+      if (authId === null) throw new HttpError(403, "Device token needed");
+      delete account.devices![authId];
+      store.save(account);
+      return send(res, 204);
+    }
+    if (url.pathname === "/v1/keyring") {
+      const caller = authenticate(req);
+      if (method === "GET") return send(res, 200, keyring(caller, url));
+      if (method === "POST") {
+        if (!String(req.headers["content-type"] ?? "").startsWith("application/json")) throw new HttpError(415, "JSON expected");
+        return send(res, 200, rotate(caller, parseJson(await readBody(req, 64 * 1024))));
+      }
+      throw new HttpError(405, "Method not allowed");
     }
     const match = /^\/v1\/collections\/([^/]+)$/.exec(url.pathname);
     if (match) {
       if (!COLLECTION.test(match[1])) throw new HttpError(404, "Unknown collection");
-      const account = authenticate(req);
+      const { account } = authenticate(req);
+      checkEpoch(req, account);
       if (method === "GET") return send(res, 200, pull(account, match[1], url));
       if (method === "POST") {
         if (!String(req.headers["content-type"] ?? "").startsWith("application/json")) throw new HttpError(415, "JSON expected");

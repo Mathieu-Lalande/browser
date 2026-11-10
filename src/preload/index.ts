@@ -351,6 +351,7 @@ const api: BrowserApi = {
     syncNow: () => send(Channels.syncNow),
     disconnect: () => ipcRenderer.invoke(Channels.syncDisconnect),
     reset: () => ipcRenderer.invoke(Channels.syncReset),
+    revokeDevice: (deviceId) => ipcRenderer.invoke(Channels.syncRevokeDevice, deviceId),
   },
   pageOptions: {
     show: (anchor) => send(Channels.pageOptionsShow, anchor),

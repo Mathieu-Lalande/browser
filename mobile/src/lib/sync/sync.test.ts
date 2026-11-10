@@ -134,7 +134,7 @@ describe("mobile sync adapters", () => {
     const iphone = phone(server);
     iphone.open("https://public.example/");
     iphone.open("https://secret.example/", true);
-    await iphone.sync.pair(pc.sync.pairingCode()!);
+    await iphone.sync.pair((await pc.sync.pairingCode())!);
 
     // The account's data won on the phone's first sync.
     expect(iphone.data.bookmarks.map((bookmark) => bookmark.url)).toEqual(["https://from-pc.example/"]);
@@ -173,7 +173,7 @@ describe("mobile sync adapters", () => {
     ];
     await a.sync.createAccount("https://sync.example.org");
     const b = phone(server);
-    await b.sync.pair(a.sync.pairingCode()!);
+    await b.sync.pair((await a.sync.pairingCode())!);
     expect(b.data.favorites.map((favorite) => favorite.url)).toEqual(["https://mail.example/", "https://agenda.example/"]);
     expect(b.data.favorites[0].favicon).toBeNull();
     expect(server.dump()).not.toContain("mail.example");
@@ -192,7 +192,7 @@ describe("mobile sync adapters", () => {
     a.data.boosts = [{ ...base, zaps: ["#ad"], script: { enabled: false, code: "secretCode()", allowPrivate: false } }];
     await a.sync.createAccount("https://sync.example.org");
     const b = phone(server);
-    await b.sync.pair(a.sync.pairingCode()!);
+    await b.sync.pair((await a.sync.pairingCode())!);
     expect(b.data.boosts).toMatchObject([{ id: "boost-1", match: "news.example", zaps: ["#ad"], script: { enabled: false, code: "" } }]);
     expect(server.dump()).not.toContain("news.example");
 
@@ -216,7 +216,7 @@ describe("mobile sync adapters", () => {
     })!;
     await a.sync.createAccount("https://sync.example.org");
     const b = phone(server);
-    await b.sync.pair(a.sync.pairingCode()!);
+    await b.sync.pair((await a.sync.pairingCode())!);
     expect(b.data.annotations.highlights).toEqual([]);
 
     a.data.settings = mergeSettings(a.data.settings, { annotations: { sync: true } });
@@ -235,7 +235,7 @@ describe("mobile sync adapters", () => {
     await a.passwords.never("https://never.example");
     await a.sync.createAccount("https://sync.example.org");
     const b = phone(server);
-    await b.sync.pair(a.sync.pairingCode()!);
+    await b.sync.pair((await a.sync.pairingCode())!);
     expect(server.dump()).not.toContain("passwords");
 
     for (const device of [a, b]) device.data.settings = mergeSettings(device.data.settings, { passwords: { sync: true } });
@@ -263,7 +263,7 @@ describe("mobile sync adapters", () => {
     a.data.history.recordVisit("https://kept.example/", now - 1000);
     await a.sync.createAccount("https://sync.example.org");
     const b = phone(server);
-    await b.sync.pair(a.sync.pairingCode()!);
+    await b.sync.pair((await a.sync.pairingCode())!);
     expect(b.data.history.get("https://kept.example/")).toBeDefined();
 
     // Gone from A without being deleted by the user (capacity): B keeps it.

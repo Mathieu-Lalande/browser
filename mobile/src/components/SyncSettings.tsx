@@ -126,6 +126,17 @@ export const SyncSettings = memo(function SyncSettings({ onScan }: { onScan: () 
           icon={device.kind === "mobile" ? "smartphone" : "laptop"}
           label={device.name}
           detail={t("mobile.syncSettings.openTabs", { tabsCount: device.tabs.length, p2: ago(device.updatedAt) })}
+          remove={
+            busy || isPrivate
+              ? undefined
+              : {
+                  label: t("mobile.syncSettings.removeDevice"),
+                  onPress: () =>
+                    confirm(t("mobile.syncSettings.removeDeviceTitle", { name: device.name }), t("mobile.syncSettings.removeDeviceMessage"), t("mobile.syncSettings.remove"), () =>
+                      void run(() => actions.sync.revokeDevice(device.id), t("mobile.syncSettings.deviceRemoved")),
+                    ),
+                }
+          }
         />
       ))}
       {pairingCode ? (
@@ -149,7 +160,7 @@ export const SyncSettings = memo(function SyncSettings({ onScan }: { onScan: () 
               t("mobile.syncSettings.showPairingCode2"),
               t("mobile.syncSettings.codeGivesFullAccess"),
               t("mobile.syncSettings.show"),
-              () => setPairingCode(actions.sync.pairingCode()),
+              () => void actions.sync.pairingCode().then(setPairingCode),
             )
           }
         />
@@ -211,7 +222,20 @@ export const QrCode = memo(function QrCode({ value, size, label = t("mobile.sync
   );
 });
 
-function Info({ icon, label, detail, first }: { icon: IconName; label: string; detail: string; first?: boolean }) {
+function Info({
+  icon,
+  label,
+  detail,
+  first,
+  remove,
+}: {
+  icon: IconName;
+  label: string;
+  detail: string;
+  first?: boolean;
+  /** A trailing "Retirer cet appareil" button (ADR-056). */
+  remove?: { label: string; onPress: () => void };
+}) {
   const { colors } = useTheme();
   return (
     <View style={[styles.row, !first && { borderTopColor: colors.hairline, borderTopWidth: StyleSheet.hairlineWidth }]}>
@@ -220,6 +244,11 @@ function Info({ icon, label, detail, first }: { icon: IconName; label: string; d
         <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
         <Text style={[styles.detail, { color: colors.textMuted }]}>{detail}</Text>
       </View>
+      {remove && (
+        <Pressable accessibilityRole="button" accessibilityLabel={remove.label} hitSlop={10} onPress={remove.onPress}>
+          <Icon name="trash" size={18} color={colors.danger} />
+        </Pressable>
+      )}
     </View>
   );
 }

@@ -5,6 +5,7 @@ import { generateSyncKey } from "./crypto";
 import { SyncEngine, createSyncState, keyFingerprint, loadSyncState, storedSyncState, type CollectionAdapter, type SyncState } from "./engine";
 import { decodeHlc } from "./hlc";
 import { decodePairingCode, encodePairingCode, normalizeServerUrl, type SyncCredentials } from "./pairing";
+import { followRotation, planRotation } from "./rotation";
 import {
   clientRecord,
   isSentTabLive,
@@ -91,6 +92,8 @@ export class SyncController {
   /** First local change not synced yet (debounce cap). */
   private changedSince: number | null = null;
   private disposed = false;
+  /** The relay has no device routes (before ADR-056): stay on the shared token. */
+  private oldRelay = false;
   private status: SyncStatus;
 
   constructor(private readonly platform: SyncPlatform) {
@@ -130,9 +133,55 @@ export class SyncController {
     await this.connect(credentials);
   }
 
-  /** The pairing code of this account (full access: shown only on explicit request). */
-  pairingCode(): string | null {
-    return this.credentials ? encodePairingCode(this.credentials) : null;
+  /**
+   * A pairing code for a new device (full access: shown only on explicit request). It carries a
+   * token of its own for that device (ADR-056), which stops working if unused within an hour.
+   */
+  async pairingCode(): Promise<string | null> {
+    const credentials = this.credentials;
+    if (!credentials) return null;
+    try {
+      const device = await new SyncClient(this.platform.transport, credentials).createDevice();
+      return encodePairingCode({ ...credentials, ...device });
+    } catch (error) {
+      // A relay from before ADR-056: the account-wide token, as then.
+      if (error instanceof SyncError && error.kind === "unsupported") return encodePairingCode(credentials);
+      throw error;
+    }
+  }
+
+  /**
+   * "Retirer cet appareil" (ADR-056): revokes another device's relay token and moves the remaining
+   * devices to a new sync key (re-encrypted, re-uploaded). The removed device keeps what it already
+   * had; it can no longer read or write anything new.
+   */
+  async revokeDevice(deviceId: string): Promise<void> {
+    if (this.running) await this.running.catch(() => {});
+    const state = this.state;
+    if (!this.credentials || !state) return;
+    const devices = this.remoteDevices(state);
+    if (!devices.some((device) => device.id === deviceId)) throw new SyncError("protocol", t("syncController.unknownDevice"));
+    const keep = devices.filter((device) => device.id !== deviceId && device.authId).map((device) => device.authId!);
+    await this.ensureOwnToken(true);
+    for (let attempt = 0; ; attempt++) {
+      const credentials = this.credentials!;
+      const client = new SyncClient(this.platform.transport, credentials);
+      const relay = await client.listDevices();
+      try {
+        // Another device rotated first: follow it, then plan from the new key.
+        if (relay.epoch !== (credentials.epoch ?? 0)) throw new SyncError("rotated", t("syncClient.keyRotated"));
+        const plan = planRotation(credentials, relay, keep, this.platform.rng);
+        await client.rotate(plan.epoch, plan.revoke, plan.wraps);
+        await this.adopt(plan.next);
+        break;
+      } catch (error) {
+        // A rotation or a new device came first: list again (a few times).
+        const kind = error instanceof SyncError ? error.kind : null;
+        if ((kind !== "conflict" && kind !== "rotated") || attempt >= 2) throw error;
+        if (kind === "rotated") await this.catchUp();
+      }
+    }
+    await this.syncNow();
   }
 
   /** Sync now (button, startup, foreground). */
@@ -203,6 +252,8 @@ export class SyncController {
   async disconnect(): Promise<void> {
     const engine = this.engine;
     if (engine && this.state) await engine.retire("clients", this.state.deviceId).catch(() => {});
+    // Its own token stops working too (ADR-056).
+    if (this.credentials?.authId) await new SyncClient(this.platform.transport, this.credentials).leave().catch(() => {});
     await this.forget();
   }
 
@@ -250,6 +301,46 @@ export class SyncController {
     this.publish({ phase: "off" });
   }
 
+  /**
+   * Devices paired before ADR-056 share the account-wide token: move to a token of their own, so
+   * that this device can be revoked alone (and survives the rotation that revokes the shared one).
+   */
+  private async ensureOwnToken(required = false): Promise<void> {
+    const credentials = this.credentials;
+    if (!credentials || credentials.authId || (this.oldRelay && !required)) return;
+    try {
+      const device = await new SyncClient(this.platform.transport, credentials).createDevice();
+      const next = { ...credentials, ...device };
+      await this.platform.saveCredentials(next);
+      this.credentials = next;
+      this.engine = null;
+    } catch (error) {
+      if (!(error instanceof SyncError && error.kind === "unsupported") || required) throw error;
+      this.oldRelay = true;
+    }
+  }
+
+  /** Another device rotated the key (412): unwrap this device's copy of the new one, start over with it. */
+  private async catchUp(): Promise<void> {
+    const credentials = this.credentials!;
+    const keyring = await new SyncClient(this.platform.transport, credentials).keyring(credentials.epoch ?? 0);
+    const next = followRotation(credentials, keyring);
+    if (!next) throw new SyncError("auth", t("syncController.keyChangedPairAgain"));
+    await this.adopt(next);
+  }
+
+  /**
+   * Switches to new credentials of the same account (rotation): a fresh engine state, so every
+   * collection syncs as on a device joining the account (the account's data wins, local-only
+   * records are uploaded again with the new key).
+   */
+  private async adopt(next: SyncCredentials): Promise<void> {
+    await this.platform.saveCredentials(next);
+    this.attach(next, null, this.state?.deviceId);
+    this.saveState(this.state);
+    this.publish({});
+  }
+
   /** Writes the state through the platform, sensitive collections sealed (ADR-050). */
   private saveState(state: SyncState | null): void {
     this.platform.saveState(state && this.credentials ? storedSyncState(state, this.credentials, this.platform.rng) : state);
@@ -280,15 +371,15 @@ export class SyncController {
       name: "clients",
       snapshot: () => {
         const map = new Map<string, SyncedClient>();
-        for (const device of this.remoteDevices(state)) map.set(device.id, { name: device.name, kind: device.kind, tabs: device.tabs });
-        map.set(state.deviceId, clientRecord(this.platform.deviceName(), this.platform.kind, this.platform.localTabs()));
+        for (const device of this.remoteDevices(state)) map.set(device.id, clientRecord(device.name, device.kind, device.tabs, device.authId));
+        map.set(state.deviceId, clientRecord(this.platform.deviceName(), this.platform.kind, this.platform.localTabs(), this.credentials?.authId));
         return map;
       },
       sanitize: (value) => sanitizeSyncedClient(value),
       apply: ({ upserts, deletes }) => {
         const devices = state.devices ?? {};
         for (const { id, data, modified } of upserts) {
-          if (id !== state.deviceId) devices[id] = { id, name: data.name, kind: data.kind, tabs: data.tabs, updatedAt: modified };
+          if (id !== state.deviceId) devices[id] = { id, ...data, updatedAt: modified };
         }
         for (const id of deletes) delete devices[id];
         state.devices = devices;
@@ -347,8 +438,16 @@ export class SyncController {
     if (!this.credentials || !this.state) return;
     this.publish({ phase: "syncing" });
     try {
-      this.engine ??= this.buildEngine();
-      await this.engine.sync();
+      await this.ensureOwnToken();
+      try {
+        this.engine ??= this.buildEngine();
+        await this.engine.sync();
+      } catch (error) {
+        if (!(error instanceof SyncError && error.kind === "rotated")) throw error;
+        await this.catchUp();
+        this.engine = this.buildEngine();
+        await this.engine.sync();
+      }
       this.failures = 0;
       this.publish({ phase: "idle", error: null, retryAt: null });
       this.schedule(this.platform.intervalMs ?? DEFAULT_INTERVAL_MS);

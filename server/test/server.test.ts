@@ -1,4 +1,5 @@
-import { mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -158,6 +159,113 @@ describe("sync relay", () => {
     await close();
     await start();
     expect((await client(account).get("spaces")).body.records).toHaveLength(1);
+  });
+});
+
+describe("devices and key rotation (ADR-056)", () => {
+  const wrap = (n: number) => Buffer.alloc(73, n).toString("base64url");
+
+  function devices(account: { accountId: string; token: string }, epoch = 0) {
+    const auth = { authorization: `Bearer ${account.accountId}.${account.token}` };
+    return {
+      list: async () => (await (await fetch(`${base}/v1/devices`, { headers: auth })).json()) as { epoch: number; self: string | null; legacy: boolean; devices: { authId: string; pending: boolean }[] },
+      add: async () => {
+        const response = await fetch(`${base}/v1/devices`, { method: "POST", headers: auth, body: "{}" });
+        return { status: response.status, body: (await response.json()) as { authId: string; token: string } };
+      },
+      leave: async () => (await fetch(`${base}/v1/devices/self`, { method: "DELETE", headers: auth })).status,
+      keyring: async (since = 0) => {
+        const response = await fetch(`${base}/v1/keyring?since=${since}`, { headers: auth });
+        return { status: response.status, body: (await response.json().catch(() => null)) as { epoch: number; wraps: { epoch: number; wrap: string }[] } };
+      },
+      rotate: async (body: unknown) => {
+        const response = await fetch(`${base}/v1/keyring`, { method: "POST", headers: { ...auth, "content-type": "application/json" }, body: JSON.stringify(body) });
+        return { status: response.status, body: (await response.json().catch(() => null)) as { epoch: number } };
+      },
+      get: async (name: string) => (await fetch(`${base}/v1/collections/${name}`, { headers: { ...auth, "x-sync-epoch": String(epoch) } })).status,
+    };
+  }
+
+  it("gives every device its own token, hashed on disk", async () => {
+    await start();
+    const first = (await signup()).body as { accountId: string; token: string; authId: string };
+    expect(first.authId).toMatch(/^[0-9a-f]{32}$/);
+    const paired = await devices(first).add();
+    expect(paired.status).toBe(201);
+    const second = { accountId: first.accountId, token: paired.body.token };
+    expect((await devices(first).list()).devices.find((d) => d.authId === paired.body.authId)?.pending).toBe(true);
+    expect(await devices(second).get("bookmarks")).toBe(200);
+    const list = await devices(second).list();
+    expect(list).toMatchObject({ epoch: 0, self: paired.body.authId, legacy: false });
+    expect(list.devices.every((d) => !d.pending)).toBe(true);
+    const file = readFileSync(join(dataDir, "accounts", `${first.accountId}.json`), "utf8");
+    expect(file).not.toContain(first.token);
+    expect(file).not.toContain(paired.body.token);
+    // Leaving removes only this device's token.
+    expect(await devices(second).leave()).toBe(204);
+    expect(await devices(second).get("bookmarks")).toBe(401);
+    expect(await devices(first).get("bookmarks")).toBe(200);
+  });
+
+  it("expires pairing tokens nobody used", async () => {
+    let time = 1_000_000;
+    await start({ now: () => time });
+    const first = (await signup()).body;
+    const paired = (await devices(first).add()).body;
+    time += 2 * 60 * 60 * 1000;
+    expect(await devices({ accountId: first.accountId, token: paired.token }).get("bookmarks")).toBe(401);
+    expect((await devices(first).list()).devices).toHaveLength(1);
+  });
+
+  it("rotates: revokes a device, hands each remaining one only its wrap, wipes the old data", async () => {
+    await start();
+    const a = (await signup()).body as { accountId: string; token: string; authId: string };
+    const bAuth = (await devices(a).add()).body;
+    const cAuth = (await devices(a).add()).body;
+    const b = { accountId: a.accountId, token: bAuth.token };
+    const c = { accountId: a.accountId, token: cAuth.token };
+    await client(a).post("bookmarks", [{ id: rid(1), base: 0, payload: payload("old-key") }]);
+
+    // Every remaining device must get a wrap, and the revoked one must not.
+    expect((await devices(a).rotate({ epoch: 1, revoke: [cAuth.authId], wraps: { [a.authId]: wrap(1) } })).status).toBe(409);
+    expect((await devices(a).rotate({ epoch: 1, revoke: [cAuth.authId], wraps: { [a.authId]: wrap(1), [bAuth.authId]: wrap(2), [cAuth.authId]: wrap(3) } })).status).toBe(409);
+    expect((await devices(a).rotate({ epoch: 2, revoke: [cAuth.authId], wraps: { [a.authId]: wrap(1), [bAuth.authId]: wrap(2) } })).status).toBe(409);
+    expect((await devices(a).rotate({ epoch: 1, revoke: [a.authId], wraps: { [bAuth.authId]: wrap(2), [cAuth.authId]: wrap(3) } })).status).toBe(400);
+    const done = await devices(a).rotate({ epoch: 1, revoke: [cAuth.authId], wraps: { [a.authId]: wrap(1), [bAuth.authId]: wrap(2) } });
+    expect(done).toEqual({ status: 200, body: { epoch: 1 } });
+
+    // The revoked device is out: no data, no wrap.
+    expect(await devices(c, 1).get("bookmarks")).toBe(401);
+    expect((await devices(c).keyring()).status).toBe(401);
+    // The others get their own wrap only, and must move to the new epoch.
+    expect((await devices(b).keyring()).body).toEqual({ epoch: 1, wraps: [{ epoch: 1, wrap: wrap(2) }] });
+    expect((await devices(b).keyring(1)).body.wraps).toEqual([]);
+    expect(await devices(b, 0).get("bookmarks")).toBe(412);
+    const fresh = await fetch(`${base}/v1/collections/bookmarks`, { headers: { authorization: `Bearer ${b.accountId}.${b.token}`, "x-sync-epoch": "1" } });
+    expect((await fresh.json()).records).toEqual([]);
+    expect(readFileSync(join(dataDir, "accounts", `${a.accountId}.json`), "utf8")).not.toContain(payload("old-key"));
+  });
+
+  it("revokes the legacy shared token at the first rotation", async () => {
+    await start();
+    const a = (await signup()).body as { accountId: string; token: string; authId: string };
+    // An account from before ADR-056: one token shared by every device.
+    const path = join(dataDir, "accounts", `${a.accountId}.json`);
+    const legacyToken = "l".repeat(43);
+    const stored = JSON.parse(readFileSync(path, "utf8"));
+    stored.tokenHash = createHash("sha256").update(legacyToken).digest("hex");
+    writeFileSync(path, JSON.stringify(stored));
+    await close();
+    await start();
+    const legacy = { accountId: a.accountId, token: legacyToken };
+    expect(await devices(legacy).get("bookmarks")).toBe(200);
+    expect((await devices(legacy).list()).legacy).toBe(true);
+    // A legacy device moves to its own token; it cannot rotate with the shared one.
+    expect((await devices(legacy).rotate({ epoch: 1, revoke: [], wraps: { [a.authId]: wrap(1) } })).status).toBe(403);
+    const own = (await devices(legacy).add()).body;
+    expect((await devices(a).rotate({ epoch: 1, revoke: [], wraps: { [a.authId]: wrap(1), [own.authId]: wrap(2) } })).status).toBe(200);
+    expect(await devices(legacy, 1).get("bookmarks")).toBe(401);
+    expect(await devices({ accountId: a.accountId, token: own.token }, 1).get("bookmarks")).toBe(200);
   });
 });
 

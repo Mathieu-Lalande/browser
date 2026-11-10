@@ -214,9 +214,11 @@ export interface SyncedClient {
   name: string;
   kind: "desktop" | "mobile";
   tabs: SyncedTab[];
+  /** The device's auth id on the relay, what "Retirer cet appareil" revokes (ADR-056); absent before. */
+  authId?: string;
 }
 
-export function clientRecord(name: string, kind: SyncedClient["kind"], tabs: Iterable<SyncedTab>): SyncedClient {
+export function clientRecord(name: string, kind: SyncedClient["kind"], tabs: Iterable<SyncedTab>, authId?: string): SyncedClient {
   const seen = new Set<string>();
   const list: SyncedTab[] = [];
   for (const tab of tabs) {
@@ -225,14 +227,17 @@ export function clientRecord(name: string, kind: SyncedClient["kind"], tabs: Ite
     list.push({ url: tab.url, title: tab.title.slice(0, MAX_TEXT) });
     if (list.length >= MAX_SYNCED_TABS) break;
   }
-  return { name: name.slice(0, 64), kind, tabs: list };
+  const record: SyncedClient = { name: name.slice(0, 64), kind, tabs: list };
+  if (authId !== undefined && /^[0-9a-f]{32}$/.test(authId)) record.authId = authId;
+  return record;
 }
 
 export function sanitizeSyncedClient(value: unknown): SyncedClient | null {
   if (!isRecord(value) || !Array.isArray(value.tabs)) return null;
   const tabs = value.tabs.filter(isRecord).map((tab) => ({ url: tab.url, title: text(tab.title) }));
   const kind = value.kind === "mobile" ? "mobile" : "desktop";
-  return clientRecord(text(value.name, 64) || "Appareil", kind, tabs.filter((tab): tab is SyncedTab => isWebUrl(tab.url)));
+  const authId = typeof value.authId === "string" ? value.authId : undefined;
+  return clientRecord(text(value.name, 64) || "Appareil", kind, tabs.filter((tab): tab is SyncedTab => isWebUrl(tab.url)), authId);
 }
 
 /** Another device's tabs, as shown in "Onglets de mes autres appareils". */
@@ -240,6 +245,7 @@ export interface RemoteDevice {
   id: string;
   name: string;
   kind: SyncedClient["kind"];
+  authId?: string;
   /** When this device last updated its tabs (epoch ms). */
   updatedAt: number;
   tabs: SyncedTab[];

@@ -133,10 +133,12 @@ export interface BrowserActions {
     createAccount(serverUrl: string, registrationSecret?: string): Promise<SyncResult>;
     pair(code: string): Promise<SyncResult>;
     /** Full access to the synced data: only after an explicit user action. */
-    pairingCode(): string | null;
+    pairingCode(): Promise<string | null>;
     syncNow(): void;
     disconnect(): Promise<SyncResult>;
     reset(): Promise<SyncResult>;
+    /** "Retirer cet appareil" (ADR-056): revokes another device, the others move to a new key. */
+    revokeDevice(deviceId: string): Promise<SyncResult>;
     /** A tab another device sent (ADR-033) was opened or dismissed: deleted from the account. */
     dismissReceived(id: string): void;
   };
@@ -532,10 +534,11 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
       sync: {
         createAccount: (serverUrl, secret) => syncAttempt(async () => syncRef.current?.createAccount(serverUrl, secret)),
         pair: (code) => syncAttempt(async () => syncRef.current?.pair(code)),
-        pairingCode: () => syncRef.current?.pairingCode() ?? null,
+        pairingCode: async () => (await syncRef.current?.pairingCode().catch(() => null)) ?? null,
         syncNow: () => void syncRef.current?.syncNow(),
         disconnect: () => syncAttempt(async () => syncRef.current?.disconnect()),
         reset: () => syncAttempt(async () => syncRef.current?.reset()),
+        revokeDevice: (deviceId) => syncAttempt(async () => syncRef.current?.revokeDevice(deviceId)),
         dismissReceived: (id) => syncRef.current?.dismissReceivedTab(id),
       },
     };

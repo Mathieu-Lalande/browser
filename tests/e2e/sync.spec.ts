@@ -88,6 +88,18 @@ test("two desktops pair through the relay, sync bookmarks and tabs, and the serv
     for (const secret of ["synced-bookmark-page", "Favori synchronis", "visible-tab", "private-secret-tab", "127.0.0.1", "http://"]) {
       expect(stored).not.toContain(secret);
     }
+
+    // ADR-056: A removes B (two clicks); B is locked out but keeps its data, A moves to a new key.
+    const fingerprint = (await a.evaluate(() => (globalThis as Window).browser.sync.status())).keyFingerprint;
+    await openSyncSettings(a);
+    const remove = a.getByRole("button", { name: "Retirer cet appareil" });
+    await remove.click();
+    await a.getByRole("button", { name: "Confirmer le retrait" }).click();
+    await expect.poll(async () => (await a.evaluate(() => (globalThis as Window).browser.sync.status())).keyFingerprint).not.toBe(fingerprint);
+    await expect(remove).toHaveCount(0);
+    await b.evaluate(() => (globalThis as Window).browser.sync.syncNow());
+    await expect.poll(async () => (await b.evaluate(() => (globalThis as Window).browser.sync.status())).error?.kind, { timeout: 20_000 }).toBe("auth");
+    expect((await b.evaluate(() => (globalThis as Window).browser.bookmarks.list())).map((bookmark) => bookmark.url)).toContain(bookmarkUrl);
   } finally {
     await Promise.all(apps.map((app) => app.close().catch(() => {})));
     await new Promise((resolve) => relay.close(resolve));

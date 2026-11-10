@@ -49,10 +49,11 @@ export const syncHandlers = defineHandlers({
     noPrivate,
   ),
   [Channels.syncPair]: handle([text(MAX_SYNC_CODE)], (_c, code) => attempt(() => sync().pair(code)), noPrivate),
-  [Channels.syncPairingCode]: handle([], () => sync().pairingCode(), noPrivate),
+  [Channels.syncPairingCode]: handle([], () => sync().pairingCode().catch(() => null), noPrivate),
   [Channels.syncNow]: onUi([], () => void sync().syncNow()),
   [Channels.syncDisconnect]: handle([], () => attempt(() => sync().disconnect()), noPrivate),
   [Channels.syncReset]: handle([], () => attempt(() => sync().reset()), noPrivate),
+  [Channels.syncRevokeDevice]: handle([text(64)], (_c, deviceId) => attempt(() => sync().revokeDevice(deviceId)), noPrivate),
 });
 
 /** Auto-updates (ADR-030): the UI may ask before the updater is ready (no status yet). */

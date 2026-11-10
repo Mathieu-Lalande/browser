@@ -100,3 +100,46 @@ test("automatic picture-in-picture follows tab switches and respects sites that 
     await app.close();
   }
 });
+
+test("picture-in-picture reaches the largest video in a cross-origin frame (ADR-056)", async ({ profile, server }) => {
+  const app = await launch(profile, { BROWSER_TEST_AUTO_PIP: "1" });
+  try {
+    const chrome = await chromeOf(app);
+    const port = new URL(server.url("/")).port;
+    const url = server.url(`/embedded-video?frame=${encodeURIComponent(`http://localhost:${port}/video`)}`);
+    await visit(chrome, url, "Embedded video");
+    // What is popped out: "small" in the page, "v" in the frame of the other origin.
+    const pip = () =>
+      app.evaluate(async ({ webContents }, prefix) => {
+        const page = webContents.getAllWebContents().find((contents) => contents.getURL().startsWith(prefix));
+        const frame = page?.mainFrame.frames.find((child) => child.url.startsWith("http://localhost"));
+        if (!page || !frame) return "missing";
+        const top = (await page.executeJavaScript("document.pictureInPictureElement?.id ?? null")) as string | null;
+        const inner = (await frame.executeJavaScript("document.pictureInPictureElement?.id ?? null")) as string | null;
+        return top ?? inner ?? "none";
+      }, url);
+    const ready = () =>
+      app.evaluate(async ({ webContents }, prefix) => {
+        const page = webContents.getAllWebContents().find((contents) => contents.getURL().startsWith(prefix));
+        const frame = page?.mainFrame.frames.find((child) => child.url.startsWith("http://localhost"));
+        return frame ? ((await frame.executeJavaScript(`document.getElementById("v")?.readyState ?? 0`)) as number) : 0;
+      }, url);
+    await expect.poll(ready).toBeGreaterThan(1);
+    await expect.poll(pip).toBe("none");
+
+    // The command: the frame's larger player wins over the page's own small preview, and back.
+    await run(chrome, "picture-in-picture");
+    await expect.poll(pip).toBe("v");
+    await run(chrome, "picture-in-picture");
+    await expect.poll(pip).toBe("none");
+
+    // Automatic picture-in-picture on leaving the tab, and back on returning.
+    await chrome.evaluate(() => (globalThis as unknown as Global).browser.settings.update({ media: { autoPictureInPicture: true } }));
+    await chrome.evaluate(() => (globalThis as unknown as Global).browser.tabs.create("about:blank"));
+    await expect.poll(pip).toBe("v");
+    await chrome.locator(".tab", { hasText: "Embedded video" }).click();
+    await expect.poll(pip).toBe("none");
+  } finally {
+    await app.close();
+  }
+});

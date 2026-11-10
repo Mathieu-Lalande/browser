@@ -823,7 +823,7 @@
             <li><strong>Téléchargements</strong> : enregistrés sans boîte de dialogue (ou toujours demander où, Paramètres, Téléchargements), avec pause, reprise et annulation ; un téléchargement interrompu par la fermeture du navigateur reprend là où il s'était arrêté (« Reprendre »), si le serveur le permet. Les programmes et scripts attendent votre confirmation ; rien n'est ouvert automatiquement. Liste : <kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>J</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>L</kbd>) ou <code>browser://downloads</code>.</li>
             <li><strong>Rechercher dans la page</strong> : <kbd>Ctrl</kbd> <kbd>F</kbd>, puis <kbd>Entrée</kbd> / <kbd>Maj</kbd> <kbd>Entrée</kbd>, <kbd>F3</kbd> ou <kbd>Ctrl</kbd> <kbd>G</kbd> pour l'occurrence suivante. Le compteur et la casse sont gardés par onglet.</li>
             <li><strong>Zoom</strong> : <kbd>Ctrl</kbd> <kbd>+</kbd> / <kbd>-</kbd> / <kbd>0</kbd>, pincement ou <kbd>Ctrl</kbd> + molette, mémorisé par site ; zoom par défaut dans Paramètres, Apparence.</li>
-            <li><strong>Médias</strong> : <kbd>Ctrl</kbd> <kbd>M</kbd> coupe le son de l'onglet ; « Image dans l'image » détache la vidéo, et le fait tout seul quand vous quittez un onglet qui lit une vidéo si « Image dans l'image automatique » est activée (Paramètres, Comportement ; les sites qui l'interdisent sont respectés) ; <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>P</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>P</kbd>) met tout en pause.</li>
+            <li><strong>Médias</strong> : <kbd>Ctrl</kbd> <kbd>M</kbd> coupe le son de l'onglet ; « Image dans l'image » détache la vidéo, même celle d'un lecteur intégré (YouTube dans un article), et le fait tout seul quand vous quittez un onglet qui lit une vidéo si « Image dans l'image automatique » est activée (Paramètres, Comportement ; les sites qui l'interdisent sont respectés) ; <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>P</kbd> (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>P</kbd>) met tout en pause.</li>
           </ul>
           <h3 id="pause-medias">Pause des médias</h3>
           <p>
@@ -1090,6 +1090,7 @@
           </p>
           <ul>
             <li><strong>Déconnecter cet appareil</strong> : arrête la synchronisation ici, les données locales restent.</li>
+            <li><strong>Retirer cet appareil</strong> (dans la liste des autres appareils, appareil perdu ou vendu) : il n'a plus accès au compte et les autres passent à une nouvelle clé, sans rien jumeler à nouveau. Il garde ce qu'il avait déjà reçu.</li>
             <li><strong>Réinitialiser</strong> (code perdu, appareil volé) : efface le compte sur le serveur et en crée un nouveau avec une nouvelle clé ; jumelez à nouveau vos appareils.</li>
           </ul>
           <p class="muted">Pour essayer en local : <code>cd server &amp;&amp; npm ci &amp;&amp; npm run build &amp;&amp; npm start</code>, puis l'adresse <code>http://&lt;IP-du-PC&gt;:8787</code> (http n'est accepté que sur le réseau local).</p>

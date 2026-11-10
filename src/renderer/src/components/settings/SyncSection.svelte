@@ -24,7 +24,8 @@
   let reveal = $state<"hidden" | "warning" | "shown">("hidden");
   let pairingCode = $state<string | null>(null);
   let copied = $state(false);
-  let confirming = $state<"disconnect" | "reset" | null>(null);
+  /** Two-step confirmation: "disconnect", "reset", or `revoke:<device id>` (ADR-056). */
+  let confirming = $state<string | null>(null);
   let confirmTimer: ReturnType<typeof setTimeout> | undefined;
   let now = $state(Date.now());
 
@@ -113,7 +114,7 @@
     await navigator.clipboard.writeText(pairingCode).then(() => (copied = true), () => {});
   }
 
-  async function confirmed(kind: "disconnect" | "reset"): Promise<void> {
+  async function confirmed(kind: string): Promise<void> {
     if (confirming !== kind) {
       confirming = kind;
       clearTimeout(confirmTimer);
@@ -123,7 +124,8 @@
     clearTimeout(confirmTimer);
     confirming = null;
     hideCode();
-    await run(() => (kind === "reset" ? api.sync.reset() : api.sync.disconnect()));
+    if (kind.startsWith("revoke:")) await run(() => api.sync.revokeDevice(kind.slice("revoke:".length)));
+    else await run(() => (kind === "reset" ? api.sync.reset() : api.sync.disconnect()));
   }
 </script>
 
@@ -197,6 +199,15 @@
               <Icon name={device.kind === "mobile" ? "smartphone" : "laptop"} size={15} />
               <span class="device-name">{device.name}</span>
               <span class="device-time">{t("syncSection.tabs", { tabsCount: device.tabs.length, p2: ago(device.updatedAt) })}</span>
+              <button
+                class="danger small"
+                class:confirming={confirming === `revoke:${device.id}`}
+                disabled={busy}
+                onclick={() => confirmed(`revoke:${device.id}`)}
+              >
+                <Icon name="trash" size={13} />
+                {confirming === `revoke:${device.id}` ? t("syncSection.confirmRemove") : t("syncSection.removeDevice")}
+              </button>
             </div>
             {#each device.tabs as tab (tab.url)}
               <button class="remote-tab" title={tab.url} onclick={() => api.tabs.create(tab.url)}>
@@ -207,6 +218,7 @@
           </li>
         {/each}
       </ul>
+      <p class="note">{t("syncSection.removeDeviceHint")}</p>
     {/if}
   </Row>
   <Row
@@ -347,6 +359,17 @@
   .secondary:hover,
   .danger:hover {
     background: var(--surface-hover);
+  }
+  .danger.small {
+    height: 26px;
+    padding: 0 8px;
+    font-size: 11.5px;
+  }
+  .note {
+    margin: 8px 0 0;
+    color: var(--text-muted);
+    font-size: 11.5px;
+    line-height: 1.45;
   }
   .danger.confirming {
     border-color: transparent;
