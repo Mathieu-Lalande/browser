@@ -29,7 +29,7 @@ mobile compilée avec EAS et workflow de publication vers les stores (INSTALL 2.
 - **Mise en veille** : préchargement intelligent.
 - **Connexion Google dans Browser** : les pages de `accounts.google.com` s'ouvrent encore dans le navigateur
   système (Google refuse les navigateurs intégrés, ADR-040).
-- **Extensions** : badges et `action.onClicked` (non fournis par Electron), extensions en fenêtre privée (ADR-049).
+- **Extensions** : extensions en fenêtre privée (ADR-049), écran pour changer leurs raccourcis (ADR-054).
 
 ## Sprint 0 — Fondations (terminé)
 Migration Tauri → Electron + Svelte 5, onglets réels (`WebContentsView`), barre latérale verticale,
