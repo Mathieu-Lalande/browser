@@ -3,6 +3,7 @@ import { Image, Pressable, StyleSheet, Text, View, type PressableProps, type Sty
 import Animated, { useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 import { MOTION, settle } from "../lib/motion";
 import { faviconUrl, monogram } from "../lib/site";
+import { siteIcons } from "../lib/siteIcons";
 import { useTheme } from "../state/theme";
 import { Icon, type IconName } from "./Icon";
 
@@ -94,7 +95,9 @@ export const SiteIcon = memo(function SiteIcon({ url, title = "", size = 20, off
   const { colors } = useTheme();
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const source = offline || failed ? null : faviconUrl(url);
+  // A synced icon (ADR-057) shows offline too and needs no request.
+  const synced = url ? siteIcons.iconFor(url) : null;
+  const source = synced ?? (offline || failed ? null : faviconUrl(url));
   const corner = radius ?? Math.round(size * 0.28);
   if (!url) {
     return <SiteGlyph size={size} radius={corner} plain={plain} />;

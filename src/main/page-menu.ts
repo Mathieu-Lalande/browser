@@ -84,7 +84,7 @@ function runEntry(id: string, c: BrowserController, tabId: TabId, contents: WebC
   const extensionItem = parseExtensionMenuEntryId(id);
   if (extensionItem) {
     // ADR-053: the extension hears the click (contextMenus.onClicked) and gets activeTab on the tab.
-    return appServices().extensionApi.menuClicked(extensionItem.extensionId, extensionItem.itemId, menuTarget(contents, params), tabId);
+    return appServices().extensionApi.menuClicked(extensionItem.extensionId, extensionItem.itemId, menuTarget(contents, params), tabId, contents.session);
   }
   if (id.startsWith("spell-") && /^spell-\d$/.test(id)) {
     const word = params.dictionarySuggestions[Number(id.slice(6))];
@@ -267,7 +267,8 @@ export function buildPageContextMenu(c: BrowserController, tabId: TabId, params:
     shortcut: (command) => effectiveAccelerator(command, process.platform, settings().shortcuts),
   });
   // The extensions' items (ADR-053), before "Inspecter", for extensions loaded in this tab's session.
-  const extensionEntries = c.isPrivate ? [] : appServices().extensionApi.menuEntries(contents.session, menuTarget(contents, params));
+  // A private window: the entries of the extensions allowed there, made in that window (ADR-057).
+  const extensionEntries = appServices().extensionApi.menuEntries(contents.session, menuTarget(contents, params));
   if (extensionEntries.length) {
     const last = entries.map((entry) => "separator" in entry).lastIndexOf(true);
     entries.splice(last < 0 ? entries.length : last, 0, { separator: true }, ...extensionEntries);

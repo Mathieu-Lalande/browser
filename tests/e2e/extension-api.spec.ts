@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Page } from "@playwright/test";
@@ -200,4 +200,95 @@ test("an extension's service worker opens tabs, lists windows, sets its badge, a
   } finally {
     await app.close();
   }
+});
+
+test("the shortcut editor changes, clears and refuses extension shortcuts (ADR-057)", async ({ app, chrome, server }) => {
+  const id = await install(app, chrome);
+  expect(await chrome.evaluate((extensionId) => (globalThis as unknown as Global).browser.extensions.openOptions(extensionId), id)).toBe(true);
+  await expect.poll(() => reports(app)).toContain("page-ready:1:tab:function:yes");
+  await chrome.evaluate(() => (globalThis as unknown as Global).browser.commands.run("open-extensions"));
+  await chrome.getByTestId("extension-shortcuts-toggle").click();
+  const editor = chrome.getByTestId("extension-shortcut-editor");
+  const row = (command: string) => editor.locator(`[data-extension-id="${id}"][data-command="${command}"]`);
+
+  // A key of the browser's is refused, with why.
+  await row("steal-new-tab").getByRole("button", { name: "Modifier le raccourci" }).click();
+  await press(app, "T", ["control"]);
+  await expect(row("steal-new-tab").getByRole("alert")).toContainText("Nouvel onglet");
+  await press(app, "Escape", []);
+
+  // A new key for "Dire bonjour": installed at once, the old one gone.
+  await row("say-hello").getByRole("button", { name: "Modifier le raccourci" }).click();
+  await press(app, "J", ["alt", "shift"]);
+  await expect(row("say-hello")).toContainText("J");
+  await expect(row("say-hello").getByRole("button", { name: "Rétablir le raccourci proposé par l'extension" })).toBeVisible();
+  // Another extension command cannot take it.
+  await row("steal-new-tab").getByRole("button", { name: "Modifier le raccourci" }).click();
+  await press(app, "J", ["alt", "shift"]);
+  await expect(row("steal-new-tab").getByRole("alert")).toContainText("API de test");
+  await press(app, "Escape", []);
+
+  const page = server.url("/menu-page");
+  await chrome.evaluate(() => (globalThis as unknown as Global).browser.commands.run("new-tab"));
+  await visit(chrome, page, "Page menu-page");
+  await press(app, "J", ["alt", "shift"]);
+  await expect.poll(() => reports(app)).toContain("command:say-hello:tab:say-hello=Alt+Shift+J,_execute_action=Ctrl+Shift+Y,steal-new-tab=");
+
+  // Cleared: no shortcut; then back to the extension's suggestion.
+  await chrome.evaluate(() => (globalThis as unknown as Global).browser.commands.run("open-extensions"));
+  await chrome.getByTestId("extension-shortcuts-toggle").click();
+  await row("say-hello").getByRole("button", { name: "Modifier le raccourci" }).click();
+  await press(app, "Backspace", []);
+  await expect(row("say-hello")).toContainText("Aucun raccourci");
+  await row("say-hello").getByRole("button", { name: "Rétablir le raccourci proposé par l'extension" }).click();
+  await expect(row("say-hello")).toContainText("H");
+  const stored = await chrome.evaluate((extensionId) => (globalThis as unknown as Global).browser.extensions.shortcuts().then((rows) => rows.find((r) => r.extensionId === extensionId && r.command === "say-hello")), id);
+  expect(stored).toMatchObject({ accelerator: "Alt+Shift+H", active: true, custom: false });
+});
+
+test("an extension allowed in private browsing loads into a throwaway profile, deleted when the window closes (ADR-057)", async ({ app, chrome, server }) => {
+  const id = await install(app, chrome);
+  const openPrivate = async () => {
+    await chrome.evaluate(() => (globalThis as unknown as Global).browser.commands.run("new-private-window"));
+    await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(2);
+  };
+  /** The private window's tab session: whether it is on disk, where, and the extensions loaded there. */
+  const privateSession = () =>
+    app.evaluate(({ webContents, session }) => {
+      const page = webContents.getAllWebContents().find((contents) => /\/private-page/.test(contents.getURL()));
+      if (!page || page.session === session.defaultSession) return null;
+      return { path: page.session.storagePath, extensions: page.session.extensions.getAllExtensions().map((extension) => extension.name) };
+    });
+  const privateChrome = async () => {
+    for (const page of app.windows()) {
+      if (!page.url().startsWith("app://browser/index.html")) continue;
+      if ((await page.evaluate(() => (globalThis as unknown as Global).browser.getState()).catch(() => null))?.isPrivate) return page;
+    }
+    return null;
+  };
+  // The page may go away before the evaluation returns.
+  const closePrivate = (page: Page) => page.evaluate(() => (globalThis as unknown as Global).browser.window.close()).catch(() => {});
+
+  // Not allowed (the default): the private window stays in memory, without the extension.
+  await openPrivate();
+  let priv = await expect.poll(privateChrome).not.toBeNull().then(privateChrome);
+  await visit(priv!, server.url("/private-page"), "Page private-page");
+  // (Chromium lists the default session's extensions in an in-memory one, but never runs them there.)
+  await expect.poll(async () => (await privateSession())?.path).toBeNull();
+  await expect(priv!.locator(`[data-extension-action="${id}"]`)).toHaveCount(0);
+  await closePrivate(priv!);
+  await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(1);
+
+  // Allowed: a new private window gets a throwaway profile with the extension (and its button).
+  await chrome.evaluate((extensionId) => (globalThis as unknown as Global).browser.extensions.setPrivateAllowed(extensionId, true), id);
+  await openPrivate();
+  priv = await expect.poll(privateChrome).not.toBeNull().then(privateChrome);
+  await visit(priv!, server.url("/private-page"), "Page private-page");
+  await expect.poll(async () => (await privateSession())?.extensions).toEqual(["API de test"]);
+  const folder = (await privateSession())!.path!;
+  expect(folder).toMatch(/browser-private-[0-9a-f]{8}[\\/]private-[0-9a-f-]{36}/);
+  expect(existsSync(folder)).toBe(true);
+  await expect(priv!.locator(`[data-extension-action="${id}"]`)).toBeVisible();
+  await closePrivate(priv!);
+  await expect.poll(() => existsSync(folder), { timeout: 10_000 }).toBe(false);
 });

@@ -75,3 +75,38 @@ test("tabs can be put to sleep on demand from the command registry", async ({ ap
   await expect(chrome.getByTestId("tasks-sleep-savings")).toContainText("2 onglets en veille · environ");
   await expect(chrome.getByTestId("tasks-sleep-savings")).toContainText("Estimation");
 });
+
+test("a sleeping tab hovered in the sidebar loads in the background, then the likely next one (ADR-057)", async ({ app, chrome, server }) => {
+  await visit(chrome, server.url("/one"), "Page one");
+  await newTab(chrome, server.url("/two"), "Page two");
+  await newTab(chrome, server.url("/three"), "Page three");
+  await run(chrome, "sleep-other-tabs");
+  await expect.poll(() => tabUrls(app)).toEqual([server.url("/three")]);
+  const log = () => app.evaluate(() => ((globalThis as { __browserPrewarm?: { reason: string }[] }).__browserPrewarm ?? []).map((entry) => entry.reason));
+
+  // Hovering "Page one" a moment wakes it off screen: its page exists, the active tab stays.
+  const one = chrome.locator(".tabs [role=tab]", { hasText: "Page one" });
+  await one.hover();
+  await expect.poll(() => tabUrls(app), { timeout: 5_000 }).toContain(server.url("/one"));
+  await expect(chrome.locator(".tab.active .title")).toHaveText("Page three");
+  await expect(one).not.toHaveClass(/asleep/);
+  await expect.poll(log).toContain("hover");
+
+  // Shown at once; once the user stays on it, its neighbour "Page two" wakes too.
+  await one.click();
+  await expect(chrome.locator(".tab.active .title")).toHaveText("Page one");
+  await chrome.mouse.move(800, 500);
+  await expect.poll(() => tabUrls(app), { timeout: 10_000 }).toContain(server.url("/two"));
+  await expect.poll(log).toContain("predicted");
+  await expect(chrome.locator(".tab.active .title")).toHaveText("Page one");
+
+  // Turned off: nothing wakes any more.
+  await chrome.evaluate(() => (globalThis as unknown as { browser: BrowserApi }).browser.settings.update({ behavior: { prewarmSleepingTabs: false } }));
+  await run(chrome, "sleep-other-tabs");
+  await expect.poll(() => tabUrls(app)).toEqual([server.url("/one")]);
+  const before = (await log()).length;
+  await chrome.locator(".tabs [role=tab]", { hasText: "Page three" }).hover();
+  await chrome.waitForTimeout(800);
+  expect((await log()).length).toBe(before);
+  expect(await tabUrls(app)).toEqual([server.url("/one")]);
+});

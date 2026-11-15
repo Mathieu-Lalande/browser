@@ -1,7 +1,7 @@
 import { WidevineService, type ComponentsPort } from "./drm";
 import { join } from "node:path";
 import type { Session } from "electron";
-import type { Settings, SettingsPatch } from "@shared/settings";
+import { tabSleepDelayMs, type Settings, type SettingsPatch } from "@shared/settings";
 import type { CollectionAdapter } from "@shared/sync/engine";
 import type { Boost } from "@shared/boosts";
 import { AutofillService } from "./autofill/service";
@@ -19,6 +19,7 @@ import { NotificationCenter, type ShownNotification } from "./notifications";
 import { ExtensionApiHost } from "./extensions/api/host";
 import { parseStoredMenus, type MenuItem } from "@shared/extension-api";
 import { JsonFile } from "./storage/json-file";
+import { sanitizeSiteIcons, type SiteIcons } from "@shared/sync/favicons";
 import { installPrivacy, isTabPage, permissionGranted } from "./privacy";
 import { ReaderService } from "./reader";
 import { extractArticle } from "./reader/page";
@@ -46,6 +47,7 @@ import { TaskManagerService, type TaskManagerDeps } from "./tasks";
 import { CrashReportService, type CrashReportDeps } from "./diagnostics/crash-reports";
 import { spaces } from "./spaces";
 import { EnergyService, type PowerPort } from "./energy";
+import { PrewarmService } from "./tab-prewarm";
 
 export interface SessionOptions {
   /**
@@ -112,6 +114,10 @@ export interface AppConfig {
   processes: Pick<TaskManagerDeps, "metrics" | "allContents">;
   /** Crashpad and the build's crash endpoint (ADR-043). */
   crashReports: Pick<CrashReportDeps, "reporter" | "dumpsDir" | "endpoint" | "version">;
+  /** Free and total system memory in KiB (`process.getSystemMemoryInfo`): smart preloading (ADR-057). */
+  systemMemory?: () => { freeKb: number; totalKb: number } | null;
+  /** Test hook: each background wake-up of a sleeping tab (ADR-057). */
+  prewarmLog?: (entry: { id: string; reason: string }) => void;
   /** Electron's `powerMonitor`: the energy saver (ADR-048). */
   power: PowerPort;
   /** `app.configureHostResolver`: secure DNS (ADR-046). */
@@ -176,6 +182,8 @@ export class AppServices {
   readonly autoPipLog: ((entry: AutoPipLogEntry) => void) | null;
   /** Energy saver (ADR-048). */
   readonly energy: EnergyService;
+  /** Smart preloading of sleeping tabs (ADR-057). */
+  readonly prewarm: PrewarmService;
   /** Installed into each tab session, in this order. */
   readonly sessionServices: readonly SessionService[];
   readonly hardener: SessionHardener;
@@ -216,6 +224,16 @@ export class AppServices {
     const autoPipLog: AutoPipLogEntry[] | null = config.testHooks?.autoPip ? [] : null;
     if (autoPipLog) (globalThis as { __browserTestAutoPip?: AutoPipLogEntry[] }).__browserTestAutoPip = autoPipLog;
     this.autoPipLog = autoPipLog ? (entry) => autoPipLog.push(entry) : null;
+    // Synced site icons (ADR-057): `site-icons.json`, read once, written on change.
+    const siteIconsFile = new JsonFile<SiteIcons>({ path: join(paths.userData, "site-icons.json"), version: 1, parse: (data) => sanitizeSiteIcons(data) });
+    let siteIconsCache: SiteIcons | null = null;
+    const siteIcons = {
+      load: (): SiteIcons => (siteIconsCache ??= siteIconsFile.load() ?? {}),
+      save: (next: SiteIcons) => {
+        siteIconsCache = next;
+        siteIconsFile.save(next);
+      },
+    };
     this.sync = new SyncService({
       userData: paths.userData,
       windows,
@@ -231,7 +249,16 @@ export class AppServices {
           stopPasswords();
         };
       },
-      adapters: () => config.syncAdapters({ windows, boosts: this.boosts, autofill: this.autofill, panels: this.panels, reading: this.reading, passwords: { vault: this.passwords, newId: newPasswordId } }),
+      adapters: () =>
+        config.syncAdapters({
+          windows,
+          boosts: this.boosts,
+          autofill: this.autofill,
+          panels: this.panels,
+          reading: this.reading,
+          passwords: { vault: this.passwords, newId: newPasswordId },
+          siteIcons,
+        }),
     });
     this.defaultBrowser = new DefaultBrowserService(config.defaultClient);
     const testSource = config.testHooks?.importChromiumDir;
@@ -314,6 +341,13 @@ export class AppServices {
       onSettingsChanged: (listener) => config.onSettingsChanged(listener),
       windows,
     });
+    this.prewarm = new PrewarmService({
+      enabled: () => config.settings().behavior.prewarmSleepingTabs,
+      sleeping: () => tabSleepDelayMs(config.settings()) !== null,
+      energySaver: () => this.energy.state.active,
+      memory: () => config.systemMemory?.() ?? null,
+      log: config.prewarmLog,
+    });
     // Downloads: tab pages only, no automatic opening, dangerous types confirmed first (ADR-013); a
     // private session's ones never reach the history (ADR-014). Extensions: ADR-024; their API bridge
     // (ADR-053) before them, so that its preload is registered before any extension loads.
@@ -329,6 +363,7 @@ export class AppServices {
 
   dispose(): void {
     this.sync.stop();
+    this.prewarm.dispose();
     this.print.dispose();
     this.notifications.dispose();
     for (const service of this.sessionServices) service.dispose?.();

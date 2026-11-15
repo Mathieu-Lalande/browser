@@ -2,13 +2,15 @@ import type { AnnotationsData } from "@shared/annotations/model";
 import { addressRecord, mergeSyncedAddresses, sanitizeSyncedAddress, type AutofillData, type SyncedAddress } from "@shared/autofill/model";
 import { annotationRecords, mergeAnnotations, sanitizeSyncedAnnotation, type SyncedAnnotation } from "@shared/annotations/sync";
 import { boostRecord, mergeBoosts, sanitizeSyncedBoost, type Boost, type SyncedBoost } from "@shared/boosts";
-import { favoriteLocalId, favoriteRecord, mergeFavorites, sanitizeSyncedFavorite, type Favorite, type SyncedFavorite } from "@shared/favorites";
+import { FAVORITE_FIELDS, favoriteLocalId, favoriteRecord, mergeFavorites, sanitizeSyncedFavorite, type Favorite, type SyncedFavorite } from "@shared/favorites";
+import { applySiteIcons, collectSiteIcons, sanitizeSyncedFavicon, siteIconRecords, type SiteIcons, type SyncedFavicon } from "@shared/sync/favicons";
 import type { History } from "@shared/history";
 import { mergeSettings, type Settings } from "@shared/settings";
 import { MAX_SPACES } from "@shared/spaces";
 import { mergeReadingList, readingRecord, sanitizeSyncedReading, type ReadingItem, type SyncedReading } from "@shared/reading-list";
 import type { CollectionAdapter } from "@shared/sync/engine";
 import {
+  BOOKMARK_FIELDS,
   SETTINGS_RECORD,
   bookmarkLocalId,
   bookmarkRecord,
@@ -68,6 +70,8 @@ export interface MobileSyncStore {
   setBoosts(boosts: Boost[]): void;
   /** "Lire plus tard" (ADR-047), with the offline texts: synced with everything else. */
   reading?: { list(): ReadingItem[]; set(next: ReadingItem[]): void };
+  /** Site icons (ADR-057): synced once the stored copy was read (`ready`). */
+  siteIcons?: { readonly ready: boolean; get(): SiteIcons; set(next: SiteIcons): void };
   /** Highlights and page notes (ADR-037): synced only when `settings.annotations.sync` is on. */
   annotations(): AnnotationsData;
   setAnnotations(next: AnnotationsData): void;
@@ -116,6 +120,7 @@ function spacesAdapter(store: MobileSyncStore): CollectionAdapter<SyncedSpace> {
 function bookmarksAdapter(store: MobileSyncStore): CollectionAdapter<SyncedBookmark> {
   return {
     name: "bookmarks",
+    fields: BOOKMARK_FIELDS,
     snapshot: () => {
       const map = new Map<string, SyncedBookmark>();
       for (const folder of store.folders()) map.set(folderLocalId(folder.id), { kind: "folder", name: folder.name, createdAt: folder.createdAt });
@@ -143,7 +148,7 @@ function bookmarksAdapter(store: MobileSyncStore): CollectionAdapter<SyncedBookm
           id: existing?.id ?? store.newId(),
           url: data.url,
           title: data.title,
-          favicon: null,
+          favicon: existing?.favicon ?? null,
           createdAt: data.createdAt,
           ...(folderId ? { folderId } : {}),
         });
@@ -174,11 +179,28 @@ function historyAdapter(store: MobileSyncStore): CollectionAdapter<SyncedHistory
 function favoritesAdapter(store: MobileSyncStore): CollectionAdapter<SyncedFavorite> {
   return {
     name: "favorites",
+    fields: FAVORITE_FIELDS,
     snapshot: () => new Map(store.favorites().map((favorite, index) => [favoriteLocalId(favorite.url), favoriteRecord(favorite, index)])),
     sanitize: (value, id) => sanitizeSyncedFavorite(value, id),
     apply: ({ upserts, deletes }) => {
       store.setFavorites(mergeFavorites(store.favorites(), upserts.map((change) => change.data), deletes));
     },
+  };
+}
+
+/** Site icons (ADR-057), same records as the desktop: shown by `SiteIcon` before the site's own favicon. */
+function faviconsAdapter(store: MobileSyncStore, icons: NonNullable<MobileSyncStore["siteIcons"]>): CollectionAdapter<SyncedFavicon> {
+  return {
+    name: "favicons",
+    enabled: () => icons.ready,
+    snapshot: () => {
+      const current = icons.get();
+      const next = collectSiteIcons(current, [...store.favorites(), ...store.bookmarks()], store.now());
+      if (next !== current) icons.set(next);
+      return siteIconRecords(next);
+    },
+    sanitize: (value, id) => sanitizeSyncedFavicon(value, id),
+    apply: ({ upserts, deletes }) => icons.set(applySiteIcons(icons.get(), upserts, deletes, store.now())),
   };
 }
 
@@ -238,5 +260,7 @@ export function mobileAdapters(store: MobileSyncStore): CollectionAdapter[] {
     favoritesAdapter(store),
     boostsAdapter(store),
     annotationsAdapter(store),
+    // Last: this round's bookmarks and favorites are there.
+    ...(store.siteIcons ? [faviconsAdapter(store, store.siteIcons)] : []),
   ] as CollectionAdapter[];
 }

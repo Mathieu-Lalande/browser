@@ -145,7 +145,7 @@ function windowInfo(context: ApiContext, window: BrowserWindowInfo, populate: bo
     left: window.bounds.x,
     width: window.bounds.width,
     height: window.bounds.height,
-    incognito: false,
+    incognito: context.host.isPrivate(context.caller.session),
     type: "normal",
     state: window.state,
     alwaysOnTop: false,
@@ -231,15 +231,16 @@ const action: Record<string, Api> = {
 
 // --- chrome.contextMenus ---------------------------------------------------------------------
 
-const menuItems = (context: ApiContext) => context.host.menus.get(context.caller.extension.id) ?? [];
+const menuItems = (context: ApiContext) => context.host.menusOf(context.caller.session, context.caller.extension.id);
 
-// Every change goes through `host.setMenus`, which keeps them for the next run (ADR-054).
+// Every change goes through `host.setMenus`, which keeps them for the next run (ADR-054) — never
+// those made in a private window, which live in memory for that window only (ADR-057).
 const contextMenus: Record<string, Api> = {
   create: (context, [props]) => {
     const { id } = context.caller.extension;
-    const created = createMenuItem(menuItems(context), props, context.host.restoredMenuIds(id));
+    const created = createMenuItem(menuItems(context), props, context.host.restoredMenuIds(id, context.caller.session));
     if (typeof created === "string") return fail(created);
-    context.host.setMenus(id, created.items, created.id);
+    context.host.setMenus(id, created.items, created.id, context.caller.session);
     return created.id;
   },
   update: (context, [id, props]) => {
@@ -249,16 +250,16 @@ const contextMenus: Record<string, Api> = {
     const item = menuItemFrom(props, items, items[index]);
     if (typeof item === "string") return fail(item);
     items[index] = item;
-    context.host.setMenus(context.caller.extension.id, items);
+    context.host.setMenus(context.caller.extension.id, items, undefined, context.caller.session);
   },
   remove: (context, [id]) => {
     const items = menuItems(context);
     if (!items.some((item) => item.id === String(id))) return fail(`Cannot find menu item with id ${String(id)}`);
     const gone = withDescendants(items, String(id));
-    context.host.setMenus(context.caller.extension.id, items.filter((item) => !gone.has(item.id)));
+    context.host.setMenus(context.caller.extension.id, items.filter((item) => !gone.has(item.id)), undefined, context.caller.session);
   },
   removeAll: (context) => {
-    context.host.setMenus(context.caller.extension.id, []);
+    context.host.setMenus(context.caller.extension.id, [], undefined, context.caller.session);
   },
 };
 
@@ -341,12 +342,17 @@ const notifications: Record<string, Api> = {
     const notificationId = typeof id === "string" && id ? id.slice(0, 500) : context.host.newId();
     const title = text(p.title, 200);
     if (!title && !text(p.message)) return fail("Some of the required properties are missing: title and message");
-    context.host.showNotification(context.caller.extension, notificationId, {
-      title,
-      body: [text(p.message), text(p.contextMessage, 200)].filter(Boolean).join("\n"),
-      icon: imageFrom(context, p.iconUrl),
-      silent: p.silent === true,
-    });
+    context.host.showNotification(
+      context.caller.extension,
+      notificationId,
+      {
+        title,
+        body: [text(p.message), text(p.contextMessage, 200)].filter(Boolean).join("\n"),
+        icon: imageFrom(context, p.iconUrl),
+        silent: p.silent === true,
+      },
+      context.caller.session,
+    );
     return notificationId;
   },
   update: (context, [id, options]) => {

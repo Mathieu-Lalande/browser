@@ -18,6 +18,8 @@ export interface PageFeatures {
   readonly translator: Pick<PageTranslator, "pageReady" | "stateOf">;
   readonly annotator: Pick<PageAnnotator, "pageReady" | "clicked">;
   readonly storePages: Pick<WebStorePages, "pageReady" | "clicked">;
+  /** A tab was activated: smart preloading of sleeping tabs follows (ADR-057). */
+  tabActivated(tabId: TabId): void;
 }
 
 export interface PageHooksDeps {
@@ -50,6 +52,7 @@ export class PageHooks {
     return {
       ...base,
       contextMenu: (tabId, params) => this.deps.contextMenu(tabId, params),
+      tabActivated: (tabId) => features.tabActivated(tabId),
       pageReady: (tabId, contents) => {
         this.deps.watchPasswordForms(tabId, contents);
         this.deps.watchAutofill(tabId, contents);

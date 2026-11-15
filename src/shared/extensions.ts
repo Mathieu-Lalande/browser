@@ -320,6 +320,11 @@ export interface ExtensionDetailsInfo {
   shortcuts?: Omit<ExtensionShortcut, "extensionId">[];
 }
 
+/** One row of the shortcut editor (ADR-057): an enabled extension's command and its key. */
+export interface ExtensionCommandRow extends ExtensionShortcut {
+  extensionName: string;
+}
+
 /** A size in French units ("1,2 Mo"). */
 export function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} o`;

@@ -225,6 +225,16 @@
   partiel à la fermeture), `resumePlan` (`src/shared/download-resume.ts`) → `session.createInterruptedDownload`.
   Veille : `measurePageMemoryKb` (`src/main/sleep-memory.ts`) avant `discard` → `TabState.sleepFreedKb`, totaux purs
   `src/shared/sleep-memory.ts`, bulle d'onglet, carte d'aperçu, résumé de `browser://tasks` (`tasks:sleep-savings`), toujours « estimation ».
+- Restes du bureau, suite (ADR-057) : extensions en fenêtre privée (opt-in `allowPrivate`) : Chromium n'en charge
+  aucune en mémoire, donc `createPrivateSession(withExtensions)` (`src/main/private.ts`) donne un profil jetable
+  `session.fromPath` (`/dev/shm` si possible, pur `src/shared/private-extensions.ts`), supprimé à la fermeture et balayé
+  au démarrage ; `ExtensionApiHost` y isole l'instance (`extensionBrowser(scope)`, `dispatch(…, scope)`, menus en
+  mémoire jamais écrits). Éditeur de raccourcis `ExtensionShortcuts.svelte` (`ExtensionRecord.shortcuts`,
+  `checkExtensionShortcut`, canaux `extensions:shortcuts`/`set-shortcut`). Préchargement des onglets en veille : pur
+  `src/shared/tab-prewarm.ts`, `PrewarmService` (`src/main/tab-prewarm.ts` : survol `use:tabPrewarm`, Ctrl+Tab, crochet
+  `tabActivated`), `settings.behavior.prewarmSleepingTabs`. Sync : `CollectionAdapter.fields` (LWW par champ,
+  `src/shared/sync/fields.ts`), collection `favicons` (`src/shared/sync/favicons.ts`, `site-icons.json`, mobile
+  `lib/siteIcons.ts`).
 - Bloqueur mobile (ADR-051) : conversion pure `src/shared/blocklist/` (WebKit JSON, index Android, cosmétique),
   `mobile/scripts/build-blocklists.mjs` (postinstall, sorties générées non commitées), module local
   `mobile/modules/content-blocker` (Swift/Kotlin + plugin), correctif `mobile/patches/` de react-native-webview,

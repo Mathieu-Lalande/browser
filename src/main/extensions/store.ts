@@ -1,4 +1,5 @@
 import { isExtensionId, type ExtensionAction, type ExtensionInfo } from "@shared/extensions";
+import { sanitizeUserShortcuts } from "@shared/extension-commands";
 import { maxStr } from "../ipc/validators";
 
 /** `extensions.json` (ADR-024): the installed extensions and their switches. */
@@ -21,6 +22,8 @@ export interface ExtensionRecord {
   pinned: boolean;
   /** Installed from the Chrome Web Store (ADR-049): updated from there. */
   webStoreId?: string;
+  /** Keys the user chose for its commands (ADR-057): command → accelerator, "" for none. */
+  shortcuts?: Record<string, string>;
 }
 
 /** What an installed extension's manifest says beyond the record (read again at each launch). */
@@ -54,8 +57,11 @@ function parseRecord(value: unknown): ExtensionRecord | null {
     icon,
     pinned: r.pinned !== false,
     ...(isExtensionId(r.webStoreId) ? { webStoreId: r.webStoreId } : {}),
+    ...withShortcuts(sanitizeUserShortcuts(r.shortcuts)),
   };
 }
+
+const withShortcuts = (shortcuts: Record<string, string> | undefined) => (shortcuts ? { shortcuts } : {});
 
 /** In-memory list of installed extensions; persistence is the caller's (one JSON file). */
 export class ExtensionStore {
@@ -98,11 +104,13 @@ export class ExtensionStore {
   }
 
   /** Changes switches of an installed extension; false when unknown or unchanged. */
-  update(id: string, patch: Partial<Pick<ExtensionRecord, "enabled" | "allowPrivate" | "pinned">>): boolean {
+  update(id: string, patch: Partial<Pick<ExtensionRecord, "enabled" | "allowPrivate" | "pinned" | "shortcuts">>): boolean {
     const record = this.get(id);
     if (!record) return false;
     const next = { ...record, ...patch };
-    if (next.enabled === record.enabled && next.allowPrivate === record.allowPrivate && next.pinned === record.pinned) return false;
+    if ("shortcuts" in patch && !patch.shortcuts) delete next.shortcuts;
+    const sameShortcuts = JSON.stringify(next.shortcuts ?? null) === JSON.stringify(record.shortcuts ?? null);
+    if (next.enabled === record.enabled && next.allowPrivate === record.allowPrivate && next.pinned === record.pinned && sameShortcuts) return false;
     this.records = this.records.map((known) => (known.id === id ? next : known));
     return true;
   }

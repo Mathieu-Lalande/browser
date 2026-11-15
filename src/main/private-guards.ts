@@ -23,6 +23,8 @@ export function tabHooksFor(hooks: TabManagerHooks, isPrivate: boolean): TabMana
         isBookmarked: hooks.isBookmarked,
         isFavorite: hooks.isFavorite,
         contextMenu: hooks.contextMenu,
+        // Smart preloading (ADR-057): the window's own tabs, nothing recorded.
+        tabActivated: hooks.tabActivated,
         hasPasswords: hooks.hasPasswords,
         // Boosts apply (reading); their scripts only when a boost allows it (ADR-029).
         boostPage: hooks.boostPage,

@@ -3,6 +3,7 @@
   import type { ExtensionInfo } from "@shared/extensions";
   import type { Bounds } from "@shared/types";
   import { api, browser } from "../../lib/browser.svelte";
+  import { runsInWindow } from "@shared/private-extensions";
   import { extensionsUi } from "../../lib/extensions.svelte";
   import IconButton from "../ui/IconButton.svelte";
   import Icon from "../Icon.svelte";
@@ -10,8 +11,8 @@
   /**
    * The extensions' toolbar buttons (ADR-049), a row under the address bar: the pinned ones (at
    * most MAX_VISIBLE), then the puzzle button, whose native menu lists them all (open, pin, manage).
-   * A click opens the extension's popup below its button. None in a private window: extensions do
-   * not run there.
+   * A click opens the extension's popup below its button. In a private window, only the extensions
+   * allowed there (ADR-057).
    */
   const MAX_VISIBLE = 6;
 
@@ -41,7 +42,7 @@
   }
 </script>
 
-{#if !browser.isPrivate && extensionsUi.list.some((extension) => extension.enabled)}
+{#if extensionsUi.list.some((extension) => runsInWindow(extension, browser.isPrivate))}
   <div class="extension-bar" role="toolbar" aria-label={t("extensionBar.extensions")} data-testid="extension-bar">
     {#each visible as extension (extension.id)}
       {@const state = extensionsUi.actionOf(extension.id)}

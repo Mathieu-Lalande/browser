@@ -29,6 +29,7 @@ const api: BrowserApi = {
     create: (input) => send(Channels.tabCreate, input),
     close: (id) => send(Channels.tabClose, id),
     activate: (id) => send(Channels.tabActivate, id),
+    prewarm: (id) => send(Channels.tabPrewarm, id),
     navigate: (id, input) => send(Channels.tabNavigate, id, input),
     back: (id) => send(Channels.tabBack, id),
     forward: (id) => send(Channels.tabForward, id),
@@ -90,6 +91,8 @@ const api: BrowserApi = {
     actionStates: () => ipcRenderer.invoke(Channels.extensionsGetActionStates),
     onActionStates: (listener) => subscribe<Record<string, ActionState>>(Channels.extensionsActionStates, listener),
     onActivate: (listener) => subscribe<string>(Channels.extensionsActivate, listener),
+    shortcuts: () => ipcRenderer.invoke(Channels.extensionsShortcuts),
+    setShortcut: (id, command, accelerator) => ipcRenderer.invoke(Channels.extensionsSetShortcut, id, command, accelerator),
   },
   boosts: {
     list: () => ipcRenderer.invoke(Channels.boostsList),

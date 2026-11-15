@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, wri
 import { dirname, extname, join, resolve, sep } from "node:path";
 import { dialog, type BaseWindow, type OpenDialogOptions, type Session } from "electron";
 import { Emitter } from "@shared/emitter";
+import { withUserShortcut } from "@shared/extension-commands";
 import {
   isSafeRelativePath,
   manifestApiPermissions,
@@ -24,6 +25,7 @@ import {
   type ManifestSummary,
 } from "@shared/extensions";
 import { compareVersions } from "@shared/webstore";
+import { privateWindowNeedsProfile } from "@shared/private-extensions";
 import { storeButtonState, type StoreButtonState, type StoreInstall } from "@shared/webstore-page";
 import type { SessionOptions, SessionService } from "../services";
 import { JsonFile } from "../storage/json-file";
@@ -151,8 +153,9 @@ async function pick(window: BaseWindow | null, options: OpenDialogOptions): Prom
  * Browser extensions (ADR-024, ADR-049), through Electron's own `session.extensions`. A session
  * service: every tab session (default space, isolated spaces, private windows) gets them when it is
  * hardened; the browser UI lives in its own in-memory session (`ui-session.ts`) and never gets any.
- * A private window's session only gets extensions allowed there — and Electron refuses in-memory
- * sessions, so in practice none (see the ADRs). Store installs and updates: `WebStoreClient`.
+ * A private window's session only gets extensions allowed there: Electron refuses in-memory
+ * sessions, so such a window gets a throwaway profile when one is allowed (ADR-057, `private.ts`);
+ * nothing is tried in an in-memory one. Store installs and updates: `WebStoreClient`.
  */
 export class ExtensionService implements SessionService {
   private readonly sessions = new Map<Session, SessionState>();
@@ -194,6 +197,8 @@ export class ExtensionService implements SessionService {
    */
   install(ses: Session, options: SessionOptions = {}): void {
     if (this.sessions.has(ses)) return;
+    // Chromium loads no extension into an in-memory session (a private window without a throwaway profile).
+    if (options.ephemeral && !ses.storagePath) return;
     const session: SessionState = { ephemeral: options.ephemeral === true, loaded: new Map() };
     this.sessions.set(ses, session);
     for (const record of this.opened().store.list()) {
@@ -206,9 +211,16 @@ export class ExtensionService implements SessionService {
     }
   }
 
-  /** A session going away (private window closed). */
+  /** A session going away (private window closed): its extensions unload with it (ADR-057). */
   release(ses: Session): void {
+    const session = this.sessions.get(ses);
     this.sessions.delete(ses);
+    if (session) for (const id of [...session.loaded.keys()]) this.unloadFrom(ses, session, id);
+  }
+
+  /** Whether a new private window needs a throwaway profile: an enabled extension is allowed there (ADR-057). */
+  allowedInPrivate(): boolean {
+    return privateWindowNeedsProfile(this.opened().store.list());
   }
 
   dispose(): void {
@@ -477,6 +489,21 @@ export class ExtensionService implements SessionService {
     return this.change(id, { allowPrivate });
   }
 
+  /** The keys the user chose for an extension's commands (ADR-057), or undefined. */
+  userShortcutsOf(id: string): Readonly<Record<string, string>> | undefined {
+    return this.opened().store.get(id)?.shortcuts;
+  }
+
+  /**
+   * The shortcut editor (ADR-057): `accelerator` for one command, "" for none, null for the
+   * manifest's suggestion again. The caller checked conflicts; the app menu follows `onChanged`.
+   */
+  async setShortcut(id: string, command: string, accelerator: string | null): Promise<void> {
+    const record = this.opened().store.get(id);
+    if (!record) return;
+    await this.change(id, { shortcuts: withUserShortcut(record.shortcuts, command, accelerator) });
+  }
+
   /** Pinned: a button in the sidebar's extension row; else only in the puzzle menu (ADR-049). */
   setPinned(id: string, pinned: boolean): Promise<void> {
     return this.change(id, { pinned });
@@ -536,7 +563,7 @@ export class ExtensionService implements SessionService {
     return toInfo(record, { ...details, action }, this.errors.get(record.id));
   }
 
-  private async change(id: string, patch: { enabled?: boolean; allowPrivate?: boolean; pinned?: boolean }): Promise<void> {
+  private async change(id: string, patch: { enabled?: boolean; allowPrivate?: boolean; pinned?: boolean; shortcuts?: Record<string, string> }): Promise<void> {
     if (!this.opened().store.update(id, patch)) return;
     this.save();
     await this.apply(id);
@@ -559,7 +586,7 @@ export class ExtensionService implements SessionService {
       return null;
     } catch (error) {
       if (session.loaded.get(record.id) === PENDING) session.loaded.delete(record.id);
-      // Private windows' sessions are in memory, which Electron refuses: not the extension's fault.
+      // A private window's throwaway profile (ADR-057): the normal windows already report its errors.
       if (session.ephemeral) return null;
       return t("extensionsService.browserCouldntLoadExtension", { p: describe(error) });
     }

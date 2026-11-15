@@ -27,6 +27,8 @@ export const KEYS = {
   privacyStats: "browser.privacy-stats",
   /** Downloaded files of normal tabs (ADR-055; never private ones). */
   downloads: "browser.downloads",
+  /** Site icons received through sync (ADR-057, collection `favicons`). */
+  siteIcons: "browser.site-icons",
 } as const;
 
 export type StorageKey = (typeof KEYS)[keyof typeof KEYS];

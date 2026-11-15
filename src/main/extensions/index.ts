@@ -1,10 +1,11 @@
 import { t } from "@shared/i18n";
 import { dialog, type BaseWindow } from "electron";
-import type { DroppedExtension, ExtensionDetailsInfo, ExtensionInfo, ExtensionInstallResult, ExtensionReview, ExtensionUpdateResult } from "@shared/extensions";
+import type { DroppedExtension, ExtensionCommandRow, ExtensionDetailsInfo, ExtensionInfo, ExtensionInstallResult, ExtensionReview, ExtensionUpdateResult } from "@shared/extensions";
 import type { StoreInstall } from "@shared/webstore-page";
 import type { ActionState } from "@shared/extension-api";
-import { isExecuteAction } from "@shared/extension-commands";
+import { isExecuteAction, type ExtensionShortcutCheck } from "@shared/extension-commands";
 import type { Bounds } from "@shared/types";
+import { runsInWindow } from "@shared/private-extensions";
 import { appServices } from "../app-services-ref";
 import type { Overlay } from "../overlay";
 import type { ExtensionPopup } from "./popup";
@@ -17,6 +18,7 @@ const extensions = () => appServices().extensions;
 /** The parts of a window the store install, popups and menus use (a BrowserController). */
 export interface ExtensionWindow {
   readonly window: BaseWindow;
+  readonly isPrivate: boolean;
   readonly overlay: Overlay;
   readonly extensionPopup: ExtensionPopup;
   readonly tabSession: Electron.Session;
@@ -104,7 +106,7 @@ export function openExtensionPopup(c: ExtensionWindow, id: string, anchor: Bound
   const override = api.popupFor(id, tabId);
   const url = override === "" ? null : extensions().popupUrl(c.tabSession, id, override);
   if (url) c.extensionPopup.open(url, anchor);
-  else api.clickAction(id, c.window.id);
+  else api.clickAction(id, c.window.id, c.tabSession);
 }
 
 export const onExtensionsChanged = (listener: () => void): (() => void) => extensions().onChanged(listener);
@@ -134,6 +136,7 @@ export function activeExtensionShortcuts(): ExtensionShortcutItem[] {
 export interface ExtensionCommandWindow {
   readonly isPrivate: boolean;
   readonly window: BaseWindow;
+  readonly tabSession: Electron.Session;
   /** Presses the extension's toolbar button (its chrome UI knows where the button is). */
   activateExtension(id: string): void;
 }
@@ -141,12 +144,36 @@ export interface ExtensionCommandWindow {
 /**
  * An extension's shortcut was pressed (ADR-054): `_execute_action` (and MV2's `_execute_browser_action`
  * / `_execute_page_action`) presses its button; any other command fires `commands.onCommand`.
- * Never in a private window: extensions do not run there.
+ * In a private window, only an extension loaded there (allowed in private browsing, ADR-057).
  */
 export function runExtensionCommand(c: ExtensionCommandWindow, extensionId: string, command: string): void {
-  if (c.isPrivate || !appServices().extensions.running(extensionId)) return;
+  if (!appServices().extensions.running(extensionId)) return;
+  if (c.isPrivate && !appServices().extensions.placesOf(extensionId).some((place) => place.session === c.tabSession)) return;
   if (isExecuteAction(command)) c.activateExtension(extensionId);
-  else appServices().extensionApi.runCommand(extensionId, command, c.window.id);
+  else appServices().extensionApi.runCommand(extensionId, command, c.window.id, c.isPrivate ? c.tabSession : undefined);
+}
+
+/** The shortcut editor of `browser://extensions` (ADR-057): every command of the enabled extensions. */
+export function extensionCommandRows(): ExtensionCommandRow[] {
+  const names = new Map(listExtensions().map((extension) => [extension.id, extension.name]));
+  return appServices()
+    .extensionApi.commandShortcuts()
+    .map((shortcut) => ({ ...shortcut, extensionName: names.get(shortcut.extensionId) ?? "" }));
+}
+
+/**
+ * Sets one command's key from the shortcut editor (ADR-057): refused when the browser or another
+ * extension has it; "" clears it, null brings back the manifest's suggestion.
+ */
+export async function setExtensionShortcut(extensionId: string, command: string, accelerator: string | null): Promise<ExtensionShortcutCheck | { ok: true; accelerator: null }> {
+  if (!extensionCommandRows().some((row) => row.extensionId === extensionId && row.command === command)) return { ok: false, issue: { kind: "invalid" } };
+  if (accelerator === null || accelerator === "") {
+    await extensions().setShortcut(extensionId, command, accelerator);
+    return { ok: true, accelerator: null };
+  }
+  const check = appServices().extensionApi.checkShortcut(extensionId, command, accelerator);
+  if (check.ok) await extensions().setShortcut(extensionId, command, check.accelerator);
+  return check;
 }
 
 /** "Détails" of `browser://extensions`, with the extension's shortcuts and their conflicts. */
@@ -156,7 +183,7 @@ export function extensionDetailsWithShortcuts(id: string): ExtensionDetailsInfo 
   const shortcuts = appServices()
     .extensionApi.commandShortcuts(id)
     .filter((shortcut) => shortcut.extensionId === id)
-    .map(({ command, description, accelerator, active, issue }) => ({ command, description, accelerator, active, issue }));
+    .map(({ command, description, accelerator, active, issue, custom }) => ({ command, description, accelerator, active, issue, custom }));
   return { ...details, shortcuts };
 }
 
@@ -165,7 +192,8 @@ export function showExtensionsMenu(c: ExtensionWindow, id: string | null, anchor
   showExtensionMenu(
     {
       window: c.window,
-      list: listExtensions,
+      // A private window lists the extensions allowed there only (ADR-057).
+      list: () => listExtensions().filter((extension) => runsInWindow(extension, c.isPrivate)),
       openPopup: (extensionId, at) => openExtensionPopup(c, extensionId, at),
       setPinned: (extensionId, pinned) => void setExtensionPinned(extensionId, pinned),
       openExtensionsPage: () => c.openExtensions(),

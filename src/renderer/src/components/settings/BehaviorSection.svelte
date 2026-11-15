@@ -86,6 +86,18 @@
   />
 </Row>
 <Row
+  anchor="prewarm"
+  label={t("behaviorSection.prewarmSleepingTabs")}
+  hint={t("behaviorSection.prewarmSleepingTabsHint")}
+  keywords={t("behaviorSection.prewarmKeywords")}
+>
+  <Toggle
+    label={t("behaviorSection.prewarmSleepingTabs")}
+    checked={s.behavior.prewarmSleepingTabs}
+    onchange={(prewarmSleepingTabs) => update({ behavior: { prewarmSleepingTabs } })}
+  />
+</Row>
+<Row
   anchor="energy-saver"
   label={t("behaviorSection.energySaver")}
   hint={t("behaviorSection.tabsPutSleepAfter")}

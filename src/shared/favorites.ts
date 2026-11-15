@@ -101,6 +101,9 @@ export function matchesFavorite(list: readonly Favorite[], url: string): boolean
 /** Favorites are keyed by URL across devices (the id never leaves the device in clear). */
 export const favoriteLocalId = (url: string) => `fav:${url}`;
 
+/** Fields of a favorite merged one by one (ADR-057): a renamed tile and a moved one both survive. */
+export const FAVORITE_FIELDS = ["title", "position"] as const;
+
 export interface SyncedFavorite {
   url: string;
   title: string;

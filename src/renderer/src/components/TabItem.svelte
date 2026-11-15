@@ -6,6 +6,7 @@
   import { api } from "../lib/browser.svelte";
   import { platform } from "../lib/platform.svelte";
   import { previewsEnabled, tabPreview } from "../lib/tab-preview";
+  import { tabPrewarm } from "../lib/tab-prewarm";
   import Icon from "./Icon.svelte";
   import TabIcon from "./TabIcon.svelte";
 
@@ -44,6 +45,7 @@
   data-tab-id={tab.id}
   title={previewsEnabled() ? undefined : tooltip}
   use:tabPreview={{ kind: "tab", id: tab.id }}
+  use:tabPrewarm={tab.isAsleep ? tab.id : null}
   onclick={() => api.tabs.activate(tab.id)}
   onauxclick={onAuxClick}
   ondblclick={() => api.tabs.togglePin(tab.id)}

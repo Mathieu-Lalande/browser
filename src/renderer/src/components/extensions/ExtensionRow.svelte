@@ -2,8 +2,8 @@
   import { t, intlLocale } from "@shared/i18n";
   import { formatSize, type ExtensionDetailsInfo, type ExtensionInfo } from "@shared/extensions";
   import { acceleratorText } from "@shared/accelerators";
-  import type { ShortcutIssue } from "@shared/extension-commands";
   import { api, browser } from "../../lib/browser.svelte";
+  import { shortcutIssueText as issueText } from "../../lib/extension-shortcuts";
   import { platform } from "../../lib/platform.svelte";
   import Icon from "../Icon.svelte";
   import Button from "../ui/Button.svelte";
@@ -33,22 +33,6 @@
 
   async function openOptions(): Promise<void> {
     optionsMissing = !(await api.extensions.openOptions(extension.id).catch(() => false));
-  }
-
-  /** Why a shortcut of the extension is not installed (ADR-054: the browser's win). */
-  function issueText(issue: ShortcutIssue): string {
-    switch (issue.kind) {
-      case "browser":
-        return t("extensionRow.shortcutTakenByBrowser", { label: issue.label });
-      case "extension":
-        return t("extensionRow.shortcutTakenByExtension", { name: issue.name });
-      case "reserved":
-        return t("extensionRow.shortcutReserved");
-      case "limit":
-        return t("extensionRow.shortcutLimit");
-      default:
-        return t("extensionRow.shortcutInvalid");
-    }
   }
 
   const source = $derived(extension.webStoreId ? "Chrome Web Store" : extension.managed ? t("extensionRow.installedFromFile") : t("extensionRow.unpackedFolder"));
@@ -114,6 +98,7 @@
                   {:else if !shortcut.accelerator}
                     <span class="faint">{t("extensionRow.noShortcut")}</span>
                   {/if}
+                  {#if shortcut.custom}<span class="faint">{t("extensionRow.shortcutCustom")}</span>{/if}
                   {#if shortcut.issue}
                     <span class="conflict"><Icon name="warning" size={12} /> {issueText(shortcut.issue)}</span>
                   {/if}
@@ -146,7 +131,7 @@
             <span>
               {t("extensionRow.allowPrivateBrowsing2")}
               <span class="faint">
-                {t("extensionRow.savedButNoEffect")}
+                {t("extensionRow.privateNote")}
               </span>
             </span>
           </label>

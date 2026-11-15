@@ -75,6 +75,8 @@ export interface TabManagerOptions {
 
 /** Optional integrations (history, bookmarks); TabManager itself does no persistence. */
 export interface TabManagerHooks {
+  /** A tab was activated (smart preloading of sleeping tabs, ADR-057). */
+  tabActivated?(tabId: TabId): void;
   /** A page was committed in a tab (full navigation, or an in-page one to a new URL). */
   onVisit?(url: string): void;
   /** The committed page reported its title or favicon. */

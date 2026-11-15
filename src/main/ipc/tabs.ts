@@ -11,6 +11,7 @@ export const tabHandlers = defineHandlers({
   [Channels.tabCreate]: on([opt(str)], (c, input) => (input === undefined ? c.newTab() : c.tabs.create(input))),
   [Channels.tabClose]: on([str], (c, tabId) => c.tabs.close(tabId)),
   [Channels.tabActivate]: on([str], (c, tabId) => c.tabs.activate(tabId)),
+  [Channels.tabPrewarm]: on([str], (c, tabId) => c.prewarmTab(tabId)),
   [Channels.tabNavigate]: on([str, str], (c, tabId, input) => c.tabs.navigate(tabId, input)),
   [Channels.tabBack]: on([str], (c, tabId) => c.tabs.back(tabId)),
   [Channels.tabForward]: on([str], (c, tabId) => c.tabs.forward(tabId)),

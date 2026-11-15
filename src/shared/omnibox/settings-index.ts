@@ -84,6 +84,7 @@ export const SETTINGS_INDEX: readonly SettingEntry[] = [
   entry("behavior", "new-tab-position", "settingsIndex.behavior.newTabPosition"),
   entry("behavior", "after-close", "settingsIndex.behavior.afterClose"),
   entry("behavior", "sleep", "settingsIndex.behavior.sleep"),
+  entry("behavior", "prewarm", "settingsIndex.behavior.prewarm"),
   entry("behavior", "archive", "settingsIndex.behavior.archive"),
   entry("behavior", "auto-pip", "settingsIndex.behavior.autoPip"),
   entry("behavior", "energy-saver", "settingsIndex.behavior.energySaver"),

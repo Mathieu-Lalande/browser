@@ -319,6 +319,28 @@ export class TabManager {
     for (const shown of this.layout.visibleTabs()) this.lifecycle.wake(shown);
     this.layout.syncAttachment();
     this.emit();
+    this.hooks.tabActivated?.(id);
+  }
+
+  /** Smart preloading (ADR-057): the tabs in sidebar order, as the prewarm policy sees them. */
+  prewarmTabs(): { id: TabId; sleeping: boolean; shown: boolean; pinned: boolean; lastActiveAt: number }[] {
+    const shown = new Set(this.layout.visibleTabs());
+    return this.store.all.map((tab) => ({
+      id: tab.id,
+      sleeping: isDiscarded(tab) && showsWebPage(tab.state.url),
+      shown: shown.has(tab),
+      pinned: tab.state.isPinned,
+      lastActiveAt: tab.state.lastActiveAt,
+    }));
+  }
+
+  /** Wakes a sleeping tab off screen (its page loads in the background, ADR-057); its page, or null. */
+  prewarm(id: TabId): WebContents | null {
+    const tab = this.store.find(id);
+    if (!tab || !isDiscarded(tab) || !showsWebPage(tab.state.url) || this.layout.visibleTabs().includes(tab)) return null;
+    this.lifecycle.wake(tab);
+    this.emit();
+    return liveContents(tab);
   }
 
   /** Shows (space switched to) or hides this manager's pages. Showing loads the active tab if needed. */

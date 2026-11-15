@@ -11,6 +11,7 @@ function setup(isPrivate: boolean) {
     translator: { pageReady: vi.fn(async () => {}), stateOf: vi.fn(() => null) },
     annotator: { pageReady: vi.fn(), clicked: vi.fn() },
     storePages: { pageReady: vi.fn(), clicked: vi.fn() },
+    tabActivated: vi.fn(),
   } satisfies PageFeatures;
   const deps = {
     base: { isBookmarked: (url: string) => url === "https://saved.example/" },

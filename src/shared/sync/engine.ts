@@ -2,6 +2,7 @@ import { t } from "../i18n";
 import { randomBytesChecked, toHex, type RandomBytes } from "./bytes";
 import { SyncClient, SyncError, type Transport } from "./client";
 import { deriveKeys, open, openLocal, recordId, seal, sealLocal, type SyncKeys } from "./crypto";
+import { fieldHashes, mergeFields, parseFieldClocks, touchedFieldClocks, type FieldClocks } from "./fields";
 import { hashValue } from "./hash";
 import { compareHlc, createClock, decodeHlc, encodeHlc, isDeviceId, isHlc, receive, tick, type Hlc } from "./hlc";
 import { fromBase64Url } from "./bytes";
@@ -18,6 +19,9 @@ import { SENSITIVE_COLLECTIONS, type CollectionName, type RemoteDevice } from ".
  * Local changes are found by comparing each collection's current content with a *mirror* of what
  * was last synced (hash per record), so the apps do not have to report every mutation; they only
  * say "something changed" to get a sync scheduled sooner.
+ *
+ * A collection may name `fields` merged one by one (ADR-057): each has its own timestamp, sent
+ * with the record, and a record changed on two devices keeps each side's newer fields.
  */
 
 /** What the engine remembers about one record. */
@@ -35,6 +39,9 @@ export interface MirrorItem {
   expired?: true;
   /** Server version of the record when last seen (0: never seen). */
   base: number;
+  /** Field-merged collections (ADR-057): hash and timestamp of each field's held version. */
+  fh?: Record<string, string>;
+  fc?: FieldClocks;
 }
 
 export interface CollectionState {
@@ -74,6 +81,11 @@ export interface CollectionAdapter<T = unknown> {
   readonly name: CollectionName;
   /** Opt-in collections (ADR-037): synced only while this returns true (default: always). */
   enabled?(): boolean;
+  /**
+   * Top-level fields merged one by one (ADR-057): a record edited on two devices keeps each
+   * side's newer fields (a title changed here, a folder changed there). Absent: whole-record LWW.
+   */
+  readonly fields?: readonly string[];
   /** Current local records in sync scope, by local id. Must be deterministic for unchanged data. */
   snapshot(): Map<string, T>;
   /** Whether a record missing from the snapshot still exists locally, out of scope (expired, not deleted). */
@@ -202,6 +214,8 @@ interface Plain {
   hlc: string;
   deleted?: true;
   data?: unknown;
+  /** Field clocks of a field-merged collection (ADR-057); older devices ignore it. */
+  f?: FieldClocks;
 }
 
 function parsePlain(text: string): Plain | null {
@@ -214,7 +228,18 @@ function parsePlain(text: string): Plain | null {
   if (typeof value !== "object" || value === null) return null;
   const p = value as Record<string, unknown>;
   if (p.v !== 1 || typeof p.id !== "string" || p.id.length > 4096 || !isHlc(p.hlc)) return null;
-  return p.deleted === true ? { v: 1, id: p.id, hlc: p.hlc, deleted: true } : { v: 1, id: p.id, hlc: p.hlc, data: p.data };
+  if (p.deleted === true) return { v: 1, id: p.id, hlc: p.hlc, deleted: true };
+  const f = typeof p.f === "object" && p.f !== null && !Array.isArray(p.f) ? (p.f as FieldClocks) : undefined;
+  return { v: 1, id: p.id, hlc: p.hlc, data: p.data, ...(f ? { f } : {}) };
+}
+
+/** The field hashes and clocks of a local version stamped `hlc` (ADR-057); nothing for whole-record collections. */
+function fieldState(adapter: CollectionAdapter, data: unknown, before: MirrorItem | undefined, hlc: string): Pick<MirrorItem, "fh" | "fc"> {
+  const { fields } = adapter;
+  if (!fields) return {};
+  const fh = fieldHashes(data, fields);
+  const previous = before && !before.deleted && !before.expired ? { hashes: before.fh, clocks: before.fc, fallback: before.hlc } : null;
+  return { fh, fc: touchedFieldClocks(fields, previous, fh, hlc) };
 }
 
 export class SyncEngine {
@@ -292,7 +317,8 @@ export class SyncEngine {
       const hash = hashValue(data);
       const item = items[id];
       if (item && !item.deleted && !item.expired && item.hash === hash) continue;
-      items[id] = { rid: item?.rid ?? recordId(this.keys, adapter.name, id), hlc: this.nextHlc(), hash, pending: true, base: item?.base ?? 0 };
+      const hlc = this.nextHlc();
+      items[id] = { rid: item?.rid ?? recordId(this.keys, adapter.name, id), hlc, hash, pending: true, base: item?.base ?? 0, ...fieldState(adapter, data, item, hlc) };
     }
     const now = this.now();
     for (const [id, item] of Object.entries(items)) {
@@ -319,6 +345,9 @@ export class SyncEngine {
     const upserts = new Map<string, RecordChange<unknown>>();
     const deletes = new Set<string>();
     let cursor = collection.cursor;
+    const { fields } = adapter;
+    let local: Map<string, unknown> | null = null;
+    const localOf = (id: string) => (local ??= adapter.snapshot()).get(id);
     for (;;) {
       const page = await this.client.pull(adapter.name, cursor);
       let failures = 0;
@@ -350,6 +379,35 @@ export class SyncEngine {
           item.base = record.version;
           continue;
         }
+        // Changed here and there (ADR-057): field by field, each side's newer fields survive.
+        if (fields && item?.pending && !item.deleted && !item.expired && !plain.deleted) {
+          const mine = localOf(plain.id);
+          const theirs = mine === undefined ? null : adapter.sanitize(plain.data, plain.id);
+          if (mine !== undefined && theirs !== null) {
+            const remoteClocks = parseFieldClocks(plain.f, fields, plain.hlc);
+            const merged = mergeFields(fields, mine, parseFieldClocks(item.fc, fields, item.hlc), item.hlc, theirs, remoteClocks, plain.hlc);
+            if (!merged.tookRemote) {
+              // Ours holds every newer field: it goes up, stamped after theirs.
+              Object.assign(item, { base: record.version, pending: true, fc: merged.clocks });
+              if (compareHlc(item.hlc, plain.hlc) < 0) item.hlc = this.nextHlc();
+              continue;
+            }
+            items[plain.id] = {
+              rid: record.id,
+              hlc: merged.keptLocal ? this.nextHlc() : plain.hlc,
+              hash: hashValue(merged.data),
+              base: record.version,
+              fh: fieldHashes(merged.data, fields),
+              fc: merged.clocks,
+              ...(merged.keptLocal ? { pending: true as const } : {}),
+            };
+            deletes.delete(plain.id);
+            upserts.set(plain.id, { id: plain.id, data: merged.data, modified: remote.wall });
+            byRid.set(record.id, plain.id);
+            report.pulled++;
+            continue;
+          }
+        }
         if (item && compareHlc(item.hlc, plain.hlc) > 0) {
           // Ours is newer (pending, or the server holds an older copy): ours goes up.
           item.base = record.version;
@@ -366,7 +424,13 @@ export class SyncEngine {
             report.rejected++;
             continue;
           }
-          items[plain.id] = { rid: record.id, hlc: plain.hlc, hash: hashValue(data), base: record.version };
+          items[plain.id] = {
+            rid: record.id,
+            hlc: plain.hlc,
+            hash: hashValue(data),
+            base: record.version,
+            ...(fields ? { fh: fieldHashes(data, fields), fc: parseFieldClocks(plain.f, fields, plain.hlc) } : {}),
+          };
           deletes.delete(plain.id);
           upserts.set(plain.id, { id: plain.id, data, modified: remote.wall });
         }
@@ -389,7 +453,10 @@ export class SyncEngine {
       const after = adapter.snapshot();
       for (const id of upserts.keys()) {
         const value = after.get(id);
-        if (value !== undefined && items[id]) items[id].hash = hashValue(value);
+        if (value !== undefined && items[id]) {
+          items[id].hash = hashValue(value);
+          if (fields) items[id].fh = fieldHashes(value, fields);
+        }
       }
     }
     collection.cursor = cursor;
@@ -417,8 +484,12 @@ export class SyncEngine {
           payload = this.seal(adapter.name, item.rid, { v: 1, id, hlc: item.hlc, deleted: true });
         } else {
           const hash = hashValue(data);
-          if (hash !== item.hash) Object.assign(item, { hash, hlc: this.nextHlc() });
-          payload = this.seal(adapter.name, item.rid, { v: 1, id, hlc: item.hlc, data });
+          if (hash !== item.hash) {
+            const hlc = this.nextHlc();
+            Object.assign(item, { hash, hlc, ...fieldState(adapter, data, item, hlc) });
+          }
+          if (adapter.fields && !item.fc) Object.assign(item, fieldState(adapter, data, undefined, item.hlc));
+          payload = this.seal(adapter.name, item.rid, { v: 1, id, hlc: item.hlc, data, ...(item.fc ? { f: item.fc } : {}) });
         }
       }
       const length = (payload?.length ?? 4) + 80;

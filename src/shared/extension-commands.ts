@@ -121,6 +121,8 @@ export interface ExtensionShortcut {
   /** Installed: the key fires the command. */
   active: boolean;
   issue: ShortcutIssue | null;
+  /** Set (or cleared) by the user on `browser://extensions`, rather than the manifest's suggestion (ADR-057). */
+  custom: boolean;
 }
 
 /** What `extensionShortcuts` needs of each enabled extension, in install order. */
@@ -128,7 +130,12 @@ export interface ShortcutSource {
   id: string;
   name: string;
   manifest: unknown;
+  /** The user's choices (ADR-057): command → accelerator, "" for none. Absent commands keep the suggestion. */
+  userShortcuts?: UserShortcuts;
 }
+
+/** What the user set in the shortcut editor: command → Electron accelerator, "" when cleared. */
+export type UserShortcuts = Readonly<Record<string, string>>;
 
 /** The browser shortcut `accelerator` belongs to (registry, aliases and fixed ones), or null. */
 export function browserShortcutLabel(accelerator: string, platform: string, overrides: ShortcutOverrides = {}): string | null {
@@ -141,42 +148,130 @@ export function browserShortcutLabel(accelerator: string, platform: string, over
   return fixedShortcuts(platform).find((shortcut) => resolveAccelerator(shortcut.accelerator, platform) === resolved)?.label ?? null;
 }
 
+/** Why an accelerator cannot be an extension shortcut on `platform` (Chrome's rules), or null. */
+export function extensionAcceleratorProblem(accelerator: string, platform: string): "invalid" | "reserved" | null {
+  const parsed = parseAccelerator(accelerator);
+  if (!parsed || !resolveAccelerator(accelerator, platform)) return "invalid";
+  const mods = new Set(parsed.modifiers.map((modifier) => (modifier === "CmdOrCtrl" ? (isMac(platform) ? "Cmd" : "Ctrl") : modifier)));
+  // As in Chrome: Ctrl or Alt (Command on macOS) is needed, never Ctrl and Alt together (AltGr).
+  if (mods.has("Super") || !(mods.has("Ctrl") || mods.has("Alt") || mods.has("Cmd")) || (mods.has("Ctrl") && mods.has("Alt"))) return "invalid";
+  return acceleratorProblem(accelerator, platform) === "reserved" ? "reserved" : null;
+}
+
+/** Validates the stored user choices of one extension (ADR-057): unknown shapes and bad accelerators are dropped. */
+export function sanitizeUserShortcuts(value: unknown): Record<string, string> | undefined {
+  const out: Record<string, string> = {};
+  for (const [command, accelerator] of Object.entries(record(value)).slice(0, MAX_COMMANDS)) {
+    if (!command || command.length > 64 || typeof accelerator !== "string") continue;
+    if (accelerator === "") out[command] = "";
+    else {
+      const normalized = normalizeAccelerator(accelerator);
+      if (normalized) out[command] = normalized;
+    }
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
+/** The user choices after setting `command` to `accelerator` (null: back to the manifest's suggestion, "": none). */
+export function withUserShortcut(current: UserShortcuts | undefined, command: string, accelerator: string | null): Record<string, string> | undefined {
+  const next: Record<string, string> = { ...current };
+  if (accelerator === null) delete next[command];
+  else next[command] = accelerator === "" ? "" : (normalizeAccelerator(accelerator) ?? "");
+  return sanitizeUserShortcuts(next);
+}
+
 /**
  * Every command of the enabled extensions with its shortcut on `platform`: browser shortcuts win,
- * then the extension installed first; an extension gets four suggested shortcuts at most.
+ * then the keys the user chose (ADR-057), then the suggested ones of the extension installed
+ * first; an extension gets four suggested shortcuts at most (the user's own choices do not count).
  */
 export function extensionShortcuts(extensions: readonly ShortcutSource[], platform: string, overrides: ShortcutOverrides = {}): ExtensionShortcut[] {
   const taken = new Map<string, string>();
+  const entries = extensions.map((extension) => ({ extension, commands: declaredCommands(extension.manifest, platform) }));
+  const check = (accelerator: string | null): { resolved: string | null; issue: ShortcutIssue | null } => {
+    const resolved = accelerator && resolveAccelerator(accelerator, platform);
+    if (!accelerator || !resolved) return { resolved: null, issue: { kind: "invalid" } };
+    const problem = extensionAcceleratorProblem(accelerator, platform);
+    if (problem) return { resolved, issue: { kind: problem } };
+    const label = browserShortcutLabel(accelerator, platform, overrides);
+    if (label) return { resolved, issue: { kind: "browser", label } };
+    const owner = taken.get(resolved);
+    return { resolved, issue: owner !== undefined ? { kind: "extension", name: owner } : null };
+  };
+  const keyOf = (id: string, command: string) => `${id}\n${command}`;
+  // The user's choices first: they claim their keys before any suggestion.
+  const chosen = new Map<string, Pick<ExtensionShortcut, "accelerator" | "active" | "issue">>();
+  for (const { extension, commands } of entries) {
+    for (const command of commands) {
+      const user = extension.userShortcuts?.[command.name];
+      if (user === undefined || user === "") continue;
+      const { resolved, issue } = check(user);
+      if (!issue && resolved) taken.set(resolved, extension.name);
+      chosen.set(keyOf(extension.id, command.name), { accelerator: user, active: !issue, issue });
+    }
+  }
   const result: ExtensionShortcut[] = [];
-  for (const extension of extensions) {
+  for (const { extension, commands } of entries) {
     let installed = 0;
-    for (const command of declaredCommands(extension.manifest, platform)) {
+    for (const command of commands) {
       const description = command.description || (isExecuteAction(command.name) ? t("extensionShortcuts.activate") : "");
       const base = { extensionId: extension.id, command: command.name, description };
-      if (!command.suggested) {
-        result.push({ ...base, accelerator: null, active: false, issue: null });
+      const own = chosen.get(keyOf(extension.id, command.name));
+      if (own) {
+        result.push({ ...base, ...own, custom: true });
+        continue;
+      }
+      const cleared = extension.userShortcuts?.[command.name] === "";
+      if (cleared || !command.suggested) {
+        result.push({ ...base, accelerator: null, active: false, issue: null, custom: cleared });
         continue;
       }
       const accelerator = chromeShortcutToAccelerator(command.suggested, platform);
-      const resolved = accelerator && resolveAccelerator(accelerator, platform);
-      let issue: ShortcutIssue | null = null;
-      if (!accelerator || !resolved || !parseAccelerator(accelerator)) issue = { kind: "invalid" };
-      else if (acceleratorProblem(accelerator, platform) === "reserved") issue = { kind: "reserved" };
-      else {
-        const label = browserShortcutLabel(accelerator, platform, overrides);
-        const owner = taken.get(resolved);
-        if (label) issue = { kind: "browser", label };
-        else if (owner !== undefined) issue = { kind: "extension", name: owner };
-        else if (installed >= MAX_SUGGESTED_SHORTCUTS) issue = { kind: "limit" };
-      }
-      if (!issue && resolved) {
-        taken.set(resolved, extension.name);
+      const checked = check(accelerator);
+      const issue: ShortcutIssue | null = checked.issue ?? (installed >= MAX_SUGGESTED_SHORTCUTS ? { kind: "limit" } : null);
+      if (!issue && checked.resolved) {
+        taken.set(checked.resolved, extension.name);
         installed++;
       }
-      result.push({ ...base, accelerator, active: !issue, issue });
+      result.push({ ...base, accelerator, active: !issue, issue, custom: false });
     }
   }
   return result;
+}
+
+/** What the shortcut editor says about a key the user pressed for an extension command (ADR-057). */
+export type ExtensionShortcutCheck = { ok: true; accelerator: string } | { ok: false; issue: ShortcutIssue };
+
+/**
+ * Checks `accelerator` for `command` of `extensionId` against the browser's shortcuts and every
+ * other extension command installed now (`current`, from `extensionShortcuts`): the editor refuses
+ * a key already taken, as Chrome's does. `names`: extension id → name.
+ */
+export function checkExtensionShortcut(
+  extensionId: string,
+  command: string,
+  accelerator: string,
+  platform: string,
+  overrides: ShortcutOverrides,
+  current: readonly ExtensionShortcut[],
+  names: ReadonlyMap<string, string>,
+): ExtensionShortcutCheck {
+  const normalized = normalizeAccelerator(accelerator);
+  if (!normalized) return { ok: false, issue: { kind: "invalid" } };
+  const problem = extensionAcceleratorProblem(normalized, platform);
+  if (problem) return { ok: false, issue: { kind: problem } };
+  const label = browserShortcutLabel(normalized, platform, overrides);
+  if (label) return { ok: false, issue: { kind: "browser", label } };
+  const resolved = resolveAccelerator(normalized, platform);
+  const owner = current.find(
+    (shortcut) =>
+      shortcut.active &&
+      !!shortcut.accelerator &&
+      !(shortcut.extensionId === extensionId && shortcut.command === command) &&
+      resolveAccelerator(shortcut.accelerator, platform) === resolved,
+  );
+  if (owner) return { ok: false, issue: { kind: "extension", name: names.get(owner.extensionId) ?? "" } };
+  return { ok: true, accelerator: normalized };
 }
 
 const MAC_SYMBOLS: Record<string, string> = { Ctrl: "⌃", Alt: "⌥", Shift: "⇧", Cmd: "⌘" };

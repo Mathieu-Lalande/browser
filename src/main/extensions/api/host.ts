@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { IpcMain, IpcMainEvent, IpcMainInvokeEvent, IpcMainServiceWorkerEvent, IpcMainServiceWorkerInvokeEvent, ServiceWorkerMain, Session, WebContents } from "electron";
 import { EXTENSION_CHANNELS } from "@shared/extension-bridge";
-import { chromeShortcutText, extensionShortcuts, type ExtensionShortcut } from "@shared/extension-commands";
+import { checkExtensionShortcut, chromeShortcutText, extensionShortcuts, type ExtensionShortcut, type ExtensionShortcutCheck } from "@shared/extension-commands";
 import type { ShortcutOverrides } from "@shared/commands";
 import {
   afterMenuClick,
@@ -45,7 +45,7 @@ export interface MenuStore {
 }
 
 export interface ExtensionApiDeps {
-  extensions: Pick<ExtensionService, "loaded" | "placesOf" | "running" | "onChanged" | "list" | "manifestOf">;
+  extensions: Pick<ExtensionService, "loaded" | "placesOf" | "running" | "onChanged" | "list" | "manifestOf" | "userShortcutsOf">;
   /** The extension-context preload (`out/preload/extension-api.cjs`). */
   preloadPath: string;
   notify(notification: ExtensionNotification): void;
@@ -92,7 +92,13 @@ const NEW_TAB_URL = "chrome://newtab/";
  */
 export class ExtensionApiHost implements SessionService {
   private browser: ExtensionBrowser | null = null;
+  /** The view of one private window's session (ADR-057), or of the normal windows (null). */
+  private browsers: ((scope: Session | null) => ExtensionBrowser) | null = null;
   private readonly sessions = new Set<Session>();
+  /** Private windows' throwaway sessions (ADR-057): their contexts only see their own window, nothing is saved. */
+  private readonly privateSessions = new Set<Session>();
+  /** Menus created from a private window's session: in memory, for that window only (ADR-057). */
+  private readonly privateMenus = new Map<Session, Map<string, MenuItem[]>>();
   private readonly workers = new WeakSet<ServiceWorkerMain>();
   /** Events service workers listen to, per session and Electron id (kept while they sleep: they are woken for them). */
   private readonly workerEvents = new Map<Session, Map<string, Set<string>>>();
@@ -124,16 +130,22 @@ export class ExtensionApiHost implements SessionService {
   }
 
   /** Plugs in the windows (at startup, once they can be created) and listens to extension frames. */
-  connect(browser: ExtensionBrowser, ipc: Pick<IpcMain, "handle" | "on">): void {
-    this.browser = browser;
+  connect(browsers: (scope: Session | null) => ExtensionBrowser, ipc: Pick<IpcMain, "handle" | "on">): void {
+    this.browsers = browsers;
+    const browser = (this.browser = browsers(null));
     browser.onChange(() => this.scheduleDiff());
     ipc.handle(EXTENSION_CHANNELS.call, (event, ...args) => this.callFromFrame(event, args));
     ipc.on(EXTENSION_CHANNELS.listen, (event, name) => this.listenFromFrame(event, name));
   }
 
   install(ses: Session, options: SessionOptions = {}): void {
-    // No extension runs in a private window (ADR-049): nothing to bridge there.
-    if (options.ephemeral || this.sessions.has(ses)) return;
+    if (this.sessions.has(ses)) return;
+    // A private window's in-memory session runs no extension (ADR-049): nothing to bridge there. Its
+    // throwaway profile (an extension is allowed in private browsing, ADR-057) gets the bridge.
+    if (options.ephemeral) {
+      if (!ses.storagePath) return;
+      this.privateSessions.add(ses);
+    }
     this.sessions.add(ses);
     // Before any extension loads. The preload returns at once outside `chrome-extension:` (web pages, their workers).
     ses.registerPreloadScript({ id: "browser-extension-api-frame", type: "frame", filePath: this.deps.preloadPath });
@@ -148,6 +160,20 @@ export class ExtensionApiHost implements SessionService {
   release(ses: Session): void {
     this.sessions.delete(ses);
     this.workerEvents.delete(ses);
+    this.privateSessions.delete(ses);
+    this.privateMenus.delete(ses);
+    for (const [contents, entry] of this.frames) if (entry.session === ses) this.frames.delete(contents);
+  }
+
+  /** Whether `ses` is a private window's (its contexts are told `incognito`, ADR-057). */
+  isPrivate(ses: Session): boolean {
+    return this.privateSessions.has(ses);
+  }
+
+  /** The windows a context of `ses` sees: its private window, or every normal one. */
+  private browserFor(ses: Session | undefined): ExtensionBrowser | null {
+    if (!ses || !this.privateSessions.has(ses)) return this.browser;
+    return this.browsers?.(ses) ?? null;
   }
 
   dispose(): void {
@@ -232,10 +258,13 @@ export class ExtensionApiHost implements SessionService {
   /**
    * Sends an event to the contexts listening to it: the extension's frames, and its service workers
    * (started if asleep, as Chrome wakes them). `argsFor` gives each extension its arguments (null: none).
-   * `only`: that extension alone.
+   * `only`: that extension alone. `scope`: a private window's session — its contexts alone hear it;
+   * otherwise only the normal sessions do (a private window's instance never hears normal events, ADR-057).
    */
-  dispatch(event: string, argsFor: (extension: LoadedExtension) => unknown[] | null, only?: string): void {
+  dispatch(event: string, argsFor: (extension: LoadedExtension) => unknown[] | null, only?: string, scope?: Session): void {
+    const inScope = (session: Session) => (scope && this.privateSessions.has(scope) ? session === scope : !this.privateSessions.has(session));
     for (const [session, byId] of this.workerEvents) {
+      if (!inScope(session)) continue;
       for (const [electronId, events] of byId) {
         if (!events.has(event)) continue;
         const extension = this.deps.extensions.loaded(session, electronId);
@@ -249,7 +278,7 @@ export class ExtensionApiHost implements SessionService {
       }
     }
     for (const [contents, entry] of this.frames) {
-      if (!entry.events.has(event) || contents.isDestroyed()) continue;
+      if (!entry.events.has(event) || contents.isDestroyed() || !inScope(entry.session)) continue;
       const extension = this.deps.extensions.loaded(entry.session, entry.electronId);
       if (!extension || (only && extension.id !== only)) continue;
       const args = argsFor(extension);
@@ -268,7 +297,7 @@ export class ExtensionApiHost implements SessionService {
   // -------------------------------------------------------------------------------------------
 
   private context(caller: Caller): ApiContext {
-    const browser = this.browser as ExtensionBrowser;
+    const browser = this.browserFor(caller.session) as ExtensionBrowser;
     return { host: this, browser, caller, currentWindow: (caller.contents && browser.windowOf(caller.contents)) ?? browser.lastFocusedWindow() };
   }
 
@@ -296,7 +325,7 @@ export class ExtensionApiHost implements SessionService {
       highlighted: tab.active,
       selected: tab.active,
       pinned: tab.pinned,
-      incognito: false,
+      incognito: this.privateSessions.has(tab.session),
       discarded: tab.discarded,
       autoDiscardable: true,
       groupId: -1,
@@ -396,11 +425,11 @@ export class ExtensionApiHost implements SessionService {
    * A click on an extension's button without a popup (ADR-053): `activeTab` for the window's active
    * tab, then `action.onClicked` (also `browserAction.onClicked`, the same event in MV2).
    */
-  clickAction(extensionId: string, windowId: number): void {
-    const tab = this.browser?.tabs().find((item) => item.windowId === windowId && item.active);
+  clickAction(extensionId: string, windowId: number, session?: Session): void {
+    const tab = this.browserFor(session)?.tabs().find((item) => item.windowId === windowId && item.active);
     if (!tab) return;
     this.grant(extensionId, tab.key);
-    this.dispatch("action.onClicked", (extension) => [this.tabFor(extension, tab)], extensionId);
+    this.dispatch("action.onClicked", (extension) => [this.tabFor(extension, tab)], extensionId, session);
   }
 
   /** The popup a click opens for a tab: a path set by `action.setPopup` ("" = none), or undefined (the manifest's). */
@@ -417,7 +446,8 @@ export class ExtensionApiHost implements SessionService {
 
   /** The page menu's extension entries for a right click in `session` (extensions loaded there). */
   menuEntries(session: Session, target: MenuTarget): ExtensionMenuEntry[] {
-    const groups = [...this.menus]
+    const menus = this.privateSessions.has(session) ? (this.privateMenus.get(session) ?? new Map<string, MenuItem[]>()) : this.menus;
+    const groups = [...menus]
       .filter(([id, items]) => items.length && this.deps.extensions.placesOf(id).some((place) => place.session === session))
       .flatMap(([id, items]) => {
         const extension = this.deps.extensions.running(id);
@@ -427,22 +457,35 @@ export class ExtensionApiHost implements SessionService {
   }
 
   /** An extension's menu item was clicked on a tab's page: checked states, `activeTab`, then `contextMenus.onClicked`. */
-  menuClicked(extensionId: string, itemId: string, target: MenuTarget, key: TabId): void {
-    const items = this.menus.get(extensionId);
-    const item = items?.find((entry) => entry.id === itemId);
-    if (!items || !item) return;
-    this.setMenus(extensionId, afterMenuClick(items, itemId));
+  menuClicked(extensionId: string, itemId: string, target: MenuTarget, key: TabId, session?: Session): void {
+    const items = session ? this.menusOf(session, extensionId) : (this.menus.get(extensionId) ?? []);
+    const item = items.find((entry) => entry.id === itemId);
+    if (!item) return;
+    this.setMenus(extensionId, afterMenuClick(items, itemId), undefined, session);
     this.grant(extensionId, key);
-    const tab = this.browser?.tabs().find((entry) => entry.key === key);
+    const tab = this.browserFor(session)?.tabs().find((entry) => entry.key === key);
     const info = menuClickInfo(item, target, item.checked);
-    this.dispatch("contextMenus.onClicked", (extension) => [info, tab ? this.tabFor(extension, tab) : undefined], extensionId);
+    this.dispatch("contextMenus.onClicked", (extension) => [info, tab ? this.tabFor(extension, tab) : undefined], extensionId, session);
+  }
+
+  /** An extension's menu items as a context of `session` sees them (a private window's own, ADR-057). */
+  menusOf(session: Session, extensionId: string): MenuItem[] {
+    return (this.privateSessions.has(session) ? this.privateMenus.get(session)?.get(extensionId) : this.menus.get(extensionId)) ?? [];
   }
 
   /**
    * Replaces an extension's menu items and keeps them for the next run (Chrome keeps MV3 menus
    * across restarts, ADR-054). `created`: an item the extension made again (no longer "restored").
    */
-  setMenus(extensionId: string, items: MenuItem[], created?: string): void {
+  setMenus(extensionId: string, items: MenuItem[], created?: string, session?: Session): void {
+    if (session && this.privateSessions.has(session)) {
+      // A private window's menus: in memory for that window, never written (ADR-057).
+      let menus = this.privateMenus.get(session);
+      if (!menus) this.privateMenus.set(session, (menus = new Map()));
+      if (items.length) menus.set(extensionId, items);
+      else menus.delete(extensionId);
+      return;
+    }
     if (items.length) this.menus.set(extensionId, items);
     else this.menus.delete(extensionId);
     const restored = this.restored.get(extensionId);
@@ -456,7 +499,8 @@ export class ExtensionApiHost implements SessionService {
   }
 
   /** Ids of the items restored from the previous run that the extension has not created again. */
-  restoredMenuIds(extensionId: string): ReadonlySet<string> {
+  restoredMenuIds(extensionId: string, session?: Session): ReadonlySet<string> {
+    if (session && this.privateSessions.has(session)) return new Set();
     return this.restored.get(extensionId) ?? new Set();
   }
 
@@ -479,13 +523,25 @@ export class ExtensionApiHost implements SessionService {
     const sources = this.deps.extensions
       .list()
       .filter((extension) => extension.enabled || extension.id === include)
-      .map((extension) => ({ id: extension.id, name: extension.name, enabled: extension.enabled, manifest: this.deps.extensions.manifestOf(extension.id) }));
+      .map((extension) => ({
+        id: extension.id,
+        name: extension.name,
+        enabled: extension.enabled,
+        manifest: this.deps.extensions.manifestOf(extension.id),
+        userShortcuts: this.deps.extensions.userShortcutsOf(extension.id),
+      }));
     const enabled = sources.filter((source) => source.enabled);
     const shortcuts = extensionShortcuts(enabled, platform, overrides);
     const extra = sources.find((source) => !source.enabled);
     if (!extra) return shortcuts;
     const own = extensionShortcuts([...enabled, extra], platform, overrides).filter((shortcut) => shortcut.extensionId === extra.id);
     return [...shortcuts, ...own.map((shortcut) => ({ ...shortcut, active: false }))];
+  }
+
+  /** Whether the shortcut editor may give `accelerator` to an extension command (ADR-057). */
+  checkShortcut(extensionId: string, command: string, accelerator: string): ExtensionShortcutCheck {
+    const names = new Map(this.deps.extensions.list().map((extension) => [extension.id, extension.name] as const));
+    return checkExtensionShortcut(extensionId, command, accelerator, this.deps.platform ?? process.platform, this.deps.shortcutOverrides?.() ?? {}, this.commandShortcuts(), names);
   }
 
   /** `commands.getAll()`'s shortcuts of one extension: command → Chrome's spelling, installed ones only. */
@@ -502,14 +558,14 @@ export class ExtensionApiHost implements SessionService {
    * A command's shortcut was pressed in window `windowId` (other than Chrome's `_execute_*`): the
    * window's active tab gets an `activeTab` grant, as in Chrome, then `commands.onCommand(name, tab)`.
    */
-  runCommand(extensionId: string, command: string, windowId: number | null): void {
-    const tab = this.browser?.tabs().find((item) => item.windowId === windowId && item.active);
+  runCommand(extensionId: string, command: string, windowId: number | null, session?: Session): void {
+    const tab = this.browserFor(session)?.tabs().find((item) => item.windowId === windowId && item.active);
     if (tab) this.grant(extensionId, tab.key);
-    this.dispatch("commands.onCommand", (extension) => (tab ? [command, this.tabFor(extension, tab)] : [command]), extensionId);
+    this.dispatch("commands.onCommand", (extension) => (tab ? [command, this.tabFor(extension, tab)] : [command]), extensionId, session);
   }
 
   /** A notification of an extension, shown by the notification center; its clicks and closes come back as events. */
-  showNotification(extension: LoadedExtension, id: string, content: Omit<ExtensionNotification, "key" | "source" | "onClick" | "onClose">): void {
+  showNotification(extension: LoadedExtension, id: string, content: Omit<ExtensionNotification, "key" | "source" | "onClick" | "onClose">, session?: Session): void {
     let shown = this.notifications.get(extension.id);
     if (!shown) this.notifications.set(extension.id, (shown = new Set()));
     shown.add(id);
@@ -517,10 +573,10 @@ export class ExtensionApiHost implements SessionService {
       ...content,
       key: `${extension.id}\n${id}`,
       source: extension.name,
-      onClick: () => this.dispatch("notifications.onClicked", () => [id], extension.id),
+      onClick: () => this.dispatch("notifications.onClicked", () => [id], extension.id, session),
       onClose: () => {
         this.notifications.get(extension.id)?.delete(id);
-        this.dispatch("notifications.onClosed", () => [id, true], extension.id);
+        this.dispatch("notifications.onClosed", () => [id, true], extension.id, session);
       },
     });
   }
@@ -554,6 +610,7 @@ export class ExtensionApiHost implements SessionService {
       this.menus.delete(id);
       this.restored.delete(id);
     }
+    for (const menus of this.privateMenus.values()) for (const id of [...menus.keys()]) if (!enabled.has(id)) menus.delete(id);
     if (gone.length) this.saveMenus();
   }
 }

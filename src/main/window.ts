@@ -4,7 +4,7 @@ import { internalPageOf, internalUrl, type InternalPage } from "@shared/internal
 import { Channels } from "@shared/ipc";
 import { PRIVATE_SPACE, privateSettings } from "@shared/private";
 import { pageRadius, searchEngineOf, type Settings } from "@shared/settings";
-import type { Bounds, BrowserState, UiCommand } from "@shared/types";
+import type { Bounds, BrowserState, TabId, UiCommand } from "@shared/types";
 import { matchesFavorite } from "@shared/favorites";
 import { isLocalFileUrl } from "@shared/url";
 import { uiUrl } from "./app-protocol";
@@ -186,7 +186,8 @@ export class BrowserController {
   /** `restore`: a window from the previous session, whose tabs come back discarded (lazy). */
   constructor(restore?: SessionWindow, options: WindowOptions = {}) {
     this.isPrivate = options.private === true;
-    this.privateSession = this.isPrivate ? createPrivateSession() : null;
+    // ADR-057: a throwaway profile when an extension is allowed in private browsing (Chromium loads none in memory).
+    this.privateSession = this.isPrivate ? createPrivateSession(appServices().extensions.allowedInPrivate()) : null;
     this.frame = new WindowChrome({ isPrivate: this.isPrivate, background: this.background(), uiSession: uiSession() });
     this.window = this.frame.window;
     const chrome = this.window.webContents;
@@ -351,12 +352,25 @@ export class BrowserController {
     this.tabs.create(url, { activate: true, extensionPage: true });
   }
 
-  /** An extension was installed from this window: the chrome UI anchors the confirmation (ADR-049). */
+  /** A tab of this window was activated: smart preloading follows (ADR-057). */
+  tabActivated(tabId: TabId): void {
+    // Called while the window is being built (its first tab activates before `spaces` is set).
+    const manager = this.spaces?.tabManagers().find((candidate) => candidate.indexOf(tabId) >= 0);
+    if (manager) appServices().prewarm.activated(manager, tabId);
+  }
+
+  /** A sleeping tab was hovered in the sidebar (ADR-057): it may wake in the background. */
+  prewarmTab(tabId: TabId): void {
+    const manager = this.spaces.tabManagers().find((candidate) => candidate.indexOf(tabId) >= 0);
+    if (manager) appServices().prewarm.hovered(manager, tabId);
+  }
+
   /** An extension's `_execute_action` shortcut (ADR-054): the chrome UI presses its button (popup below it). */
   activateExtension(id: string): void {
     this.bridge.toChrome(Channels.extensionsActivate, id);
   }
 
+  /** An extension was installed from this window: the chrome UI anchors the confirmation (ADR-049). */
   extensionInstalled(id: string): void {
     this.bridge.toChrome(Channels.extensionsInstalled, id);
   }

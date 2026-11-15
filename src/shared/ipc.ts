@@ -9,7 +9,8 @@ import type { WidevineStatus } from "./drm";
 import type { HistoryClearRange, HistoryCursor, HistoryPage } from "./history";
 import type { ImportItem, ImportProgress, ImportSource, ImportSummary, PasswordImportSummary } from "./import/types";
 import type { ActionState } from "./extension-api";
-import type { DroppedExtension, ExtensionDetailsInfo, ExtensionInfo, ExtensionInstallResult, ExtensionReview, ExtensionUpdateResult } from "./extensions";
+import type { DroppedExtension, ExtensionCommandRow, ExtensionDetailsInfo, ExtensionInfo, ExtensionInstallResult, ExtensionReview, ExtensionUpdateResult } from "./extensions";
+import type { ShortcutIssue } from "./extension-commands";
 import type { StoreInstall } from "./webstore-page";
 import type { FolderId, FolderInput } from "./folders";
 import type {
@@ -88,6 +89,7 @@ export const Channels = {
   tabCreate: "tab:create",
   tabClose: "tab:close",
   tabActivate: "tab:activate",
+  tabPrewarm: "tab:prewarm",
   tabNavigate: "tab:navigate",
   tabBack: "tab:back",
   tabForward: "tab:forward",
@@ -259,6 +261,8 @@ export const Channels = {
   extensionsActionStates: "extensions:action-states",
   extensionsGetActionStates: "extensions:get-action-states",
   extensionsActivate: "extensions:activate",
+  extensionsShortcuts: "extensions:shortcuts",
+  extensionsSetShortcut: "extensions:set-shortcut",
   passwordsStatus: "passwords:status",
   passwordsList: "passwords:list",
   passwordsNeverList: "passwords:never-list",
@@ -395,6 +399,8 @@ export interface BrowserApi {
     create(input?: string): void;
     close(id: TabId): void;
     activate(id: TabId): void;
+    /** ADR-057: a sleeping tab was hovered long enough; main may wake it in the background. */
+    prewarm(id: TabId): void;
     navigate(id: TabId, input: string): void;
     back(id: TabId): void;
     forward(id: TabId): void;
@@ -495,6 +501,13 @@ export interface BrowserApi {
     onActionStates(listener: (states: Record<string, ActionState>) => void): () => void;
     /** ADR-054: an extension's `_execute_action` shortcut was pressed; the UI opens it as if its button was clicked. */
     onActivate(listener: (id: string) => void): () => void;
+    /** ADR-057: every command of the enabled extensions with its key, for the shortcut editor. */
+    shortcuts(): Promise<ExtensionCommandRow[]>;
+    /**
+     * ADR-057: gives a command `accelerator` ("" none, null the manifest's suggestion); refused
+     * (with why) when the browser or another extension has that key. Not from a private window.
+     */
+    setShortcut(id: string, command: string, accelerator: string | null): Promise<{ ok: true; accelerator: string | null } | { ok: false; issue: ShortcutIssue }>;
   };
   /**
    * Password manager (ADR-025). Lists carry no password: one reaches the UI only through `reveal`,

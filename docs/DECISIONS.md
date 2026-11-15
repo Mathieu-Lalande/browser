@@ -1103,7 +1103,8 @@ pas de sessions en mémoire, une partie des API `chrome.*` (scripts de contenu, 
   « incognito ») mais ne les y exécute jamais ; le test e2e le vérifie sur une URL web.
 - Fenêtres privées : seulement les extensions marquées « Autoriser en navigation privée » (désactivé
   par défaut). Electron refusant de charger une extension dans une session en mémoire, l'option est
-  enregistrée mais sans effet pour l'instant (dit sur la page) : aucune extension ne s'exécute en privé.
+  enregistrée mais sans effet pour l'instant (dit sur la page) : aucune extension ne s'exécute en privé (levé par
+  ADR-057 : une fenêtre privée avec une extension autorisée reçoit un profil jetable).
 
 **Mobile.** Les WebView iOS/Android n'ont pas d'extensions : rien côté `mobile/`.
 
@@ -2488,7 +2489,8 @@ boutons de barre d'outils (bloqueurs, gestionnaires de mots de passe…).
 - **Navigation privée** : réexaminé avec Electron 44, `loadExtension` refuse toujours les sessions en mémoire
   (« Loading extensions into in-memory sessions is not supported »), et une fenêtre privée doit rester en mémoire
   (ADR-014). L'option « Autoriser en navigation privée » est gardée (prête si Electron l'autorise) et la page
-  explique pourquoi elle est sans effet ; la confirmation d'installation le dit aussi.
+  explique pourquoi elle est sans effet ; la confirmation d'installation le dit aussi (levé par ADR-057 : profil
+  jetable, en mémoire vive quand c'est possible).
 
 **Révision — store « natif », archives réelles, gestion (novembre 2026).**
 - **Limites d'archive** (`unpack.ts`, `ZIP_LIMITS`) : 5 000 fichiers refusaient de vraies extensions (Wappalyzer
@@ -2816,10 +2818,12 @@ les entrées `contextMenus` vivaient en mémoire (perdues au redémarrage pour u
   refusées) ; `extensionShortcuts` décide, extension par extension dans l'ordre d'installation : **les raccourcis du
   navigateur gagnent** (registre avec les choix de l'utilisateur, alias, raccourcis fixes : `browserShortcutLabel`),
   puis l'extension installée la première ; réservés au système ou invalides : inactifs ; quatre au plus par extension
-  (comme Chrome). Rien n'est modifiable par l'utilisateur pour l'instant (pas de page `chrome://extensions/shortcuts`).
+  (comme Chrome). Rien n'est modifiable par l'utilisateur pour l'instant (pas de page `chrome://extensions/shortcuts` ;
+  levé par ADR-057 : éditeur de `browser://extensions`).
 - Installés dans le menu de l'application (sous-menu « Extensions », reconstruit quand une extension ou
   `settings.shortcuts` change) : ils ne marchent que si une fenêtre du navigateur a le focus — **jamais globaux**
-  (`"global": true` est ignoré). Une fenêtre privée les ignore (aucune extension n'y tourne).
+  (`"global": true` est ignoré). Une fenêtre privée les ignore (aucune extension n'y tourne ; ADR-057 : sauf celles
+  qui y sont chargées).
 - `_execute_action` (et `_execute_browser_action`/`_execute_page_action` en MV2) = un clic sur le bouton : main
   demande à l'interface (`extensions:activate`) d'ouvrir la fenêtre de l'extension sous son bouton (sinon sous la
   pièce de puzzle), ou `action.onClicked`. Les autres : accord `activeTab` sur l'onglet actif, comme Chrome, puis
@@ -3021,3 +3025,98 @@ inchangés avec le nouveau relais en mémoire. `pip-frames.test.ts` : choix du c
 `sync.spec.ts` retire le second bureau depuis l'interface ; `panels-reading.spec.ts` charge une page qui lit une
 petite vidéo et intègre un lecteur plus grand d'une autre origine (`localhost` contre `127.0.0.1`) : la commande
 et l'automatique détachent la vidéo de l'iframe, puis la remettent.
+
+## ADR-057 — Extensions en fenêtre privée, éditeur de raccourcis des extensions, préchargement des onglets en veille, icônes et fusion champ par champ dans la synchronisation
+
+**Contexte.** Quatre restes du bureau : « Autoriser en navigation privée » était enregistré sans effet (ADR-024,
+ADR-049 : Electron refuse `loadExtension` dans une session en mémoire, revérifié avec Electron 44.9 : « Extensions
+cannot be loaded in a temporary session ») ; les raccourcis des extensions n'étaient pas modifiables (ADR-054) ; un
+onglet en veille se rechargeait seulement une fois affiché (ADR-014) ; la synchronisation remplaçait un favori entier
+par la version la plus récente (un titre changé ici écrasait un dossier changé là) et ne transportait aucune icône.
+
+**Décision 1 — extensions en fenêtre privée (désactivé par défaut, comme Chrome).**
+- `session.fromPath` charge les extensions. Une fenêtre privée ouverte alors qu'**au moins une extension activée est
+  autorisée** (`privateWindowNeedsProfile`, pur `src/shared/private-extensions.ts`) reçoit un **profil jetable** au lieu
+  de sa partition en mémoire : un dossier neuf `private-<uuid>` (droits 0700) sous `browser-private-<clé du profil>`
+  (FNV-1a du dossier du profil : deux profils ADR-042 ne se touchent jamais), **en mémoire vive** quand c'est possible
+  (`/dev/shm` sur Linux s'il est accessible en écriture), sinon dans le dossier temporaire du système
+  (`createPrivateSession(withExtensions)`, `src/main/private.ts`). Sans extension autorisée, rien ne change : partition
+  en mémoire (ADR-014). L'option vaut pour les **nouvelles** fenêtres privées (dit sous l'interrupteur).
+- La session reste marquée privée (`isPrivateSession`, `ephemeral` pour chaque `SessionService`) : téléchargements jamais
+  listés, zoom et décisions jamais écrits, rien de synchronisé. À la fermeture, `wipePrivateSession` vide stockage,
+  cache, authentifications, `release` décharge les extensions de la session, puis le dossier est supprimé ; ce que
+  Chromium garderait ouvert (Windows) est balayé au démarrage suivant (`sweepPrivateProfiles`, seulement les noms
+  `private-<uuid>`), comme ce qu'un plantage laisserait.
+- `ExtensionService` ne charge que les extensions `allowPrivate` dans une session privée et n'essaie plus rien dans
+  une session en mémoire (`storagePath` nul). `ExtensionApiHost` installe le préchargement d'ADR-053 dans le profil
+  jetable et y garde les sessions privées à part : l'instance de l'extension n'y voit **que sa fenêtre privée**
+  (`extensionBrowser(scope)` : onglets et fenêtres de cette session, `incognito: true`, `windows.create` refusé),
+  l'instance normale ne voit jamais la fenêtre privée ; les événements portent une portée (`dispatch(…, scope)`) : un
+  clic de bouton, une entrée de menu, une commande, une notification de la fenêtre privée ne vont qu'à son instance.
+  **Menus `contextMenus` créés en privé : en mémoire pour cette fenêtre seulement**, jamais dans
+  `extension-menus.json` ; effacés à la fermeture. Le stockage de l'extension (`chrome.storage`, IndexedDB) vit dans le
+  profil jetable et disparaît avec lui.
+- Interface : bouton et menu des extensions autorisées dans la fenêtre privée (`runsInWindow`), badges poussés à toutes
+  les fenêtres, raccourcis actifs si l'extension est chargée dans la session de la fenêtre.
+- **Compromis assumé** : hors Linux (ou sans `/dev/shm`), les données d'une fenêtre privée avec extensions passent
+  par le disque, dans un dossier temporaire supprimé à la fermeture — un effacement de fichiers, pas un effacement
+  sûr. C'est la seule façon de faire tourner une extension en privé avec Electron ; c'est pourquoi l'option reste
+  désactivée par défaut et le dit. Les événements d'onglets (`tabs.onCreated`, `onUpdated`…) ne sont pas émis à
+  l'instance privée (les instantanés ne couvrent que les fenêtres normales).
+
+**Décision 2 — éditeur des raccourcis des extensions** (`browser://extensions`, bouton « Raccourcis clavier », ou
+`#shortcuts`, comme `chrome://extensions/shortcuts`).
+- `ExtensionRecord.shortcuts` (`extensions.json`) : commande → accélérateur Electron, `""` = aucun ; validé
+  (`sanitizeUserShortcuts`), modifié par `withUserShortcut` (null = la suggestion du manifeste revient).
+- `extensionShortcuts` (pur, ADR-054) : les raccourcis du navigateur gagnent toujours, puis **les touches choisies par
+  l'utilisateur** (dans l'ordre d'installation), puis les suggestions ; la limite de quatre ne compte que les
+  suggestions. `checkExtensionShortcut` refuse avant l'enregistrement une touche du navigateur (avec ses choix ADR-028),
+  d'une autre commande d'extension active, réservée au système, ou hors des règles de Chrome
+  (`extensionAcceleratorProblem` : Ctrl ou Alt, Commande sur macOS, jamais Ctrl+Alt ni la touche Windows).
+- UI `components/extensions/ExtensionShortcuts.svelte` : la même capture que les raccourcis des paramètres
+  (`settings.captureShortcut`, main avale la touche), Échap annule, Retour arrière retire, « Rétablir » rend la
+  suggestion ; canaux `extensions:shortcuts`, `extensions:set-shortcut` (refusé en fenêtre privée). Le menu de
+  l'application (sous-menu « Extensions ») est reconstruit au changement ; `commands.getAll` rend la nouvelle touche.
+
+**Décision 3 — préchargement des onglets en veille** (`settings.behavior.prewarmSleepingTabs`, activé par défaut,
+Paramètres, Comportement, sous la mise en veille).
+- Politique pure `src/shared/tab-prewarm.ts` : `predictNextTabs` (l'onglet utilisé juste avant, que l'on alterne
+  avec l'actuel, puis les voisins dans la barre latérale, puis épinglés et souvent activés), `nextInCycle`
+  (prochain arrêt de Ctrl+Tab / Ctrl+Maj+Tab), `prewarmBlocker` (réglage, veille active, économiseur d'énergie,
+  mémoire basse : moins de 10 % ou de 512 Mo libres, un seul préchargement à la fois), `prewarmExpired`.
+- `PrewarmService` (`src/main/tab-prewarm.ts`, dans `AppServices`) : déclenché par le survol d'un onglet en veille
+  pendant 350 ms (action `use:tabPrewarm` de `TabItem`, canal `tab:prewarm`), par Ctrl+Tab (le menu réveille l'arrêt
+  suivant) et 1,5 s après qu'on s'est posé sur un onglet (crochet `tabActivated`, l'onglet prédit). Le réveil passe
+  par `TabLifecycle.wake` sans afficher la vue (`TabManager.prewarm`) ; « en vol » jusqu'à `did-stop-loading` (15 s au
+  plus). Un onglet réveillé et pas affiché dans les deux minutes se rendort par `sleepTabs` (son, invite, saisie en
+  cours le gardent éveillé). Réseau limité : Electron ne le signale pas ; seule la mémoire et l'énergie bornent.
+  Crochet de test : `__browserPrewarm` (main, non empaqueté).
+
+**Décision 4 — synchronisation.**
+- **Fusion champ par champ** (`src/shared/sync/fields.ts`, moteur `engine.ts`) : un adaptateur peut nommer des
+  `fields` ; le miroir garde un hachage et une HLC par champ (`fh`, `fc`), un changement local n'estampille que les
+  champs modifiés, l'enregistrement chiffré porte ces horloges (`f`, ignoré par un appareil plus ancien : il lit les
+  champs à l'horloge de l'enregistrement). Quand un enregistrement a changé des deux côtés (local en attente), chaque
+  champ prend le côté le plus récent (`mergeFields`), les autres champs suivent l'enregistrement le plus récent ; le
+  résultat est appliqué ici et renvoyé s'il garde un champ local. Favoris (`BOOKMARK_FIELDS` : titre, dossier, nom de
+  dossier) et grille des favoris (`FAVORITE_FIELDS` : titre, position), sur le bureau et le téléphone. L'adresse reste
+  l'identité d'un favori (une autre adresse = un autre favori).
+- **Icônes des sites** : collection `favicons` (`src/shared/sync/favicons.ts`), un enregistrement par origine des
+  favoris et de la grille : PNG `data:` de 4 Ko au plus (signature vérifiée), 500 origines au plus. Chaque appareil
+  garde sa réserve (`site-icons.json` sur le bureau, `browser.site-icons` sur le téléphone), source de la collection :
+  ses propres icônes y entrent pour une origine inconnue (redimensionnées en PNG 32 puis 16 px par `nativeImage` sur le
+  bureau), sans jamais remplacer celle qu'il a (pas d'allers-retours entre deux appareils aux icônes différentes) ;
+  celles des autres la remplacent et remplissent les favoris sans icône (ou dont l'icône remplacée venait de la
+  réserve). Rien d'une fenêtre privée : seuls les favoris du profil alimentent la réserve. Téléphone : `SiteIcon`
+  affiche l'icône reçue avant `/favicon.ico` (aucune requête pour un site connu) ; la collection attend la lecture
+  de la réserve (`enabled: ready`) pour ne jamais prendre une réserve vide pour des suppressions. Le relais ne voit
+  qu'une collection chiffrée de plus (14 sur 16 permises).
+
+**Tests.** Unitaires : `private-extensions.test.ts`, `extension-shortcut-editor.test.ts` (priorités, refus, limite,
+validation), `tab-prewarm.test.ts`, `src/main/tab-prewarm.test.ts` (un à la fois, Ctrl+Tab, prédiction, économiseur,
+mémoire, retour en veille), `sync/fields.test.ts` (horloges, fusion, deux appareils : renommé ici + rangé là, même champ :
+le plus récent gagne, stabilité), `sync/favicons.test.ts` ; Jest mobile inchangé. E2E : `extension-api.spec.ts`
+(éditeur : touche du navigateur refusée, nouvelle touche installée puis `onCommand`, conflit entre commandes, retrait,
+rétablissement ; fenêtre privée : en mémoire sans autorisation, profil jetable avec l'extension et son bouton une fois
+autorisée, dossier supprimé à la fermeture), `sleep.spec.ts` (survol → réveil en arrière-plan, puis l'onglet prédit,
+rien une fois désactivé).

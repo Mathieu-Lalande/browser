@@ -13,6 +13,7 @@
   import Page from "../ui/Page.svelte";
   import SearchField from "../ui/SearchField.svelte";
   import ExtensionRow from "./ExtensionRow.svelte";
+  import ExtensionShortcuts from "./ExtensionShortcuts.svelte";
 
   /**
    * `browser://extensions` (ADR-024, ADR-049): installed extensions to search, switch on/off, pin
@@ -30,6 +31,8 @@
   let lastCheck = $state<number | null>(null);
   let notice = $state<{ kind: "error" | "success"; text: string } | null>(null);
   let request = 0;
+  /** "Raccourcis clavier" (ADR-057): the shortcut editor in place of the list; `#shortcuts` opens it. */
+  let editingShortcuts = $state(typeof location !== "undefined" && location.hash === "#shortcuts");
 
   async function refresh(): Promise<void> {
     const id = ++request;
@@ -130,6 +133,11 @@
 >
   <Page icon="extension" title={t("extensionsPage.extensions")} {subtitle} testid="extensions-page">
     {#snippet actions()}
+      {#if extensions.some((extension) => extension.enabled)}
+        <Button icon="keyboard" variant="quiet" aria-pressed={editingShortcuts} onclick={() => (editingShortcuts = !editingShortcuts)} data-testid="extension-shortcuts-toggle">
+          {editingShortcuts ? t("extensionShortcutsEditor.back") : t("extensionShortcutsEditor.open")}
+        </Button>
+      {/if}
       {#if !browser.isPrivate}
         {#if fromStore}
           <Button icon="download" disabled={busy} onclick={checkUpdates} title={t("extensionsPage.installNewVersionsPublished")}>
@@ -145,6 +153,9 @@
       {/if}
     {/snippet}
 
+    {#if editingShortcuts}
+      <ExtensionShortcuts />
+    {:else}
     {#if extensions.length > 1}
       <SearchField bind:value={query} label={t("extensionsPage.searchExtension")} />
     {/if}
@@ -177,6 +188,7 @@
           ? undefined
           : t("extensionsPage.openExtensionChromeWeb")}
       />
+    {/if}
     {/if}
 
     {#if fromStore && !browser.isPrivate}

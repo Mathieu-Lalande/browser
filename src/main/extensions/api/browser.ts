@@ -6,27 +6,28 @@ import { BrowserController } from "../../window";
 import type { BrowserTab, ExtensionBrowser } from "./ports";
 
 /**
- * The extension API bridge's view of the browser windows (ADR-053), over `BrowserController`:
- * normal windows only (extensions never run in a private one), every space's tabs.
+ * The extension API bridge's view of the browser windows (ADR-053), over `BrowserController`,
+ * every space's tabs. `scope` null: the normal windows. A private window's session (ADR-057): that
+ * window alone — an extension allowed in private browsing sees its private tabs there, never the
+ * normal ones, and the normal instance never sees the private window.
  */
-
-const normalWindows = () => BrowserController.all().filter((controller) => !controller.isPrivate && !controller.window.isDestroyed());
-
-const byId = (id: number | null) => (id === null ? undefined : normalWindows().find((controller) => controller.window.id === id));
 
 function entries(controller: BrowserController) {
   return controller.spaces.allTabs();
 }
 
-function find(key: TabId) {
-  for (const controller of normalWindows()) {
-    const entry = entries(controller).find((item) => item.tab.id === key);
-    if (entry) return { controller, ...entry };
-  }
-  return undefined;
-}
-
-export function extensionBrowser(): ExtensionBrowser {
+export function extensionBrowser(scope: Electron.Session | null = null): ExtensionBrowser {
+  const normalWindows = () =>
+    BrowserController.all().filter((controller) => !controller.window.isDestroyed() && (scope ? controller.isPrivate && controller.tabSession === scope : !controller.isPrivate));
+  const byId = (id: number | null) => (id === null ? undefined : normalWindows().find((controller) => controller.window.id === id));
+  const find = (key: TabId) => {
+    for (const controller of normalWindows()) {
+      const entry = entries(controller).find((item) => item.tab.id === key);
+      if (entry) return { controller, ...entry };
+    }
+    return undefined;
+  };
+  const sessionOf = (spaceId: string) => scope ?? spaces.sessionFor(spaceId) ?? electronSession.defaultSession;
   return {
     windows: () =>
       normalWindows().map((controller) => {
@@ -54,11 +55,11 @@ export function extensionBrowser(): ExtensionBrowser {
             loading: tab.isLoading,
             discarded: !contents && /^https?:/i.test(tab.url),
             contents,
-            session: spaces.sessionFor(spaceId) ?? electronSession.defaultSession,
+            session: sessionOf(spaceId),
           };
         }),
       ),
-    lastFocusedWindow: () => BrowserController.lastNormal()?.window.id ?? null,
+    lastFocusedWindow: () => (scope ? (normalWindows()[0]?.window.id ?? null) : (BrowserController.lastNormal()?.window.id ?? null)),
     windowOf: (contents: WebContents) => {
       for (const controller of normalWindows()) {
         if (controller.extensionPopup.contents === contents) return controller.window.id;
@@ -74,8 +75,8 @@ export function extensionBrowser(): ExtensionBrowser {
       return null;
     },
     createTab: (windowId, url, options) => {
-      const controller = byId(windowId) ?? BrowserController.lastNormal() ?? new BrowserController();
-      return controller.tabs.create(url, { activate: options.active, index: options.index, extensionPage: options.extensionPage });
+      const controller = byId(windowId) ?? (scope ? normalWindows()[0] : (BrowserController.lastNormal() ?? new BrowserController()));
+      return controller ? controller.tabs.create(url, { activate: options.active, index: options.index, extensionPage: options.extensionPage }) : null;
     },
     closeTab: (key) => find(key)?.manager.close(key),
     navigateTab: (key, url, extensionPage) => find(key)?.manager.navigate(key, url, { extensionPage }),
@@ -84,6 +85,8 @@ export function extensionBrowser(): ExtensionBrowser {
       entry?.controller.spaces.showTab(entry.spaceId, key);
     },
     createWindow: (url, extensionPage, focused) => {
+      // A private window's instance opens no window (a new one would be another private session).
+      if (scope) return null;
       const controller = new BrowserController();
       const tabId = controller.tabs.activeTabId;
       if (url && tabId) controller.tabs.navigate(tabId, url, { extensionPage });
@@ -94,7 +97,8 @@ export function extensionBrowser(): ExtensionBrowser {
     closeWindow: (id) => byId(id)?.window.close(),
     onChange: (listener) => BrowserController.changed.on(listener),
     pushActionStates: (states) => {
-      for (const controller of normalWindows()) controller.send(Channels.extensionsActionStates, states);
+      // Every window: a private window shows the buttons of the extensions allowed there (ADR-057).
+      for (const controller of BrowserController.all()) if (!controller.window.isDestroyed()) controller.send(Channels.extensionsActionStates, states);
     },
   };
 }

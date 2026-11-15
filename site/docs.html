@@ -368,6 +368,13 @@
             gestionnaire de tâches (<kbd>Maj</kbd> <kbd>Échap</kbd>) indiquent environ combien de mémoire la mise en
             veille a libérée : une estimation, mesurée juste avant que la page se ferme.
           </p>
+          <p>
+            <strong>Préchargement</strong> (activé par défaut, Paramètres, Comportement) : un onglet en veille que vous
+            survolez dans la barre latérale, l'onglet suivant avec <kbd>Ctrl</kbd> <kbd>Tab</kbd>, ou celui vers lequel
+            vous revenez souvent se recharge en arrière-plan juste avant que vous l'affichiez. Un seul à la fois, jamais
+            avec l'économiseur d'énergie ni quand la mémoire manque, et il se rendort au bout de deux minutes s'il n'a
+            pas servi.
+          </p>
         </section>
 
         <!-- Menus & gestures -->
@@ -782,8 +789,11 @@
             notifications. Une extension ne lit l'adresse et le titre d'un onglet que si elle en a l'autorisation. Ses
             <strong>raccourcis clavier</strong> marchent tant qu'elle est activée et qu'une fenêtre du navigateur a le
             focus (jamais à l'échelle du système) ; ceux du navigateur passent en premier, et « Détails » indique un
-            raccourci inactif et ce qui le prend déjà. Aucune extension ne s'exécute en fenêtre privée (Electron ne
-            charge pas d'extension dans une session gardée en mémoire).
+            raccourci inactif et ce qui le prend déjà. Le bouton « Raccourcis clavier » de la page Extensions permet de
+            choisir, changer ou retirer chacun d'eux (une touche déjà prise par le navigateur ou une autre extension est
+            refusée). En fenêtre privée, seules les extensions marquées « Autoriser en navigation privée » (Détails,
+            désactivé par défaut) s'exécutent : la fenêtre utilise alors un profil jetable, en mémoire vive quand le
+            système le permet, effacé à sa fermeture ; l'extension n'y voit que cette fenêtre.
           </p>
         </section>
 
@@ -873,7 +883,7 @@
           <p>
             <kbd>Ctrl</kbd> <kbd>Maj</kbd> <kbd>N</kbd> (<kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>N</kbd>) : chaque fenêtre privée a sa
             session en mémoire, effacée à sa fermeture. Ni historique, ni session restaurée, ni autorisation mémorisée,
-            ni mot de passe proposé, ni extension, et rien de synchronisé.
+            ni mot de passe proposé, aucune extension sauf celles que vous y autorisez, et rien de synchronisé.
           </p>
           <h3>Ce qui reste chez vous</h3>
           <p>
@@ -1053,7 +1063,9 @@
           <h2 id="t-synchronisation"><i data-icon="cloud-cog"></i>Synchronisation chiffrée</h2>
           <p>
             Favoris (et la grille des favoris), historique des 90 derniers jours, onglets ouverts, espaces, thème,
-            moteur de recherche, page d'accueil et boosts se synchronisent entre vos ordinateurs et votre téléphone.
+            moteur de recherche, page d'accueil et boosts se synchronisent entre vos ordinateurs et votre téléphone,
+            avec une petite icône par site des favoris. Un favori renommé sur un appareil et rangé dans un dossier sur
+            un autre garde les deux modifications (fusion champ par champ).
             Tout est chiffré sur l'appareil (XChaCha20-Poly1305) avant l'envoi : le serveur ne voit que des données
             illisibles. Les fenêtres privées et les mots de passe ne sont jamais synchronisés.
           </p>

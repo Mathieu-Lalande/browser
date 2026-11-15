@@ -1,6 +1,7 @@
 import { resolveAction, type ActionProps, type ActionState } from "@shared/extension-api";
 import type { ExtensionInfo } from "@shared/extensions";
 import type { Bounds } from "@shared/types";
+import { runsInWindow } from "@shared/private-extensions";
 import { webStoreIdFromUrl } from "@shared/webstore";
 import { STORE_PHASE_LABELS, type StoreInstall } from "@shared/webstore-page";
 import { api, browser } from "./browser.svelte";
@@ -23,7 +24,8 @@ class ExtensionsUi {
   private request = 0;
 
   /** Extensions with a toolbar button, enabled. */
-  readonly withAction = $derived(this.list.filter((extension) => extension.enabled && extension.action));
+  /** In a private window, only the extensions allowed there run (ADR-057). */
+  readonly withAction = $derived(this.list.filter((extension) => runsInWindow(extension, browser.isPrivate) && extension.action));
 
   /** The Chrome Web Store extension the active tab shows, installed or not (never in a private window). */
   readonly pageStoreId = $derived(browser.isPrivate ? null : webStoreIdFromUrl(browser.activeTab?.url ?? "", this.storeOrigin));

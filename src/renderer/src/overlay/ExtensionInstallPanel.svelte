@@ -69,7 +69,7 @@
     {:else}
       <p>{t("extensionInstallPanel.extensionDoesntAskAny")}</p>
     {/if}
-    <p class="hint">{t("extensionInstallPanel.wontRunPrivateWindows")}</p>
+    <p class="hint">{t("extensionInstallPanel.privateOptIn")}</p>
     <div class="actions">
       <Button variant="quiet" onclick={() => answer(false)}>{t("extensionInstallPanel.cancel")}</Button>
       <Button variant="primary" bind:element={confirmButton} onclick={() => answer(true)}>

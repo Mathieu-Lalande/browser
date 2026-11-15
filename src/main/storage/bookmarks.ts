@@ -135,6 +135,14 @@ export class Bookmarks {
     this.index(input.url, 1);
   }
 
+  /** Synced site icons (ADR-057): `fill` gives the list with icons filled in; false when nothing changed. */
+  fillFavicons(fill: (list: Bookmark[]) => Bookmark[]): boolean {
+    const next = fill(this.bookmarks);
+    if (next === this.bookmarks) return false;
+    this.bookmarks = next;
+    return true;
+  }
+
   removeByUrl(url: string): boolean {
     if (!this.has(url)) return false;
     this.bookmarks = this.bookmarks.filter((bookmark) => bookmark.url !== url);

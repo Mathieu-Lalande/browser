@@ -12,7 +12,7 @@ import { isDeviceId } from "./hlc";
  * value decrypted from another device.
  */
 
-export const COLLECTIONS = ["settings", "spaces", "bookmarks", "history", "clients", "favorites", "boosts", "sent", "annotations", "addresses", "panels", "reading", "passwords"] as const;
+export const COLLECTIONS = ["settings", "spaces", "bookmarks", "history", "clients", "favorites", "boosts", "sent", "annotations", "addresses", "panels", "reading", "passwords", "favicons"] as const;
 export type CollectionName = (typeof COLLECTIONS)[number];
 
 /**
@@ -129,6 +129,12 @@ export function mergeSpaces(
 /** Bookmarks are keyed by URL: the same page saved on two devices is one bookmark. */
 export const bookmarkLocalId = (url: string) => `b:${url}`;
 export const folderLocalId = (id: string) => `f:${id}`;
+
+/**
+ * Fields of a bookmark (or folder) merged one by one (ADR-057): a title edited on one device and a
+ * folder changed on another both survive.
+ */
+export const BOOKMARK_FIELDS = ["title", "folderId", "name"] as const;
 
 export type SyncedBookmark =
   | { kind: "bookmark"; url: string; title: string; createdAt: number; folderId?: string }

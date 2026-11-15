@@ -4,6 +4,7 @@ import { commandMenuItems } from "./commands";
 import { activeExtensionShortcuts, onExtensionsChanged, runExtensionCommand } from "./extensions";
 import { onSettingsChanged, settings } from "./settings";
 import { onUpdateStatus, updateService } from "./updates";
+import { appServices } from "./app-services-ref";
 import { BrowserController } from "./window";
 
 /** Shortcuts the current menu was built with: the menu is rebuilt when the user changes them (ADR-028). */
@@ -39,6 +40,12 @@ function extensionShortcutItems(): MenuItemConstructorOptions[] {
 }
 
 /** Run an action against the focused browser window, if any. */
+/** Ctrl+Tab / Ctrl+Shift+Tab: the next tab, then its own next stop wakes in the background (ADR-057). */
+function cycleTabs(c: BrowserController, direction: 1 | -1): void {
+  c.tabs.cycle(direction);
+  appServices().prewarm.cycled(c.tabs, direction);
+}
+
 function withFocused(action: (controller: BrowserController) => void): () => void {
   return () => {
     const controller = BrowserController.focused();
@@ -166,8 +173,8 @@ export function installMenu(): void {
         ...commandMenuItems("back", { label: t("menu.back") }),
         ...commandMenuItems("forward", { label: t("menu.forward") }),
         { type: "separator" },
-        { label: t("menu.nextTab"), accelerator: "Ctrl+Tab", click: withFocused((c) => c.tabs.cycle(1)) },
-        { label: t("menu.previousTab"), accelerator: "Ctrl+Shift+Tab", click: withFocused((c) => c.tabs.cycle(-1)) },
+        { label: t("menu.nextTab"), accelerator: "Ctrl+Tab", click: withFocused((c) => cycleTabs(c, 1)) },
+        { label: t("menu.previousTab"), accelerator: "Ctrl+Shift+Tab", click: withFocused((c) => cycleTabs(c, -1)) },
         ...commandMenuItems("toggle-pin"),
         ...commandMenuItems("sleep-tab"),
         ...commandMenuItems("sleep-other-tabs"),

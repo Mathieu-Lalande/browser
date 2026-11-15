@@ -23,6 +23,7 @@ import { mediaControlScript } from "../lib/media";
 import type { MobileSettings } from "../lib/mobileSettings";
 import { initialLoad } from "../lib/navigation";
 import { archiveEntries, mobileTabsToArchive } from "../lib/organize";
+import { siteIcons } from "../lib/siteIcons";
 import { passwordFillScript } from "../lib/passwords";
 import { CLEAR_SITE_DATA_SCRIPT, mobileSiteInfo } from "../lib/siteInfo";
 import type { MobileSyncStore } from "../lib/sync/adapters";
@@ -252,6 +253,7 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
       annotations: stores.annotations.get,
       setAnnotations: (next) => stores.annotations.set(next),
       reading: { list: stores.reading.get, set: (next) => stores.reading.set(next) },
+      siteIcons,
       autofill,
       passwords,
       history: () => stores.history.history,
@@ -261,6 +263,8 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
       now: () => Date.now(),
     };
     const controller = createMobileSync({ store, onStatus: setSyncStatus });
+    // Synced site icons (ADR-057): their collection waits for the stored copy.
+    void siteIcons.load().then(() => controller.notifyChange(), () => {});
     syncRef.current = controller;
     setSyncStatus(controller.getStatus());
     void controller.init();

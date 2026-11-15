@@ -90,6 +90,8 @@ export interface BehaviorSettings {
   closeTabActivates: CloseTabActivates;
   /** Background tabs inactive for this long are put to sleep (ADR-014). */
   sleepTabsAfter: TabSleepDelay;
+  /** Smart preloading (ADR-057): a sleeping tab about to be shown (hovered, Ctrl+Tab, predicted) wakes in the background. */
+  prewarmSleepingTabs: boolean;
   /** Tabs inactive for this long are archived: closed, listed in `browser://archive` (ADR-022). */
   archiveTabsAfter: TabArchiveDelay;
   /** The start page's one-time "make it the default browser" card was answered (ADR-039). */
@@ -368,6 +370,7 @@ export const DEFAULT_SETTINGS: Settings = {
     newTabPosition: "end",
     closeTabActivates: "next",
     sleepTabsAfter: "30m",
+    prewarmSleepingTabs: true,
     archiveTabsAfter: "7d",
     defaultBrowserPromptDismissed: false,
     externalLinksInMiniWindow: true,
@@ -532,6 +535,7 @@ const schema: Schema = {
     newTabPosition: oneOf("end", "next"),
     closeTabActivates: oneOf("next", "previous", "recent"),
     sleepTabsAfter: oneOf("never", "15m", "30m", "1h", "2h"),
+    prewarmSleepingTabs: bool,
     archiveTabsAfter: oneOf("never", "12h", "24h", "7d", "30d"),
     defaultBrowserPromptDismissed: bool,
     externalLinksInMiniWindow: bool,

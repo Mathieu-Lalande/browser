@@ -20,6 +20,7 @@ import { installMenu } from "./menu";
 import { flushProfile, openProfile, profile } from "./profile";
 import { hardenApp, hardenSession } from "./security";
 import { buildAppServices } from "./services";
+import { sweepPrivateProfiles } from "./private";
 import { extensionBrowser } from "./extensions/api/browser";
 import { applyNativeTheme, onSettingsChanged, settings as currentSettings, updateSettings } from "./settings";
 import { startTabSleeper } from "./sleep";
@@ -156,6 +157,8 @@ if (!app.requestSingleInstanceLock()) {
     const marker = new CrashMarker(app.getPath("userData"));
     const unclean = marker.begin();
     app.on("will-quit", () => marker.end());
+    // Throwaway profiles of private windows (ADR-057) left behind by a crash.
+    sweepPrivateProfiles();
     const profiles = new ProfileService(profileRoot, currentProfile, {
       args: process.argv.slice(1),
       packaged: app.isPackaged,
@@ -196,6 +199,12 @@ if (!app.requestSingleInstanceLock()) {
       session: () => BrowserController.sessionSnapshot(),
       processes: { metrics: () => app.getAppMetrics(), allContents: () => webContents.getAllWebContents() },
       configureHostResolver: (resolver) => app.configureHostResolver(resolver),
+      systemMemory: () => {
+        const memory = process.getSystemMemoryInfo();
+        return { freeKb: memory.free, totalKb: memory.total };
+      },
+      // Test hook (ADR-057): the background wake-ups, read by the e2e tests.
+      prewarmLog: app.isPackaged ? undefined : (entry) => ((globalThis as { __browserPrewarm?: unknown[] }).__browserPrewarm ??= []).push(entry),
       power: {
         isOnBatteryPower: () => TEST_ON_BATTERY || powerMonitor.isOnBatteryPower(),
         on: (event, listener) => powerMonitor.on(event as "on-battery", listener),
@@ -227,7 +236,7 @@ if (!app.requestSingleInstanceLock()) {
     if (!app.isPackaged) (globalThis as { __browserCrashReports?: unknown }).__browserCrashReports = services.crashes;
     BrowserController.watchServices(services);
     // The chrome.* APIs Electron lacks, for extension pages and workers (ADR-053).
-    services.extensionApi.connect(extensionBrowser(), ipcMain);
+    services.extensionApi.connect(extensionBrowser, ipcMain);
     hardenSession();
     registerIpc();
     // Mini windows (ADR-048): the page in the default space's session, promoted into a tab of the

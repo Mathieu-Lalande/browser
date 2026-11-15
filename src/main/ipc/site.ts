@@ -4,7 +4,9 @@ import { Channels } from "@shared/ipc";
 import { isSiteName } from "@shared/site-info";
 import {
   answerExtensionReview,
+  extensionCommandRows,
   extensionDetails,
+  setExtensionShortcut,
   extensionActionStates,
   installDroppedExtension,
   openExtensionOptions,
@@ -123,13 +125,19 @@ export const extensionHandlers = defineHandlers({
   [Channels.extensionsStoreOrigin]: handleUi([], () => webStoreTestOrigin()),
   [Channels.extensionsReview]: handleUi([maxStr(64)], (reviewId) => extensionReview(reviewId)),
   [Channels.extensionsAnswerReview]: on([maxStr(64), bool], (_c, reviewId, accepted) => answerExtensionReview(reviewId, accepted)),
-  [Channels.extensionsOpenPopup]: on([isExtensionId, bounds], (c, extensionId, anchor) => openExtensionPopup(c, extensionId, anchor), { privateRefused: true }),
-  [Channels.extensionsMenu]: on([nullable(isExtensionId), bounds], (c, extensionId, anchor) => showExtensionsMenu(c, extensionId, anchor), { privateRefused: true }),
+  // A private window: the extensions allowed there (ADR-057), whose popups open in its own session.
+  [Channels.extensionsOpenPopup]: on([isExtensionId, bounds], (c, extensionId, anchor) => openExtensionPopup(c, extensionId, anchor)),
+  [Channels.extensionsMenu]: on([nullable(isExtensionId), bounds], (c, extensionId, anchor) => showExtensionsMenu(c, extensionId, anchor)),
   [Channels.extensionsStoreInstalls]: handleUi([], () => storeInstalls()),
   [Channels.extensionsDetails]: handleUi([isExtensionId], (extensionId) => extensionDetails(extensionId)),
   [Channels.extensionsOpenOptions]: handle([isExtensionId], (c, extensionId) => !c.isPrivate && openExtensionOptions(c, extensionId)),
   [Channels.extensionsInstallDropped]: handle([droppedExtension], (c, dropped) => (c.isPrivate ? privateRefusal : installDroppedExtension(c, dropped))),
   [Channels.extensionsShowInstalled]: on([isExtensionId, bounds], (c, extensionId, anchor) => showInstalledExtension(c, extensionId, anchor), { privateRefused: true }),
-  // ADR-053: badges, titles and icons the extensions set (none in a private window: they do not run there).
-  [Channels.extensionsGetActionStates]: handle([], (c) => (c.isPrivate ? {} : extensionActionStates())),
+  // ADR-057: the shortcut editor (the keys live in the profile: not from a private window).
+  [Channels.extensionsShortcuts]: handleUi([], () => extensionCommandRows()),
+  [Channels.extensionsSetShortcut]: handle([isExtensionId, maxStr(64), nullable(maxStr(64))], (c, extensionId, command, accelerator) =>
+    c.isPrivate ? ({ ok: false, issue: { kind: "invalid" } } as const) : setExtensionShortcut(extensionId, command, accelerator),
+  ),
+  // ADR-053: badges, titles and icons the extensions set (a private window shows those allowed there, ADR-057).
+  [Channels.extensionsGetActionStates]: handle([], () => extensionActionStates()),
 });

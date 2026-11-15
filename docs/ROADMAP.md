@@ -14,7 +14,7 @@ dynamique (ADR-038), navigateur par défaut, PDF, historique et import (ADR-039)
 bandeaux cookies et tableau de bord de confidentialité (ADR-046), panneaux web et « Lire plus tard » (ADR-047),
 mini-fenêtre, économiseur d'énergie et intégration au système (ADR-048), bloqueur natif sur le téléphone (ADR-051),
 interface en français et en anglais (ADR-052), API `chrome.*` des extensions (ADR-053), raccourcis et menus
-persistants des extensions, téléchargements repris après un redémarrage, mémoire libérée par la veille (ADR-054), recherche dans la page, téléchargements, miniatures, onglets privés isolés sur Android et écran d'accueil sur le téléphone (ADR-055), retrait d'un seul appareil de la synchronisation et image dans l'image des vidéos dans des iframes (ADR-056) ; releases GitHub et site vitrine bilingue (ADR-023) ; application
+persistants des extensions, téléchargements repris après un redémarrage, mémoire libérée par la veille (ADR-054), recherche dans la page, téléchargements, miniatures, onglets privés isolés sur Android et écran d'accueil sur le téléphone (ADR-055), retrait d'un seul appareil de la synchronisation et image dans l'image des vidéos dans des iframes (ADR-056), extensions en fenêtre privée, éditeur de raccourcis des extensions, préchargement des onglets en veille, icônes des sites et fusion champ par champ dans la synchronisation (ADR-057) ; releases GitHub et site vitrine bilingue (ADR-023) ; application
 mobile compilée avec EAS et workflow de publication vers les stores (INSTALL 2.3).
 
 ## À venir (vérifié dans le code)
@@ -25,11 +25,9 @@ mobile compilée avec EAS et workflow de publication vers les stores (INSTALL 2.
   est prêt) ; droit « navigateur par défaut » d'Apple à demander (`IOS_DEFAULT_BROWSER=1` seulement après l'accord).
 - **Mobile** : espaces isolés (conteneurs), widgets de l'écran d'accueil (extensions natives WidgetKit / AppWidget,
   ADR-055), progression des téléchargements et cookies des téléchargements sur iPhone.
-- **Synchronisation** : fusion fine des titres, favicons.
-- **Mise en veille** : préchargement intelligent.
 - **Connexion Google dans Browser** : les pages de `accounts.google.com` s'ouvrent encore dans le navigateur
   système (Google refuse les navigateurs intégrés, ADR-040).
-- **Extensions** : extensions en fenêtre privée (ADR-049), écran pour changer leurs raccourcis (ADR-054).
+- **Extensions** : événements d'onglets (`tabs.onCreated`…) pour l'instance d'une extension en fenêtre privée (ADR-057).
 
 ## Sprint 0 — Fondations (terminé)
 Migration Tauri → Electron + Svelte 5, onglets réels (`WebContentsView`), barre latérale verticale,

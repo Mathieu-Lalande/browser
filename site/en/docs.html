@@ -355,6 +355,12 @@
             A sleeping tab's tooltip and the task manager (<kbd>Shift</kbd> <kbd>Esc</kbd>) show roughly how much memory
             sleeping freed: an estimate, measured just before the page closed.
           </p>
+          <p>
+            <strong>Preloading</strong> (on by default, Settings, Behavior): a sleeping tab you hover in the sidebar, the
+            next tab with <kbd>Ctrl</kbd> <kbd>Tab</kbd>, or the one you keep going back to reloads in the background just
+            before you show it. One at a time, never with the energy saver or when memory is short, and it goes back to
+            sleep after two minutes if unused.
+          </p>
         </section>
 
         <!-- Menus & gestures -->
@@ -756,8 +762,11 @@
             the extension's name, kept from one launch to the next), notifications. An extension only reads a tab's
             address and title when it has the permission. Its <strong>keyboard shortcuts</strong> work while it is
             enabled and a browser window has focus (never system-wide); the browser's own shortcuts come first, and
-            “Details” shows an inactive shortcut and what already uses it. No extension runs in a private window
-            (Electron doesn't load extensions in a session kept in memory).
+            “Details” shows an inactive shortcut and what already uses it. The “Keyboard shortcuts” button of the
+            Extensions page lets you set, change or remove each of them (a key the browser or another extension already
+            uses is refused). In a private window, only the extensions marked “Allow in private browsing” (Details, off
+            by default) run: the window then uses a throwaway profile, in RAM when the system allows it, deleted when it
+            closes; the extension only sees that window.
           </p>
         </section>
 
@@ -847,7 +856,7 @@
           <p>
             <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>N</kbd> (<kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>N</kbd>): each private window
             has its own in-memory session, erased when it closes. No history, no restored session, no remembered
-            permission, no password offered, no extension, and nothing synced.
+            permission, no password offered, no extension except those you allow there, and nothing synced.
           </p>
           <h3>What stays with you</h3>
           <p>
@@ -1024,7 +1033,8 @@
           <h2 id="t-synchronisation"><i data-icon="cloud-cog"></i>Encrypted sync</h2>
           <p>
             Bookmarks (and the favorites grid), the last 90 days of history, open tabs, spaces, theme, search engine,
-            start page and boosts sync between your computers and your phone. Everything is encrypted on the device
+            start page and boosts sync between your computers and your phone, with a small icon per bookmarked site. A
+            bookmark renamed on one device and filed in a folder on another keeps both changes (merged field by field). Everything is encrypted on the device
             (XChaCha20-Poly1305) before sending: the server only sees unreadable data. Private windows and passwords are
             never synced (passwords only if you turn it on).
           </p>

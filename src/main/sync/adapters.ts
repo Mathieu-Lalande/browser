@@ -1,13 +1,25 @@
 import { addressRecord, mergeSyncedAddresses, sanitizeSyncedAddress, type SyncedAddress } from "@shared/autofill/model";
 import { annotationRecords, mergeAnnotations, sanitizeSyncedAnnotation, type SyncedAnnotation } from "@shared/annotations/sync";
 import { boostRecord, mergeBoosts, sanitizeSyncedBoost, type SyncedBoost } from "@shared/boosts";
-import { favoriteLocalId, favoriteRecord, mergeFavorites, sanitizeSyncedFavorite, type SyncedFavorite } from "@shared/favorites";
+import { nativeImage } from "electron";
+import { FAVORITE_FIELDS, favoriteLocalId, favoriteRecord, mergeFavorites, sanitizeSyncedFavorite, type SyncedFavorite } from "@shared/favorites";
+import {
+  applySiteIcons,
+  collectSiteIcons,
+  fillFavicons,
+  isSyncableFavicon,
+  sanitizeSyncedFavicon,
+  siteIconRecords,
+  type SiteIcons,
+  type SyncedFavicon,
+} from "@shared/sync/favicons";
 import { MAX_SPACES } from "@shared/spaces";
 import { mergeSyncedPasswords, passwordRecords, sanitizeSyncedPassword, type SyncedPassword } from "@shared/passwords-sync";
 import { mergePanels, panelRecord, sanitizeSyncedPanel, type SyncedPanel } from "@shared/panels";
 import { mergeReadingList, readingRecord, sanitizeSyncedReading, type SyncedReading } from "@shared/reading-list";
 import type { CollectionAdapter } from "@shared/sync/engine";
 import {
+  BOOKMARK_FIELDS,
   SETTINGS_RECORD,
   bookmarkLocalId,
   bookmarkRecord,
@@ -57,6 +69,8 @@ export interface AdapterDeps {
   reading?: Pick<ReadingListService, "replace">;
   /** Saved passwords (ADR-050, opt-in): synced only while the keychain vault is usable. */
   passwords?: { vault: Pick<PasswordVaultStore, "current" | "write" | "status">; newId: () => string };
+  /** Synced site icons (ADR-057, `site-icons.json`). */
+  siteIcons?: { load(): SiteIcons; save(next: SiteIcons): void };
   now?: () => number;
 }
 
@@ -85,6 +99,7 @@ function spacesAdapter(): CollectionAdapter<SyncedSpace> {
 function bookmarksAdapter(deps: AdapterDeps): CollectionAdapter<SyncedBookmark> {
   return {
     name: "bookmarks",
+    fields: BOOKMARK_FIELDS,
     snapshot: () => {
       const { bookmarks } = profile();
       const map = new Map<string, SyncedBookmark>();
@@ -130,6 +145,7 @@ function historyAdapter(now: () => number): CollectionAdapter<SyncedHistory> {
 function favoritesAdapter(deps: AdapterDeps): CollectionAdapter<SyncedFavorite> {
   return {
     name: "favorites",
+    fields: FAVORITE_FIELDS,
     snapshot: () => new Map(profile().favorites.list().map((favorite, index) => [favoriteLocalId(favorite.url), favoriteRecord(favorite, index)])),
     sanitize: (value, id) => sanitizeSyncedFavorite(value, id),
     apply: ({ upserts, deletes }) => {
@@ -138,6 +154,53 @@ function favoritesAdapter(deps: AdapterDeps): CollectionAdapter<SyncedFavorite> 
         saveFavorites();
         deps.windows.refreshAll();
       }
+    },
+  };
+}
+
+/** A bookmark's or favorite's icon as a small PNG (32, else 16 px), or null when it cannot fit 4 KB. */
+function smallPng(icon: string): string | null {
+  if (isSyncableFavicon(icon)) return icon;
+  if (!/^data:image\//.test(icon)) return null;
+  try {
+    const image = nativeImage.createFromDataURL(icon);
+    if (image.isEmpty()) return null;
+    for (const size of [32, 16]) {
+      const png = image.resize({ width: size, height: size, quality: "best" }).toDataURL();
+      if (isSyncableFavicon(png)) return png;
+    }
+  } catch {
+    // Not an image Chromium can read.
+  }
+  return null;
+}
+
+/**
+ * Site icons (ADR-057): one small PNG per origin of the bookmarks and favorites, kept in
+ * `site-icons.json`; other devices' icons fill the bookmarks and favorites that have none.
+ */
+function faviconsAdapter(store: NonNullable<AdapterDeps["siteIcons"]>, deps: AdapterDeps, now: () => number): CollectionAdapter<SyncedFavicon> {
+  return {
+    name: "favicons",
+    snapshot: () => {
+      const { bookmarks, favorites } = profile();
+      const current = store.load();
+      const next = collectSiteIcons(current, [...favorites.list(), ...bookmarks.list()], now(), smallPng);
+      if (next !== current) store.save(next);
+      return siteIconRecords(next);
+    },
+    sanitize: (value, id) => sanitizeSyncedFavicon(value, id),
+    apply: ({ upserts, deletes }) => {
+      const before = store.load();
+      const replaced = new Map(upserts.flatMap(({ id }) => (before[id] ? [[id, before[id].icon] as const] : [])));
+      const next = applySiteIcons(before, upserts, deletes, now());
+      store.save(next);
+      const { bookmarks, favorites, saveBookmarks, saveFavorites } = profile();
+      const marks = bookmarks.fillFavicons((list) => fillFavicons(list, next, replaced));
+      if (marks) saveBookmarks();
+      const tiles = favorites.replace(fillFavicons(favorites.list(), next, replaced));
+      if (tiles) saveFavorites();
+      if (marks || tiles) deps.windows.refreshAll();
     },
   };
 }
@@ -217,5 +280,7 @@ export function desktopAdapters(deps: AdapterDeps): CollectionAdapter[] {
   if (deps.panels) adapters.push(panelsAdapter(deps.panels) as CollectionAdapter<never>);
   if (deps.reading) adapters.push(readingAdapter(deps.reading) as CollectionAdapter<never>);
   if (deps.passwords) adapters.push(passwordsAdapter(deps.passwords) as CollectionAdapter<never>);
+  // Last: the bookmarks and favorites of this round are there to take their icons.
+  if (deps.siteIcons) adapters.push(faviconsAdapter(deps.siteIcons, deps, now) as CollectionAdapter<never>);
   return adapters as CollectionAdapter[];
 }
