@@ -159,9 +159,9 @@
     border-radius: 8px;
     color: var(--text-muted);
     transition:
-      background 0.12s var(--ease),
-      color 0.12s var(--ease),
-      transform 0.12s var(--ease);
+      background var(--motion-fast) var(--ease),
+      color var(--motion-fast) var(--ease),
+      transform var(--motion-fast) var(--ease);
   }
   .compact .space {
     width: 24px;
@@ -192,8 +192,8 @@
     background: var(--dot);
     transform: translateX(-50%);
     transition:
-      left 0.22s cubic-bezier(0.2, 0.8, 0.2, 1),
-      background 0.22s var(--ease);
+      left var(--motion-base) cubic-bezier(0.2, 0.8, 0.2, 1),
+      background var(--motion-base) var(--ease);
     pointer-events: none;
   }
   .indicator.following {

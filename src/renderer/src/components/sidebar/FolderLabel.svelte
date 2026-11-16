@@ -48,7 +48,7 @@
     display: grid;
     flex: none;
     place-items: center;
-    transition: transform 0.15s var(--ease);
+    transition: transform var(--motion-fast) var(--ease);
   }
   .chevron-icon.open {
     transform: rotate(90deg);

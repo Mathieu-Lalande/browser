@@ -92,7 +92,7 @@
     align-items: center;
     justify-content: flex-end;
     gap: 6px;
-    animation: appear 0.14s var(--ease);
+    animation: appear var(--motion-fast) var(--ease);
   }
   .question {
     color: var(--text-muted);
@@ -106,12 +106,12 @@
     background: var(--surface-active);
   }
   .danger {
-    background: #e5484d;
+    background: var(--danger);
     color: #fff;
     font-weight: 500;
   }
   .danger:hover {
-    background: #d63c41;
+    background: color-mix(in oklab, var(--danger) 85%, #000);
   }
   .outlined button {
     height: 32px;

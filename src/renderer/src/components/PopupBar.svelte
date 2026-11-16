@@ -44,7 +44,7 @@
     background: var(--bg-elevated);
     box-shadow: 0 0 0 1px var(--border);
     color: var(--text-muted);
-    animation: drop 0.18s var(--ease);
+    animation: drop var(--motion-base) var(--ease);
   }
   p {
     display: flex;
@@ -70,7 +70,7 @@
   .primary {
     padding: 0 14px;
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
   }
   .primary:hover {
     background: color-mix(in oklab, var(--accent) 85%, #fff);

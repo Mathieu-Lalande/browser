@@ -57,8 +57,8 @@
     font-size: 12.5px;
     white-space: nowrap;
     transition:
-      background 0.15s var(--ease),
-      color 0.15s var(--ease);
+      background var(--motion-fast) var(--ease),
+      color var(--motion-fast) var(--ease);
   }
   button:hover:not(.selected) {
     color: var(--text);

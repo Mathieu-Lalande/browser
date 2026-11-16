@@ -88,7 +88,7 @@
     padding: 0 6px 0 10px;
     border-radius: var(--radius);
     color: var(--text-muted);
-    transition: background 0.12s var(--ease);
+    transition: background var(--motion-fast) var(--ease);
   }
   .tab:hover {
     background: var(--surface-hover);

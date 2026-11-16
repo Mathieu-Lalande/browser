@@ -131,7 +131,7 @@
     min-width: 0;
     overflow: hidden auto;
     max-height: calc(100% - 64px);
-    animation: pop 0.16s var(--ease);
+    animation: pop var(--motion-base) var(--ease);
     transform-origin: bottom left;
   }
   @keyframes pop {
@@ -231,11 +231,11 @@
     color: var(--text-muted);
   }
   .delete:hover {
-    background: color-mix(in oklab, #e5484d 15%, transparent);
-    color: #ff6b6f;
+    background: color-mix(in oklab, var(--danger) 15%, transparent);
+    color: var(--danger-text);
   }
   .danger {
-    background: #e5484d;
+    background: var(--danger);
     color: #fff;
   }
   .plain {

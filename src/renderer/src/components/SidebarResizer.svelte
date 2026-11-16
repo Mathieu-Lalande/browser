@@ -105,7 +105,7 @@
     background: var(--accent);
     opacity: 0;
     transform: translateY(-50%);
-    transition: opacity 0.15s var(--ease);
+    transition: opacity var(--motion-fast) var(--ease);
   }
   .resizer:hover::after,
   .resizer:focus-visible::after,

@@ -151,7 +151,7 @@
     min-width: 0;
     overflow: hidden auto;
     max-height: calc(100% - 64px);
-    animation: pop 0.16s var(--ease);
+    animation: pop var(--motion-base) var(--ease);
     transform-origin: bottom left;
   }
   @keyframes pop {
@@ -203,8 +203,8 @@
     border-radius: 8px;
     color: var(--text-muted);
     transition:
-      background 0.12s var(--ease),
-      color 0.12s var(--ease);
+      background var(--motion-fast) var(--ease),
+      color var(--motion-fast) var(--ease);
   }
   .icons button:hover {
     background: var(--surface-hover);
@@ -236,7 +236,7 @@
     border-radius: 50%;
     background: var(--swatch);
     box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.15);
-    transition: transform 0.12s var(--ease);
+    transition: transform var(--motion-fast) var(--ease);
     content: "";
   }
   .swatch:hover::before {
@@ -292,14 +292,14 @@
     color: var(--text-muted);
   }
   .delete:hover:not(:disabled) {
-    background: color-mix(in oklab, #e5484d 15%, transparent);
-    color: #ff6b6f;
+    background: color-mix(in oklab, var(--danger) 15%, transparent);
+    color: var(--danger-text);
   }
   .delete:disabled {
     opacity: 0.4;
   }
   .danger {
-    background: #e5484d;
+    background: var(--danger);
     color: #fff;
   }
   .confirm p {

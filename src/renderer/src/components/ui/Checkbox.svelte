@@ -32,8 +32,8 @@
     box-shadow: inset 0 0 0 1.5px var(--text-faint);
     color: var(--on-accent);
     transition:
-      background 0.12s var(--ease),
-      box-shadow 0.12s var(--ease);
+      background var(--motion-fast) var(--ease),
+      box-shadow var(--motion-fast) var(--ease);
   }
   .checkbox:hover .box {
     box-shadow: inset 0 0 0 1.5px var(--text-muted);

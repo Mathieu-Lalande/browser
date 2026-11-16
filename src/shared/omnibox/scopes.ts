@@ -1,4 +1,4 @@
-import { t, keywords } from "../i18n";
+import { t, keywords, type MessageKey } from "../i18n";
 import { fold } from "../fuzzy";
 import type { OmniboxIcon, ScopeId } from "./types";
 
@@ -13,14 +13,23 @@ export interface ScopeDefinition {
   icon: OmniboxIcon;
 }
 
+/**
+ * Accepted prefixes of a scope: the full word in the UI language first (completed and shown), then the
+ * short form (the same in every language), then every spelling of both languages.
+ */
+function namesOf(key: MessageKey, short: string): string[] {
+  const own = t(key).split(",")[0].trim();
+  return [...new Set([own, short, ...keywords(key)])];
+}
+
 export const SCOPES: readonly ScopeDefinition[] = [
-  { id: "tabs", get label() { return t("omniboxScopes.tabs") }, get names() { return keywords("omniboxScopes.tabsKeywords") }, icon: "tab" },
-  { id: "favorites", get label() { return t("omniboxScopes.bookmarks") }, get names() { return keywords("omniboxScopes.bookmarksKeywords") }, icon: "star" },
-  { id: "history", get label() { return t("omniboxScopes.history") }, names: ["historique", "h", "history"], icon: "history" },
-  { id: "commands", get label() { return t("omniboxScopes.commands") }, names: ["commandes", "c", "commande", "actions"], icon: "command" },
-  { id: "notes", get label() { return t("omniboxScopes.notes") }, names: ["notes", "n", "note", "annotations", "surlignages"], icon: "highlighter" },
-  { id: "assistant", get label() { return t("omniboxScopes.aiAssistant") }, names: ["ia", "assistant", "ai", "claude"], icon: "sparkles" },
-  { id: "settings", get label() { return t("omniboxScopes.settings") }, get names() { return keywords("omniboxScopes.settingsKeywords") }, icon: "settings" },
+  { id: "tabs", get label() { return t("omniboxScopes.tabs") }, get names() { return namesOf("omniboxScopes.tabsKeywords", "o") }, icon: "tab" },
+  { id: "favorites", get label() { return t("omniboxScopes.bookmarks") }, get names() { return namesOf("omniboxScopes.bookmarksKeywords", "f") }, icon: "star" },
+  { id: "history", get label() { return t("omniboxScopes.history") }, get names() { return namesOf("omniboxScopes.historyKeywords", "h") }, icon: "history" },
+  { id: "commands", get label() { return t("omniboxScopes.commands") }, get names() { return namesOf("omniboxScopes.commandsKeywords", "c") }, icon: "command" },
+  { id: "notes", get label() { return t("omniboxScopes.notes") }, get names() { return namesOf("omniboxScopes.notesKeywords", "n") }, icon: "highlighter" },
+  { id: "assistant", get label() { return t("omniboxScopes.aiAssistant") }, get names() { return namesOf("omniboxScopes.assistantKeywords", "assistant") }, icon: "sparkles" },
+  { id: "settings", get label() { return t("omniboxScopes.settings") }, get names() { return namesOf("omniboxScopes.settingsKeywords", "r") }, icon: "settings" },
 ];
 
 export const scopeById = (id: ScopeId): ScopeDefinition => SCOPES.find((scope) => scope.id === id)!;

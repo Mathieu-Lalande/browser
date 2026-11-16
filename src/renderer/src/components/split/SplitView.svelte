@@ -123,7 +123,7 @@
     box-shadow:
       0 0 0 1px var(--border),
       0 10px 30px -12px rgb(0 0 0 / 0.5);
-    transition: box-shadow 0.15s var(--ease);
+    transition: box-shadow var(--motion-fast) var(--ease);
   }
   /* Drawn in the gap around the native page view, which covers the pane itself. */
   .pane.focused {
@@ -149,7 +149,7 @@
     border-radius: 2px;
     background: var(--text-faint);
     opacity: 0;
-    transition: opacity 0.15s var(--ease);
+    transition: opacity var(--motion-fast) var(--ease);
   }
   .x .grip {
     width: 3px;

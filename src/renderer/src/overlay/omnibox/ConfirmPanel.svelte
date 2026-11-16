@@ -35,7 +35,7 @@
     margin-bottom: 14px;
     border-radius: 12px;
     background: rgb(239 68 68 / 0.14);
-    color: #ef4444;
+    color: var(--danger-text);
   }
   h2 {
     margin: 0 0 6px;
@@ -61,10 +61,10 @@
     background: var(--surface-active);
   }
   .button.danger {
-    background: #dc2626;
+    background: var(--danger);
     color: #fff;
   }
   .button.danger:hover {
-    background: #b91c1c;
+    background: color-mix(in oklab, var(--danger) 85%, #000);
   }
 </style>

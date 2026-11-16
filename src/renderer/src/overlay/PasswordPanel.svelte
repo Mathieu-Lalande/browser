@@ -137,7 +137,7 @@
       0 18px 50px -12px rgb(0 0 0 / 0.55),
       0 4px 14px -6px rgb(0 0 0 / 0.35);
     outline: none;
-    animation: pop 0.16s var(--ease);
+    animation: pop var(--motion-base) var(--ease);
     transform-origin: top left;
   }
   header {
@@ -207,7 +207,7 @@
   }
   .primary {
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
   }
   .primary:hover:not(:disabled) {
     background: color-mix(in oklab, var(--accent) 85%, #fff);

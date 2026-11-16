@@ -69,7 +69,7 @@
       0 30px 80px -20px rgb(0 0 0 / 0.6),
       0 8px 24px -10px rgb(0 0 0 / 0.4);
     outline: none;
-    animation: pop 0.16s var(--ease);
+    animation: pop var(--motion-base) var(--ease);
   }
   header {
     display: flex;

@@ -144,7 +144,7 @@
       {:else if current.request.kind === "page-swipe" && current.request.swipe}
         <PageSwipePanel anchor={current.request.anchor} initial={current.request.swipe} />
       {:else if current.request.kind === "tab-overview"}
-        <TabOverviewPanel />
+        <TabOverviewPanel onClose={close} />
       {:else if current.request.kind === "translate" && current.request.tabId && TranslatePanel}
         <TranslatePanel anchor={current.request.anchor} tabId={current.request.tabId} onClose={close} />
       {:else if current.request.kind === "annotation" && current.request.annotationId && AnnotationPanel}
@@ -179,7 +179,7 @@
     position: fixed;
     inset: 0;
     background: rgb(10 8 18 / 0.5);
-    animation: fade 0.14s var(--ease);
+    animation: fade var(--motion-fast) var(--ease);
   }
   .scrim.page-swipe {
     background: transparent;
@@ -192,7 +192,7 @@
     filter: blur(20px) saturate(1.3);
     /* Blurred edges fade to transparent: overscan a little so they stay off-screen. */
     transform: scale(1.06);
-    animation: fade 0.18s var(--ease);
+    animation: fade var(--motion-base) var(--ease);
   }
   .backdrop img {
     position: absolute;

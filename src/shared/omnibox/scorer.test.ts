@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { matchFields, rank, recency, weigh } from "./scorer";
-import { parseScope, scopesMatching } from "./scopes";
+import { getLocale, setLocale } from "../i18n";
+import { parseScope, scopeById, scopesMatching } from "./scopes";
 import type { SectionId, Suggestion } from "./types";
 
 const row = (section: SectionId, key: string, score: number): Suggestion => ({
@@ -67,6 +68,20 @@ describe("rank", () => {
 });
 
 describe("scopes", () => {
+  it("completes the full prefix in the UI language, keeps the short form and both spellings", () => {
+    const before = getLocale();
+    try {
+      setLocale("en");
+      expect(scopeById("settings").names.slice(0, 2)).toEqual(["settings", "r"]);
+      expect(parseScope("@réglages x")).toMatchObject({ scope: "settings" });
+      setLocale("fr");
+      expect(scopeById("settings").names.slice(0, 2)).toEqual(["réglages", "r"]);
+      expect(scopeById("history").names.slice(0, 2)).toEqual(["historique", "h"]);
+    } finally {
+      setLocale(before);
+    }
+  });
+
   it("splits a complete prefix, long or short, accents optional", () => {
     expect(parseScope("@r zoom")).toEqual({ scope: "settings", text: "zoom", pending: null });
     expect(parseScope("@reglages zoom")).toMatchObject({ scope: "settings", text: "zoom" });

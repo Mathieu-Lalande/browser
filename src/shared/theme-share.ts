@@ -168,16 +168,21 @@ export function themeFileName(theme: SharedTheme): string {
 }
 
 const base = DEFAULT_SETTINGS.appearance;
-const preset = (theme: Partial<SharedTheme> & Pick<SharedTheme, "name" | "accent" | "accent2">): SharedTheme => ({
-  mode: base.mode,
-  background: base.background,
-  density: base.density,
-  radius: base.radius,
-  font: base.font,
-  shadows: base.shadows,
-  startBackground: "theme",
-  ...theme,
-});
+// Copies property descriptors, not values: a translated `name` getter stays live (the UI language
+// changes at runtime, ADR-052); a spread would freeze it in the language of the first import.
+const preset = (theme: Partial<SharedTheme> & Pick<SharedTheme, "name" | "accent" | "accent2">): SharedTheme =>
+  Object.defineProperties(
+    {
+      mode: base.mode,
+      background: base.background,
+      density: base.density,
+      radius: base.radius,
+      font: base.font,
+      shadows: base.shadows,
+      startBackground: "theme",
+    },
+    Object.getOwnPropertyDescriptors(theme),
+  ) as SharedTheme;
 
 /** Curated themes offered in the appearance settings (desktop and phone). */
 export const THEME_GALLERY: readonly SharedTheme[] = [

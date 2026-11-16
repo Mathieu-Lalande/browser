@@ -327,3 +327,12 @@ test("the settings search keeps only the matching rows", async ({ chrome }) => {
   await expect(search).toHaveValue("");
   expect(await chrome.locator(".settings .row:visible").count()).toBeGreaterThan(10);
 });
+
+test("the tab overview takes the focus and closes with Escape (UI audit 2026-11)", async ({ app, chrome }) => {
+  await chrome.evaluate(() => (globalThis as unknown as Window).browser.overlay.showTabOverview());
+  const overlay = await overlayOf(app);
+  const panel = overlay.getByRole("dialog", { name: "Tous les onglets" });
+  await expect(panel).toBeFocused();
+  await overlay.keyboard.press("Escape");
+  await expect(panel).toBeHidden();
+});

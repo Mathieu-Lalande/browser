@@ -78,7 +78,7 @@
       0 0 0 1px var(--border),
       0 18px 50px -12px rgb(0 0 0 / 0.55);
     outline: none;
-    animation: rise 0.18s var(--ease);
+    animation: rise var(--motion-base) var(--ease);
   }
   .preview {
     display: grid;

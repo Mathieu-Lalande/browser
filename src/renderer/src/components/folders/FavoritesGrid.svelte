@@ -66,7 +66,7 @@
     gap: 6px;
     padding: 2px;
     border-radius: calc(var(--radius) + 2px);
-    transition: background 0.12s var(--ease);
+    transition: background var(--motion-fast) var(--ease);
   }
   /* No tile yet: the drop zone floats over the top of the tab list instead of pushing it down mid-drag. */
   .favorites.floating {

@@ -88,7 +88,7 @@
     border-radius: var(--radius);
     background: var(--bg-elevated);
     box-shadow: 0 0 0 1px var(--border);
-    animation: drop 0.16s var(--ease);
+    animation: drop var(--motion-base) var(--ease);
   }
   .field {
     display: flex;
@@ -102,8 +102,8 @@
     background: var(--surface);
     color: var(--text-faint);
     transition:
-      border-color 0.15s var(--ease),
-      box-shadow 0.15s var(--ease);
+      border-color var(--motion-fast) var(--ease),
+      box-shadow var(--motion-fast) var(--ease);
   }
   .field:focus-within {
     border-color: color-mix(in oklab, var(--accent) 60%, transparent);
@@ -111,8 +111,8 @@
     box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
   }
   .field.not-found {
-    border-color: color-mix(in oklab, #e5484d 70%, transparent);
-    box-shadow: 0 0 0 3px color-mix(in oklab, #e5484d 16%, transparent);
+    border-color: color-mix(in oklab, var(--danger) 70%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--danger) 16%, transparent);
   }
   input {
     flex: 1;
@@ -132,7 +132,7 @@
     font-variant-numeric: tabular-nums;
   }
   .not-found .count {
-    color: #e5484d;
+    color: var(--danger-text);
   }
   button {
     display: grid;
