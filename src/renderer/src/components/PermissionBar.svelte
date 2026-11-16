@@ -70,7 +70,7 @@
     background: var(--bg-elevated);
     box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 35%, transparent);
     color: var(--accent-text);
-    animation: drop 0.18s var(--ease);
+    animation: drop var(--motion-base) var(--ease);
   }
   p {
     flex: 1;

@@ -49,8 +49,8 @@
     border-radius: 8px;
     color: var(--text-muted);
     transition:
-      background 0.12s var(--ease),
-      color 0.12s var(--ease);
+      background var(--motion-fast) var(--ease),
+      color var(--motion-fast) var(--ease);
   }
   button:hover {
     background: var(--surface-hover);
@@ -61,11 +61,11 @@
   }
   .close:hover,
   .close:focus-visible {
-    background: #e5484d;
+    background: var(--danger);
     color: #fff;
   }
   .close:active {
-    background: #c9373c;
+    background: color-mix(in oklab, var(--danger) 85%, #000);
   }
   button:focus-visible {
     outline-offset: -2px;

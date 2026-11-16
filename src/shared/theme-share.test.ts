@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { getLocale, setLocale } from "./i18n";
 import { DEFAULT_SETTINGS, sanitizeSettings } from "./settings";
 import { toBase64Url, utf8Encode } from "./sync/bytes";
 import {
@@ -96,5 +97,17 @@ describe("theme codec", () => {
     expect(new Set(THEME_GALLERY.map((theme) => theme.name)).size).toBe(THEME_GALLERY.length);
     for (const theme of THEME_GALLERY) expect(decodeTheme(encodeTheme(theme))).toEqual({ ok: true, theme });
     expect(isCurrentTheme(DEFAULT_SETTINGS, THEME_GALLERY[0])).toBe(true);
+  });
+
+  it("names the gallery's themes in the current UI language", () => {
+    const before = getLocale();
+    try {
+      setLocale("fr");
+      expect(THEME_GALLERY.map((theme) => theme.name)).toContain("Nuit polaire");
+      setLocale("en");
+      expect(THEME_GALLERY.map((theme) => theme.name)).toContain("Polar night");
+    } finally {
+      setLocale(before);
+    }
   });
 });

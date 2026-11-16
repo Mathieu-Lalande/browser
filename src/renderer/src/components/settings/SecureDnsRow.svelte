@@ -64,7 +64,7 @@
         class:invalid={customInvalid}
         aria-label={t("secureDnsRow.dnsOverHttpsServer")}
         aria-invalid={customInvalid}
-        placeholder="https://dns.exemple.fr/dns-query"
+        placeholder={t("secureDnsRow.serverPlaceholder")}
         value={customValue}
         oninput={(event) => (customDraft = event.currentTarget.value)}
         onchange={saveCustom}

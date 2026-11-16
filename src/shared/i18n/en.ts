@@ -344,6 +344,7 @@ export const en: Record<MessageKey, string> = {
   "mobile.syncSettings.firstDevice": "First device",
   "mobile.syncSettings.addressSyncServerHttps": "Address of your sync server (https). A new key is created here.",
   "mobile.syncSettings.syncServerAddress": "Sync server address",
+  "mobile.syncSettings.serverPlaceholder": "https://sync.example.com",
   "mobile.syncSettings.registrationCodeOptional": "Registration code (optional)",
   "mobile.syncSettings.serverRegistrationCode": "Server registration code",
   "mobile.syncSettings.turnSync": "Turn on sync",
@@ -408,6 +409,7 @@ export const en: Record<MessageKey, string> = {
 
   // mobile.translateSettings
   "mobile.translateSettings.off": "Off",
+  "mobile.translateSettings.serverPlaceholder": "https://libretranslate-server",
   "mobile.translateSettings.invalidAddressHttpHttps": "Invalid address (http:// or https://).",
   "mobile.translateSettings.addressSaved": "Address saved.",
   "mobile.translateSettings.works": "Works: “{sample}”",
@@ -1955,6 +1957,7 @@ export const en: Record<MessageKey, string> = {
   "secureDnsRow.encryptsDnsRequestsChosen": "Encrypts DNS requests to the chosen provider, for the whole browser. Companies and parental controls that filter the system DNS no longer apply.",
   "secureDnsRow.secureDns": "Secure DNS",
   "secureDnsRow.dnsOverHttpsServer": "DNS over HTTPS server address",
+  "secureDnsRow.serverPlaceholder": "https://dns.example.com/dns-query",
   "secureDnsRow.nextdnsConfigurationIdOptional": "NextDNS configuration ID (optional)",
   "secureDnsRow.idOptional": "ID (optional)",
 
@@ -2086,6 +2089,7 @@ export const en: Record<MessageKey, string> = {
   "syncSection.firstDevice": "First device",
   "syncSection.addressSyncServerHttps": "Address of your sync server (https). A new encryption key is created on this device.",
   "syncSection.syncServerAddress": "Sync server address",
+  "syncSection.serverPlaceholder": "https://sync.example.com",
   "syncSection.registrationCodeOptional": "Registration code (optional)",
   "syncSection.serverRegistrationCode": "Server registration code",
   "syncSection.turnSync": "Turn on sync",
@@ -3360,6 +3364,10 @@ export const en: Record<MessageKey, string> = {
   "omniboxScopes.aiAssistant": "AI assistant",
   "omniboxScopes.settings": "Settings",
   "omniboxScopes.settingsKeywords": "settings",
+  "omniboxScopes.historyKeywords": "history, h",
+  "omniboxScopes.commandsKeywords": "commands, c, command, actions",
+  "omniboxScopes.notesKeywords": "notes, n, note, annotations",
+  "omniboxScopes.assistantKeywords": "ai, assistant, claude",
 
   // omniboxScorer
   "omniboxScorer.tabs": "Tabs",

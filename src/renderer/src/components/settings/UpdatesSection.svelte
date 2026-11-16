@@ -118,7 +118,7 @@
     display: block;
     height: 100%;
     background: var(--accent);
-    transition: width 0.2s;
+    transition: width var(--motion-base);
   }
   .actions {
     display: flex;

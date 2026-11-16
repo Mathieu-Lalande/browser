@@ -345,6 +345,7 @@ export const fr = {
   "mobile.syncSettings.firstDevice": "Premier appareil",
   "mobile.syncSettings.addressSyncServerHttps": "Adresse de votre serveur de synchronisation (https). Une nouvelle clé est créée ici.",
   "mobile.syncSettings.syncServerAddress": "Adresse du serveur de synchronisation",
+  "mobile.syncSettings.serverPlaceholder": "https://sync.exemple.fr",
   "mobile.syncSettings.registrationCodeOptional": "Code d'inscription (facultatif)",
   "mobile.syncSettings.serverRegistrationCode": "Code d'inscription du serveur",
   "mobile.syncSettings.turnSync": "Activer la synchronisation",
@@ -409,6 +410,7 @@ export const fr = {
 
   // mobile.translateSettings
   "mobile.translateSettings.off": "Désactivée",
+  "mobile.translateSettings.serverPlaceholder": "https://serveur-libretranslate",
   "mobile.translateSettings.invalidAddressHttpHttps": "Adresse invalide (http:// ou https://).",
   "mobile.translateSettings.addressSaved": "Adresse enregistrée.",
   "mobile.translateSettings.works": "Fonctionne : « {sample} »",
@@ -1956,6 +1958,7 @@ export const fr = {
   "secureDnsRow.encryptsDnsRequestsChosen": "Chiffre les requêtes DNS vers le fournisseur choisi, pour tout le navigateur. Les entreprises et contrôles parentaux qui filtrent le DNS du système ne s'appliquent plus.",
   "secureDnsRow.secureDns": "DNS sécurisé",
   "secureDnsRow.dnsOverHttpsServer": "Adresse du serveur DNS over HTTPS",
+  "secureDnsRow.serverPlaceholder": "https://dns.exemple.fr/dns-query",
   "secureDnsRow.nextdnsConfigurationIdOptional": "Identifiant de configuration NextDNS (facultatif)",
   "secureDnsRow.idOptional": "Identifiant (facultatif)",
 
@@ -2087,6 +2090,7 @@ export const fr = {
   "syncSection.firstDevice": "Premier appareil",
   "syncSection.addressSyncServerHttps": "Adresse de votre serveur de synchronisation (https). Une nouvelle clé de chiffrement est créée sur cet appareil.",
   "syncSection.syncServerAddress": "Adresse du serveur de synchronisation",
+  "syncSection.serverPlaceholder": "https://sync.exemple.fr",
   "syncSection.registrationCodeOptional": "Code d'inscription (facultatif)",
   "syncSection.serverRegistrationCode": "Code d'inscription du serveur",
   "syncSection.turnSync": "Activer la synchronisation",
@@ -3361,6 +3365,10 @@ export const fr = {
   "omniboxScopes.aiAssistant": "Assistant IA",
   "omniboxScopes.settings": "Réglages",
   "omniboxScopes.settingsKeywords": "réglages, r, reglages, paramètres, parametres, settings",
+  "omniboxScopes.historyKeywords": "historique, h, history",
+  "omniboxScopes.commandsKeywords": "commandes, c, commande, actions",
+  "omniboxScopes.notesKeywords": "notes, n, note, annotations, surlignages",
+  "omniboxScopes.assistantKeywords": "ia, assistant, ai, claude",
 
   // omniboxScorer
   "omniboxScorer.tabs": "Onglets",

@@ -199,7 +199,7 @@
       0 18px 50px -12px rgb(0 0 0 / 0.55),
       0 4px 14px -6px rgb(0 0 0 / 0.35);
     outline: none;
-    animation: pop var(--motion-base, 0.16s) var(--ease);
+    animation: pop var(--motion-base, var(--motion-base)) var(--ease);
     transform-origin: top left;
   }
   .panel.up {

@@ -16,7 +16,7 @@
     border-radius: 11px;
     background: var(--surface-active);
     box-shadow: inset 0 0 0 1px var(--border);
-    transition: background 0.18s var(--ease);
+    transition: background var(--motion-base) var(--ease);
   }
   .toggle.on {
     background: var(--accent);
@@ -32,8 +32,8 @@
     background: #fff;
     box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
     transition:
-      transform 0.18s var(--ease),
-      background 0.18s var(--ease);
+      transform var(--motion-base) var(--ease),
+      background var(--motion-base) var(--ease);
   }
   .on .knob {
     transform: translateX(16px);

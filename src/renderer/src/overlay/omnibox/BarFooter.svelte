@@ -2,19 +2,20 @@
   import { t } from "@shared/i18n";
   import { platform } from "../../lib/platform.svelte";
 
-  /** Keyboard hints. The less common ones hide on a narrow window. */
+  /** Keyboard hints. Those that do not fit wrap onto a hidden second row (never cut mid-word). */
   const mod = $derived(platform.isMac ? "⌘" : "Ctrl");
   const alt = $derived(platform.isMac ? "⌥" : "Alt");
 </script>
 
 <footer>
-  <span><kbd>↑</kbd><kbd>↓</kbd> {t("barFooter.navigate")}</span>
-  <span><kbd>↵</kbd> {t("barFooter.open")}</span>
-  <span><kbd>{t("barFooter.tab")}</kbd> {t("barFooter.complete")}</span>
-  <span class="wide"><kbd>{mod}</kbd><kbd>↵</kbd> {t("barFooter.newTab")}</span>
-  <span class="wide"><kbd>{t("barFooter.shift")}</kbd><kbd>↵</kbd> {t("barFooter.sideSide")}</span>
-  <span class="wide"><kbd>{alt}</kbd><kbd>↵</kbd> {t("barFooter.background")}</span>
-  <span class="spacer"></span>
+  <div class="hints">
+    <span><kbd>↑</kbd><kbd>↓</kbd> {t("barFooter.navigate")}</span>
+    <span><kbd>↵</kbd> {t("barFooter.open")}</span>
+    <span><kbd>{t("barFooter.tab")}</kbd> {t("barFooter.complete")}</span>
+    <span><kbd>{mod}</kbd><kbd>↵</kbd> {t("barFooter.newTab")}</span>
+    <span><kbd>{t("barFooter.shift")}</kbd><kbd>↵</kbd> {t("barFooter.sideSide")}</span>
+    <span><kbd>{alt}</kbd><kbd>↵</kbd> {t("barFooter.background")}</span>
+  </div>
   <span><kbd>{t("barFooter.esc")}</kbd></span>
 </footer>
 
@@ -23,18 +24,17 @@
     display: flex;
     flex: none;
     align-items: center;
-    gap: 14px;
-    padding: 8px 14px;
-    overflow: hidden;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
     border-top: 1px solid var(--border);
     color: var(--text-faint);
-    font-size: 11.5px;
+    font-size: var(--text-xs);
     white-space: nowrap;
   }
   span {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--space-1);
   }
   kbd {
     display: inline-grid;
@@ -49,12 +49,13 @@
     color: var(--text-muted);
     font: 500 10.5px/1 var(--font);
   }
-  .spacer {
+  .hints {
+    display: flex;
     flex: 1;
-  }
-  @media (max-width: 760px) {
-    .wide {
-      display: none;
-    }
+    flex-wrap: wrap;
+    gap: 0 var(--space-3);
+    min-width: 0;
+    height: 18px;
+    overflow: hidden;
   }
 </style>

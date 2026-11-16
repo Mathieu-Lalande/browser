@@ -146,7 +146,7 @@
         class="field"
         type="url"
         bind:value={serverUrl}
-        placeholder="https://sync.exemple.fr"
+        placeholder={t("syncSection.serverPlaceholder")}
         aria-label={t("syncSection.syncServerAddress")}
         spellcheck="false"
         autocomplete="off"
@@ -373,7 +373,7 @@
   }
   .danger.confirming {
     border-color: transparent;
-    background: #e5484d;
+    background: var(--danger);
     color: #fff;
   }
   button:disabled {
@@ -388,7 +388,7 @@
   }
   .phase.offline,
   .phase.error {
-    color: #e5484d;
+    color: var(--danger-text);
   }
   .devices {
     display: flex;
@@ -447,9 +447,9 @@
     align-items: flex-start;
     gap: 10px;
     padding: 12px;
-    border: 1px solid color-mix(in oklab, #e5484d 45%, transparent);
+    border: 1px solid color-mix(in oklab, var(--danger) 45%, transparent);
     border-radius: var(--radius);
-    background: color-mix(in oklab, #e5484d 9%, transparent);
+    background: color-mix(in oklab, var(--danger) 9%, transparent);
     color: var(--text);
   }
   .warning p {
@@ -478,7 +478,7 @@
     gap: 6px;
     margin: 0;
     padding: 10px 18px 14px;
-    color: #e5484d;
+    color: var(--danger-text);
     font-size: 12px;
   }
 </style>

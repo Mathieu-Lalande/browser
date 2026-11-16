@@ -86,7 +86,7 @@
     background: var(--swatch);
     color: #fff;
     box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
-    transition: transform 0.12s var(--ease);
+    transition: transform var(--motion-fast) var(--ease);
   }
   .swatch:hover {
     transform: scale(1.1);

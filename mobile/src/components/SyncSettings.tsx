@@ -75,7 +75,7 @@ export const SyncSettings = memo(function SyncSettings({ onScan }: { onScan: () 
           <TextInput
             value={serverUrl}
             onChangeText={setServerUrl}
-            placeholder="https://sync.exemple.fr"
+            placeholder={t("mobile.syncSettings.serverPlaceholder")}
             placeholderTextColor={colors.textFaint}
             autoCapitalize="none"
             autoCorrect={false}

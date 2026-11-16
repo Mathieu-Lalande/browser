@@ -78,7 +78,7 @@
   .chevron {
     display: grid;
     color: var(--text-faint);
-    transition: transform 0.15s var(--ease);
+    transition: transform var(--motion-fast) var(--ease);
   }
   .chevron.open {
     transform: rotate(90deg);

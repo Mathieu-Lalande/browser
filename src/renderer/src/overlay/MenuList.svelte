@@ -189,7 +189,7 @@
       0 0 0 1px var(--border),
       0 18px 50px -12px rgb(0 0 0 / 0.55),
       0 4px 14px -6px rgb(0 0 0 / 0.35);
-    animation: pop var(--motion-fast, 0.12s) var(--ease);
+    animation: pop var(--motion-fast, var(--motion-fast)) var(--ease);
   }
   @keyframes pop {
     from {

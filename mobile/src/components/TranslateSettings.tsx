@@ -99,7 +99,7 @@ export const TranslateSettings = memo(function TranslateSettings() {
           <TextInput
             value={server}
             onChangeText={setServer}
-            placeholder="https://serveur-libretranslate"
+            placeholder={tr("mobile.translateSettings.serverPlaceholder")}
             placeholderTextColor={colors.textFaint}
             autoCapitalize="none"
             autoCorrect={false}

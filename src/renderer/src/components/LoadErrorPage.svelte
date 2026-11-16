@@ -77,8 +77,8 @@
   }
   [data-family="certificate"] .badge,
   [data-family="blocked"] .badge {
-    background: color-mix(in oklab, #e5484d 14%, transparent);
-    color: #e5484d;
+    background: color-mix(in oklab, var(--danger) 14%, transparent);
+    color: var(--danger-text);
   }
   h1 {
     margin: 0 0 6px;

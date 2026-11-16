@@ -56,7 +56,7 @@
       0 0 0 1px rgb(0 0 0 / 0.08),
       0 1px 4px rgb(0 0 0 / 0.35);
     appearance: none;
-    transition: transform 0.12s var(--ease);
+    transition: transform var(--motion-fast) var(--ease);
   }
   input:active::-webkit-slider-thumb {
     transform: scale(1.15);

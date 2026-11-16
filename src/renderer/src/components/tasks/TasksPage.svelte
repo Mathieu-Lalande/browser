@@ -157,6 +157,11 @@
   th.numeric button {
     flex-direction: row-reverse;
   }
+  /* The name column takes what is left (and ellipsizes) instead of pushing the table past its card. */
+  tbody td:first-child {
+    width: 100%;
+    max-width: 0;
+  }
   .title {
     display: flex;
     flex-direction: column;
@@ -191,6 +196,12 @@
   @container page (width < 560px) {
     th:nth-child(4),
     td:nth-child(4) {
+      display: none;
+    }
+  }
+  @container page (width < 480px) {
+    th:nth-child(3),
+    td:nth-child(3) {
       display: none;
     }
   }
