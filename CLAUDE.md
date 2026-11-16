@@ -235,6 +235,12 @@
   `tabActivated`), `settings.behavior.prewarmSleepingTabs`. Sync : `CollectionAdapter.fields` (LWW par champ,
   `src/shared/sync/fields.ts`), collection `favicons` (`src/shared/sync/favicons.ts`, `site-icons.json`, mobile
   `lib/siteIcons.ts`).
+- Lecture à voix haute et mode présentation du lecteur (ADR-058) : purs `src/shared/read-aloud.ts` (paragraphes, phrases
+  ≤ 220 caractères, voix locales de la langue de l'article) et `src/shared/reader-presentation.ts` ; bureau Web Speech API
+  dans l'interface, contrôleur module `lib/read-aloud.svelte.ts` (continue dans un autre onglet, carte `reader/ReadAloudMini`,
+  arrêt quand l'onglet quitte le lecteur), `data-speech` posé par `ReaderNodes`, présentation = calque fixe + `reader:presentation`
+  (plein écran) ; commandes `read-aloud` (Ctrl+Maj+U) et `reader-presentation` (Ctrl+Alt+F) ; mobile `expo-speech`
+  (`hooks/useReadAloud.ts`, `lib/readAloud.ts`) + `expo-keep-awake` ; e2e avec faux `speechSynthesis` (`read-aloud.spec.ts`).
 - Bloqueur mobile (ADR-051) : conversion pure `src/shared/blocklist/` (WebKit JSON, index Android, cosmétique),
   `mobile/scripts/build-blocklists.mjs` (postinstall, sorties générées non commitées), module local
   `mobile/modules/content-blocker` (Swift/Kotlin + plugin), correctif `mobile/patches/` de react-native-webview,

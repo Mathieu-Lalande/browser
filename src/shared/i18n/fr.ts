@@ -4221,6 +4221,28 @@ export const fr = {
   "settingsIndex.behavior.prewarm": "Précharger les onglets en veille",
   "settingsIndex.behavior.prewarmKeywords": "précharger, préchargement, veille, rapide",
   "extensionInstallPanel.privateOptIn": "Elle ne s'exécutera dans les fenêtres privées que si vous l'y autorisez (page Extensions, Détails). Vous pourrez la désactiver ou la retirer depuis cette page.",
+  // Read aloud and presentation mode (ADR-058).
+  "readAloud.readAloud": "Lire à voix haute",
+  "readAloud.controls": "Lecture à voix haute",
+  "readAloud.pause": "Mettre en pause",
+  "readAloud.resume": "Reprendre la lecture",
+  "readAloud.stop": "Arrêter la lecture",
+  "readAloud.previous": "Paragraphe précédent",
+  "readAloud.next": "Paragraphe suivant",
+  "readAloud.speed": "Vitesse de lecture",
+  "readAloud.voice": "Voix",
+  "readAloud.defaultVoice": "Voix du système",
+  "readAloud.noVoice": "Aucune voix n'est installée sur cet appareil.",
+  "readAloud.nowReading": "Lecture à voix haute : {title}",
+  "readAloud.showTab": "Afficher l'onglet lu",
+  "presentation.enter": "Mode présentation",
+  "presentation.exit": "Quitter la présentation",
+  "presentation.controls": "Options de la présentation",
+  "presentation.hint": "Flèches : section ou page · Espace : page suivante · Échap : quitter",
+  "sharedCommands.readAloud": "Lire à voix haute",
+  "sharedCommands.readAloudKeywords": "lire à voix haute, synthèse vocale, écouter, voix, parole, narration, tts",
+  "sharedCommands.readerPresentation": "Mode présentation",
+  "sharedCommands.readerPresentationKeywords": "présentation, plein écran, lecture, concentration, grand texte, sans distraction",
 } as const;
 
 export type MessageKey = keyof typeof fr;

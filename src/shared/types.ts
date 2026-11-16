@@ -233,6 +233,9 @@ export type UiCommand =
   | "open-assistant"
   /** Shows the "add a web panel" form beside the page (ADR-047). */
   | "add-web-panel"
+  /** Reader (ADR-058): starts or pauses reading aloud, or shows the presentation mode (the reader is open). */
+  | "reader-read-aloud"
+  | "reader-presentation"
   /** Opens a space's editor (`edit-space:<id>`), its name field focused with `rename-space:<id>`. */
   | `edit-space:${string}`
   | `rename-space:${string}`;

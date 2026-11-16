@@ -7,7 +7,19 @@
    * parsed, no attribute but a link's http(s) `href` and an image's `data:` source is set.
    * Links navigate the tab (or open a new tab with Ctrl/Cmd or the middle button).
    */
-  let { nodes, onlink }: { nodes: readonly ReaderNode[]; onlink: (href: string, newTab: boolean) => void } = $props();
+  let {
+    nodes,
+    onlink,
+    path = "",
+    marks,
+  }: {
+    nodes: readonly ReaderNode[];
+    onlink: (href: string, newTab: boolean) => void;
+    /** Path of `nodes` in the tree ("1.0"), and the paths read aloud as one paragraph (ADR-058: `data-speech`). */
+    path?: string;
+    marks?: ReadonlySet<string>;
+  } = $props();
+  const keyOf = (index: number) => (path ? `${path}.${index}` : String(index));
 
   const allowed = new Set<string>(READER_TAGS);
 
@@ -22,7 +34,7 @@
         src={node.src}
         alt={node.alt ?? ""}
       />{/if}{:else if node.tag === "a"}<a href={node.href} onclick={(event) => follow(event, node.href)} onauxclick={(event) => follow(event, node.href)}
-      ><Self nodes={node.children} {onlink} /></a
-    >{:else if node.tag === "br"}<br />{:else if node.tag === "hr"}<hr />{:else if allowed.has(node.tag)}<svelte:element this={node.tag}
-      ><Self nodes={node.children} {onlink} /></svelte:element
+      ><Self nodes={node.children} {onlink} path={keyOf(index)} {marks} /></a
+    >{:else if node.tag === "br"}<br />{:else if node.tag === "hr"}<hr />{:else if allowed.has(node.tag)}<svelte:element this={node.tag} data-speech={marks?.has(keyOf(index)) ? keyOf(index) : undefined}
+      ><Self nodes={node.children} {onlink} path={keyOf(index)} {marks} /></svelte:element
     >{/if}{/each}

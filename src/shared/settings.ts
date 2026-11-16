@@ -10,6 +10,7 @@ import { ASSISTANT_MODELS, DEFAULT_ASSISTANT_MODEL, type AssistantModelId } from
 import { SECURE_DNS_CHOICES, normalizeDohTemplate, normalizeNextDnsId, type SecureDnsChoice } from "./secure-dns";
 import { DEFAULT_SEARCH_ENGINE, SEARCH_ENGINES, type SearchEngine } from "./url";
 import { ENERGY_SAVER_MODES, type EnergySaverMode } from "./energy";
+import { clampSpeechRate } from "./read-aloud";
 
 /** User preferences, persisted as `settings.json` and applied live in every window. */
 
@@ -162,6 +163,11 @@ export interface ReaderSettings {
   /** Line length (desktop; the phone uses the screen width). */
   width: ReaderWidth;
   theme: ReaderTheme;
+  /** Read aloud (ADR-058): speed (`SPEECH_RATE_LIMITS`, quarters) and voice id ("" = the first local voice of the language). */
+  speechRate: number;
+  voice: string;
+  /** Presentation mode text size, in px (`LIMITS.readerPresentationSize`). */
+  presentationSize: number;
 }
 
 /** Desktop auto-updates (ADR-030). */
@@ -320,6 +326,8 @@ export const LIMITS = {
   url: 2048,
   path: 4096,
   readerSize: { min: 14, max: 28 },
+  readerPresentationSize: { min: 20, max: 48 },
+  voiceId: 300,
 } as const;
 
 /** Default page zoom choices, in %. */
@@ -392,7 +400,7 @@ export const DEFAULT_SETTINGS: Settings = {
     autoplay: "allow",
   },
   downloads: { folder: "", askWhere: false },
-  reader: { font: "serif", size: 19, width: "medium", theme: "auto" },
+  reader: { font: "serif", size: 19, width: "medium", theme: "auto", speechRate: 1, voice: "", presentationSize: 30 },
   updates: { autoDownload: true, channel: "stable" },
   translate: {
     provider: "none",
@@ -562,6 +570,9 @@ const schema: Schema = {
     size: integer(LIMITS.readerSize),
     width: oneOf("narrow", "medium", "wide"),
     theme: oneOf("auto", "sepia", "dark"),
+    speechRate: (value) => (typeof value === "number" && Number.isFinite(value) ? clampSpeechRate(value) : undefined),
+    voice: (value) => (typeof value === "string" && value.length <= LIMITS.voiceId ? value : undefined),
+    presentationSize: integer(LIMITS.readerPresentationSize),
   },
   updates: { autoDownload: bool, channel: oneOf("stable", "beta") },
   translate: {

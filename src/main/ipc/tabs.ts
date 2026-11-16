@@ -1,6 +1,6 @@
 import { Channels } from "@shared/ipc";
 import { isSpaceId } from "@shared/spaces";
-import { readerArticle } from "../reader";
+import { presentReader, readerArticle } from "../reader";
 import { showTabMenu } from "../tab-menu";
 import { MAX_QUERY_LENGTH } from "./limits";
 import { bool, bounds, defineHandlers, handle, maxStr, num, on, oneOf, opt, str } from "./registry";
@@ -43,4 +43,5 @@ export const tabHandlers = defineHandlers({
   ),
   [Channels.tabPreviewHide]: on([], (c) => c.previews.hide(), { from: "chrome" }),
   [Channels.readerArticle]: handle([str], (c, tabId) => readerArticle(c, tabId)),
+  [Channels.readerPresentation]: on([bool], (c, present) => presentReader(c, present), { from: "chrome" }),
 });

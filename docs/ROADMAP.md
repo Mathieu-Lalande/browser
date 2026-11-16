@@ -1,7 +1,7 @@
 # Roadmap
 
 ## En bref : où on en est
-Tout ce qui suit est livré (détails dans les sprints ci-dessous et dans `docs/DECISIONS.md`, ADR-001 à 054) :
+Tout ce qui suit est livré (détails dans les sprints ci-dessous et dans `docs/DECISIONS.md`, ADR-001 à 058) :
 onglets, espaces et gestes, vue scindée, dossiers, grille des favoris, archivage (ADR-022), barre universelle
 (ADR-032), aperçu des liens (ADR-027), mode lecture (ADR-026), boosts (ADR-029), mots de passe (ADR-025) et leur
 synchronisation facultative (ADR-050), extensions et Chrome Web Store (ADR-024, 049), options de la page, captures
@@ -14,7 +14,7 @@ dynamique (ADR-038), navigateur par défaut, PDF, historique et import (ADR-039)
 bandeaux cookies et tableau de bord de confidentialité (ADR-046), panneaux web et « Lire plus tard » (ADR-047),
 mini-fenêtre, économiseur d'énergie et intégration au système (ADR-048), bloqueur natif sur le téléphone (ADR-051),
 interface en français et en anglais (ADR-052), API `chrome.*` des extensions (ADR-053), raccourcis et menus
-persistants des extensions, téléchargements repris après un redémarrage, mémoire libérée par la veille (ADR-054), recherche dans la page, téléchargements, miniatures, onglets privés isolés sur Android et écran d'accueil sur le téléphone (ADR-055), retrait d'un seul appareil de la synchronisation et image dans l'image des vidéos dans des iframes (ADR-056), extensions en fenêtre privée, éditeur de raccourcis des extensions, préchargement des onglets en veille, icônes des sites et fusion champ par champ dans la synchronisation (ADR-057) ; releases GitHub et site vitrine bilingue (ADR-023) ; application
+persistants des extensions, téléchargements repris après un redémarrage, mémoire libérée par la veille (ADR-054), recherche dans la page, téléchargements, miniatures, onglets privés isolés sur Android et écran d'accueil sur le téléphone (ADR-055), retrait d'un seul appareil de la synchronisation et image dans l'image des vidéos dans des iframes (ADR-056), extensions en fenêtre privée, éditeur de raccourcis des extensions, préchargement des onglets en veille, icônes des sites et fusion champ par champ dans la synchronisation (ADR-057), lecture à voix haute et mode présentation du lecteur, sur le bureau et le téléphone (ADR-058) ; releases GitHub et site vitrine bilingue (ADR-023) ; application
 mobile compilée avec EAS et workflow de publication vers les stores (INSTALL 2.3).
 
 ## À venir (vérifié dans le code)
@@ -117,6 +117,7 @@ retours haptiques.
 - (fait) Bloqueur de pubs et traqueurs : `WKContentRuleList` (iOS) et `shouldInterceptRequest` (Android),
   listes EasyList, EasyPrivacy et Peter Lowe converties par `src/shared/blocklist/`, masquage cosmétique,
   bandeaux cookies, bouclier par site, compteurs (ADR-051).
+- (fait) Lecture à voix haute (`expo-speech`, sur l'appareil) et mode présentation du lecteur (ADR-058).
 - (fait) Effacement des données d'un site, mode lecture et « version ordinateur » (ADR-026), synchronisation
   chiffrée avec le bureau (ADR-019), mots de passe synchronisés, notes, images du lecteur, thème dynamique
   (ADR-050), assistant IA (ADR-044), liste de lecture (ADR-047), interface en anglais (ADR-052).

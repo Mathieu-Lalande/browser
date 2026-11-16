@@ -142,6 +142,7 @@ const api: BrowserApi = {
   },
   reader: {
     article: (tabId) => ipcRenderer.invoke(Channels.readerArticle, tabId),
+    present: (on) => ipcRenderer.send(Channels.readerPresentation, on),
   },
   translate: {
     show: (anchor) => send(Channels.translateShow, anchor),

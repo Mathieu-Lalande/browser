@@ -1,10 +1,15 @@
-import { t as tr, t } from "@shared/i18n";
+import { intlLocale, t as tr, t } from "@shared/i18n";
+import { SPEECH_RATES, speechRateLabel } from "@shared/read-aloud";
 import { READER_THEME_LABELS, readerColors, readingTimeLabel, type ReaderArticle, type ReaderColors } from "@shared/reader";
 import { LIMITS, type ReaderFont, type ReaderTheme } from "@shared/settings";
-import { memo, useEffect, useMemo, useState } from "react";
-import { Image, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
+import { StatusBar } from "expo-status-bar";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { Image, Platform, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent, type ScrollViewInstance } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useReadAloud } from "../hooks/useReadAloud";
 import { readerBlocks, type ReaderBlock, type ReaderSpan } from "../lib/reader";
+import { speechBlocks } from "../lib/readAloud";
 import { useBrowserActions, useBrowserState } from "../state/BrowserProvider";
 import { useTheme } from "../state/theme";
 import { IconButton, Tap } from "./ui";
@@ -30,20 +35,128 @@ interface Props {
 export const ReaderScreen = memo(function ReaderScreen({ article, onClose, onOpenLink }: Props) {
   const { settings } = useBrowserState();
   const actions = useBrowserActions();
-  const { dark } = useTheme();
+  const { dark, reduceMotion } = useTheme();
   const insets = useSafeAreaInsets();
   const prefs = settings.reader;
   const colors = readerColors(prefs.theme, dark);
   const blocks = useMemo(() => readerBlocks(article.content), [article]);
   const family = prefs.font === "serif" ? SERIF : undefined;
-  const size = prefs.size;
   const update = (reader: Partial<typeof prefs>) => actions.updateSettings({ reader });
+
+  // Read aloud and presentation mode (ADR-058).
+  const paragraphs = useMemo(() => speechBlocks(article.title, blocks), [article.title, blocks]);
+  const speech = useReadAloud({ paragraphs, articleLang: article.lang, rate: prefs.speechRate, voiceId: prefs.voice });
+  const [presenting, setPresenting] = useState(false);
+  const [controlsShown, setControlsShown] = useState(true);
+  const size = presenting ? prefs.presentationSize : prefs.size;
+  const scroll = useRef<ScrollViewInstance>(null);
+  const offsets = useRef(new Map<string, number>());
+  const playing = speech.status === "playing";
+  const reading = speech.status !== "idle";
+
+  // The screen stays on while presenting.
+  useEffect(() => {
+    if (!presenting) return;
+    void activateKeepAwakeAsync("reader-presentation").catch(() => {});
+    return () => void deactivateKeepAwake("reader-presentation").catch(() => {});
+  }, [presenting]);
+
+  // The block read aloud is kept in view (no glide with reduced motion).
+  useEffect(() => {
+    const y = speech.activeKey ? offsets.current.get(speech.activeKey) : undefined;
+    if (y !== undefined) scroll.current?.scrollTo({ y: Math.max(0, y - 96), animated: !reduceMotion });
+  }, [speech.activeKey, reduceMotion]);
+
+  const remember = (key: string) => (event: LayoutChangeEvent) => offsets.current.set(key, event.nativeEvent.layout.y);
+  const cycleRate = () => update({ speechRate: SPEECH_RATES[(SPEECH_RATES.indexOf(prefs.speechRate as (typeof SPEECH_RATES)[number]) + 1) % SPEECH_RATES.length] });
+  const cycleVoice = () => {
+    const index = speech.voices.findIndex((voice) => voice.id === speech.voice?.id);
+    const next = speech.voices[(index + 1) % speech.voices.length];
+    if (next) update({ voice: next.id });
+  };
+  const highlight = { backgroundColor: `${colors.link}22`, borderRadius: 6 };
+
+  const speechBar = (
+    <View style={[styles.speech, { borderTopColor: colors.rule, paddingBottom: presenting ? 8 : insets.bottom + 4 }]} accessibilityLabel={t("readAloud.controls")}>
+      <IconButton
+        icon={playing ? "pause" : reading ? "play" : "headphones"}
+        label={playing ? t("readAloud.pause") : reading ? t("readAloud.resume") : t("readAloud.readAloud")}
+        color={colors.text}
+        onPress={playing ? speech.pause : speech.play}
+        testID="read-aloud-play"
+      />
+      {reading && (
+        <>
+          <IconButton icon="skipBack" size={20} label={t("readAloud.previous")} color={colors.text} onPress={() => speech.step(-1)} />
+          <IconButton icon="skipForward" size={20} label={t("readAloud.next")} color={colors.text} onPress={() => speech.step(1)} />
+          <IconButton icon="stopSquare" size={18} label={t("readAloud.stop")} color={colors.text} onPress={speech.stop} />
+        </>
+      )}
+      <View style={styles.spacer} />
+      <Chip label={speechRateLabel(prefs.speechRate, intlLocale())} accessibilityLabel={t("readAloud.speed")} selected={false} colors={colors} onPress={cycleRate} />
+      {speech.voices.length > 1 && (
+        <Chip label={speech.voice?.name ?? t("readAloud.defaultVoice")} accessibilityLabel={t("readAloud.voice")} selected={false} colors={colors} onPress={cycleVoice} />
+      )}
+    </View>
+  );
+
+  if (presenting) {
+    return (
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]} accessibilityViewIsModal accessibilityLabel={t("presentation.enter")}>
+        <StatusBar hidden />
+        <ScrollView
+          ref={scroll}
+          bounces={false}
+          overScrollMode="never"
+          contentContainerStyle={[styles.content, styles.presentContent, { paddingTop: insets.top + 32, paddingBottom: insets.bottom + 160 }]}
+          onTouchEnd={() => setControlsShown((shown) => !shown)}
+        >
+          <Text
+            accessibilityRole="header"
+            onLayout={remember("title")}
+            style={[styles.title, { color: colors.text, fontFamily: family, fontSize: size * 1.5, lineHeight: size * 1.9 }, speech.activeKey === "title" && highlight]}
+          >
+            {article.title}
+          </Text>
+          {blocks.map((block, index) => (
+            <View key={index} onLayout={remember(String(index))} style={speech.activeKey === String(index) ? highlight : undefined}>
+              <Block block={block} colors={colors} family={family} size={size} onOpenLink={onOpenLink} />
+            </View>
+          ))}
+        </ScrollView>
+        {controlsShown && (
+          <View style={[styles.presentBar, { backgroundColor: colors.background, borderTopColor: colors.rule, paddingBottom: insets.bottom }]}>
+            <View style={styles.presentRow}>
+              <IconButton icon="close" label={t("presentation.exit")} color={colors.text} onPress={() => setPresenting(false)} testID="presentation-exit" />
+              <View style={styles.spacer} />
+              <IconButton icon="textSize" size={16} label={t("readerView.smallerText")} color={colors.text} disabled={size <= LIMITS.readerPresentationSize.min} onPress={() => update({ presentationSize: size - 2 })} />
+              <IconButton icon="textSize" size={24} label={t("readerView.largerText")} color={colors.text} disabled={size >= LIMITS.readerPresentationSize.max} onPress={() => update({ presentationSize: size + 2 })} />
+              {THEMES.map((theme) => (
+                <Chip key={theme} label={READER_THEME_LABELS[theme]} selected={prefs.theme === theme} colors={colors} onPress={() => update({ theme })} />
+              ))}
+            </View>
+            {speechBar}
+          </View>
+        )}
+      </View>
+    );
+  }
 
   return (
     <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.background, paddingTop: insets.top }]} accessibilityViewIsModal>
       <View style={[styles.toolbar, { borderBottomColor: colors.rule }]}>
         <IconButton icon="close" label={t("mobile.readerScreen.exitReaderMode")} color={colors.text} onPress={onClose} />
         <View style={styles.spacer} />
+        <IconButton
+          icon="presentation"
+          label={t("presentation.enter")}
+          color={colors.text}
+          onPress={() => {
+            setControlsShown(true);
+            setPresenting(true);
+          }}
+          testID="presentation-enter"
+        />
         <IconButton icon="textSize" size={16} label={t("mobile.readerScreen.smallerText")} color={colors.text} disabled={size <= LIMITS.readerSize.min} onPress={() => update({ size: size - 1 })} />
         <IconButton icon="textSize" size={24} label={t("mobile.readerScreen.largerText")} color={colors.text} disabled={size >= LIMITS.readerSize.max} onPress={() => update({ size: size + 1 })} />
       </View>
@@ -56,9 +169,13 @@ export const ReaderScreen = memo(function ReaderScreen({ article, onClose, onOpe
           <Chip key={theme} label={READER_THEME_LABELS[theme]} selected={prefs.theme === theme} colors={colors} onPress={() => update({ theme })} />
         ))}
       </View>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 48 }]}>
+      <ScrollView ref={scroll} bounces={false} overScrollMode="never" contentContainerStyle={[styles.content, { paddingBottom: 48 }]}>
         {article.siteName && <Text style={[styles.site, { color: colors.muted }]}>{article.siteName}</Text>}
-        <Text accessibilityRole="header" style={[styles.title, { color: colors.text, fontFamily: family, fontSize: size * 1.6, lineHeight: size * 2 }]}>
+        <Text
+          accessibilityRole="header"
+          onLayout={remember("title")}
+          style={[styles.title, { color: colors.text, fontFamily: family, fontSize: size * 1.6, lineHeight: size * 2 }, speech.activeKey === "title" && highlight]}
+        >
           {article.title}
         </Text>
         <Text style={[styles.meta, { color: colors.muted }]}>
@@ -66,18 +183,22 @@ export const ReaderScreen = memo(function ReaderScreen({ article, onClose, onOpe
         </Text>
         <View style={[styles.rule, { backgroundColor: colors.rule }]} />
         {blocks.map((block, index) => (
-          <Block key={index} block={block} colors={colors} family={family} size={size} onOpenLink={onOpenLink} />
+          <View key={index} onLayout={remember(String(index))} style={speech.activeKey === String(index) ? highlight : undefined}>
+            <Block block={block} colors={colors} family={family} size={size} onOpenLink={onOpenLink} />
+          </View>
         ))}
       </ScrollView>
+      {speechBar}
     </View>
   );
 });
 
-function Chip({ label, selected, colors, onPress }: { label: string; selected: boolean; colors: ReaderColors; onPress: () => void }) {
+function Chip({ label, selected, colors, onPress, accessibilityLabel }: { label: string; selected: boolean; colors: ReaderColors; onPress: () => void; accessibilityLabel?: string }) {
   return (
     <Tap
-      accessibilityRole="radio"
-      accessibilityState={{ selected }}
+      accessibilityRole={accessibilityLabel ? "button" : "radio"}
+      accessibilityLabel={accessibilityLabel ? `${accessibilityLabel}, ${label}` : undefined}
+      accessibilityState={accessibilityLabel ? undefined : { selected }}
       onPress={onPress}
       style={[styles.chip, { borderColor: selected ? colors.link : colors.rule }]}
     >
@@ -168,6 +289,10 @@ const styles = StyleSheet.create({
   toolbar: { flexDirection: "row", alignItems: "center", paddingHorizontal: 8, borderBottomWidth: StyleSheet.hairlineWidth },
   options: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth },
   spacer: { flex: 1 },
+  speech: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingTop: 4, borderTopWidth: StyleSheet.hairlineWidth },
+  presentContent: { paddingHorizontal: 28 },
+  presentBar: { position: "absolute", left: 0, right: 0, bottom: 0, borderTopWidth: StyleSheet.hairlineWidth },
+  presentRow: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 8, paddingTop: 4 },
   chip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14, borderWidth: 1 },
   chipText: { fontSize: 13 },
   content: { paddingHorizontal: 20, paddingTop: 24 },

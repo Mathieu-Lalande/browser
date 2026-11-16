@@ -294,6 +294,7 @@ export const Channels = {
   spellcheckAddWord: "spellcheck:add-word",
   spellcheckRemoveWord: "spellcheck:remove-word",
   readerArticle: "reader:article",
+  readerPresentation: "reader:presentation",
   translateShow: "translate:show",
   translatePanel: "translate:panel",
   translateRun: "translate:run",
@@ -590,6 +591,8 @@ export interface BrowserApi {
    */
   reader: {
     article(tabId: TabId): Promise<ReaderArticle | null>;
+    /** Presentation mode (ADR-058): puts the window in full screen (true) or back as it was (false). */
+    present(on: boolean): void;
   };
   /**
    * Page translation (ADR-036): main calls the provider and runs the page script in an isolated

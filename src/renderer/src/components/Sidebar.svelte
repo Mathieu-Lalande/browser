@@ -13,6 +13,7 @@
   import FolderEditor from "./folders/FolderEditor.svelte";
   import Icon from "./Icon.svelte";
   import MiniPlayer from "./media/MiniPlayer.svelte";
+  import ReadAloudMini from "./reader/ReadAloudMini.svelte";
   import PanelStrip from "./panels/PanelStrip.svelte";
   import NavButtons from "./sidebar/NavButtons.svelte";
   import ExtensionBar from "./sidebar/ExtensionBar.svelte";
@@ -209,6 +210,7 @@
   {/if}
   <PanelStrip />
   <MiniPlayer />
+  <ReadAloudMini />
   <SidebarFooter
     onEditSpace={(id) => (editing = editing === id ? null : id)}
     progress={swipe.progress}

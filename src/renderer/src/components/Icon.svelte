@@ -135,6 +135,11 @@
   import ShieldAlert from "@lucide/svelte/icons/shield-alert";
   import ShieldCheck from "@lucide/svelte/icons/shield-check";
   import Square from "@lucide/svelte/icons/square";
+  import Headphones from "@lucide/svelte/icons/headphones";
+  import Presentation from "@lucide/svelte/icons/presentation";
+  import SkipBack from "@lucide/svelte/icons/skip-back";
+  import SkipForward from "@lucide/svelte/icons/skip-forward";
+  import Gauge from "@lucide/svelte/icons/gauge";
   import Unplug from "@lucide/svelte/icons/unplug";
   import WifiOff from "@lucide/svelte/icons/wifi-off";
   import Archive from "@lucide/svelte/icons/archive";
@@ -350,6 +355,13 @@
     users: Users,
     "user-plus": UserPlus,
     library: Library,
+    // Read aloud and presentation mode (ADR-058).
+    "read-aloud": Headphones,
+    presentation: Presentation,
+    "skip-back": SkipBack,
+    "skip-forward": SkipForward,
+    "stop-square": Square,
+    gauge: Gauge,
   } satisfies Record<string, LucideIcon> & Record<CommandIcon, LucideIcon>;
 
   /** Space icons: their stored names are Lucide's own. */

@@ -3120,3 +3120,52 @@ le plus récent gagne, stabilité), `sync/favicons.test.ts` ; Jest mobile inchan
 rétablissement ; fenêtre privée : en mémoire sans autorisation, profil jetable avec l'extension et son bouton une fois
 autorisée, dossier supprimé à la fermeture), `sleep.spec.ts` (survol → réveil en arrière-plan, puis l'onglet prédit,
 rien une fois désactivé).
+
+## ADR-058 — Lecture à voix haute et mode présentation du lecteur
+
+**Contexte.** Le mode lecture (ADR-026) montre l'article seul ; il manquait de l'écouter (accessibilité, lecture en
+marchant) et de le lire « en grand », plein écran, sans rien autour. Contraintes : rien ne quitte l'appareil (pas de
+service de synthèse en ligne), même texte sur le bureau et le téléphone, limites des moteurs (Chromium coupe une
+longue phrase après une quinzaine de secondes sur certains systèmes, Android refuse plus de 4 000 caractères).
+
+**Décision — cœur pur partagé.** `src/shared/read-aloud.ts` : `speechParagraphs` (l'arbre validé du lecteur →
+paragraphes lus, titre d'abord, clé = chemin du bloc dans l'arbre, `pre`/images muets), `speechChunks` (une phrase par
+énoncé, 220 caractères au plus : virgules, puis espaces, puis coupure franche ; « 3.14 » et les domaines restent
+entiers, « Oui. » français compris), `nextChunk`/`stepParagraph` (précédent : début du paragraphe, puis le précédent),
+`clampSpeechRate` (0,75 à 2, par quarts), `voicesFor` (voix **locales** de la langue de l'article, sinon de la langue
+de l'interface, défaut du système d'abord), `pickVoice`. `src/shared/reader-presentation.ts` : touches et sections.
+Réglages `reader.speechRate`, `reader.voice` (id, `""` = la première voix offerte), `reader.presentationSize`
+(`LIMITS.readerPresentationSize`, 20 à 48 px).
+
+**Bureau.** Web Speech API de l'interface (`speechSynthesis` du renderer qui dessine le lecteur) : voix du système
+(SAPI, AVSpeech, speech-dispatcher), seules celles marquées `localService` sont offertes. Contrôleur au niveau module
+`lib/read-aloud.svelte.ts` (pas dans `ReaderView`) : la lecture continue quand un autre onglet est affiché (carte
+`ReadAloudMini` au pied de la barre latérale : titre → retour à l'onglet, précédent, pause, suivant, arrêt) et
+s'arrête quand l'onglet quitte le lecteur (navigation, « Quitter ») ou se ferme. Pause = annulation puis reprise de
+la phrase en cours (`pause()` est peu fiable sous Linux). Le paragraphe lu porte `data-speaking` (marqué
+`data-speech` par `ReaderNodes`, chemin du bloc), défilé au centre, sans glissement si les mouvements sont réduits.
+Sans voix locale (Linux sans speech-dispatcher), le bouton le dit (« Aucune voix… ») ; pas de repli dans main :
+Electron n'y a pas de synthèse, et un binaire embarqué alourdirait l'application pour un cas rare.
+Mode présentation : calque `position: fixed` de l'interface sur toute la fenêtre (la vue de la page est déjà détachée
+en mode lecture, donc la barre latérale est couverte), fenêtre en plein écran par `reader:presentation`
+(`ReaderService.present` rend l'état d'avant : une fenêtre déjà plein écran le reste), barre escamotable (survol,
+focus, 2 s après un mouvement), taille propre, thèmes du lecteur (auto suit le thème, sépia, sombre). Clavier : flèches
+gauche/droite = section (titres), haut/bas, Espace, Page = page, Début/Fin, +/− = taille, Échap = sortie. Commandes
+`read-aloud` (`Ctrl+Maj+U`, comme Edge) et `reader-presentation` (`Ctrl+Alt+F`) : ouvrent le lecteur au besoin
+(`ReaderService.open`) puis envoient `reader-read-aloud`/`reader-presentation` à l'interface ; mots-clés FR et EN.
+
+**Téléphone.** `expo-speech` (moteur du système, sur l'appareil) et `expo-keep-awake`, versions exactes.
+`speechBlocks` (`mobile/src/lib/readAloud.ts`) découpe les blocs natifs (`readerBlocks`) avec `speechChunks` ;
+`useReadAloud` (pause = arrêt + reprise de la phrase, arrêt à la fermeture du lecteur). Barre au pied du lecteur
+(lecture, précédent, suivant, arrêt, vitesse et voix en pastilles qui défilent) ; bloc lu surligné et amené à l'écran
+(`scrollTo`, animé seulement sans « réduire les animations »). Présentation : barres masquées, barre d'état cachée,
+écran gardé allumé, grande taille, toucher le texte montre/masque les contrôles ; défilement sans rebond.
+`expo-speech` ne dit pas si une voix Android demande le réseau : les voix du moteur installé sont offertes telles
+quelles (le moteur de Google est local une fois ses voix téléchargées).
+
+**Conséquences.** Rien d'envoyé, rien d'enregistré hors des trois réglages. Tests : `src/shared/read-aloud.test.ts`
+(découpage, limites, chemins, navigation, vitesse, voix, touches, sections), `settings.test.ts`, Jest
+`mobile/src/lib/readAloud.test.ts`, e2e `tests/e2e/read-aloud.spec.ts` avec un **faux moteur** installé dans
+l'interface (`speechSynthesis` et `SpeechSynthesisUtterance` remplacés : la CI n'a aucune voix) : commande, découpage,
+voix filtrées, vitesse et voix appliquées, surlignage, autre onglet et carte, arrêt en quittant le lecteur ;
+présentation : plein écran, taille, Espace, Échap.

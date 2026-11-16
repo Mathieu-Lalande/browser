@@ -61,6 +61,8 @@ export type CommandId =
   | "open-extensions"
   | "open-passwords"
   | "toggle-reader"
+  | "read-aloud"
+  | "reader-presentation"
   | "toggle-mobile-site"
   | "translate-page"
   | "highlight-selection"
@@ -144,6 +146,8 @@ export type CommandIcon =
   | "extension"
   | "key"
   | "reader"
+  | "read-aloud"
+  | "presentation"
   | "smartphone"
   | "rocket"
   | "eraser"
@@ -453,6 +457,21 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
     get keywords() { return keywords("sharedCommands.readerKeywords") },
     accelerator: "CmdOrCtrl+Alt+R",
     icon: "reader",
+    needsPage: true,
+  },
+  // Read aloud and presentation mode (ADR-058): open the reader first when needed.
+  "read-aloud": {
+    get label() { return t("sharedCommands.readAloud") },
+    get keywords() { return keywords("sharedCommands.readAloudKeywords") },
+    accelerator: "CmdOrCtrl+Shift+U",
+    icon: "read-aloud",
+    needsPage: true,
+  },
+  "reader-presentation": {
+    get label() { return t("sharedCommands.readerPresentation") },
+    get keywords() { return keywords("sharedCommands.readerPresentationKeywords") },
+    accelerator: "CmdOrCtrl+Alt+F",
+    icon: "presentation",
     needsPage: true,
   },
   "toggle-mobile-site": {
@@ -807,6 +826,8 @@ export const COMMAND_GROUPS: readonly { label: string; ids: readonly CommandId[]
       "toggle-sidebar-position",
       "toggle-fullscreen",
       "toggle-reader",
+      "read-aloud",
+      "reader-presentation",
       "toggle-mobile-site",
       "translate-page",
       "toggle-notes-panel",

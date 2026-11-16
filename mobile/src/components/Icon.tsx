@@ -115,6 +115,12 @@ import LayoutGrid from "lucide-react-native/icons/layout-grid";
 import Type from "lucide-react-native/icons/type";
 import Undo2 from "lucide-react-native/icons/undo-2";
 import Play from "lucide-react-native/icons/play";
+import Headphones from "lucide-react-native/icons/headphones";
+import Presentation from "lucide-react-native/icons/presentation";
+import SkipBack from "lucide-react-native/icons/skip-back";
+import SkipForward from "lucide-react-native/icons/skip-forward";
+import Square from "lucide-react-native/icons/square";
+import Gauge from "lucide-react-native/icons/gauge";
 import Pause from "lucide-react-native/icons/pause";
 import AudioLines from "lucide-react-native/icons/audio-lines";
 
@@ -188,6 +194,13 @@ const ui = {
   reader: BookOpen,
   bookMarked: BookMarked,
   textSize: Type,
+  // Read aloud and presentation mode (ADR-058).
+  headphones: Headphones,
+  presentation: Presentation,
+  skipBack: SkipBack,
+  skipForward: SkipForward,
+  stopSquare: Square,
+  gauge: Gauge,
   // Translation (ADR-036).
   languages: Languages,
   // Boosts (ADR-029).

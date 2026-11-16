@@ -39,6 +39,8 @@ export class ReaderService {
   private readonly articles = new Map<TabId, ReaderArticle>();
   /** One extraction per tab at a time (a double press of the shortcut). */
   private readonly busy = new Set<TabId>();
+  /** Windows in presentation mode, with whether they were already in full screen. */
+  private readonly presenting = new WeakMap<BrowserController, boolean>();
 
   /** "Mode lecture": shows the active page's article in place of the page, or goes back to the page. */
   async toggle(c: BrowserController, tabId: TabId): Promise<void> {
@@ -67,11 +69,37 @@ export class ReaderService {
     }
   }
 
+  /** Opens the reader on the tab if it is not shown yet; whether it is shown now (read aloud, presentation: ADR-058). */
+  async open(c: BrowserController, tabId: TabId): Promise<boolean> {
+    const shown = () => !!c.tabs.getState().tabs.find((entry) => entry.id === tabId)?.reader;
+    if (!shown()) await this.toggle(c, tabId);
+    return shown();
+  }
+
   /** The article the chrome UI draws for a tab in reader mode (null otherwise). */
   article(c: BrowserController, tabId: TabId): ReaderArticle | null {
     const tab = c.tabs.getState().tabs.find((entry) => entry.id === tabId);
     const article = this.articles.get(tabId);
     return tab?.reader && article && article.url === c.tabs.pageOf(tabId)?.getURL() ? article : null;
+  }
+
+  /**
+   * Presentation mode (ADR-058): the window goes full screen while the chrome UI shows the article
+   * alone, then back to how it was (a window already in full screen stays so).
+   */
+  present(c: BrowserController, on: boolean): void {
+    const window = c.window;
+    if (window.isDestroyed()) return;
+    if (on) {
+      if (this.presenting.has(c)) return;
+      this.presenting.set(c, window.isFullScreen());
+      if (!window.isFullScreen()) window.setFullScreen(true);
+      return;
+    }
+    const wasFullScreen = this.presenting.get(c);
+    if (wasFullScreen === undefined) return;
+    this.presenting.delete(c);
+    if (!wasFullScreen && window.isFullScreen()) window.setFullScreen(false);
   }
 
   private remember(tabId: TabId, article: ReaderArticle): void {
@@ -83,4 +111,6 @@ export class ReaderService {
 
 // Function facades over the app's reader service (commands and IPC handlers).
 export const toggleReader = (c: BrowserController, tabId: TabId): Promise<void> => appServices().reader.toggle(c, tabId);
+export const openReader = (c: BrowserController, tabId: TabId): Promise<boolean> => appServices().reader.open(c, tabId);
+export const presentReader = (c: BrowserController, on: boolean): void => appServices().reader.present(c, on);
 export const readerArticle = (c: BrowserController, tabId: TabId): ReaderArticle | null => appServices().reader.article(c, tabId);

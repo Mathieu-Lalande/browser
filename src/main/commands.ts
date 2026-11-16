@@ -4,7 +4,7 @@ import { effectiveAccelerator, effectiveAliases, getCommand, type CommandId } fr
 import { settings, updateSettings } from "./settings";
 import { toggleFavorite } from "./organize";
 import { profile } from "./profile";
-import { toggleReader } from "./reader";
+import { openReader, toggleReader } from "./reader";
 import { clearTabSiteData } from "./site-info";
 import { sleepTabNow, sleepTabs } from "./sleep";
 import { spaces } from "./spaces";
@@ -105,6 +105,8 @@ const RUNNERS: Record<CommandId, Runner> = {
   "open-extensions": (c) => c.openExtensions(),
   "open-passwords": (c) => c.openPasswords(),
   "toggle-reader": onActiveTab((c, id) => void toggleReader(c, id)),
+  "read-aloud": onActiveTab((c, id) => void openReader(c, id).then((open) => open && c.sendUiCommand("reader-read-aloud"))),
+  "reader-presentation": onActiveTab((c, id) => void openReader(c, id).then((open) => open && c.sendUiCommand("reader-presentation"))),
   "toggle-mobile-site": onActiveTab((c, id) => c.tabs.toggleMobileSite(id)),
   "translate-page": onActiveTab((c, id) => void c.translator.toggle(id)),
   "highlight-selection": onActiveTab((c, id) => void c.annotator.highlightSelection(id)),
