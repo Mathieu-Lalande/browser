@@ -126,7 +126,7 @@
 
 <style>
   :global(form.card.list.editor) {
-    gap: 14px;
+    gap: var(--space-3);
     padding: var(--space-4);
   }
   .fields {
@@ -148,7 +148,7 @@
     width: 100%;
     height: auto;
     box-sizing: border-box;
-    padding: 6px var(--space-2);
+    padding: var(--space-1) var(--space-2);
     resize: vertical;
     font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
     font-size: var(--text-xs);
@@ -177,7 +177,7 @@
     align-items: flex-start;
     gap: var(--space-2);
     margin: 0;
-    padding: var(--space-2) 10px;
+    padding: var(--space-2) var(--space-2);
     border: 1px solid color-mix(in oklab, var(--danger) 45%, transparent);
     border-radius: var(--radius);
     color: var(--text);

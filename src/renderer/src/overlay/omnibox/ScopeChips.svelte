@@ -30,7 +30,7 @@
     flex: none;
     flex-wrap: wrap;
     gap: 6px;
-    padding: 10px 14px 4px;
+    padding: 10px 14px var(--space-1);
   }
   .chip {
     display: flex;

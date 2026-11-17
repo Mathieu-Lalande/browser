@@ -28,7 +28,7 @@
   .letter {
     display: grid;
     place-items: center;
-    background: color-mix(in oklab, var(--accent) 22%, transparent);
+    background: color-mix(in oklab, var(--accent) min(calc(22% * var(--tint, 1)), 90%), transparent);
     color: var(--accent-text);
     font-size: var(--text-xs);
     font-weight: 700;

@@ -7,6 +7,8 @@ import {
   exportPasswords,
   fillPassword,
   listPasswords,
+  lockVault,
+  vaultLockState,
   neverList,
   passwordPrompt,
   removeNever,
@@ -16,7 +18,8 @@ import {
   updatePassword,
 } from "../passwords";
 import { passwordsStatus } from "../passwords/vault";
-import { bounds, defineHandlers, handle, handleUi, on, str } from "./registry";
+import { checkPasswords } from "../passwords/checkup";
+import { bool, bounds, defineHandlers, handle, handleUi, on, str } from "./registry";
 
 /**
  * Passwords (ADR-025): the UI names entries by id and tabs of its own window; main reads the
@@ -36,5 +39,8 @@ export const passwordHandlers = defineHandlers({
   [Channels.passwordsAccounts]: handle([str], (c, tabId) => accountsFor(c, tabId)),
   [Channels.passwordsFill]: handle([str, isPasswordId], (c, tabId, entryId) => fillPassword(c, tabId, entryId)),
   [Channels.passwordsPrompt]: handle([isPasswordId], (c, captureId) => passwordPrompt(c, captureId)),
+  [Channels.passwordsCheckup]: handleUi([bool], (breaches) => checkPasswords(breaches)),
+  [Channels.passwordsLockState]: handleUi([], () => vaultLockState()),
+  [Channels.passwordsLock]: on([], () => lockVault()),
   [Channels.passwordsAnswer]: handle([isPasswordId, isPromptAnswer], (c, captureId, answer) => answerPrompt(c, captureId, answer)),
 });

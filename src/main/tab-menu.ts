@@ -1,3 +1,4 @@
+import { pinnedPlace } from "@shared/pinned-home";
 import { t } from "@shared/i18n";
 import { Menu, type MenuItemConstructorOptions } from "electron";
 import { folderDepth, type TabFolder } from "@shared/folders";
@@ -33,6 +34,12 @@ export function buildTabMenu(c: BrowserController, tabId: TabId): Menu | null {
 
   const template: MenuItemConstructorOptions[] = [
     { id: "pin", label: tab.isPinned ? t("tabMenu.unpin") : t("tabMenu.pin"), click: () => c.tabs.togglePin(tabId) },
+    ...(tab.isPinned && tab.pinnedUrl && pinnedPlace(tab.pinnedUrl, tab.url) !== "home"
+      ? [
+          { id: "pinned-home", label: t("tabMenu.backToPinnedPage"), click: () => c.tabs.goPinnedHome(tabId) },
+          { id: "pinned-set-home", label: t("tabMenu.makePinnedPage"), click: () => c.tabs.setPinnedHome(tabId) },
+        ]
+      : []),
     { id: "duplicate", label: t("tabMenu.duplicate"), click: () => c.tabs.duplicate(tabId) },
     { type: "separator" },
     inSplit && splitVisible

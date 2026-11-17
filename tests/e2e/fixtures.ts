@@ -433,6 +433,10 @@ export function launch(
       BROWSER_TEST_FILTERS: TEST_FILTERS,
       BROWSER_TEST_SKIP_WELCOME: "1",
       BROWSER_TEST_LOCALE: "fr",
+      // The password vault lock (ADR-059) answers its system prompt by itself ("0": refused).
+      BROWSER_TEST_VAULT_UNLOCK: "1",
+      // Mains power, whatever the machine (ADR-048): the energy saver spec turns battery on itself.
+      BROWSER_TEST_ON_BATTERY: "0",
       ...(options.sandboxed ? { SANDBOXED_ELECTRON: electronBinary } : {}),
       ...env,
     },

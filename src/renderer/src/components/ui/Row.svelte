@@ -95,6 +95,10 @@
     width: 100%;
     margin-left: 0;
   }
+  /* A block has no `gap`: a list followed by its "Add" button (or a form) keeps the row's spacing. */
+  .stacked .control > :global(* + *) {
+    margin-top: var(--space-3);
+  }
   @container settings (max-width: 520px) {
     .row {
       flex-direction: column;

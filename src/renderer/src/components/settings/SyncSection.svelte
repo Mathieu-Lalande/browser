@@ -307,14 +307,14 @@
     display: flex;
     flex-wrap: wrap;
     align-items: flex-start;
-    gap: 8px;
+    gap: var(--space-2);
     width: 100%;
   }
   .field {
     flex: 1 1 240px;
     min-width: 0;
     height: 32px;
-    padding: 0 10px;
+    padding: 0 var(--space-2);
     border: 1px solid var(--border);
     border-radius: 8px;
     outline: 0;
@@ -328,14 +328,14 @@
   }
   .field.code {
     height: auto;
-    padding: 8px 10px;
+    padding: var(--space-2) var(--space-2);
     font: 11.5px/1.45 ui-monospace, monospace;
     resize: none;
     word-break: break-all;
   }
   .field:focus {
-    border-color: color-mix(in oklab, var(--accent) 60%, transparent);
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
+    border-color: color-mix(in oklab, var(--accent) min(calc(60% * var(--tint, 1)), 90%), transparent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) min(calc(18% * var(--tint, 1)), 90%), transparent);
   }
   .primary,
   .secondary,
@@ -343,9 +343,9 @@
     display: flex;
     flex: none;
     align-items: center;
-    gap: 7px;
+    gap: var(--space-2);
     height: 32px;
-    padding: 0 12px;
+    padding: 0 var(--space-3);
     border: 1px solid var(--border);
     border-radius: 8px;
     background: var(--surface);
@@ -362,11 +362,11 @@
   }
   .danger.small {
     height: 26px;
-    padding: 0 8px;
+    padding: 0 var(--space-2);
     font-size: 11.5px;
   }
   .note {
-    margin: 8px 0 0;
+    margin: var(--space-2) 0 0;
     color: var(--text-muted);
     font-size: 11.5px;
     line-height: 1.45;
@@ -382,7 +382,7 @@
   .phase {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-1);
     color: var(--accent-text);
     font-size: 12px;
   }
@@ -393,13 +393,13 @@
   .devices {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: var(--space-2);
     margin: 0;
     padding: 0;
     list-style: none;
   }
   .device {
-    padding: 8px;
+    padding: var(--space-2);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--bg-elevated);
@@ -407,8 +407,8 @@
   .device-head {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 2px 4px 6px;
+    gap: var(--space-2);
+    padding: 2px var(--space-1) var(--space-1);
     color: var(--text-muted);
   }
   .device-name {
@@ -423,7 +423,7 @@
     display: flex;
     flex-direction: column;
     width: 100%;
-    padding: 5px 8px;
+    padding: var(--space-1) var(--space-2);
     border-radius: 7px;
     text-align: left;
   }
@@ -445,8 +445,8 @@
     display: flex;
     flex-wrap: wrap;
     align-items: flex-start;
-    gap: 10px;
-    padding: 12px;
+    gap: var(--space-2);
+    padding: var(--space-3);
     border: 1px solid color-mix(in oklab, var(--danger) 45%, transparent);
     border-radius: var(--radius);
     background: color-mix(in oklab, var(--danger) 9%, transparent);
@@ -459,25 +459,25 @@
   }
   .buttons {
     display: flex;
-    gap: 8px;
+    gap: var(--space-2);
   }
   .pairing {
     display: flex;
     flex-wrap: wrap;
-    gap: 16px;
+    gap: var(--space-4);
   }
   .pairing-side {
     display: flex;
     flex: 1 1 260px;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-2);
   }
   .message {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-1);
     margin: 0;
-    padding: 10px 18px 14px;
+    padding: var(--space-2) var(--space-4) var(--space-3);
     color: var(--danger-text);
     font-size: 12px;
   }

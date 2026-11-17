@@ -93,7 +93,7 @@
   .field {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
     width: min(420px, 100%);
     height: 30px;
     padding: 0 10px;
@@ -106,9 +106,9 @@
       box-shadow var(--motion-fast) var(--ease);
   }
   .field:focus-within {
-    border-color: color-mix(in oklab, var(--accent) 60%, transparent);
+    border-color: color-mix(in oklab, var(--accent) min(calc(60% * var(--tint, 1)), 90%), transparent);
     background: var(--bg-elevated);
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) min(calc(18% * var(--tint, 1)), 90%), transparent);
   }
   .field.not-found {
     border-color: color-mix(in oklab, var(--danger) 70%, transparent);
@@ -154,7 +154,7 @@
     font-weight: 600;
   }
   .case.on {
-    background: color-mix(in oklab, var(--accent) 18%, transparent);
+    background: color-mix(in oklab, var(--accent) min(calc(18% * var(--tint, 1)), 90%), transparent);
     color: var(--accent-text);
   }
   .steps {

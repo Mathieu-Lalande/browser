@@ -259,3 +259,12 @@
   titres des pages internes ; `BrowserState.locale`/`MiniState.locale` → `lib/i18n.svelte.ts`, racines en `{#key locale.current}` ;
   mobile `lib/locale.ts` + `key` sur `BrowserScreen` ; `Intl` via `formatDate`/`formatNumber`/`intlLocale()` (jamais `"fr-FR"`) ;
   mots-clés de recherche dans les deux langues (`keywords()`). Site : pages `site/en/`, `hreflang`, bandeau de suggestion (`site/src/i18n.ts`).
+- Rangement, bien-être, sécurité, couleurs (ADR-059) : épingler = favori (`onPinned`), onglets épinglés ancrés
+  (`pinnedUrl`, `src/shared/pinned-home.ts`) ; « Ranger les onglets » (`src/shared/tab-tidy.ts`, `groupLocally` sans IA,
+  `structuredAnswer` avec, `TidyPanel`) ; `browser://focus` (`src/main/wellbeing.ts`, crochet `focusHolds`, interstitiel
+  `focus`, `site-time.json`) et `browser://sessions` (`sessions.json`), petits documents par `ProfileDoc` ; bilan des mots
+  de passe (k-anonymat, `BROWSER_TEST_BREACH_URL`) et verrou du coffre (`passwords.lockMinutes`, `BROWSER_TEST_VAULT_UNLOCK`) ;
+  pages sombres (`src/main/dark-pages.ts`, monde isolé 1023) ; applications web `--app=` (`src/main/web-apps.ts`) ; résumé
+  dans l'aperçu ; panneaux web (zoom « Ajuster », son, veille) ; `appearance.colorIntensity` → `--tint` (lavis d'accent en
+  `min(calc(N% * var(--tint, 1)), 90%)`). Skill `/ui-review` (`.claude/skills/ui-review/`). E2E en local sous Windows :
+  `env -u ELECTRON_RUN_AS_NODE npx playwright test`.

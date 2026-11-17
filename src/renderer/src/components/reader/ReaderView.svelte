@@ -302,8 +302,8 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
     border-bottom: 1px solid var(--reader-rule);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     font-size: 12px;
@@ -321,14 +321,14 @@
     color: var(--reader-muted);
   }
   .group > :global(svg) {
-    margin: 0 4px;
+    margin: 0 var(--space-1);
   }
   .tool,
   .choice {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-2);
     border: 0;
     border-radius: 6px;
     background: transparent;
@@ -397,7 +397,7 @@
     display: none;
   }
   .presenting .scroll {
-    padding: 72px 32px 30vh;
+    padding: 72px var(--space-6) 30vh;
     outline: none;
   }
   .presenting article {
@@ -423,7 +423,7 @@
   .scroll {
     flex: 1;
     overflow-y: auto;
-    padding: 40px 24px 80px;
+    padding: 40px var(--space-5) 80px;
   }
   article {
     max-width: var(--reader-width);
@@ -461,7 +461,7 @@
   .meta span {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--space-1);
   }
   .content :global(a) {
     color: var(--reader-link);
@@ -501,7 +501,7 @@
   }
   .content :global(th),
   .content :global(td) {
-    padding: 4px 8px;
+    padding: var(--space-1) var(--space-2);
     border: 1px solid var(--reader-rule);
   }
   .content :global(hr) {

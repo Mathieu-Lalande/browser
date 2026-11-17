@@ -84,7 +84,7 @@
   .pending {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-1);
     color: var(--text);
     font-size: var(--text-xs);
   }

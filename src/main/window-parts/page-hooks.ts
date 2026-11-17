@@ -1,4 +1,5 @@
 import type { WebContents } from "electron";
+import { darkPageReady } from "../dark-pages";
 import type { TabId } from "@shared/types";
 import type { PageAnnotator } from "../annotations";
 import type { BoostService } from "../boosts/service";
@@ -58,7 +59,10 @@ export class PageHooks {
         this.deps.watchAutofill(tabId, contents);
       },
       notifyPage: (tabId, contents) => this.deps.watchNotifications(tabId, contents),
-      boostPage: (contents) => boosts.boostPage(contents, features.isPrivate),
+      boostPage: (contents) => {
+        boosts.boostPage(contents, features.isPrivate);
+        darkPageReady(contents);
+      },
       peekLink: (tabId, url) => features.peek.open(tabId, url),
       gesturePage: (contents) => this.deps.watchPageWheel(contents),
       pageWheel: (tabId, sample) => features.gestures.feedPage(tabId, sample),

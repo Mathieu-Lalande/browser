@@ -104,6 +104,35 @@
 >
   <Toggle label={t("appearanceSection.dynamicTheme")} checked={s.appearance.dynamicTheme} onchange={(dynamicTheme) => update({ appearance: { dynamicTheme } })} />
 </Row>
+<Row anchor="color-intensity" label={t("appearanceSection.colorIntensity")} hint={t("appearanceSection.colorIntensityHint")} keywords={t("appearanceSection.colorIntensityKeywords")}>
+  <Segmented
+    label={t("appearanceSection.colorIntensity")}
+    value={s.appearance.colorIntensity}
+    options={[
+      { value: "subtle" as const, label: t("appearanceSection.intensitySubtle") },
+      { value: "balanced" as const, label: t("appearanceSection.intensityBalanced") },
+      { value: "vivid" as const, label: t("appearanceSection.intensityVivid") },
+    ]}
+    onchange={(colorIntensity) => update({ appearance: { colorIntensity } })}
+  />
+</Row>
+<Row
+  anchor="dark-pages"
+  label={t("appearanceSection.darkPages")}
+  hint={s.appearance.darkPagesSites.length ? t("appearanceSection.darkPagesHintSites", { count: s.appearance.darkPagesSites.length }) : t("appearanceSection.darkPagesHint")}
+  keywords={t("appearanceSection.darkPagesKeywords")}
+>
+  <Segmented
+    label={t("appearanceSection.darkPages")}
+    value={s.appearance.darkPages}
+    options={[
+      { value: "off" as const, label: t("appearanceSection.darkPagesOff") },
+      { value: "auto" as const, label: t("appearanceSection.darkPagesAuto") },
+      { value: "on" as const, label: t("appearanceSection.darkPagesOn") },
+    ]}
+    onchange={(darkPages) => update({ appearance: { darkPages } })}
+  />
+</Row>
 {#if window.platform === "win32"}
   <Row anchor="mica" label={t("appearanceSection.micaEffect")} hint={t("appearanceSection.windows11DesktopBackground")}>
     <Toggle label={t("appearanceSection.micaEffect")} checked={s.appearance.mica} onchange={(mica) => update({ appearance: { mica } })} />
@@ -222,13 +251,13 @@
   }
   .mode:hover .frame {
     box-shadow:
-      0 0 0 1px color-mix(in oklab, var(--accent) 50%, transparent),
+      0 0 0 1px color-mix(in oklab, var(--accent) min(calc(50% * var(--tint, 1)), 90%), transparent),
       0 6px 18px -10px rgb(0 0 0 / 0.5);
   }
   .mode[aria-checked="true"] .frame {
     box-shadow:
       0 0 0 2px var(--accent-text),
-      0 8px 24px -10px color-mix(in oklab, var(--accent) 60%, transparent);
+      0 8px 24px -10px color-mix(in oklab, var(--accent) min(calc(60% * var(--tint, 1)), 90%), transparent);
   }
   .mode[aria-checked="true"] {
     color: var(--text);
@@ -244,7 +273,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: var(--space-1);
     font-size: var(--text-xs);
   }
 
@@ -258,9 +287,9 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-1);
     width: 76px;
-    padding: 6px 6px 8px;
+    padding: var(--space-1) var(--space-1) var(--space-2);
     border-radius: var(--radius-md);
     color: var(--text-muted);
     font-size: var(--text-xs);
@@ -273,7 +302,7 @@
     background: var(--surface-hover);
   }
   .tile[aria-checked="true"] {
-    background: color-mix(in oklab, var(--accent) 10%, transparent);
+    background: color-mix(in oklab, var(--accent) min(calc(10% * var(--tint, 1)), 90%), transparent);
     color: var(--text);
     box-shadow: inset 0 0 0 2px var(--accent-text);
   }
@@ -293,6 +322,6 @@
   }
   .ui-field.select {
     width: 110px;
-    padding-right: 6px;
+    padding-right: var(--space-1);
   }
 </style>

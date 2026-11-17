@@ -31,7 +31,7 @@
   .slider {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-3);
   }
   input {
     width: 180px;
@@ -48,7 +48,7 @@
   input::-webkit-slider-thumb {
     width: 16px;
     height: 16px;
-    margin-top: -6px;
+    margin-top: calc(-1 * var(--space-1));
     border: 0;
     border-radius: 50%;
     background: #fff;
@@ -65,11 +65,11 @@
     outline: none;
   }
   input:focus-visible::-webkit-slider-thumb {
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 45%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) min(calc(45% * var(--tint, 1)), 90%), transparent);
   }
   output {
     min-width: 52px;
-    padding: 3px 0;
+    padding: var(--space-1) 0;
     border-radius: 6px;
     background: var(--surface);
     color: var(--text-muted);

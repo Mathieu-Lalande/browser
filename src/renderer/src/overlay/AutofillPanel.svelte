@@ -183,7 +183,7 @@
     width: 32px;
     height: 32px;
     border-radius: var(--radius-md);
-    background: color-mix(in oklab, var(--accent) 14%, transparent);
+    background: color-mix(in oklab, var(--accent) min(calc(14% * var(--tint, 1)), 90%), transparent);
     color: var(--accent-text);
   }
   h2 {

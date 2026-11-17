@@ -38,7 +38,7 @@
     height: 44px;
     margin-bottom: var(--space-2);
     border-radius: var(--radius-lg);
-    background: color-mix(in oklab, var(--accent) 12%, transparent);
+    background: color-mix(in oklab, var(--accent) min(calc(12% * var(--tint, 1)), 90%), transparent);
     color: var(--accent-text);
   }
   .compact .glyph {

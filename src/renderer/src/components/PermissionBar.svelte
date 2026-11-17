@@ -65,10 +65,10 @@
     align-items: center;
     gap: 10px;
     min-height: 44px;
-    padding: 6px 8px 6px 14px;
+    padding: 6px var(--space-2) 6px 14px;
     border-radius: var(--radius);
     background: var(--bg-elevated);
-    box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 35%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) min(calc(35% * var(--tint, 1)), 90%), transparent);
     color: var(--accent-text);
     animation: drop var(--motion-base) var(--ease);
   }

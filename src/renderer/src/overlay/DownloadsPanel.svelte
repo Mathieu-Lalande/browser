@@ -102,7 +102,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 10px 8px 16px;
+    padding: var(--space-3) 10px var(--space-2) var(--space-4);
   }
   h2 {
     margin: 0;
@@ -147,8 +147,8 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    padding: 14px 24px 22px;
+    gap: var(--space-1);
+    padding: 14px var(--space-5) 22px;
     text-align: center;
   }
   .badge {
@@ -158,7 +158,7 @@
     height: 40px;
     margin-bottom: 6px;
     border-radius: 12px;
-    background: color-mix(in oklab, var(--accent) 14%, transparent);
+    background: color-mix(in oklab, var(--accent) min(calc(14% * var(--tint, 1)), 90%), transparent);
     color: var(--accent-text);
   }
   p {

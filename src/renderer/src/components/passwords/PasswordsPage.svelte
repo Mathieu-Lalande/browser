@@ -11,6 +11,11 @@
   import EmptyState from "../ui/EmptyState.svelte";
   import Page from "../ui/Page.svelte";
   import SearchField from "../ui/SearchField.svelte";
+  import Segmented from "../ui/Segmented.svelte";
+  import PasswordCheckup from "./PasswordCheckup.svelte";
+  import type { CheckupReport, PasswordIssue } from "@shared/password-checkup";
+  import { VAULT_LOCK_MINUTES, type VaultLockState } from "@shared/vault-lock";
+  import { settings } from "../../lib/settings.svelte";
 
   /**
    * `browser://passwords` (ADR-025): saved passwords, searched by site or username. The list has
@@ -31,10 +36,18 @@
   let copiedTimer: ReturnType<typeof setTimeout> | undefined;
   let request = 0;
 
-  const shown = $derived(searchPasswords(entries, query));
+  let report = $state<CheckupReport | null>(null);
+  let filter = $state<"all" | "issues">("all");
+  const issues = $derived(new Map<string, PasswordIssue>((report?.issues ?? []).map((issue) => [issue.id, issue])));
+  const shown = $derived(searchPasswords(entries, query).filter((entry) => filter === "all" || issues.has(entry.id)));
   const dateFormat = new Intl.DateTimeFormat(intlLocale(), { dateStyle: "medium" });
 
+  let lock = $state<VaultLockState | null>(null);
+  const refreshLock = () => void api.passwords.lockState().then((next) => (lock = next), () => null);
+  const lockOptions = VAULT_LOCK_MINUTES.map((minutes) => ({ value: String(minutes), label: minutes ? t("vaultLock.minutes", { minutes }) : t("vaultLock.never") }));
+
   async function refresh(): Promise<void> {
+    refreshLock();
     const id = ++request;
     const [list, neverList, current] = await Promise.all([
       api.passwords.list().catch(() => []),
@@ -58,6 +71,7 @@
     const result = await api.passwords.reveal(id).catch(() => ({ ok: false as const, message: t("passwordsPage.passwordCouldntShown") }));
     if (result.ok) revealed = { ...revealed, [id]: result.password };
     else notice = { kind: "error", text: result.message };
+    refreshLock();
   }
 
   function hide(id: string): void {
@@ -71,6 +85,7 @@
       notice = { kind: "error", text: result.message };
       return;
     }
+    refreshLock();
     copiedId = id;
     clearTimeout(copiedTimer);
     copiedTimer = setTimeout(() => (copiedId = null), 1600);
@@ -127,8 +142,39 @@
       </p>
     {/if}
 
+    {#if entries.length && lock}
+      <div class="lock" class:locked={lock.locked} data-testid="vault-lock">
+        <span class="lock-state"><Icon name={lock.locked ? "lock" : "lock-open"} size={14} /> {lock.locked ? t("vaultLock.locked") : t("vaultLock.open")}</span>
+        <span class="lock-delay" title={t("vaultLock.hint")}>
+          {t("vaultLock.delayLabel")}
+          <Segmented
+            value={String(settings.current.passwords.lockMinutes)}
+            label={t("vaultLock.delayLabel")}
+            options={lockOptions}
+            onchange={(value) => (settings.update({ passwords: { lockMinutes: Number(value) } }), setTimeout(refreshLock, 50))}
+          />
+        </span>
+        {#if !lock.locked && lock.lockMinutes}
+          <Button size="sm" variant="quiet" icon="lock" onclick={() => (api.passwords.lock(), (revealed = {}), setTimeout(refreshLock, 50))}>{t("vaultLock.lockNow")}</Button>
+        {/if}
+      </div>
+    {/if}
     {#if entries.length}
-      <SearchField bind:value={query} label={t("passwordsPage.searchPasswords")} placeholder={t("passwordsPage.searchSiteUsername")} />
+      <PasswordCheckup bind:report />
+      <div class="tools">
+        <SearchField bind:value={query} label={t("passwordsPage.searchPasswords")} placeholder={t("passwordsPage.searchSiteUsername")} />
+        {#if report?.issues.length}
+          <Segmented
+            value={filter}
+            label={t("passwordCheckup.filterLabel")}
+            options={[
+              { value: "all", label: t("passwordCheckup.filterAll") },
+              { value: "issues", label: `${t("passwordCheckup.filterIssues")} · ${report.issues.length}` },
+            ]}
+            onchange={(next) => (filter = next)}
+          />
+        {/if}
+      </div>
       <Card as="ul" aria-label={t("passwordsPage.savedPasswords")}>
         {#each shown as entry (entry.id)}
           <ListRow data-password-id={entry.id}>
@@ -144,7 +190,15 @@
               </form>
             {:else}
               <span class="text">
-                <span class="site">{originLabel(entry.origin)}</span>
+                <span class="site">
+                  {originLabel(entry.origin)}
+                  {#if issues.get(entry.id)}
+                    {@const issue = issues.get(entry.id)!}
+                    {#if (issue.breached ?? 0) > 0}<span class="badge breached" data-testid="badge-breached">{t("passwordCheckup.badgeBreached")}</span>{/if}
+                    {#if issue.reused}<span class="badge reused">{t("passwordCheckup.badgeReused", { count: issue.reused })}</span>{/if}
+                    {#if issue.weak}<span class="badge weak">{t("passwordCheckup.badgeWeak")}</span>{/if}
+                  {/if}
+                </span>
                 <span class="user">{entry.username || tr("passwordsPage.noUsername")}</span>
                 <span class="secret" class:mono={entry.id in revealed} data-testid="password-value">{revealed[entry.id] ?? "••••••••••"}</span>
                 <span class="detail">
@@ -152,6 +206,9 @@
                 </span>
               </span>
               <span class="actions">
+                {#if issues.has(entry.id)}
+                  <IconButton size="row" icon="open" iconSize={14} title={t("passwordCheckup.change")} label={`${t("passwordCheckup.change")} : ${originLabel(entry.origin)}`} onclick={() => api.tabs.create(entry.origin)} />
+                {/if}
                 {#if entry.id in revealed}
                   <IconButton size="row" icon="eye-off" iconSize={14} title={t("passwordsPage.hide")} label={t("passwordsPage.hidePassword", { p: originLabel(entry.origin) })} onclick={() => hide(entry.id)} />
                 {:else}
@@ -208,9 +265,9 @@
   .notice {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
     margin: 0;
-    padding: 8px 10px 8px 12px;
+    padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--surface);
@@ -234,8 +291,66 @@
     min-width: 0;
     overflow-wrap: anywhere;
   }
-  .site {
+  .lock {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-4);
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    font-size: var(--text-sm);
+  }
+  .lock-state {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    color: var(--success);
     font-weight: 600;
+  }
+  .lock.locked .lock-state {
+    color: var(--accent-text);
+  }
+  .lock-delay {
+    display: inline-flex;
+    flex: 1;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--text-muted);
+  }
+  .tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+  }
+  .tools > :global(:first-child) {
+    flex: 1 1 240px;
+  }
+  .site {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1) var(--space-2);
+    font-weight: 600;
+  }
+  .badge {
+    --c: var(--danger);
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-pill);
+    background: color-mix(in oklab, var(--c) 14%, transparent);
+    color: color-mix(in oklab, var(--c) 75%, var(--text));
+    font-size: var(--text-xs);
+    font-weight: 500;
+    line-height: 1.6;
+  }
+  .badge.reused {
+    --c: color-mix(in oklab, var(--danger) 45%, var(--accent-2));
+  }
+  .badge.weak {
+    --c: var(--accent);
   }
   .secret {
     color: var(--text-muted);
@@ -260,7 +375,7 @@
   }
   .text-button {
     height: 28px;
-    padding: 0 10px;
+    padding: 0 var(--space-2);
     border-radius: 7px;
     color: var(--text-muted);
   }
@@ -276,12 +391,12 @@
     display: flex;
     flex: 1;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .edit-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 6px;
+    gap: var(--space-1);
   }
 </style>

@@ -44,9 +44,9 @@
   .secondary {
     display: flex;
     align-items: center;
-    gap: 7px;
+    gap: var(--space-2);
     height: 32px;
-    padding: 0 12px;
+    padding: 0 var(--space-3);
     border: 1px solid var(--border);
     border-radius: 8px;
     background: var(--surface);

@@ -69,9 +69,9 @@
     bottom: 16px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-2);
     width: 280px;
-    padding: 8px;
+    padding: var(--space-2);
     border-radius: calc(var(--radius) + 4px);
     background: var(--bg-elevated);
     box-shadow:
@@ -97,8 +97,8 @@
   .info {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 0 2px 0 4px;
+    gap: var(--space-2);
+    padding: 0 2px 0 var(--space-1);
   }
   .title {
     flex: 1;

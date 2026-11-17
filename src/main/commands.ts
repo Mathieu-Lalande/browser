@@ -1,3 +1,6 @@
+import { installWebApp } from "./web-apps";
+import { focusState, setFocus } from "./wellbeing";
+import { toggleDarkPageFor } from "./dark-pages";
 import { app, clipboard, type MenuItemConstructorOptions } from "electron";
 import { issueUrl } from "@shared/diagnostics";
 import { effectiveAccelerator, effectiveAliases, getCommand, type CommandId } from "@shared/commands";
@@ -47,6 +50,9 @@ const RUNNERS: Record<CommandId, Runner> = {
   "close-tab": onActiveTab((c, id) => c.tabs.close(id)),
   "duplicate-tab": onActiveTab((c, id) => c.tabs.duplicate(id)),
   "toggle-pin": onActiveTab((c, id) => c.tabs.togglePin(id)),
+  "pinned-home": onActiveTab((c, id) => c.tabs.goPinnedHome(id)),
+  "tidy-tabs": (c) => c.sendUiCommand("tidy-tabs"),
+  "toggle-dark-page": onActiveTab((c, id) => toggleDarkPageFor(c.tabs.getState().tabs.find((tab) => tab.id === id)?.url ?? "")),
   reload: onActiveTab((c, id) => c.tabs.reload(id)),
   back: onActiveTab((c, id) => c.tabs.back(id)),
   forward: onActiveTab((c, id) => c.tabs.forward(id)),
@@ -100,6 +106,10 @@ const RUNNERS: Record<CommandId, Runner> = {
   "toggle-favorite": onActiveTab(toggleFavorite),
   "new-folder": (c) => void c.tabs.createFolder(),
   "open-archive": (c) => c.openArchive(),
+  "open-focus": (c) => c.openInternal("focus"),
+  "open-sessions": (c) => c.openInternal("sessions"),
+  "install-web-app": (c) => void installWebApp(c),
+  "start-focus": () => void setFocus(focusState().until ? null : settings().focus.minutes),
   "open-history": (c) => c.openInternal("history"),
   "import-data": (c) => c.openInternal("import"),
   "open-extensions": (c) => c.openExtensions(),

@@ -1,12 +1,13 @@
 import { t } from "@shared/i18n";
 import { Channels } from "@shared/ipc";
-import { MAX_PANEL_TITLE, isPanelId, type PanelAddResult } from "@shared/panels";
+import { MAX_PANEL_TITLE, PANEL_ZOOM, isPanelId, type PanelAddResult, type PanelZoom } from "@shared/panels";
 import { isReadingId } from "@shared/reading-list";
 import { appServices } from "../app-services-ref";
 import { bool, bounds, custom, defineHandlers, handle, int, maxStr, nullable, num, on, opt, str } from "./registry";
 
 const panelId = custom<string>(isPanelId);
 const readingId = custom<string>(isReadingId);
+const panelZoom = custom<PanelZoom>((value): value is PanelZoom => value === "fit" || (typeof value === "number" && Number.isFinite(value) && value >= PANEL_ZOOM.min && value <= PANEL_ZOOM.max));
 /** A private window has no panels and no reading list (ADR-014): refused before any handler runs. */
 const priv = { privateRefused: true } as const;
 
@@ -26,6 +27,12 @@ export const panelHandlers = defineHandlers({
   [Channels.panelsBounds]: on([nullable(bounds)], (c, rect) => c.panels.setBounds(rect), { from: "chrome" }),
   [Channels.panelsReload]: on([panelId], (c, id) => c.panels.reload(id), priv),
   [Channels.panelsContextMenu]: on([panelId], (c, id) => c.panels.contextMenu(id), priv),
+  [Channels.panelsSetZoom]: on([panelId, panelZoom], (_c, id, zoom) => appServices().panels.update(id, { zoom }), priv),
+  [Channels.panelsSetMuted]: on([panelId, bool], (_c, id, muted) => appServices().panels.update(id, { muted }), priv),
+  [Channels.panelsBack]: on([panelId], (c, id) => c.panels.back(id), priv),
+  [Channels.panelsHome]: on([panelId], (c, id) => c.panels.home(id), priv),
+  [Channels.panelsOpenInTab]: on([panelId], (c, id) => c.panels.openInTab(id), priv),
+  [Channels.panelsSleep]: on([panelId], (c, id) => c.panels.sleep(id), priv),
 });
 
 /** The reading list (ADR-047): items are named by id, tabs by the sender window's ids. */

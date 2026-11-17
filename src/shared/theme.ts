@@ -1,4 +1,4 @@
-import { effectiveGutter, normalizeHex, pageRadius, type BackgroundStyle, type Density, type Settings, type UiFont } from "./settings";
+import { effectiveGutter, normalizeHex, pageRadius, type BackgroundStyle, type ColorIntensity, type Density, type Settings, type UiFont } from "./settings";
 
 /**
  * Theming engine: derives the whole chrome palette from an accent color and a light/dark mode.
@@ -157,13 +157,40 @@ export interface Palette {
 
 const FALLBACK_ACCENT = "#8b7bff";
 
-export function derivePalette(accentHex: string, accent2Hex: string, mode: ResolvedMode): Palette {
+/**
+ * "Intensité des couleurs" (ADR-059): how much the accent colors the chrome: the tint of the
+ * neutrals, the backdrop's gradients and the accent washes (`--tint`). The contrast engine counts
+ * the strongest tints as backgrounds, so text stays readable at every level.
+ */
+export const COLOR_INTENSITY: Record<ColorIntensity, number> = { subtle: 0.45, balanced: 1, vivid: 1.8 };
+
+/**
+ * The intensity actually used: above "balanced", lowered (by 0.1 steps) until the strongest tinted
+ * backdrop stays dark enough for light text (dark mode) or light enough for dark text (light
+ * mode): a pale yellow accent cannot flood a dark theme.
+ */
+export function effectiveIntensity(accentHex: string, accent2Hex: string, mode: ResolvedMode, intensity: number): number {
+  if (intensity <= 1) return intensity;
+  const accentRgb = parseHex(accentHex) ?? parseHex(FALLBACK_ACCENT)!;
+  const accent2Rgb = parseHex(accent2Hex) ?? accentRgb;
+  const bg = fromOklch({ l: mode === "dark" ? 0.175 : 0.955, c: 0, h: 0 });
+  const fits = (k: number) =>
+    [blend(accentRgb, Math.min(0.6, 0.34 * k), bg), blend(accent2Rgb, Math.min(0.5, 0.24 * k), bg)].every((ground) =>
+      mode === "dark" ? luminance(ground) <= 0.16 : luminance(ground) >= 0.3,
+    );
+  let k = intensity;
+  while (k > 1 && !fits(k)) k = Math.round((k - 0.1) * 10) / 10;
+  return k;
+}
+
+export function derivePalette(accentHex: string, accent2Hex: string, mode: ResolvedMode, wanted = 1): Palette {
+  const intensity = effectiveIntensity(accentHex, accent2Hex, mode, wanted);
   const accentRgb = parseHex(accentHex) ?? parseHex(FALLBACK_ACCENT)!;
   const accent2Rgb = parseHex(accent2Hex) ?? accentRgb;
   const accent = toOklch(accentRgb);
   const h = accent.c < 0.01 ? 285 : accent.h;
   // Neutrals take a hint of the accent hue; grey accents give truly neutral greys.
-  const tint = Math.min(accent.c, 0.16) * 0.12;
+  const tint = Math.min(accent.c, 0.16) * 0.12 * intensity;
   const dark = mode === "dark";
   const toward: 1 | -1 = dark ? 1 : -1;
 
@@ -174,7 +201,7 @@ export function derivePalette(accentHex: string, accent2Hex: string, mode: Resol
   // Text must stay readable on every background it can sit on, the strongest surface included.
   // The sidebar sits on the tinted backdrop (gradient or mesh, up to ~34% accent): its strongest
   // tints count as backgrounds too, so muted labels stay readable over them.
-  const tinted = [blend(accentRgb, 0.34, bg), blend(accent2Rgb, 0.24, bg)];
+  const tinted = [blend(accentRgb, Math.min(0.6, 0.34 * intensity), bg), blend(accent2Rgb, Math.min(0.5, 0.24 * intensity), bg)];
   const grounds = [bg, bgElevated, blend(overlay, alphas.active, bg), blend(overlay, alphas.active, bgElevated), ...tinted];
 
   const text = ensureContrast({ l: dark ? 0.955 : 0.2, c: tint * 0.6, h }, grounds, 7, toward);
@@ -247,21 +274,23 @@ export const FONT_STACKS: Record<UiFont, string> = {
 const mix = (color: string, percent: number) => `color-mix(in oklab, var(${color}) ${percent}%, transparent)`;
 
 /** The window backdrop behind the sidebar and around the page. */
-export function backdrop(style: BackgroundStyle, mode: ResolvedMode): string {
+export function backdrop(style: BackgroundStyle, mode: ResolvedMode, intensity = 1): string {
   const k = mode === "dark" ? 1 : 0.8;
+  // Capped like the contrast engine's tinted grounds (60% / 50%).
+  const a = (percent: number) => Math.min(60, Math.round(percent * k * intensity));
   if (style === "solid") return "var(--bg)";
   if (style === "mesh") {
     return [
-      `radial-gradient(60% 55% at 0% 0%, ${mix("--accent", Math.round(34 * k))}, transparent 70%)`,
-      `radial-gradient(55% 60% at 100% 0%, ${mix("--accent-2", Math.round(22 * k))}, transparent 70%)`,
-      `radial-gradient(60% 60% at 100% 100%, ${mix("--accent", Math.round(24 * k))}, transparent 70%)`,
-      `radial-gradient(55% 50% at 0% 100%, ${mix("--accent-2", Math.round(20 * k))}, transparent 70%)`,
+      `radial-gradient(60% 55% at 0% 0%, ${mix("--accent", a(34))}, transparent 70%)`,
+      `radial-gradient(55% 60% at 100% 0%, ${mix("--accent-2", Math.min(50, a(22)))}, transparent 70%)`,
+      `radial-gradient(60% 60% at 100% 100%, ${mix("--accent", a(24))}, transparent 70%)`,
+      `radial-gradient(55% 50% at 0% 100%, ${mix("--accent-2", Math.min(50, a(20)))}, transparent 70%)`,
       "var(--bg)",
     ].join(", ");
   }
   return [
-    `radial-gradient(120% 80% at 0% 0%, ${mix("--accent", 16)}, transparent 60%)`,
-    `radial-gradient(100% 70% at 100% 100%, ${mix("--accent-2", 10)}, transparent 60%)`,
+    `radial-gradient(120% 80% at 0% 0%, ${mix("--accent", Math.round(16 * intensity))}, transparent 60%)`,
+    `radial-gradient(100% 70% at 100% 100%, ${mix("--accent-2", Math.round(10 * intensity))}, transparent 60%)`,
     "var(--bg)",
   ].join(", ");
 }
@@ -269,7 +298,8 @@ export function backdrop(style: BackgroundStyle, mode: ResolvedMode): string {
 /** Every CSS custom property the chrome UI reads, for `settings` shown in `mode`. */
 export function themeVariables(settings: Settings, mode: ResolvedMode): Record<string, string> {
   const { appearance, layout } = settings;
-  const palette = derivePalette(appearance.accent, appearance.accent2, mode);
+  const intensity = effectiveIntensity(appearance.accent, appearance.accent2, mode, COLOR_INTENSITY[appearance.colorIntensity]);
+  const palette = derivePalette(appearance.accent, appearance.accent2, mode, intensity);
   const density = DENSITY[appearance.density];
   const shadow = mode === "dark" ? "rgb(0 0 0 / 0.5)" : "rgb(30 20 60 / 0.16)";
   return {
@@ -297,7 +327,9 @@ export function themeVariables(settings: Settings, mode: ResolvedMode): Record<s
     "--control-height": `${density.controlHeight}px`,
     "--icon-button": `${density.iconButton}px`,
     "--sidebar-gap": `${density.gap}px`,
-    "--backdrop": backdrop(appearance.background, mode),
+    "--backdrop": backdrop(appearance.background, mode, intensity),
+    /** Accent washes of selected rows, badges and cards scale with the intensity (1 = balanced). */
+    "--tint": String(intensity),
     "--viewport-shadow": appearance.shadows ? `0 0 0 1px var(--border), 0 10px 30px -12px ${shadow}` : "0 0 0 1px var(--border)",
     "--elevation": appearance.shadows ? `0 1px 2px ${shadow}` : "none",
   };

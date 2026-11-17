@@ -68,7 +68,7 @@
   .row {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-3);
     min-height: 44px;
     padding: 6px 10px;
     border-radius: 10px;
@@ -76,7 +76,7 @@
     scroll-margin: 6px;
   }
   .row.selected {
-    background: color-mix(in oklab, var(--accent) 16%, transparent);
+    background: color-mix(in oklab, var(--accent) min(calc(16% * var(--tint, 1)), 90%), transparent);
     color: var(--text);
   }
   .icon {
@@ -93,7 +93,7 @@
     color: var(--text-muted);
   }
   .row.selected .icon.tile {
-    background: color-mix(in oklab, var(--accent) 22%, transparent);
+    background: color-mix(in oklab, var(--accent) min(calc(22% * var(--tint, 1)), 90%), transparent);
     color: var(--accent-text);
   }
   .text {
@@ -120,7 +120,7 @@
   /* Instant answer: the result is the content, set large. */
   .answer {
     min-height: 64px;
-    padding: 10px 12px;
+    padding: 10px var(--space-3);
   }
   .answer .icon {
     width: 36px;

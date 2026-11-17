@@ -61,8 +61,8 @@
     width: 40px;
     height: 40px;
     border-radius: var(--radius-lg);
-    background: linear-gradient(135deg, color-mix(in oklab, var(--accent) 24%, transparent), color-mix(in oklab, var(--accent-2) 14%, transparent));
-    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 22%, transparent);
+    background: linear-gradient(135deg, color-mix(in oklab, var(--accent) min(calc(24% * var(--tint, 1)), 90%), transparent), color-mix(in oklab, var(--accent-2) min(calc(14% * var(--tint, 1)), 90%), transparent));
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) min(calc(22% * var(--tint, 1)), 90%), transparent);
     color: var(--accent-text);
   }
   .heading {

@@ -24,8 +24,11 @@ export interface PeekLayout {
   page: Bounds;
 }
 
-/** The card centered in `area` (the page area of the window), ~80% of it. */
-export function peekLayout(area: Bounds, scale = PEEK_SCALE): PeekLayout {
+/** Height of the AI summary strip between the header and the page (ADR-059), when shown. */
+export const PEEK_SUMMARY_HEIGHT = 140;
+
+/** The card centered in `area` (the page area of the window), ~80% of it; `summary`: the strip is shown. */
+export function peekLayout(area: Bounds, scale = PEEK_SCALE, summary = false): PeekLayout {
   const size = (full: number, min: number) => Math.max(0, Math.min(full, Math.max(min, Math.round(full * scale))));
   const width = size(area.width, PEEK_MIN_WIDTH);
   const height = size(area.height, PEEK_MIN_HEIGHT);
@@ -35,11 +38,12 @@ export function peekLayout(area: Bounds, scale = PEEK_SCALE): PeekLayout {
     width,
     height,
   };
+  const top = PEEK_HEADER_HEIGHT + (summary ? PEEK_SUMMARY_HEIGHT : 0);
   const page = {
     x: card.x + PEEK_INSET,
-    y: card.y + PEEK_HEADER_HEIGHT,
+    y: card.y + top,
     width: Math.max(0, width - 2 * PEEK_INSET),
-    height: Math.max(0, height - PEEK_HEADER_HEIGHT - PEEK_INSET),
+    height: Math.max(0, height - top - PEEK_INSET),
   };
   return { card, page };
 }
@@ -52,11 +56,59 @@ export interface PeekState {
   /** Whether "Ouvrir en vue scindée" is possible (the split is not full). */
   canSplit: boolean;
   card: Bounds;
+  /** The AI summary (ADR-059): "off" when the assistant is not set up (or a private window). */
+  summary: PeekSummary;
 }
 
-export type PeekAction = "open-tab" | "open-split" | "close";
+export interface PeekSummary {
+  status: "off" | "idle" | "loading" | "done" | "error";
+  bullets: string[];
+  message?: string;
+}
 
-export const isPeekAction = (value: unknown): value is PeekAction => value === "open-tab" || value === "open-split" || value === "close";
+export type PeekAction = "open-tab" | "open-split" | "close" | "summarize";
+
+export const isPeekAction = (value: unknown): value is PeekAction => value === "open-tab" || value === "open-split" || value === "close" || value === "summarize";
+
+// --- AI summary (ADR-059) ---------------------------------------------------------------------
+
+/** Characters of the page's text sent at most (the reader-mode text, else the visible text). */
+export const SUMMARY_MAX_CHARS = 24_000;
+const MAX_BULLETS = 4;
+const MAX_BULLET = 240;
+
+export const SUMMARY_SCHEMA = {
+  type: "object",
+  properties: { bullets: { type: "array", items: { type: "string" } } },
+  required: ["bullets"],
+  additionalProperties: false,
+} as const;
+
+export function summaryPrompt(title: string, text: string, language: "fr" | "en"): string {
+  return [
+    `Summarize this web page in ${language === "fr" ? "French" : "English"}: 3 short bullet points, the facts that matter to decide whether to read it.`,
+    "No preamble, no markdown, plain sentences.",
+    "",
+    `Title: ${title.slice(0, 300)}`,
+    "",
+    text.slice(0, SUMMARY_MAX_CHARS),
+  ].join("\n");
+}
+
+/** The validated bullets of the structured answer (at most 4, trimmed); empty when unusable. */
+export function parseSummary(json: string): string[] {
+  try {
+    const bullets = (JSON.parse(json) as { bullets?: unknown }).bullets;
+    if (!Array.isArray(bullets)) return [];
+    return bullets
+      .filter((item): item is string => typeof item === "string")
+      .map((item) => item.replace(/^[\s•*-]+/u, "").replace(/\s+/gu, " ").trim().slice(0, MAX_BULLET))
+      .filter(Boolean)
+      .slice(0, MAX_BULLETS);
+  } catch {
+    return [];
+  }
+}
 
 /** Only what a page may open can be peeked: http(s) and about:blank, never file:, data: or browser: (ADR-021). */
 export const isPeekableUrl = (url: string): boolean => isPageOpenableUrl(url);

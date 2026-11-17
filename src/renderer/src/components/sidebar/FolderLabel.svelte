@@ -36,7 +36,7 @@
     gap: 6px;
     min-width: 0;
     height: calc(var(--tab-height) - 4px);
-    padding: 0 6px 0 4px;
+    padding: 0 6px 0 var(--space-1);
     border-radius: var(--radius);
     color: var(--text-muted);
     font-weight: 600;

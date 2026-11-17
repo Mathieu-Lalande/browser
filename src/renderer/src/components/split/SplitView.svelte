@@ -5,6 +5,7 @@
   import { api, browser } from "../../lib/browser.svelte";
   import { internalPageOf } from "@shared/internal";
   import HttpsOnlyPage from "../HttpsOnlyPage.svelte";
+  import FocusHeldPage from "../focus/FocusHeldPage.svelte";
   import InternalPage from "../InternalPage.svelte";
   import LoadErrorPage from "../LoadErrorPage.svelte";
   import StartPage from "../StartPage.svelte";
@@ -86,7 +87,7 @@
         data-tab-id={tab.id}
         onpointerdown={() => tab.id !== browser.state.activeTabId && api.tabs.activate(tab.id)}
       >
-        {#if !tab.url}<StartPage />{:else if page}<InternalPage {page} />{:else if tab.interstitial}<HttpsOnlyPage {tab} />{:else if tab.loadError}<LoadErrorPage {tab} error={tab.loadError} />{/if}
+        {#if !tab.url}<StartPage />{:else if page}<InternalPage {page} />{:else if tab.interstitial?.kind === "focus"}<FocusHeldPage {tab} />{:else if tab.interstitial}<HttpsOnlyPage {tab} />{:else if tab.loadError}<LoadErrorPage {tab} error={tab.loadError} />{/if}
       </div>
     {/if}
   {/each}
@@ -129,7 +130,7 @@
   .pane.focused {
     box-shadow:
       0 0 0 2px var(--accent-text),
-      0 0 0 5px color-mix(in oklab, var(--accent) 22%, transparent),
+      0 0 0 5px color-mix(in oklab, var(--accent) min(calc(22% * var(--tint, 1)), 90%), transparent),
       0 10px 30px -12px rgb(0 0 0 / 0.5);
   }
   .divider {

@@ -56,7 +56,7 @@
   /* Smallest clickable box, and the height of fields and buttons in pages and panels. */
   --hit-min: 28px;
   --field-height: 32px;
-  --focus-ring: 0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent);
+  --focus-ring: 0 0 0 3px color-mix(in oklab, var(--accent) min(calc(22% * var(--tint, 1)), 90%), transparent);
   --danger: #e5484d;
   --danger-text: #ff8589;
   --success: #30a46c;
@@ -93,8 +93,8 @@ body,
 body {
   background: var(
     --backdrop,
-    radial-gradient(120% 80% at 0% 0%, color-mix(in oklab, var(--accent) 16%, transparent), transparent 60%),
-    radial-gradient(100% 70% at 100% 100%, color-mix(in oklab, var(--accent-2) 10%, transparent), transparent 60%),
+    radial-gradient(120% 80% at 0% 0%, color-mix(in oklab, var(--accent) min(calc(16% * var(--tint, 1)), 90%), transparent), transparent 60%),
+    radial-gradient(100% 70% at 100% 100%, color-mix(in oklab, var(--accent-2) min(calc(10% * var(--tint, 1)), 90%), transparent), transparent 60%),
     var(--bg)
   );
   color: var(--text);
@@ -180,7 +180,7 @@ button {
   border-color: color-mix(in oklab, var(--text) 18%, transparent);
 }
 .ui-field:focus {
-  border-color: color-mix(in oklab, var(--accent) 60%, transparent);
+  border-color: color-mix(in oklab, var(--accent) min(calc(60% * var(--tint, 1)), 90%), transparent);
   box-shadow: var(--focus-ring);
 }
 .ui-field::placeholder {
@@ -219,7 +219,7 @@ button {
 }
 
 ::selection {
-  background: color-mix(in oklab, var(--accent) 32%, transparent);
+  background: color-mix(in oklab, var(--accent) min(calc(32% * var(--tint, 1)), 90%), transparent);
   color: var(--text);
 }
 

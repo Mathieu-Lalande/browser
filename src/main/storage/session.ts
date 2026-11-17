@@ -21,6 +21,8 @@ export interface SessionTab {
   title: string;
   favicon: string | null;
   pinned: boolean;
+  /** A pinned tab's home page (ADR-059); absent: its current URL. */
+  pinnedUrl?: string;
   /** Sidebar folder (v3); absent at the root. */
   folderId?: FolderId;
   /** Epoch ms when the tab was last on screen (v3), for auto-archiving. */
@@ -74,6 +76,7 @@ function sanitizeTab(value: unknown): SessionTab | null {
     favicon: storableFavicon(t.favicon),
     pinned: t.pinned === true,
   };
+  if (tab.pinned && typeof t.pinnedUrl === "string" && isNavigableUrl(t.pinnedUrl)) tab.pinnedUrl = t.pinnedUrl;
   // Pinned tabs are never filed in a folder.
   if (!tab.pinned && isFolderId(t.folderId)) tab.folderId = t.folderId;
   if (typeof t.lastSeenAt === "number" && Number.isFinite(t.lastSeenAt) && t.lastSeenAt > 0) tab.lastSeenAt = Math.floor(t.lastSeenAt);

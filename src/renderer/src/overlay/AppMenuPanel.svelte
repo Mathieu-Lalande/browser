@@ -251,9 +251,9 @@
   .zoom {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
     min-height: 34px;
-    padding: 0 4px 0 10px;
+    padding: 0 var(--space-1) 0 10px;
     color: var(--text);
     font-size: 13px;
   }

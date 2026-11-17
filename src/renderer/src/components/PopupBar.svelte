@@ -49,7 +49,7 @@
   p {
     display: flex;
     flex: 1;
-    gap: 8px;
+    gap: var(--space-2);
     align-items: baseline;
     min-width: 0;
     margin: 0;

@@ -49,11 +49,11 @@
   }
   .buttons {
     display: flex;
-    gap: 8px;
+    gap: var(--space-2);
   }
   .button {
     height: 34px;
-    padding: 0 16px;
+    padding: 0 var(--space-4);
     border-radius: 9px;
     background: var(--surface-hover);
   }

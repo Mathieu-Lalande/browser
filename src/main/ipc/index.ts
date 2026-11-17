@@ -20,6 +20,7 @@ import { translateHandlers } from "./translate";
 import { assistantHandlers } from "./assistant";
 import { windowHandlers } from "./window";
 import { lifecycleHandlers } from "./lifecycle";
+import { wellbeingHandlers } from "./wellbeing";
 
 /** Channels main sends to the UI (the preload subscribes to them): no handler. */
 type EventChannel = (typeof Channels)[
@@ -90,6 +91,7 @@ const handlers = {
   ...drmHandlers,
   ...importHandlers,
   ...lifecycleHandlers,
+  ...wellbeingHandlers,
 } satisfies Record<RequestChannel, Entry> & { [C in EventChannel]?: never };
 
 export function registerIpc(): void {

@@ -175,7 +175,7 @@
   .dot::after {
     content: "";
     display: block;
-    margin: -10px 0;
+    margin: calc(-1 * var(--space-2)) 0;
     height: 26px;
   }
   .dot.done {

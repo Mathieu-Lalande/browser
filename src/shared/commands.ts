@@ -21,6 +21,13 @@ export type CommandId =
   | "close-tab"
   | "duplicate-tab"
   | "toggle-pin"
+  | "pinned-home"
+  | "tidy-tabs"
+  | "toggle-dark-page"
+  | "open-focus"
+  | "start-focus"
+  | "open-sessions"
+  | "install-web-app"
   | "reload"
   | "back"
   | "forward"
@@ -142,6 +149,9 @@ export type CommandIcon =
   | "cookie"
   | "favorite"
   | "folder"
+  | "home"
+  | "hourglass"
+  | "app-window"
   | "archive"
   | "extension"
   | "key"
@@ -237,6 +247,23 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
     get menuLabel() { return t("sharedCommands.pinUnpinTab") },
     get keywords() { return keywords("sharedCommands.pinKeywords") },
     icon: "pin",
+  },
+  "pinned-home": {
+    get label() { return t("sharedCommands.pinnedHome") },
+    get keywords() { return keywords("sharedCommands.pinnedHomeKeywords") },
+    icon: "home",
+    needsPage: true,
+  },
+  "toggle-dark-page": {
+    get label() { return t("sharedCommands.toggleDarkPage") },
+    get keywords() { return keywords("sharedCommands.toggleDarkPageKeywords") },
+    icon: "moon",
+    needsPage: true,
+  },
+  "tidy-tabs": {
+    get label() { return t("sharedCommands.tidyTabs") },
+    get keywords() { return keywords("sharedCommands.tidyTabsKeywords") },
+    icon: "sparkles",
   },
   reload: { get label() { return t("sharedCommands.reload") }, get keywords() { return keywords("sharedCommands.reloadKeywords") }, accelerator: "CmdOrCtrl+R", icon: "reload", needsPage: true },
   back: { get label() { return t("sharedCommands.back") }, get keywords() { return keywords("sharedCommands.backKeywords") }, icon: "back", needsPage: true },
@@ -412,6 +439,27 @@ const DEFINITIONS: { [Id in CommandId]: Omit<CommandDefinition, "id"> } = {
     get label() { return t("sharedCommands.newFolder") },
     get keywords() { return keywords("sharedCommands.folderKeywords") },
     icon: "folder",
+  },
+  "open-focus": {
+    get label() { return t("sharedCommands.openFocus") },
+    get keywords() { return keywords("sharedCommands.openFocusKeywords") },
+    icon: "hourglass",
+  },
+  "start-focus": {
+    get label() { return t("sharedCommands.startFocus") },
+    get keywords() { return keywords("sharedCommands.startFocusKeywords") },
+    icon: "hourglass",
+  },
+  "install-web-app": {
+    get label() { return t("sharedCommands.installWebApp") },
+    get keywords() { return keywords("sharedCommands.installWebAppKeywords") },
+    icon: "app-window",
+    needsPage: true,
+  },
+  "open-sessions": {
+    get label() { return t("sharedCommands.openSessions") },
+    get keywords() { return keywords("sharedCommands.openSessionsKeywords") },
+    icon: "layers",
   },
   "open-archive": {
     get label() { return t("sharedCommands.archivedTabs") },
@@ -799,6 +847,9 @@ export const COMMAND_GROUPS: readonly { label: string; ids: readonly CommandId[]
       "close-tab",
       "duplicate-tab",
       "toggle-pin",
+      "pinned-home",
+      "tidy-tabs",
+      "toggle-dark-page",
       "toggle-mute",
       "pause-all-media",
       "sleep-tab",
@@ -851,6 +902,10 @@ export const COMMAND_GROUPS: readonly { label: string; ids: readonly CommandId[]
       "toggle-reading-list",
       "open-reading-list",
       "open-history",
+      "open-focus",
+      "start-focus",
+      "install-web-app",
+      "open-sessions",
       "open-archive",
       "open-downloads",
       "open-passwords",

@@ -217,19 +217,19 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px 12px;
-    padding: 12px 18px 0;
+    gap: var(--space-2) var(--space-3);
+    padding: var(--space-3) var(--space-4) 0;
   }
   .search {
     display: flex;
     flex: 1 1 200px;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
     min-width: 0;
     height: 32px;
-    padding: 0 10px;
+    padding: 0 var(--space-3);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     background: var(--surface);
     color: var(--text-muted);
   }
@@ -246,18 +246,18 @@
     font: inherit;
   }
   .help {
-    margin: 8px 18px 4px;
+    margin: var(--space-2) var(--space-4) var(--space-1);
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--text-xs);
   }
   .group {
-    padding: 4px 0;
+    padding: var(--space-1) 0;
   }
   .group + .group {
     border-top: 1px solid var(--border);
   }
   h3 {
-    margin: 10px 18px 2px;
+    margin: var(--space-3) var(--space-4) var(--space-1);
     color: var(--text-faint);
     font-size: 11px;
     font-weight: 600;
@@ -269,9 +269,9 @@
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 6px 16px;
+    gap: var(--space-2) var(--space-4);
     min-height: 40px;
-    padding: 4px 18px;
+    padding: var(--space-1) var(--space-4);
   }
   .label {
     flex: 1 1 160px;
@@ -282,19 +282,19 @@
     display: flex;
     flex: none;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-2);
     margin-left: auto;
   }
   .keys {
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: var(--space-1);
     min-width: 96px;
     height: 30px;
-    padding: 0 8px;
+    padding: 0 var(--space-2);
     justify-content: center;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     background: var(--surface);
     white-space: nowrap;
   }
@@ -308,7 +308,7 @@
     border-color: var(--accent);
     color: var(--accent-text);
     font-size: 12px;
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 25%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) min(calc(25% * var(--tint, 1)), 90%), transparent);
   }
   .none {
     color: var(--text-faint);
@@ -316,7 +316,7 @@
   }
   kbd {
     min-width: 20px;
-    padding: 1px 5px;
+    padding: 1px var(--space-1);
     border: 1px solid var(--border);
     border-radius: 5px;
     background: var(--bg-elevated);
@@ -329,16 +329,16 @@
     flex-basis: 100%;
     flex-wrap: wrap;
     align-items: center;
-    gap: 6px 8px;
+    gap: var(--space-2);
     margin: 0;
     color: var(--text-muted);
     font-size: 12px;
   }
   .conflict {
-    padding: 8px 10px;
+    padding: var(--space-2) var(--space-3);
     border: 1px solid color-mix(in oklab, var(--accent) 35%, var(--border));
-    border-radius: 8px;
-    background: color-mix(in oklab, var(--accent) 8%, transparent);
+    border-radius: var(--radius-sm);
+    background: color-mix(in oklab, var(--accent) min(calc(8% * var(--tint, 1)), 90%), transparent);
     color: var(--text);
   }
   .message {
@@ -347,14 +347,14 @@
   }
   .actions {
     display: flex;
-    gap: 6px;
+    gap: var(--space-2);
     margin-left: auto;
   }
   .action {
     height: 28px;
-    padding: 0 10px;
+    padding: 0 var(--space-3);
     border: 1px solid var(--border);
-    border-radius: 7px;
+    border-radius: var(--radius-sm);
     background: var(--surface);
   }
   .action:hover {
@@ -367,9 +367,9 @@
   }
   .empty {
     margin: 0;
-    padding: 18px;
+    padding: var(--space-4);
     color: var(--text-muted);
-    font-size: 13px;
+    font-size: var(--text-sm);
     text-align: center;
   }
 </style>

@@ -61,10 +61,10 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
+    gap: var(--space-1);
     width: 52px;
     height: 100%;
-    padding: 10px 0 8px;
+    padding: 10px 0 var(--space-2);
   }
   .space {
     display: grid;

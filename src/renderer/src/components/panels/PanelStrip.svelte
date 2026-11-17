@@ -69,8 +69,8 @@
     background: var(--surface-hover);
   }
   .panel.open {
-    background: color-mix(in oklab, var(--accent) 18%, transparent);
-    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 45%, transparent);
+    background: color-mix(in oklab, var(--accent) min(calc(18% * var(--tint, 1)), 90%), transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) min(calc(45% * var(--tint, 1)), 90%), transparent);
   }
   .panel:focus-visible {
     outline: 2px solid var(--accent);

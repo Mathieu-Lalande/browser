@@ -205,7 +205,7 @@
     transform-origin: top left;
   }
   header {
-    padding: 10px 14px 8px;
+    padding: 10px 14px var(--space-2);
     border-bottom: 1px solid var(--border);
   }
   .host {
@@ -217,7 +217,7 @@
     text-overflow: ellipsis;
   }
   .panel :global(.body) {
-    padding: 4px;
+    padding: var(--space-1);
   }
   .zoom {
     display: flex;
@@ -242,7 +242,7 @@
   .sub {
     display: flex;
     flex-direction: column;
-    margin-left: 16px;
+    margin-left: var(--space-4);
   }
   .round {
     display: grid;

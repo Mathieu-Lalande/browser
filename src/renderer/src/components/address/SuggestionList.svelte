@@ -64,7 +64,7 @@
 <style>
   .suggestions {
     margin: 0;
-    padding: 4px;
+    padding: var(--space-1);
     list-style: none;
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -76,12 +76,12 @@
     align-items: center;
     gap: 10px;
     min-height: 34px;
-    padding: 4px 8px;
+    padding: var(--space-1) var(--space-2);
     border-radius: 7px;
     color: var(--text-muted);
   }
   li.selected {
-    background: color-mix(in oklab, var(--accent) 18%, transparent);
+    background: color-mix(in oklab, var(--accent) min(calc(18% * var(--tint, 1)), 90%), transparent);
     color: var(--text);
   }
   li:hover:not(.selected) {

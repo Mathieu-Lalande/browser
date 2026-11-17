@@ -5,6 +5,7 @@
   import type { Bookmark } from "@shared/types";
   import { displayUrl, normalizeInput, searchUrl } from "@shared/url";
   import { formatDuration } from "@shared/capture";
+  import { pinnedHomeLabel, pinnedPlace } from "@shared/pinned-home";
   import { api, browser } from "../lib/browser.svelte";
   import { platform } from "../lib/platform.svelte";
   import { settings } from "../lib/settings.svelte";
@@ -26,6 +27,8 @@
   let request = 0;
 
   const tab = $derived(browser.activeTab);
+  /** A pinned tab away from the page it was pinned on (ADR-059): a chip brings it back. */
+  const pinnedAway = $derived(!!tab?.isPinned && !!tab.pinnedUrl && pinnedPlace(tab.pinnedUrl, tab.url) !== "home");
   const isSecure = $derived(tab?.url.startsWith("https://") ?? false);
   /** Internal pages (browser://…) are trusted, and cannot be bookmarked. */
   const isInternal = $derived(internalPageOf(tab?.url ?? "") !== null);
@@ -208,6 +211,18 @@
         >
       {/if}
       <div class="actions" bind:offsetWidth={actionsWidth}>
+        {#if pinnedAway && !focused && tab?.pinnedUrl}
+          <button
+            type="button"
+            class="home-chip"
+            data-testid="pinned-home"
+            title={platform.tip(t("addressBar.backToPinned", { site: pinnedHomeLabel(tab.pinnedUrl) }), "pinned-home")}
+            onmousedown={(event) => event.preventDefault()}
+            onclick={() => api.tabs.goPinnedHome(tab.id)}
+          >
+            <Icon name="home" size={13} /> <span>{pinnedHomeLabel(tab.pinnedUrl)}</span>
+          </button>
+        {/if}
         {#if tab?.url && !focused && !isInternal}
           <button
             type="button"
@@ -347,15 +362,15 @@
     --recording: var(--danger, #e5484d);
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--space-1);
   }
   .address {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
     min-width: 0;
     height: var(--control-height);
-    padding: 0 4px 0 10px;
+    padding: 0 var(--space-1) 0 10px;
     border: 1px solid transparent;
     border-radius: var(--radius);
     background: var(--surface);
@@ -421,8 +436,33 @@
     transition: opacity var(--motion-fast) var(--ease);
   }
   .address:hover .act,
-  .address:focus-within .act {
+  .address:focus-within .act,
+  .actions .act.on {
     opacity: 1;
+  }
+  .home-chip {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: var(--space-1);
+    max-width: 160px;
+    height: 22px;
+    margin-right: var(--space-1);
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-pill);
+    background: color-mix(in oklab, var(--accent) min(calc(16% * var(--tint, 1)), 90%), transparent);
+    color: var(--accent-text);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    transition: background var(--motion-fast) var(--ease);
+  }
+  .home-chip span {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .home-chip:hover {
+    background: color-mix(in oklab, var(--accent) min(calc(28% * var(--tint, 1)), 90%), transparent);
   }
   .address:hover .display,
   .address:focus-within .display {
@@ -476,7 +516,7 @@
   .address.focused {
     border-color: var(--accent-text);
     background: var(--bg-elevated);
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 20%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) min(calc(20% * var(--tint, 1)), 90%), transparent);
   }
   .status {
     display: grid;
@@ -518,7 +558,7 @@
     height: 22px;
     padding: 0 7px;
     border-radius: 11px;
-    background: color-mix(in oklab, var(--accent) 16%, transparent);
+    background: color-mix(in oklab, var(--accent) min(calc(16% * var(--tint, 1)), 90%), transparent);
     color: var(--accent-text);
     font-size: 11px;
     font-weight: 600;
@@ -526,7 +566,7 @@
     white-space: nowrap;
   }
   .zoom:hover {
-    background: color-mix(in oklab, var(--accent) 26%, transparent);
+    background: color-mix(in oklab, var(--accent) min(calc(26% * var(--tint, 1)), 90%), transparent);
   }
   .star {
     display: grid;
@@ -558,7 +598,7 @@
   /* Narrow sidebar: tighter spacing. */
   @container sidebar (max-width: 230px) {
     .address {
-      gap: 4px;
+      gap: var(--space-1);
     }
   }
 </style>

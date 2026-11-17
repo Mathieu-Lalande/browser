@@ -15,7 +15,7 @@
   .checkbox {
     display: flex;
     align-items: flex-start;
-    gap: 8px;
+    gap: var(--space-2);
     padding: 0;
     color: inherit;
     text-align: left;

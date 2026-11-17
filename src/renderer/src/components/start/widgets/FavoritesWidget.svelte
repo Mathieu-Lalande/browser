@@ -45,7 +45,7 @@
     color: var(--text);
   }
   .favorite.open {
-    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 50%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) min(calc(50% * var(--tint, 1)), 90%), transparent);
   }
   .favorite span {
     overflow: hidden;

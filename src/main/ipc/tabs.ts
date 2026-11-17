@@ -2,6 +2,7 @@ import { Channels } from "@shared/ipc";
 import { isSpaceId } from "@shared/spaces";
 import { presentReader, readerArticle } from "../reader";
 import { showTabMenu } from "../tab-menu";
+import { proposeTidy } from "../tab-tidy";
 import { MAX_QUERY_LENGTH } from "./limits";
 import { bool, bounds, defineHandlers, handle, maxStr, num, on, oneOf, opt, str } from "./registry";
 
@@ -18,6 +19,8 @@ export const tabHandlers = defineHandlers({
   [Channels.tabReload]: on([str], (c, tabId) => c.tabs.reload(tabId)),
   [Channels.tabStop]: on([str], (c, tabId) => c.tabs.stop(tabId)),
   [Channels.tabTogglePin]: on([str], (c, tabId) => c.tabs.togglePin(tabId)),
+  [Channels.tabPinnedHome]: on([str], (c, tabId) => c.tabs.goPinnedHome(tabId)),
+  [Channels.tabsTidy]: handle([opt(oneOf("loose", "all"))], (c, scope) => proposeTidy(c.tabs, c.isPrivate, scope)),
   [Channels.tabMove]: on([str, num], (c, tabId, index) => c.tabs.move(tabId, index)),
   [Channels.tabToggleShields]: on([str], (c, tabId) => c.tabs.toggleShields(tabId)),
   [Channels.tabProceedHttp]: on([str], (c, tabId) => c.tabs.proceedHttp(tabId)),

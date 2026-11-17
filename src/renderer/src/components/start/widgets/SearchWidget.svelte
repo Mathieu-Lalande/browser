@@ -36,10 +36,10 @@
     border-radius: calc(var(--radius-lg) + var(--space-1));
     background: var(--bg-elevated);
     color: var(--text-faint);
-    box-shadow: 0 20px 60px -20px color-mix(in oklab, var(--accent) 45%, transparent);
+    box-shadow: 0 20px 60px -20px color-mix(in oklab, var(--accent) min(calc(45% * var(--tint, 1)), 90%), transparent);
   }
   .search:focus-within {
-    border-color: color-mix(in oklab, var(--accent) 60%, transparent);
+    border-color: color-mix(in oklab, var(--accent) min(calc(60% * var(--tint, 1)), 90%), transparent);
   }
   .search input {
     flex: 1;

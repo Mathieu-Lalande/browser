@@ -461,11 +461,30 @@ export class TabManager {
     const tab = this.store.find(id);
     if (!tab) return;
     tab.state.isPinned = !tab.state.isPinned;
+    // The page it is pinned on becomes its home (ADR-059).
+    tab.state.pinnedUrl = tab.state.isPinned ? tab.state.url || null : null;
     // A pinned tab leaves its folder.
     if (tab.state.isPinned) tab.state.folderId = null;
     // Pinned tabs always sit before unpinned ones: the tab joins the end of its new group.
     this.store.repin(tab);
     this.folders.reorder();
+    const { url, title, favicon } = tab.state;
+    if (url) this.hooks.onPinned?.({ url, title, favicon: favicon ?? null }, tab.state.isPinned);
+    this.emit();
+  }
+
+  /** Brings a pinned tab back to its home page (ADR-059). */
+  goPinnedHome(id: TabId): void {
+    const tab = this.store.find(id);
+    if (!tab?.state.isPinned || !tab.state.pinnedUrl || tab.state.pinnedUrl === tab.state.url) return;
+    this.navigate(id, tab.state.pinnedUrl);
+  }
+
+  /** Makes the pinned tab's current page its new home (ADR-059). */
+  setPinnedHome(id: TabId): void {
+    const tab = this.store.find(id);
+    if (!tab?.state.isPinned || !tab.state.url) return;
+    tab.state.pinnedUrl = tab.state.url;
     this.emit();
   }
 

@@ -119,7 +119,7 @@
   }
   .chip[aria-pressed="true"] {
     border-color: transparent;
-    background: color-mix(in oklab, var(--accent) 18%, transparent);
+    background: color-mix(in oklab, var(--accent) min(calc(18% * var(--tint, 1)), 90%), transparent);
     color: var(--accent-text);
   }
 </style>

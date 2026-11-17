@@ -1,5 +1,6 @@
 <script lang="ts">
   import { t } from "@shared/i18n";
+  import { focusMinutesLeft } from "@shared/focus";
   import type { SpaceId } from "@shared/types";
   import { api, browser } from "../../lib/browser.svelte";
   import { updates } from "../../lib/updates.svelte";
@@ -16,6 +17,15 @@
   let { onEditSpace, progress, following }: { onEditSpace: (id: SpaceId) => void; progress: number; following: boolean } = $props();
   let appMenuButton = $state<HTMLElement>();
 
+  let now = $state(Date.now());
+  $effect(() => {
+    if (!browser.state.focus?.until) return;
+    now = Date.now();
+    const timer = setInterval(() => (now = Date.now()), 15_000);
+    return () => clearInterval(timer);
+  });
+  const focusLeft = $derived(browser.state.focus ? focusMinutesLeft(browser.state.focus, now) : 0);
+
   function showAppMenu(): void {
     const rect = appMenuButton?.getBoundingClientRect();
     if (rect) api.appMenu.show({ x: rect.x, y: rect.y, width: rect.width, height: rect.height });
@@ -31,6 +41,12 @@
     </p>
   {:else}
     <SpaceSwitcher onEdit={onEditSpace} {progress} {following} />
+  {/if}
+  {#if focusLeft}
+    <!-- A focus session runs (ADR-059): minutes left; a click shows the Concentration page. -->
+    <button type="button" class="focus-chip" data-testid="focus-chip" title={t("sidebarFooter.focusRunning", { left: focusLeft })} onclick={() => api.commands.run("open-focus")}>
+      <Icon name="hourglass" size={13} /> <span>{focusLeft}′</span>
+    </button>
   {/if}
   {#if updates.ready}
     <!-- A downloaded update (ADR-030): discreet, and also installed on quit anyway. -->
@@ -66,6 +82,20 @@
     margin-top: auto;
     padding-top: 6px;
     border-top: 1px solid var(--border);
+  }
+  .focus-chip {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: var(--space-1);
+    height: 24px;
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-pill);
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: var(--on-accent);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
   }
   /* A private window says so at a glance (the title bar that carried the badge folds away). */
   .private-hint {

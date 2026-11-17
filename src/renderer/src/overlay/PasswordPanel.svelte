@@ -152,7 +152,7 @@
     width: 32px;
     height: 32px;
     border-radius: 10px;
-    background: color-mix(in oklab, var(--accent) 14%, transparent);
+    background: color-mix(in oklab, var(--accent) min(calc(14% * var(--tint, 1)), 90%), transparent);
     color: var(--accent-text);
   }
   h2 {
@@ -168,8 +168,8 @@
   .account {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 10px;
+    gap: var(--space-2);
+    padding: var(--space-2) 10px;
     border-radius: var(--radius);
     background: var(--surface);
     overflow-wrap: anywhere;
@@ -226,9 +226,9 @@
   .accounts button {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
     width: 100%;
-    padding: 8px 10px;
+    padding: var(--space-2) 10px;
     border-radius: var(--radius);
     text-align: left;
   }

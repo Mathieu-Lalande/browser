@@ -1583,3 +1583,61 @@ html:not(.js) .story-shot:first-child {
   background: var(--surface-strong);
   color: var(--text);
 }
+
+
+/* --- Why switch (comparison) ------------------------------------------------------------- */
+.compare {
+  padding-block: 48px;
+}
+.compare-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+.compare-col {
+  padding: 24px;
+  border: 1px solid rgb(255 255 255 / 0.08);
+  border-radius: 20px;
+  background: rgb(255 255 255 / 0.03);
+}
+.compare-col h3 {
+  margin: 0 0 16px;
+  font-size: 1.1rem;
+}
+.compare-col ul {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.compare-col li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: rgb(255 255 255 / 0.72);
+  line-height: 1.5;
+}
+.compare-col li .icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 3px;
+  color: rgb(255 255 255 / 0.4);
+}
+.compare-ours {
+  border-color: rgb(167 139 250 / 0.45);
+  background:
+    radial-gradient(120% 100% at 0% 0%, rgb(139 123 255 / 0.18), transparent 60%),
+    radial-gradient(100% 100% at 100% 100%, rgb(215 123 255 / 0.12), transparent 60%),
+    rgb(255 255 255 / 0.03);
+}
+.compare-ours li {
+  color: rgb(255 255 255 / 0.92);
+}
+.compare-ours li .icon {
+  color: #a78bfa;
+}

@@ -2,12 +2,14 @@
   import { t } from "@shared/i18n";
   import type { SpaceInfo, TabState } from "@shared/types";
   import { displayUrl } from "@shared/url";
+  import { pinnedPlace } from "@shared/pinned-home";
   import { api } from "../../lib/browser.svelte";
   import { platform } from "../../lib/platform.svelte";
   import { previewsEnabled, tabPreview } from "../../lib/tab-preview";
   import Icon from "../Icon.svelte";
   import TabIcon from "../TabIcon.svelte";
   import IconButton from "../ui/IconButton.svelte";
+  import { tabTidy } from "../../lib/tab-tidy.svelte";
 
   /**
    * Top of a space's tab area: its title (when given), the pinned tabs, and the "Nouvel onglet" row.
@@ -60,6 +62,7 @@
           class="pinned-tab"
           class:active={item.id === activeId}
           class:asleep={item.isAsleep}
+          class:away={!!item.pinnedUrl && pinnedPlace(item.pinnedUrl, item.url) !== "home"}
           role="tab"
           aria-selected={item.id === activeId}
           aria-label={item.title}
@@ -70,6 +73,7 @@
           oncontextmenu={(event) => (event.preventDefault(), api.tabs.contextMenu(item.id))}
         >
           <TabIcon tab={item} />
+          {#if item.pinnedUrl && pinnedPlace(item.pinnedUrl, item.url) !== "home"}<span class="away-dot" title={t("sidebar.pinnedAway")}></span>{/if}
         </button>
       {/each}
     </div>
@@ -81,11 +85,13 @@
 <div class="new-row">
   {#if preview}
     <div class="new-tab"><Icon name="plus" size={16} /> <span class="label">{t("spaceHeader.newTab")}</span></div>
+    <IconButton as="span" size="sm" icon="sparkles" label="" />
     <IconButton as="span" size="sm" icon="folder-plus" label="" />
   {:else}
     <button class="new-tab" title={platform.tip(t("spaceHeader.newTab"), "new-tab")} onclick={onNewTab}>
       <Icon name="plus" size={16} /> <span class="label">{t("spaceHeader.newTab")}</span>
     </button>
+    <IconButton size="sm" icon="sparkles" label={t("sharedCommands.tidyTabs")} command="tidy-tabs" onclick={() => void tabTidy.start()} />
     <IconButton size="sm" icon="folder-plus" label={t("spaceHeader.newFolder")} onclick={() => api.folders.create()} />
   {/if}
 </div>
@@ -94,10 +100,10 @@
   .space-title {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
     height: 30px;
-    margin-top: 4px;
-    padding: 0 2px 0 8px;
+    margin-top: var(--space-1);
+    padding: 0 2px 0 var(--space-2);
   }
   .space-icon {
     display: grid;
@@ -134,6 +140,7 @@
     margin-top: 6px;
   }
   .pinned-tab {
+    position: relative;
     display: grid;
     place-items: center;
     height: 44px;
@@ -143,9 +150,20 @@
   .pinned-tab:hover {
     background: var(--surface-hover);
   }
+  /* Away from its pinned page (ADR-059): a dot, a click on the address bar's chip brings it home. */
+  .away-dot {
+    position: absolute;
+    right: var(--space-1);
+    bottom: var(--space-1);
+    width: 6px;
+    height: 6px;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    box-shadow: 0 0 0 2px var(--bg);
+  }
   .pinned-tab.active {
     background: var(--bg-elevated);
-    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 45%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) min(calc(45% * var(--tint, 1)), 90%), transparent);
   }
   /* Asleep (page unloaded, reloads on click): dimmed, like in the tab list. */
   .pinned-tab.asleep:not(.active) > :global(*) {
@@ -154,7 +172,7 @@
   }
   .divider {
     height: 1px;
-    margin: 6px 4px;
+    margin: 6px var(--space-1);
     background: var(--border);
   }
   .new-row {

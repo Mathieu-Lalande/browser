@@ -1,3 +1,4 @@
+import { focusHolds, focusState } from "./wellbeing";
 import { getLocale } from "@shared/i18n";
 import { app, BrowserWindow, nativeTheme, session, type Session, type WebContents, type WebContentsView } from "electron";
 import { internalPageOf, internalUrl, type InternalPage } from "@shared/internal";
@@ -6,7 +7,7 @@ import { PRIVATE_SPACE, privateSettings } from "@shared/private";
 import { pageRadius, searchEngineOf, type Settings } from "@shared/settings";
 import type { Bounds, BrowserState, TabId, UiCommand } from "@shared/types";
 import { matchesFavorite } from "@shared/favorites";
-import { isLocalFileUrl } from "@shared/url";
+import { isLocalFileUrl, isPageOpenableUrl } from "@shared/url";
 import { uiUrl } from "./app-protocol";
 import { downloadViewerOf } from "./downloads";
 import type { DownloadViewer } from "./downloads/list";
@@ -70,6 +71,14 @@ const tabHooks: TabManagerHooks = {
     favoriteFavicon(url, info.favicon);
   },
   isBookmarked: (url) => profile().bookmarks.has(url),
+  focusHolds: (url) => focusHolds(url),
+  onPinned: (page, pinned) => {
+    const { bookmarks, saveBookmarks } = profile();
+    if (!pinned || !isPageOpenableUrl(page.url) || bookmarks.has(page.url)) return;
+    bookmarks.add(page, Date.now());
+    saveBookmarks();
+    BrowserController.refreshAll();
+  },
   isFavorite: (url) => matchesFavorite(profile().favorites.list(), url),
   isInReadingList: (url) => appServices().reading.has(url),
   hasPasswords: (url) => hasPasswordsFor(url),
@@ -329,6 +338,7 @@ export class BrowserController {
       energy: appServices().energy.state,
       mica: this.frame.micaApplied,
       locale: getLocale(),
+      focus: focusState(),
     };
   }
 
@@ -447,8 +457,10 @@ export class BrowserController {
     if (!tab?.url) return;
     const { bookmarks, saveBookmarks } = profile();
     // A private window writes no favicon anywhere (ADR-014, ADR-018).
-    bookmarks.toggle({ url: tab.url, title: tab.title, favicon: this.isPrivate ? null : tab.favicon }, Date.now());
+    const added = bookmarks.toggle({ url: tab.url, title: tab.title, favicon: this.isPrivate ? null : tab.favicon }, Date.now());
     saveBookmarks();
+    // One idea of a "favorite": taking the star off a pinned tab unpins it too.
+    if (!added && tab.isPinned) this.tabs.togglePin(tab.id);
     BrowserController.refreshAll();
   }
 

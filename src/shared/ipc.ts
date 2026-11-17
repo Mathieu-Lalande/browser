@@ -35,9 +35,14 @@ import type {
   PasswordsStatus,
   PromptAnswer,
 } from "./passwords";
+import type { CheckupReport } from "./password-checkup";
+import type { VaultLockState } from "./vault-lock";
+import type { TidyProposal, TidyScope } from "./tab-tidy";
+import type { SiteTimeSummary } from "./focus";
+import type { SavedSessionSummary } from "./saved-sessions";
 import type { DownloadEntry, DownloadsChange } from "./downloads";
 import type { MediaAction, MediaSource } from "./media";
-import type { PanelAddResult } from "./panels";
+import type { PanelAddResult, PanelZoom } from "./panels";
 import type { ReadingEntry, ReadingItem } from "./reading-list";
 import type { OmniboxTab, OpenDisposition } from "./omnibox/types";
 import type { PeekAction, PeekState } from "./peek";
@@ -96,6 +101,8 @@ export const Channels = {
   tabReload: "tab:reload",
   tabStop: "tab:stop",
   tabTogglePin: "tab:toggle-pin",
+  tabPinnedHome: "tab:pinned-home",
+  tabsTidy: "tabs:tidy",
   tabMove: "tab:move",
   tabToggleShields: "tab:toggle-shields",
   tabProceedHttp: "tab:proceed-http",
@@ -278,6 +285,9 @@ export const Channels = {
   passwordsFill: "passwords:fill",
   passwordsPrompt: "passwords:prompt",
   passwordsAnswer: "passwords:answer",
+  passwordsCheckup: "passwords:checkup",
+  passwordsLockState: "passwords:lock-state",
+  passwordsLock: "passwords:lock",
   autofillStatus: "autofill:status",
   autofillList: "autofill:list",
   autofillPutAddress: "autofill:put-address",
@@ -380,6 +390,20 @@ export const Channels = {
   panelsBounds: "panels:bounds",
   panelsReload: "panels:reload",
   panelsContextMenu: "panels:context-menu",
+  panelsSetZoom: "panels:set-zoom",
+  panelsSetMuted: "panels:set-muted",
+  panelsBack: "panels:back",
+  panelsHome: "panels:home",
+  panelsOpenInTab: "panels:open-in-tab",
+  panelsSleep: "panels:sleep",
+  // ADR-059: focus mode, time per site, named sessions.
+  focusStart: "focus:start",
+  siteTimeSummary: "site-time:summary",
+  siteTimeClear: "site-time:clear",
+  sessionsList: "sessions:list",
+  sessionsSave: "sessions:save",
+  sessionsRemove: "sessions:remove",
+  sessionsOpen: "sessions:open",
   readingList: "reading:list",
   readingGet: "reading:get",
   readingToggleTab: "reading:toggle-tab",
@@ -408,6 +432,10 @@ export interface BrowserApi {
     reload(id: TabId): void;
     stop(id: TabId): void;
     togglePin(id: TabId): void;
+    /** Brings a pinned tab back to the page it was pinned on (ADR-059). */
+    goPinnedHome(id: TabId): void;
+    /** "Ranger les onglets" (ADR-059): folders proposed for the loose tabs of the space shown. Nothing moves. */
+    tidy(scope?: TidyScope): Promise<TidyProposal>;
     move(id: TabId, toIndex: number): void;
     /** Turn content blocking off/on for the tab's site, then reload it. */
     toggleShields(id: TabId): void;
@@ -555,6 +583,14 @@ export interface BrowserApi {
     /** Overlay: what the save prompt shows for a pending capture. */
     prompt(captureId: string): Promise<PasswordPrompt | null>;
     answer(captureId: string, answer: PromptAnswer): Promise<PasswordResult>;
+    /**
+     * Password checkup (ADR-059): weak and reused passwords found in main; with `breaches`, the
+     * range API is asked too (5 hex characters of each SHA-1 sent). No password comes back.
+     */
+    checkup(breaches: boolean): Promise<CheckupReport>;
+    /** Vault lock (ADR-059): whether showing a password asks the system first, and after how long. */
+    lockState(): Promise<VaultLockState>;
+    lock(): void;
   };
   /**
    * Addresses and payment cards (ADR-041). Lists show a card by its last digits: its number only
@@ -696,6 +732,29 @@ export interface BrowserApi {
     reload(id: string): void;
     /** Native menu of a panel's icon (reload, mobile version, move, remove). */
     contextMenu(id: string): void;
+    /** ADR-059: zoom (a percentage, or "fit" to the panel's width), sound, navigation, memory. */
+    setZoom(id: string, zoom: PanelZoom): void;
+    setMuted(id: string, muted: boolean): void;
+    back(id: string): void;
+    home(id: string): void;
+    openInTab(id: string): void;
+    sleep(id: string): void;
+  };
+  /** "Concentration" (ADR-059): focus sessions (state in `BrowserState.focus`) and time per site. */
+  wellbeing: {
+    /** Starts a focus session of `minutes`, or ends it (null). */
+    startFocus(minutes: number | null): void;
+    siteTime(days?: number): Promise<SiteTimeSummary>;
+    clearSiteTime(): void;
+  };
+  /** Named sessions (ADR-059): the pages of the space shown, kept under a name. Refused in a private window. */
+  sessions: {
+    list(): Promise<SavedSessionSummary[]>;
+    /** Null: nothing to keep (no web page) or a private window. */
+    save(name: string): Promise<SavedSessionSummary[] | null>;
+    remove(id: string): Promise<SavedSessionSummary[]>;
+    /** Opens its pages in this window, in a folder named after it. */
+    open(id: string): void;
   };
   /** "Lire plus tard" (ADR-047): the list without texts, one item with its offline text. */
   reading: {

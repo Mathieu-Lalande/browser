@@ -162,7 +162,7 @@
 
 <style>
   .level :global(.menu) {
-    padding: 4px;
+    padding: var(--space-1);
   }
   .level :global(.item:disabled) {
     opacity: 0.45;
@@ -176,7 +176,7 @@
   }
   .separator {
     height: 1px;
-    margin: 4px 8px;
+    margin: var(--space-1) var(--space-2);
     background: var(--border);
   }
   :global(.level.submenu) {

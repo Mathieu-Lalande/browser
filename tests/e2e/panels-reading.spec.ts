@@ -143,3 +143,23 @@ test("picture-in-picture reaches the largest video in a cross-origin frame (ADR-
     await app.close();
   }
 });
+
+test("a panel fits desktop pages to its width, and its zoom can be set by hand (ADR-059)", async ({ app, chrome, server }) => {
+  const panelUrl = server.url("/panel-app");
+  await chrome.getByTestId("panel-strip").getByRole("button", { name: "Ajouter un panneau web" }).click();
+  const form = chrome.getByTestId("panel-add");
+  await form.getByLabel("Adresse du panneau").fill(panelUrl);
+  await form.getByRole("button", { name: "Ajouter", exact: true }).click();
+  const zoom = chrome.getByTestId("panel-zoom");
+  await expect(zoom).toContainText("Ajusté");
+  // 380 px wide (the default) for a 900 px layout: the page is shrunk.
+  const factor = () => app.evaluate(({ webContents }, url) => webContents.getAllWebContents().find((contents) => contents.getURL().startsWith(url))?.getZoomFactor() ?? -1, panelUrl);
+  await expect.poll(factor).toBeGreaterThan(0);
+  await expect.poll(factor).toBeLessThan(0.5);
+  const fitted = await factor();
+  await zoom.getByRole("button", { name: "Agrandir" }).click();
+  await expect(zoom).toContainText(/\d+ %/);
+  await expect.poll(factor).toBeGreaterThan(fitted);
+  await zoom.getByTitle("Ajuster à la largeur").click();
+  await expect(zoom).toContainText("Ajusté");
+});

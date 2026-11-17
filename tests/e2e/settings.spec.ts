@@ -67,9 +67,11 @@ test("settings persist across a restart, and the settings tab is restored", asyn
     await expect(chrome.locator(".tab.active .title")).toHaveText("Paramètres");
     expect(await cssVar(chrome, "--accent")).toBe("#ff5500");
     expect(await chrome.evaluate<string>("document.documentElement.dataset.theme")).toBe("dark");
-    // The native window background follows the theme (no white flash).
+    // The native window background follows the theme (no white flash), or is transparent behind
+    // Mica (Windows 11, on by default, ADR-048).
     const background = await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getBackgroundColor());
-    expect(background.toLowerCase()).toBe((await cssVar(chrome, "--bg")).toLowerCase());
+    const mica = await chrome.evaluate<boolean>("document.documentElement.hasAttribute('data-mica')");
+    expect(background.toLowerCase()).toBe(mica ? "#000000" : (await cssVar(chrome, "--bg")).toLowerCase());
     await chrome.getByRole("button", { name: "Nouvel onglet" }).click();
     await expect(chrome.locator(".start h1")).toContainText(", Mathieu.");
   } finally {

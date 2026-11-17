@@ -1,3 +1,8 @@
+import { parseAppSwitch } from "@shared/web-apps";
+import { setWebAppOpener } from "./web-apps";
+import { startWellbeing } from "./wellbeing";
+import { flushProfileDocs } from "./storage/profile-doc";
+import { watchDarkPages } from "./dark-pages";
 import { onLocaleChange } from "@shared/i18n";
 import { applyUiLanguage } from "./locale";
 import { spawn } from "node:child_process";
@@ -59,8 +64,12 @@ function sleepDelay(): number | null {
   return delay !== null && TEST_SLEEP_MS > 0 ? TEST_SLEEP_MS : delay;
 }
 
-/** Test hook: `BROWSER_TEST_ON_BATTERY=1` reports the computer on battery (energy saver, ADR-048). */
-const TEST_ON_BATTERY = !app.isPackaged && process.env.BROWSER_TEST_ON_BATTERY === "1";
+/**
+ * Test hook: `BROWSER_TEST_ON_BATTERY=1` reports the computer on battery (energy saver, ADR-048),
+ * `0` on mains power whatever the machine (the e2e fixtures' default: a laptop on battery must not
+ * turn the saver on under every test).
+ */
+const TEST_POWER = app.isPackaged ? undefined : process.env.BROWSER_TEST_ON_BATTERY;
 
 app.setName("Browser");
 // Lets tests run isolated profiles. A packaged app ignores it: an environment variable must not
@@ -135,6 +144,8 @@ if (!app.requestSingleInstanceLock()) {
   // Another launch (a link clicked in another app, a file opened): this instance shows it.
   // Jump List tasks (ADR-048) launch the browser with `--new-tab`, `--private` or `--space=<id>`.
   app.on("second-instance", (_event, argv, workingDirectory) => {
+    const appUrl = parseAppSwitch(argv);
+    if (appUrl) return launches.openApp(appUrl);
     const urls = launchUrls(argv, launchContext(workingDirectory));
     const actions = parseLaunchActions(argv);
     if (urls.length || actions) {
@@ -146,6 +157,9 @@ if (!app.requestSingleInstanceLock()) {
     else new BrowserController();
   });
   launches.open(launchUrls(process.argv, launchContext()));
+  // A web app's shortcut (ADR-059): its window alone, no browser window.
+  const appLaunch = parseAppSwitch(process.argv);
+  launches.openApp(appLaunch);
   launches.act(parseLaunchActions(process.argv));
 
   void app.whenReady().then(async () => {
@@ -159,6 +173,10 @@ if (!app.requestSingleInstanceLock()) {
     app.on("will-quit", () => marker.end());
     // Throwaway profiles of private windows (ADR-057) left behind by a crash.
     sweepPrivateProfiles();
+    // Forced dark pages (ADR-059) follow the settings and the system theme.
+    watchDarkPages();
+    // Time per site and focus sessions (ADR-059).
+    startWellbeing(BrowserController.directory);
     const profiles = new ProfileService(profileRoot, currentProfile, {
       args: process.argv.slice(1),
       packaged: app.isPackaged,
@@ -206,7 +224,7 @@ if (!app.requestSingleInstanceLock()) {
       // Test hook (ADR-057): the background wake-ups, read by the e2e tests.
       prewarmLog: app.isPackaged ? undefined : (entry) => ((globalThis as { __browserPrewarm?: unknown[] }).__browserPrewarm ??= []).push(entry),
       power: {
-        isOnBatteryPower: () => TEST_ON_BATTERY || powerMonitor.isOnBatteryPower(),
+        isOnBatteryPower: () => (TEST_POWER === "1" ? true : TEST_POWER === "0" ? false : powerMonitor.isOnBatteryPower()),
         on: (event, listener) => powerMonitor.on(event as "on-battery", listener),
       },
       testHooks: app.isPackaged
@@ -259,6 +277,7 @@ if (!app.requestSingleInstanceLock()) {
       },
     });
     minis.registerIpc(ipcMain);
+    setWebAppOpener((url) => void minis?.show(url));
     onSettings(() => minis?.refreshAll());
     nativeTheme.on("updated", () => minis?.refreshAll());
     // Jump List, taskbar downloads and thumbnail toolbar (Windows), Dock menu (macOS): ADR-048.
@@ -306,7 +325,9 @@ if (!app.requestSingleInstanceLock()) {
     const saved = previousSession?.windows ?? [];
     const plan = startupPlan({ unclean, restoreSession: settings.behavior.restoreSession, savedWindows: saved.length });
     if (plan === "offer" && previousSession) services.recovery.offer(previousSession);
-    if (plan === "restore") for (const window of saved) new BrowserController(window);
+    if (appLaunch) {
+      // Launched by a web app's shortcut: only its window (the session stays for the next launch).
+    } else if (plan === "restore") for (const window of saved) new BrowserController(window);
     else new BrowserController();
     // Several profiles and "Choisir le profil au démarrage": the first window shows the picker.
     const picker = shouldPickProfile(profilesAtLaunch, askedProfile);
@@ -344,6 +365,7 @@ if (!app.requestSingleInstanceLock()) {
   });
   // Last chance to write pending history/bookmarks/session changes.
   app.on("will-quit", flushProfile);
+  app.on("will-quit", flushProfileDocs);
 
   app.on("window-all-closed", () => {
     if (process.platform !== "darwin") app.quit();

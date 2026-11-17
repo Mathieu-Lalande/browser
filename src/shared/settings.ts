@@ -1,3 +1,6 @@
+import { DEFAULT_VAULT_LOCK, VAULT_LOCK_MINUTES } from "./vault-lock";
+import { DEFAULT_FOCUS_SITES, MAX_FOCUS_MINUTES } from "./focus";
+import type { DarkPagesMode } from "./dark-pages";
 import { t, LANGUAGE_SETTINGS, type LanguageSetting } from "./i18n";
 import { isReservedAnywhere, needsModifier, normalizeAccelerator, parseAccelerator } from "./accelerators";
 import { isCommandId, type ShortcutOverrides } from "./commands";
@@ -29,6 +32,8 @@ export type TabSleepDelay = "never" | "15m" | "30m" | "1h" | "2h";
 /** Idle time after which a tab is closed and kept in the archive (ADR-022), or never. */
 export type TabArchiveDelay = "never" | "12h" | "24h" | "7d" | "30d";
 
+export type ColorIntensity = "subtle" | "balanced" | "vivid";
+
 export interface AppearanceSettings {
   mode: ThemeMode;
   /** `#rrggbb`. */
@@ -52,6 +57,12 @@ export interface AppearanceSettings {
   mica: boolean;
   /** UI language (ADR-052): "auto" follows the system's preferred languages. */
   language: LanguageSetting;
+  /** How much the accent colors the chrome (ADR-059). */
+  colorIntensity: ColorIntensity;
+  /** Forced dark pages (ADR-059): "auto" while the browser's theme is dark. */
+  darkPages: DarkPagesMode;
+  /** Sites where the forced dark pages switch is flipped (page options). */
+  darkPagesSites: string[];
 }
 
 export interface LayoutSettings {
@@ -220,10 +231,19 @@ export interface AnnotationSettings {
   sync: boolean;
 }
 
+/** Focus mode (ADR-059): the sites a focus session holds, and its usual length. */
+export interface FocusSettings {
+  sites: string[];
+  /** Minutes. */
+  minutes: number;
+}
+
 /** Saved passwords (ADR-050). */
 export interface PasswordSettings {
   /** Opt-in: the `passwords` sync collection (end-to-end encrypted, local mirror sealed). */
   sync: boolean;
+  /** Minutes without use before showing or copying a password asks the system again (0: never), ADR-059. */
+  lockMinutes: number;
 }
 
 /** Addresses and payment cards (ADR-041). */
@@ -296,6 +316,7 @@ export interface Settings {
   assistant: AssistantSettings;
   annotations: AnnotationSettings;
   passwords: PasswordSettings;
+  focus: FocusSettings;
   autofill: AutofillSettings;
   notifications: NotificationSettings;
   spellcheck: SpellcheckSettings;
@@ -361,6 +382,9 @@ export const DEFAULT_SETTINGS: Settings = {
     dynamicTheme: false,
     mica: true,
     language: "auto",
+    colorIntensity: "balanced",
+    darkPages: "off",
+    darkPagesSites: [],
   },
   layout: {
     sidebarPosition: "left",
@@ -415,7 +439,8 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   assistant: { enabled: false, model: DEFAULT_ASSISTANT_MODEL, acknowledged: false, keepConversations: false, includePage: true },
   annotations: { sync: false },
-  passwords: { sync: false },
+  passwords: { sync: false, lockMinutes: DEFAULT_VAULT_LOCK },
+  focus: { sites: [...DEFAULT_FOCUS_SITES], minutes: 25 },
   autofill: { addresses: true, cards: true, syncAddresses: false },
   notifications: { doNotDisturb: false },
   spellcheck: { enabled: true, languages: [] },
@@ -521,6 +546,9 @@ const schema: Schema = {
     dynamicTheme: bool,
     mica: bool,
     language: oneOf(...LANGUAGE_SETTINGS),
+    colorIntensity: oneOf("subtle", "balanced", "vivid"),
+    darkPages: oneOf("off", "on", "auto"),
+    darkPagesSites: sanitizeSiteList,
   },
   layout: {
     sidebarPosition: oneOf("left", "right"),
@@ -594,7 +622,8 @@ const schema: Schema = {
     includePage: bool,
   },
   annotations: { sync: bool },
-  passwords: { sync: bool },
+  passwords: { sync: bool, lockMinutes: oneOfNumbers(VAULT_LOCK_MINUTES) },
+  focus: { sites: sanitizeSiteList, minutes: integer({ min: 1, max: MAX_FOCUS_MINUTES }) },
   autofill: { addresses: bool, cards: bool, syncAddresses: bool },
   notifications: { doNotDisturb: bool },
   spellcheck: { enabled: bool, languages: sanitizeSpellLanguages },

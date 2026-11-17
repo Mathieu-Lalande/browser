@@ -82,7 +82,7 @@
   .actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: var(--space-1);
   }
   .stack {
     display: flex;

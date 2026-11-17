@@ -145,3 +145,22 @@ describe("accentVariables (space colors)", () => {
     expect(clampAccentLightness("nope")).toBeNull();
   });
 });
+
+describe("color intensity (ADR-059)", () => {
+  it("keeps text readable at every intensity, on the strongest tinted backdrop", async () => {
+    const { COLOR_INTENSITY, blend, contrastRatio, derivePalette, effectiveIntensity, parseCssColor, parseHex } = await import("./theme");
+    for (const accent of ["#8b7bff", "#ff5500", "#22c55e", "#e1306c", "#f4b400"]) {
+      for (const mode of ["dark", "light"] as const) {
+        for (const intensity of Object.values(COLOR_INTENSITY)) {
+          const palette = derivePalette(accent, accent, mode, intensity);
+          const bg = parseCssColor(palette.bg)!.color;
+          const tinted = blend(parseHex(accent)!, Math.min(0.6, 0.34 * effectiveIntensity(accent, accent, mode, intensity)), bg);
+          const text = parseCssColor(palette.text)!.color;
+          const muted = parseCssColor(palette.textMuted)!.color;
+          expect(contrastRatio(text, bg), `${accent} ${mode} ${intensity}`).toBeGreaterThanOrEqual(7);
+          expect(contrastRatio(muted, tinted), `${accent} ${mode} ${intensity} muted`).toBeGreaterThanOrEqual(4.5);
+        }
+      }
+    }
+  });
+});

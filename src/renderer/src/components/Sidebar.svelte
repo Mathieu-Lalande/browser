@@ -22,6 +22,7 @@
   import SpaceHeader from "./sidebar/SpaceHeader.svelte";
   import SpacePeek from "./sidebar/SpacePeek.svelte";
   import TabTree from "./sidebar/TabTree.svelte";
+  import TidyPanel from "./sidebar/TidyPanel.svelte";
   import SpaceEditor from "./spaces/SpaceEditor.svelte";
 
   let addressBar: AddressBar;
@@ -171,6 +172,7 @@
             onEdit={() => (editing = browser.state.activeSpaceId)}
             onNewTab={newTab}
           />
+          <TidyPanel />
           <SelectionBar {selection} />
           <TabTree
             {rows}
@@ -230,7 +232,7 @@
     width: min(var(--sidebar-width), 45vw);
     min-width: 0;
     height: 100%;
-    padding: 0 8px 8px;
+    padding: 0 var(--space-2) var(--space-2);
     /* Narrow-sidebar rules of its parts (title bar, address bar, indentation) query this. */
     container: sidebar / inline-size;
     /* Indentation of the tab tree's levels (TreeRow): narrows with the sidebar. */
@@ -242,7 +244,7 @@
     right: 12px;
     bottom: 52px;
     left: 12px;
-    padding: 12px;
+    padding: var(--space-3);
     border: 1px solid var(--border);
     border-radius: 10px;
     background: var(--bg-elevated);
@@ -313,7 +315,7 @@
     align-items: center;
     gap: 6px;
     max-width: 220px;
-    padding: 4px 10px;
+    padding: var(--space-1) 10px;
     border-radius: 8px;
     background: var(--bg-elevated);
     box-shadow:

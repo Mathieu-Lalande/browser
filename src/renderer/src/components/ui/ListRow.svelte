@@ -23,15 +23,17 @@
   .list-row {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 10px;
-    border-radius: var(--radius);
+    gap: var(--space-3);
+    min-height: 44px;
+    padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
   }
   .list-row.start {
     align-items: flex-start;
   }
   .list-row.dense {
-    padding: 8px 10px;
+    min-height: 36px;
+    padding-block: var(--space-1);
   }
   .list-row:hover {
     background: var(--surface-hover);

@@ -3169,3 +3169,60 @@ quelles (le moteur de Google est local une fois ses voix téléchargées).
 l'interface (`speechSynthesis` et `SpeechSynthesisUtterance` remplacés : la CI n'a aucune voix) : commande, découpage,
 voix filtrées, vitesse et voix appliquées, surlignage, autre onglet et carte, arrêt en quittant le lecteur ;
 présentation : plein écran, taille, Espace, Échap.
+
+## ADR-059 — Favoris et épingles, onglets épinglés ancrés, rangement des onglets, bien-être, sécurité des mots de passe, panneaux web, couleurs
+
+**Contexte.** Audit de novembre 2026 : l'étoile de la barre d'adresse (favoris) et le double-clic sur un onglet
+(épingler) étaient deux notions sans lien ; les journées à trente onglets manquaient d'outils de rangement et de
+concentration ; les panneaux web coupaient les sites de bureau (WhatsApp) ; le coffre des mots de passe restait ouvert ;
+l'interface demandait plus de couleur, réglable.
+
+**Décision — favoris et épingles.** Épingler un onglet (`TabManager.togglePin` → crochet `onPinned`, jamais en fenêtre
+privée) l'ajoute aux favoris ; retirer l'étoile d'un onglet épinglé le désépingle. L'étoile active reste visible hors
+survol (`.act.on`). **Onglets épinglés ancrés** : `TabState.pinnedUrl` (posé à l'épinglage, `SessionTab.pinnedUrl` quand
+il diffère de l'URL), pur `src/shared/pinned-home.ts` (`pinnedPlace` : page, même site, ailleurs) ; point sur la tuile,
+pastille « Revenir à … » dans la barre d'adresse, menu de l'onglet (revenir, épingler cette page à la place), commande
+`pinned-home`.
+
+**Décision — ranger les onglets.** Pur `src/shared/tab-tidy.ts` : sans assistant, `groupLocally` (mots communs des
+titres et nom du site, mots vides FR/EN écartés, puis par site) ; avec l'assistant (ADR-044, clé, accord, pas en privé),
+un appel structuré (`structuredAnswer`, `output_config.format` JSON, effort bas, repli serveur) qui ne reçoit que titres
+et sites, jamais l'URL complète ; `parseTidyAnswer` valide (numéros connus, chaque onglet une fois, 2+ par dossier, 8
+dossiers). Portée `loose` (hors dossiers) ou `all` (tout réorganiser). Rien ne bouge avant la validation : le panneau de
+la barre latérale (`TidyPanel`) crée les dossiers gardés avec `folders.create`. Commande `tidy-tabs`, bouton à côté de
+« Nouveau dossier ».
+
+**Décision — bien-être.** `browser://focus` : session de concentration en mémoire (`src/main/wellbeing.ts`), sites de
+`settings.focus.sites` (sous-domaines compris) tenus par le crochet `focusHolds` dans `did-start-navigation` (arrêt
+différé par `setImmediate` : arrêter dans l'événement plante), interstitiel `kind: "focus"` (`FocusHeldPage`), pastille
+dans le pied de la barre latérale, `BrowserState.focus`. Temps par site : onglet actif de la fenêtre normale au premier
+plan, toutes les 15 s, pas pendant l'inactivité du système (`powerMonitor`), jamais en privé, `site-time.json` 30 jours,
+pur `src/shared/focus.ts`. **Sessions nommées** : `browser://sessions`, `sessions.json` (pur
+`src/shared/saved-sessions.ts`), pages web de l'espace affiché, rouvertes dans un dossier du même nom. Petits documents du
+profil par `ProfileDoc` (`src/main/storage/profile-doc.ts`, écrits au départ par `flushProfileDocs`).
+
+**Décision — mots de passe.** Bilan (`src/shared/password-checkup.ts`, `src/main/passwords/checkup.ts`) : faibles et
+réutilisés localement ; fuites par l'API « Pwned Passwords » à k-anonymat (5 caractères hexadécimaux du SHA-1, réponse
+rembourrée `Add-Padding`, comparaison locale, session `browser-assets`), à la demande ; aucun mot de passe ni empreinte
+complète ne traverse l'IPC. Verrou (`src/shared/vault-lock.ts`, `settings.passwords.lockMinutes`, 15 min par défaut) :
+afficher ou copier après le délai demande Touch ID ou une confirmation native (`confirmVaultUnlock`), chaque usage
+prolonge ; crochets de test `BROWSER_TEST_BREACH_URL`, `BROWSER_TEST_VAULT_UNLOCK` (mis par défaut dans les fixtures).
+
+**Décision — pages, applications, aperçu.** Pages sombres (`src/shared/dark-pages.ts`, `src/main/dark-pages.ts`) :
+`appearance.darkPages` (jamais, avec le thème, toujours) et exceptions par site, sonde de luminance en monde isolé 1023,
+feuille d'origine « author » retirée à chaud (Chromium ne retire pas une feuille « user »). Applications web
+(`src/shared/web-apps.ts`, `src/main/web-apps.ts`) : raccourci `--app=<url>` (Bureau et menu Démarrer sous Windows,
+`.desktop` sous Linux, icône `.ico` construite autour du PNG), ouvert dans la mini-fenêtre (ADR-048) sans fenêtre de
+navigation. Résumé IA dans l'aperçu des liens (ADR-027) : action `summarize`, texte du mode lecture sinon texte visible
+(24 000 caractères), bande sous l'en-tête (`PEEK_SUMMARY_HEIGHT`), jamais en privé.
+
+**Décision — panneaux web et couleurs.** Zoom par panneau (`WebPanel.zoom`, « Ajuster » = largeur de mise en page de
+900 px ramenée au panneau, borné à 30 %), son coupé, retour, page du panneau, ouvrir en onglet, mise en veille ;
+catalogue par catégories dans le style des raccourcis de l'accueil. `appearance.colorIntensity` (discrète, équilibrée,
+vive) : teinte des neutres, dégradés du fond et lavis d'accent (`--tint`) ; `effectiveIntensity` baisse l'intensité
+d'un accent trop clair pour que le moteur de contraste garde le texte lisible.
+
+**Conséquences.** Tests : unitaires `password-checkup`, `pinned-home`, `tab-tidy`, `dark-pages`, `focus`,
+`saved-sessions`, `web-apps`, `peek`, `panels`, `theme` (contrastes à chaque intensité) ; e2e
+`organize-security.spec.ts`, `panels-reading.spec.ts` (zoom), `tabs.spec.ts` (étoile et épingle). Non couverts en e2e :
+écriture réelle des raccourcis (système), résumé IA et rangement par l'assistant (appel réseau).

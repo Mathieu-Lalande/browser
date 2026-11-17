@@ -120,32 +120,32 @@
   .done {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: var(--space-1);
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--text-xs);
   }
   .sites {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-2);
     width: 100%;
   }
   .tools {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
   }
   .search {
     display: flex;
     flex: 1;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-2);
     min-width: 160px;
     height: 32px;
-    padding: 0 10px;
+    padding: 0 var(--space-3);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     background: var(--surface);
     color: var(--text-faint);
   }
@@ -164,11 +164,11 @@
     width: 100%;
     max-height: 300px;
     margin: 0;
-    padding: 4px;
+    padding: var(--space-1);
     overflow-y: auto;
     list-style: none;
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: calc(var(--radius-md) + var(--space-1));
     background: var(--bg-elevated);
     color: var(--text-muted);
   }
@@ -178,10 +178,10 @@
   li {
     display: flex;
     align-items: center;
-    gap: 10px;
-    min-height: 34px;
-    padding: 2px 6px 2px 10px;
-    border-radius: 7px;
+    gap: var(--space-3);
+    min-height: 36px;
+    padding: 2px var(--space-2) 2px var(--space-3);
+    border-radius: var(--radius-md);
   }
   li:hover {
     background: var(--surface-hover);

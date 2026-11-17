@@ -142,7 +142,7 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-    padding: 12px;
+    padding: var(--space-3);
     border-radius: 14px;
     background: var(--bg-elevated);
     box-shadow:
@@ -163,7 +163,7 @@
   .name-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
   }
   .preview {
     display: grid;
@@ -187,7 +187,7 @@
     font-weight: 600;
   }
   .name-row input:focus {
-    border-color: color-mix(in oklab, var(--accent) 60%, transparent);
+    border-color: color-mix(in oklab, var(--accent) min(calc(60% * var(--tint, 1)), 90%), transparent);
   }
   .icons {
     display: grid;
@@ -211,7 +211,7 @@
     color: var(--text);
   }
   .icons button.selected {
-    background: color-mix(in oklab, var(--accent) 16%, transparent);
+    background: color-mix(in oklab, var(--accent) min(calc(16% * var(--tint, 1)), 90%), transparent);
     box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent-text) 55%, transparent);
     color: var(--accent-text);
   }
@@ -256,8 +256,8 @@
   .isolated {
     display: flex;
     align-items: flex-start;
-    gap: 8px;
-    padding: 8px;
+    gap: var(--space-2);
+    padding: var(--space-2);
     border-radius: 9px;
     background: var(--surface);
   }
@@ -269,7 +269,7 @@
   .actions {
     display: flex;
     justify-content: space-between;
-    gap: 8px;
+    gap: var(--space-2);
   }
   .actions button {
     display: flex;
@@ -277,7 +277,7 @@
     align-items: center;
     gap: 6px;
     height: 28px;
-    padding: 0 12px;
+    padding: 0 var(--space-3);
     border-radius: 8px;
     font-weight: 500;
   }

@@ -28,6 +28,9 @@ import {
 } from "@shared/passwords";
 import type { Bounds, TabId } from "@shared/types";
 import type { BrowserController } from "../window";
+import { isVaultLocked, type VaultLockState } from "@shared/vault-lock";
+import { confirmVaultUnlock } from "../autofill/auth";
+import { settings } from "../settings";
 import { CAPTURE_SCRIPT, CAPTURE_WORLD_ID, FILL_WORLD_ID, fillScript } from "./scripts";
 import { currentVault, hasPasswordsFor, newPasswordId, passwordsStatus, writeVault } from "./vault";
 
@@ -172,18 +175,42 @@ function takeAccess(c: BrowserController): boolean {
   return next !== null;
 }
 
-export function revealPassword(c: BrowserController, id: string): RevealResult {
+// --- Vault lock (ADR-059) -------------------------------------------------------------------
+
+/** Last unlock, reveal or copy; null: locked since the app started (or "Verrouiller"). */
+let vaultUsedAt: number | null = null;
+
+const lockMinutes = (): number => settings().passwords.lockMinutes;
+
+export const vaultLockState = (): VaultLockState => ({ locked: isVaultLocked(lockMinutes(), vaultUsedAt, Date.now()), lockMinutes: lockMinutes() });
+
+/** "Verrouiller maintenant": the next reveal or copy asks the system again. */
+export function lockVault(): void {
+  vaultUsedAt = null;
+}
+
+/** Asks the system when the vault is locked; a use keeps it open for another delay. */
+async function unlocked(c: BrowserController): Promise<boolean> {
+  if (isVaultLocked(lockMinutes(), vaultUsedAt, Date.now()) && !(await confirmVaultUnlock(c))) return false;
+  vaultUsedAt = Date.now();
+  return true;
+}
+
+export async function revealPassword(c: BrowserController, id: string): Promise<RevealResult> {
   const password = findPassword(id);
   if (password === null) return { ok: false, message: t("passwordsIndex.passwordNoLongerExists") };
-  return takeAccess(c) ? { ok: true, password } : { ok: false, message: PASSWORD_ACCESS_REFUSED() };
+  if (!takeAccess(c)) return { ok: false, message: PASSWORD_ACCESS_REFUSED() };
+  if (!(await unlocked(c))) return { ok: false, message: t("vaultLock.stillLocked") };
+  return { ok: true, password };
 }
 
 const CLIPBOARD_CLEAR_MS = 30_000;
 
-export function copyPassword(c: BrowserController, id: string): PasswordResult {
+export async function copyPassword(c: BrowserController, id: string): Promise<PasswordResult> {
   const password = findPassword(id);
   if (!password) return { ok: false, message: t("passwordsIndex.passwordNoLongerExists") };
   if (!takeAccess(c)) return { ok: false, message: PASSWORD_ACCESS_REFUSED() };
+  if (!(await unlocked(c))) return { ok: false, message: t("vaultLock.stillLocked") };
   clipboard.writeText(password);
   // Not left on the clipboard: cleared after a while, unless something else was copied since.
   setTimeout(async () => {

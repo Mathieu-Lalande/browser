@@ -41,7 +41,7 @@
     place-items: center;
     min-width: 18px;
     height: 18px;
-    padding: 0 4px;
+    padding: 0 var(--space-1);
     border: 1px solid var(--border);
     border-bottom-width: 2px;
     border-radius: 5px;

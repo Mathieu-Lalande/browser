@@ -33,30 +33,30 @@
 <style>
   .mini {
     display: flex;
-    gap: 5px;
+    gap: var(--space-1);
     width: 100%;
     height: 100%;
-    padding: 6px 6px 6px 0;
+    padding: var(--space-1) var(--space-1) var(--space-1) 0;
     background: var(--backdrop);
     color-scheme: inherit;
   }
   .mini.right {
     flex-direction: row-reverse;
-    padding: 6px 0 6px 6px;
+    padding: var(--space-1) 0 var(--space-1) var(--space-1);
   }
   .side {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--space-1);
     width: 32%;
-    padding: 2px 0 0 6px;
+    padding: 2px 0 0 var(--space-1);
   }
   .right .side {
-    padding: 2px 6px 0 0;
+    padding: 2px var(--space-1) 0 0;
   }
   .dots {
     display: flex;
-    gap: 3px;
+    gap: var(--space-1);
     margin-bottom: 2px;
   }
   .dots i {
@@ -73,9 +73,9 @@
   .tab {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--space-1);
     height: 11px;
-    padding: 0 4px;
+    padding: 0 var(--space-1);
     border-radius: calc(var(--radius) * 0.4);
   }
   .tab.active {
@@ -105,8 +105,8 @@
     display: flex;
     flex: 1;
     flex-direction: column;
-    gap: 5px;
-    padding: 10px;
+    gap: var(--space-1);
+    padding: var(--space-2);
     border-radius: calc(var(--page-radius) * 0.5);
     background: var(--bg-elevated);
     box-shadow: var(--viewport-shadow);
@@ -128,7 +128,7 @@
   }
   .chips {
     display: flex;
-    gap: 4px;
+    gap: var(--space-1);
     margin-top: auto;
   }
   .chips i {

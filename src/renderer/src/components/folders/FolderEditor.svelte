@@ -121,8 +121,8 @@
     z-index: 5;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 12px;
+    gap: var(--space-2);
+    padding: var(--space-3);
     border-radius: 14px;
     background: var(--bg-elevated);
     box-shadow:
@@ -143,7 +143,7 @@
   .name-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
   }
   .preview {
     display: grid;
@@ -159,7 +159,7 @@
     flex: 1;
     min-width: 0;
     height: 32px;
-    padding: 0 10px;
+    padding: 0 var(--space-2);
     border: 1px solid var(--border);
     border-radius: 8px;
     outline: none;
@@ -167,7 +167,7 @@
     font-weight: 600;
   }
   .name-row input:focus {
-    border-color: color-mix(in oklab, var(--accent) 60%, transparent);
+    border-color: color-mix(in oklab, var(--accent) min(calc(60% * var(--tint, 1)), 90%), transparent);
   }
   .icons {
     display: grid;
@@ -188,7 +188,7 @@
     color: var(--text);
   }
   .icons button.selected {
-    background: color-mix(in oklab, var(--accent) 16%, transparent);
+    background: color-mix(in oklab, var(--accent) min(calc(16% * var(--tint, 1)), 90%), transparent);
     box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent-text) 55%, transparent);
     color: var(--accent-text);
   }
@@ -198,7 +198,7 @@
     flex-wrap: wrap;
     align-items: center;
     justify-content: flex-end;
-    gap: 6px;
+    gap: var(--space-1);
   }
   .actions button {
     flex: none;
@@ -211,9 +211,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: var(--space-1);
     height: 28px;
-    padding: 0 10px;
+    padding: 0 var(--space-2);
     border-radius: 8px;
     font-weight: 500;
   }
@@ -242,18 +242,18 @@
     color: var(--text-muted);
   }
   .confirm p {
-    margin: 0 0 10px;
+    margin: 0 0 var(--space-2);
     line-height: 1.45;
   }
   .choices {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--space-1);
   }
   .choices button {
     height: auto;
     min-height: 28px;
-    padding: 4px 10px;
+    padding: var(--space-1) var(--space-2);
     text-align: center;
   }
 </style>

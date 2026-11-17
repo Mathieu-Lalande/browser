@@ -68,12 +68,12 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-3);
   }
   .swatches {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: var(--space-2);
   }
   .swatch {
     position: relative;
@@ -118,7 +118,7 @@
   .hex {
     width: 84px;
     height: 30px;
-    padding: 0 10px;
+    padding: 0 var(--space-2);
     border: 1px solid var(--border);
     border-radius: 8px;
     outline: 0;

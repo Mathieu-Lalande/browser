@@ -1,6 +1,6 @@
 <script lang="ts">
   import { t } from "@shared/i18n";
-  import { PANEL_WIDTH, clampPanelWidth, panelLabel, type PanelView } from "@shared/panels";
+  import { PANEL_WIDTH, clampPanelWidth, panelLabel, stepPanelZoom, type PanelView } from "@shared/panels";
   import { api } from "../../lib/browser.svelte";
   import IconButton from "../ui/IconButton.svelte";
   import PanelIcon from "./PanelIcon.svelte";
@@ -82,12 +82,41 @@
   }
 
   const label = $derived(panelLabel(panel));
+  const percent = $derived(Math.round((panel.zoomFactor ?? 1) * 100));
+  const zoomBy = (direction: 1 | -1) => api.panels.setZoom(panel.id, stepPanelZoom(panel.zoomFactor ?? 1, direction));
 </script>
 
 <aside class="web-panel" class:right={side === "right"} style:width="{width}px" aria-label={t("webPanelFrame.panel", { label })} data-testid="web-panel">
   <header>
-    <PanelIcon {panel} />
-    <h2>{label}</h2>
+    {#if panel.canGoBack}
+      <IconButton size="sm" icon="back" iconSize={14} label={t("webPanelFrame.back")} onclick={() => api.panels.back(panel.id)} />
+    {/if}
+    <button type="button" class="title" title={t("webPanelFrame.home")} onclick={() => api.panels.home(panel.id)}>
+      <PanelIcon {panel} />
+      <h2>{label}</h2>
+    </button>
+    <div class="zoom" role="group" aria-label={t("webPanelFrame.zoomLevel", { percent })} data-testid="panel-zoom">
+      <button type="button" aria-label={t("webPanelFrame.zoomOut")} onclick={() => zoomBy(-1)}>−</button>
+      <button
+        type="button"
+        class="level"
+        class:fit={panel.zoom === "fit"}
+        title={t("webPanelFrame.zoomFit")}
+        aria-pressed={panel.zoom === "fit"}
+        onclick={() => api.panels.setZoom(panel.id, "fit")}
+      >{panel.zoom === "fit" ? t("webPanelFrame.fit") : `${percent} %`}</button>
+      <button type="button" aria-label={t("webPanelFrame.zoomIn")} onclick={() => zoomBy(1)}>+</button>
+    </div>
+    {#if panel.audible || panel.muted}
+      <IconButton
+        size="sm"
+        icon={panel.muted ? "volume-off" : "audio-lines"}
+        iconSize={14}
+        label={panel.muted ? t("webPanelFrame.unmute") : t("webPanelFrame.mute")}
+        pressed={panel.muted}
+        onclick={() => api.panels.setMuted(panel.id, !panel.muted)}
+      />
+    {/if}
     <IconButton
       size="sm"
       icon="smartphone"
@@ -96,7 +125,7 @@
       pressed={panel.mobile}
       onclick={() => api.panels.setMobile(panel.id, !panel.mobile)}
     />
-    <IconButton size="sm" icon="reload" iconSize={14} label={t("webPanelFrame.reloadPanel")} onclick={() => api.panels.reload(panel.id)} />
+    <IconButton size="sm" icon="more" iconSize={14} label={t("webPanelFrame.more")} onclick={() => api.panels.contextMenu(panel.id)} />
     <IconButton size="sm" icon="close" iconSize={14} label={t("webPanelFrame.hidePanel")} command="toggle-web-panel" onclick={() => api.panels.close()} />
   </header>
   <div class="body" bind:this={body}></div>
@@ -137,8 +166,55 @@
   header {
     display: flex;
     align-items: center;
-    gap: var(--space-2);
+    gap: 2px;
+    min-height: 34px;
     padding: 0 var(--space-1);
+  }
+  .title {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+    height: var(--hit-min);
+    padding: 0 var(--space-1);
+    border-radius: var(--radius-sm);
+    color: inherit;
+    text-align: start;
+  }
+  .title:hover {
+    background: var(--surface-hover);
+  }
+  .zoom {
+    display: flex;
+    flex: none;
+    align-items: center;
+    height: 24px;
+    margin: 0 var(--space-1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+  }
+  .zoom button {
+    height: 100%;
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-pill);
+    color: var(--text-muted);
+  }
+  .zoom button:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+  }
+  .zoom .level {
+    min-width: 46px;
+    padding: 0 var(--space-1);
+    color: var(--text);
+  }
+  .zoom .level.fit {
+    color: var(--accent-text);
+    font-weight: 600;
   }
   h2 {
     flex: 1;
@@ -170,6 +246,6 @@
   .handle:hover,
   .handle:focus-visible {
     outline: none;
-    background: color-mix(in oklab, var(--accent) 35%, transparent);
+    background: color-mix(in oklab, var(--accent) min(calc(35% * var(--tint, 1)), 90%), transparent);
   }
 </style>

@@ -39,9 +39,9 @@
   .item {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--space-2);
     min-height: 32px;
-    padding: 0 10px;
+    padding: 0 var(--space-2);
     border: none;
     border-radius: calc(var(--radius) - 3px);
     background: none;

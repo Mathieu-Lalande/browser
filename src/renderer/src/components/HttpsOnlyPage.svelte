@@ -44,7 +44,7 @@
     justify-content: center;
     gap: 6px;
     height: 100%;
-    padding: 24px;
+    padding: var(--space-5);
     text-align: center;
   }
   .badge {
@@ -52,7 +52,7 @@
     place-items: center;
     width: 48px;
     height: 48px;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-2);
     border-radius: 14px;
     background: color-mix(in oklab, #f5a524 18%, transparent);
     color: #f5a524;
@@ -75,12 +75,12 @@
   }
   .actions {
     display: flex;
-    gap: 8px;
+    gap: var(--space-2);
     margin-top: 18px;
   }
   button {
     height: 34px;
-    padding: 0 16px;
+    padding: 0 var(--space-4);
     border-radius: 9px;
     font-weight: 500;
   }

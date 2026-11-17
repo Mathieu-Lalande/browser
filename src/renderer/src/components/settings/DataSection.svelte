@@ -69,9 +69,9 @@
   .done {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: var(--space-1);
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--text-xs);
   }
   .bookmarks {
     display: flex;
@@ -80,20 +80,20 @@
     width: 100%;
     max-height: 280px;
     margin: 0;
-    padding: 4px;
+    padding: var(--space-1);
     overflow-y: auto;
     list-style: none;
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: calc(var(--radius-md) + var(--space-1));
     background: var(--bg-elevated);
   }
   li {
     display: flex;
     align-items: center;
-    gap: 10px;
-    min-height: 38px;
-    padding: 4px 6px 4px 10px;
-    border-radius: 7px;
+    gap: var(--space-3);
+    min-height: 36px;
+    padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3);
+    border-radius: var(--radius-md);
   }
   li:hover {
     background: var(--surface-hover);

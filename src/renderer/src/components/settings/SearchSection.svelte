@@ -39,7 +39,7 @@
     grid-template-columns: auto 1fr;
     align-items: center;
     column-gap: var(--space-3);
-    padding: 10px var(--space-3);
+    padding: var(--space-2) var(--space-3);
     border-radius: var(--radius-md);
     text-align: left;
     box-shadow: inset 0 0 0 1px var(--border);
@@ -51,7 +51,7 @@
     background: var(--surface-hover);
   }
   .engine[aria-checked="true"] {
-    background: color-mix(in oklab, var(--accent) 10%, transparent);
+    background: color-mix(in oklab, var(--accent) min(calc(10% * var(--tint, 1)), 90%), transparent);
     box-shadow: inset 0 0 0 2px var(--accent-text);
   }
   .radio {

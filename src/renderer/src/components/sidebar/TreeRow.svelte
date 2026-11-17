@@ -49,7 +49,7 @@
     background: var(--surface-hover);
   }
   .folder-row.drop-inside {
-    background: color-mix(in oklab, var(--accent) 16%, transparent);
+    background: color-mix(in oklab, var(--accent) min(calc(16% * var(--tint, 1)), 90%), transparent);
     box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent-text) 55%, transparent);
   }
   .row.drop-split {

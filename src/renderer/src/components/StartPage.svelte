@@ -239,7 +239,7 @@
     align-items: center;
     gap: 6px;
     height: 100%;
-    padding: 56px 24px 24px;
+    padding: 56px var(--space-5) var(--space-5);
     overflow: auto;
     animation: rise var(--motion-base) var(--ease);
   }
@@ -257,7 +257,7 @@
     flex-wrap: wrap;
     align-items: center;
     justify-content: flex-end;
-    gap: 8px;
+    gap: var(--space-2);
     padding: 6px;
     border: 1px solid var(--border);
     border-radius: 14px;
@@ -267,7 +267,7 @@
   }
   .group {
     display: flex;
-    gap: 4px;
+    gap: var(--space-1);
   }
   .start.editing {
     padding-top: 96px;
@@ -285,9 +285,9 @@
   }
   .start.aurora::before {
     background:
-      radial-gradient(45% 55% at 20% 25%, color-mix(in oklab, var(--accent) 38%, transparent), transparent 70%),
-      radial-gradient(40% 50% at 80% 30%, color-mix(in oklab, var(--accent-2) 32%, transparent), transparent 70%),
-      radial-gradient(50% 45% at 55% 90%, color-mix(in oklab, var(--accent) 22%, transparent), transparent 70%);
+      radial-gradient(45% 55% at 20% 25%, color-mix(in oklab, var(--accent) min(calc(38% * var(--tint, 1)), 90%), transparent), transparent 70%),
+      radial-gradient(40% 50% at 80% 30%, color-mix(in oklab, var(--accent-2) min(calc(32% * var(--tint, 1)), 90%), transparent), transparent 70%),
+      radial-gradient(50% 45% at 55% 90%, color-mix(in oklab, var(--accent) min(calc(22% * var(--tint, 1)), 90%), transparent), transparent 70%);
     filter: blur(20px);
     animation: drift 18s ease-in-out infinite alternate;
   }
@@ -295,15 +295,15 @@
      when motion is reduced (the global rule stops every animation). */
   .start.dynamic::before {
     background:
-      radial-gradient(40% 50% at 15% 20%, color-mix(in oklab, var(--accent) 42%, transparent), transparent 70%),
-      radial-gradient(35% 45% at 85% 75%, color-mix(in oklab, var(--accent-2) 36%, transparent), transparent 70%);
+      radial-gradient(40% 50% at 15% 20%, color-mix(in oklab, var(--accent) min(calc(42% * var(--tint, 1)), 90%), transparent), transparent 70%),
+      radial-gradient(35% 45% at 85% 75%, color-mix(in oklab, var(--accent-2) min(calc(36% * var(--tint, 1)), 90%), transparent), transparent 70%);
     filter: blur(30px);
     animation: orbit 26s ease-in-out infinite alternate;
   }
   .start.dynamic::after {
     background:
-      radial-gradient(30% 40% at 70% 15%, color-mix(in oklab, var(--accent-2) 26%, transparent), transparent 70%),
-      radial-gradient(45% 40% at 30% 85%, color-mix(in oklab, var(--accent) 24%, transparent), transparent 70%);
+      radial-gradient(30% 40% at 70% 15%, color-mix(in oklab, var(--accent-2) min(calc(26% * var(--tint, 1)), 90%), transparent), transparent 70%),
+      radial-gradient(45% 40% at 30% 85%, color-mix(in oklab, var(--accent) min(calc(24% * var(--tint, 1)), 90%), transparent), transparent 70%);
     filter: blur(40px);
     animation: orbit 34s ease-in-out -12s infinite alternate-reverse;
   }
@@ -377,9 +377,9 @@
     height: 64px;
     margin-bottom: 10px;
     border-radius: 20px;
-    background: linear-gradient(140deg, color-mix(in oklab, var(--accent) 40%, transparent), color-mix(in oklab, var(--accent-2) 30%, transparent));
+    background: linear-gradient(140deg, color-mix(in oklab, var(--accent) min(calc(40% * var(--tint, 1)), 90%), transparent), color-mix(in oklab, var(--accent-2) min(calc(30% * var(--tint, 1)), 90%), transparent));
     box-shadow:
-      inset 0 0 0 1px color-mix(in oklab, var(--accent) 45%, transparent),
+      inset 0 0 0 1px color-mix(in oklab, var(--accent) min(calc(45% * var(--tint, 1)), 90%), transparent),
       0 18px 50px -18px var(--accent);
     color: var(--text);
   }
@@ -387,8 +387,8 @@
     display: grid;
     gap: 9px;
     width: min(620px, 100%);
-    margin: 24px 0 0;
-    padding: 16px 20px;
+    margin: var(--space-5) 0 0;
+    padding: var(--space-4) 20px;
     border: 1px solid var(--border);
     border-radius: 14px;
     background: color-mix(in oklab, var(--bg-elevated) 70%, transparent);

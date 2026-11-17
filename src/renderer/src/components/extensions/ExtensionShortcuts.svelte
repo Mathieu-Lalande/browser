@@ -210,7 +210,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 3px;
+    gap: var(--space-1);
     min-width: 96px;
     height: 30px;
     padding: 0 var(--space-2);
@@ -238,7 +238,7 @@
   }
   kbd {
     min-width: 20px;
-    padding: 1px 5px;
+    padding: 1px var(--space-1);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     background: var(--bg-elevated);

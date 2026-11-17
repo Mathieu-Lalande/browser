@@ -18,7 +18,7 @@ import {
   type WebPanel,
 } from "./panels";
 
-const panel = (id: string, url = `https://${id}.example/`): WebPanel => ({ id, url, title: "", mobile: false, width: PANEL_WIDTH.default, favicon: null, createdAt: 1 });
+const panel = (id: string, url = `https://${id}.example/`): WebPanel => ({ id, url, title: "", mobile: false, width: PANEL_WIDTH.default, zoom: "fit", muted: false, favicon: null, createdAt: 1 });
 
 describe("panels model", () => {
   it("adds web pages only, once each, up to the limit", () => {
@@ -82,5 +82,21 @@ describe("panels model", () => {
     expect(merged.map((p) => p.id)).toEqual(["c", "a"]);
     expect(merged[1]).toMatchObject({ title: "Renommé", width: 500, favicon: "data:image/png;base64,AAAA" });
     expect(mergePanels(local, [], ["a"]).map((p) => p.id)).toEqual(["b"]);
+  });
+});
+
+describe("panel zoom (ADR-059)", () => {
+  it("fits desktop pages to the panel, keeps mobile ones and explicit zooms", async () => {
+    const { clampPanelZoom, panelZoomFactor, stepPanelZoom } = await import("./panels");
+    expect(panelZoomFactor("fit", 450, false)).toBe(0.5);
+    expect(panelZoomFactor("fit", 1200, false)).toBe(1);
+    expect(panelZoomFactor("fit", 100, false)).toBe(0.3);
+    expect(panelZoomFactor("fit", 450, true)).toBe(1);
+    expect(panelZoomFactor(80, 450, false)).toBe(0.8);
+    expect(clampPanelZoom(500)).toBe(200);
+    expect(clampPanelZoom("big")).toBe("fit");
+    expect(stepPanelZoom(0.53, 1)).toBe(60);
+    expect(stepPanelZoom(0.53, -1)).toBe(50);
+    expect(stepPanelZoom(0.3, -1)).toBe(30);
   });
 });

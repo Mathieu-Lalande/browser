@@ -63,7 +63,7 @@
   .favorites {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
-    gap: 6px;
+    gap: var(--space-1);
     padding: 2px;
     border-radius: calc(var(--radius) + 2px);
     transition: background var(--motion-fast) var(--ease);
@@ -82,7 +82,7 @@
     background: color-mix(in oklab, var(--accent) 14%, var(--bg-elevated));
   }
   .favorites.dropping {
-    background: color-mix(in oklab, var(--accent) 14%, transparent);
+    background: color-mix(in oklab, var(--accent) min(calc(14% * var(--tint, 1)), 90%), transparent);
     box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent-text) 50%, transparent);
   }
   .tile {
@@ -100,7 +100,7 @@
   }
   .tile.current {
     background: var(--bg-elevated);
-    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 45%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) min(calc(45% * var(--tint, 1)), 90%), transparent);
   }
   /* The tile's site has a tab open in this window. */
   .dot {
@@ -131,10 +131,10 @@
     display: flex;
     grid-column: 1 / -1;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
     min-width: 0;
     min-height: 40px;
-    padding: 4px 4px 4px 10px;
+    padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2);
     border: 1px dashed var(--border);
     border-radius: var(--radius);
     color: var(--text-faint);

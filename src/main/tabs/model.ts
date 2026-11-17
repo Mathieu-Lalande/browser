@@ -82,6 +82,13 @@ export interface TabManagerHooks {
   /** The committed page reported its title or favicon. */
   onPageInfo?(url: string, info: { title?: string; favicon?: string | null }): void;
   isBookmarked?(url: string): boolean;
+  /** A main-frame navigation to `url` is held by the focus session (ADR-059): the tab shows why instead. */
+  focusHolds?(url: string): boolean;
+  /**
+   * A tab was pinned or unpinned (double-click, menu): pinning a page makes it a bookmark too, so
+   * the star of the address bar matches what the user calls a "favorite". Never in a private window.
+   */
+  onPinned?(page: { url: string; title: string; favicon: string | null }, pinned: boolean): void;
   /** Whether the URL is the site of one of the favorites (ADR-022). */
   isFavorite?(url: string): boolean;
   /** Whether the page is in the reading list (ADR-047). */

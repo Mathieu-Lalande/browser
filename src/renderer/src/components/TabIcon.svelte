@@ -18,6 +18,8 @@
     privacy: "shield-check",
     "site-settings": "sliders",
     "reading-list": "book-marked",
+    focus: "hourglass",
+    sessions: "layers",
   };
   const internal = $derived(internalPageOf(tab.url));
 </script>

@@ -10,6 +10,7 @@
   import InternalPage from "./components/InternalPage.svelte";
   import FindBar from "./components/FindBar.svelte";
   import HttpsOnlyPage from "./components/HttpsOnlyPage.svelte";
+  import FocusHeldPage from "./components/focus/FocusHeldPage.svelte";
   import LoadErrorPage from "./components/LoadErrorPage.svelte";
   import WindowBar, { type SidebarMode } from "./components/WindowBar.svelte";
   import { settings } from "./lib/settings.svelte";
@@ -311,6 +312,8 @@
           <div class="drawn-page" style:zoom={pageZoom}><StartPage /></div>
         {:else if internalPage}
           <div class="drawn-page" style:zoom={pageZoom}><InternalPage page={internalPage} /></div>
+        {:else if browser.activeTab?.interstitial?.kind === "focus"}
+          <FocusHeldPage tab={browser.activeTab} />
         {:else if browser.activeTab?.interstitial}
           <HttpsOnlyPage tab={browser.activeTab} />
         {:else if browser.activeTab?.loadError}
@@ -375,10 +378,10 @@
   .edge {
     flex: none;
     width: 6px;
-    background: linear-gradient(to right, color-mix(in oklab, var(--accent) 30%, transparent), transparent);
+    background: linear-gradient(to right, color-mix(in oklab, var(--accent) min(calc(30% * var(--tint, 1)), 90%), transparent), transparent);
   }
   .panes.right .edge {
-    background: linear-gradient(to left, color-mix(in oklab, var(--accent) 30%, transparent), transparent);
+    background: linear-gradient(to left, color-mix(in oklab, var(--accent) min(calc(30% * var(--tint, 1)), 90%), transparent), transparent);
   }
   .page-row {
     display: flex;

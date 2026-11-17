@@ -368,7 +368,7 @@
   @keyframes flash {
     0%,
     40% {
-      background: color-mix(in oklab, var(--accent) 18%, transparent);
+      background: color-mix(in oklab, var(--accent) min(calc(18% * var(--tint, 1)), 90%), transparent);
     }
   }
   /*
@@ -396,9 +396,9 @@
     display: flex;
     flex: none;
     align-items: center;
-    gap: 10px;
+    gap: var(--space-2);
     height: 34px;
-    padding: 0 10px;
+    padding: 0 var(--space-2);
     border-radius: var(--radius-sm);
     color: var(--text-muted);
     text-align: left;
@@ -413,7 +413,7 @@
     color: var(--text);
   }
   .toc button.current {
-    background: color-mix(in oklab, var(--accent) 14%, transparent);
+    background: color-mix(in oklab, var(--accent) min(calc(14% * var(--tint, 1)), 90%), transparent);
     color: var(--text);
     font-weight: 500;
   }

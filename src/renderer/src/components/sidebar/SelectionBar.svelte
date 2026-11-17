@@ -34,7 +34,7 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 2px;
-    margin: 0 0 4px;
+    margin: 0 0 var(--space-1);
     padding: 2px 2px 2px 10px;
     border-radius: var(--radius);
     background: color-mix(in srgb, var(--accent) 14%, transparent);

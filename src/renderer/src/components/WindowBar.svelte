@@ -151,9 +151,9 @@
     display: flex;
     flex: none;
     align-items: center;
-    gap: 4px;
+    gap: var(--space-1);
     height: max(var(--gutter), 8px);
-    padding: 0 4px;
+    padding: 0 var(--space-1);
     overflow: hidden;
     transition: height var(--motion-fast) var(--ease);
   }

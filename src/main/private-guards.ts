@@ -22,6 +22,8 @@ export function tabHooksFor(hooks: TabManagerHooks, isPrivate: boolean): TabMana
     ? {
         isBookmarked: hooks.isBookmarked,
         isFavorite: hooks.isFavorite,
+        // Focus mode holds sites in private windows too (nothing written).
+        focusHolds: hooks.focusHolds,
         contextMenu: hooks.contextMenu,
         // Smart preloading (ADR-057): the window's own tabs, nothing recorded.
         tabActivated: hooks.tabActivated,

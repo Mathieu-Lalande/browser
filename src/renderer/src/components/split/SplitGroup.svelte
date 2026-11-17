@@ -45,7 +45,7 @@
     box-shadow: inset 0 0 0 1px var(--border);
   }
   .split-group.visible {
-    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 40%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) min(calc(40% * var(--tint, 1)), 90%), transparent);
   }
   .members {
     display: grid;
@@ -67,7 +67,7 @@
   .members :global(.tab) {
     gap: 7px;
     height: 32px;
-    padding: 0 4px 0 8px;
+    padding: 0 var(--space-1) 0 var(--space-2);
   }
   /* Half-width tabs: a smaller close button, still always reachable. */
   .members :global(.tab .close) {

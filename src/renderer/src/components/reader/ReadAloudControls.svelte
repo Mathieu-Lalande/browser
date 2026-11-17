@@ -81,7 +81,7 @@
     display: inline-flex;
     align-items: center;
     gap: var(--space-1);
-    padding: 4px 8px;
+    padding: var(--space-1) var(--space-2);
     border: 0;
     border-radius: var(--radius-sm);
     background: transparent;
@@ -107,7 +107,7 @@
   }
   select {
     max-width: 160px;
-    padding: 2px 4px;
+    padding: 2px var(--space-1);
     border: 0;
     border-radius: var(--radius-sm);
     background: transparent;

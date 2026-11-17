@@ -135,9 +135,26 @@ export class LaunchRouter {
     target.focus();
   }
 
+  private pendingApps: string[] = [];
+
+  /** `--app=<url>` (ADR-059): the site alone in an app window (the mini window), whatever the setting. */
+  openApp(url: string | null): void {
+    if (!url) return;
+    if (!this.isReady) {
+      this.pendingApps.push(url);
+      return;
+    }
+    const mini = this.windows().mini;
+    if (mini) mini.open(url);
+    else this.openInTabs([url]);
+  }
+
   /** The windows exist: delivers what arrived meanwhile. */
   ready(): void {
     this.isReady = true;
+    const apps = this.pendingApps;
+    this.pendingApps = [];
+    for (const url of apps) this.openApp(url);
     const pending = this.pending;
     this.pending = [];
     // What waited opens in tabs: the first window is just being shown.

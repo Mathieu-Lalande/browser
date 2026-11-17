@@ -95,7 +95,7 @@
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 6px;
+    gap: var(--space-1);
     color: var(--text-muted);
     font-size: 12px;
     text-align: right;
@@ -124,16 +124,16 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: flex-end;
-    gap: 8px;
-    padding: 0 18px 12px;
+    gap: var(--space-2);
+    padding: 0 var(--space-4) var(--space-3);
   }
   .primary,
   .secondary {
     display: flex;
     align-items: center;
-    gap: 7px;
+    gap: var(--space-2);
     height: 32px;
-    padding: 0 12px;
+    padding: 0 var(--space-3);
     border: 1px solid var(--border);
     border-radius: 8px;
     background: var(--surface);

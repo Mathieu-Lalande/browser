@@ -59,7 +59,7 @@
     justify-content: center;
     gap: 6px;
     height: 100%;
-    padding: 24px;
+    padding: var(--space-5);
     overflow-y: auto;
     text-align: center;
     animation: rise var(--motion-base) var(--ease);
@@ -98,15 +98,15 @@
   }
   .actions {
     display: flex;
-    gap: 8px;
+    gap: var(--space-2);
     margin-top: 20px;
   }
   .primary {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
     height: 34px;
-    padding: 0 16px;
+    padding: 0 var(--space-4);
     border-radius: 9px;
     background: var(--accent);
     color: var(--on-accent);
@@ -132,7 +132,7 @@
   dl {
     display: grid;
     grid-template-columns: auto 1fr;
-    gap: 4px 12px;
+    gap: var(--space-1) var(--space-3);
     margin: 10px 0 0;
     text-align: left;
   }

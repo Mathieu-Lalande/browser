@@ -111,7 +111,7 @@
     width: var(--control-height);
     height: var(--control-height);
     border-radius: var(--radius-md);
-    background: color-mix(in oklab, var(--accent) 16%, transparent);
+    background: color-mix(in oklab, var(--accent) min(calc(16% * var(--tint, 1)), 90%), transparent);
     color: var(--accent-text);
   }
   .text {

@@ -101,8 +101,8 @@
     --warn: #e8a317;
     display: flex;
     align-items: flex-start;
-    gap: 12px;
-    padding: 10px 8px 10px 10px;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-2) var(--space-2) var(--space-2);
     border-radius: calc(var(--radius) - 2px);
   }
   .download:hover {
@@ -116,7 +116,7 @@
     width: 34px;
     height: 34px;
     border-radius: 9px;
-    background: color-mix(in oklab, var(--accent) 14%, transparent);
+    background: color-mix(in oklab, var(--accent) min(calc(14% * var(--tint, 1)), 90%), transparent);
     color: var(--accent-text);
   }
   .ext {
@@ -142,7 +142,7 @@
     display: flex;
     flex: 1;
     flex-direction: column;
-    gap: 3px;
+    gap: var(--space-1);
     min-width: 0;
   }
   .name,
@@ -176,7 +176,7 @@
   .track {
     position: relative;
     height: 4px;
-    margin: 3px 0 1px;
+    margin: var(--space-1) 0 1px;
     overflow: hidden;
     border-radius: 2px;
     background: var(--surface-active);
@@ -196,12 +196,12 @@
   }
   .confirm {
     display: flex;
-    gap: 6px;
-    margin-top: 6px;
+    gap: var(--space-1);
+    margin-top: var(--space-1);
   }
   .confirm button {
     height: 26px;
-    padding: 0 12px;
+    padding: 0 var(--space-3);
     border-radius: 7px;
     font-size: 12px;
     font-weight: 500;

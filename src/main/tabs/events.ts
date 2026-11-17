@@ -195,6 +195,20 @@ export class TabEvents {
 
     on("did-start-navigation", (details) => {
       if (!details.isMainFrame || details.isSameDocument) return;
+      // Focus mode (ADR-059): the page is not loaded, the tab says why and until when.
+      if (deps.hooks.focusHolds?.(details.url)) {
+        // Stopping inside Chromium's navigation event crashes: right after it instead.
+        setImmediate(() => {
+          if (!contents.isDestroyed()) contents.stop();
+        });
+        tab.state.interstitial = { kind: "focus", url: details.url };
+        tab.state.url = details.url;
+        tab.state.title = displayUrl(details.url);
+        tab.state.isLoading = false;
+        deps.layout.syncAttachment();
+        deps.emit();
+        return;
+      }
       // A new page: fresh blocked counter, no blocked popup, and any interstitial gives way to it.
       tab.state.blockedCount = 0;
       tab.state.blockedPopup = null;

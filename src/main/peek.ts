@@ -1,6 +1,13 @@
 import { WebContentsView, type BaseWindow, type WebContents } from "electron";
 import { Channels } from "@shared/ipc";
-import { isPeekableUrl, peekLayout, type PeekAction, type PeekState } from "@shared/peek";
+import { getLocale } from "@shared/i18n";
+import { isPeekableUrl, parseSummary, peekLayout, SUMMARY_MAX_CHARS, SUMMARY_SCHEMA, summaryPrompt, type PeekAction, type PeekState, type PeekSummary } from "@shared/peek";
+import { sanitizeReaderArticle } from "@shared/reader";
+import { articleParagraphs } from "@shared/reading-list";
+import { errorMessage, structuredAnswer } from "./assistant/client";
+import { assistantKey } from "./assistant/keys";
+import { READER_WORLD_ID, extractArticle } from "./reader/page";
+import { settings } from "./settings";
 import { MAX_SPLIT_TABS } from "@shared/split";
 import type { TabId } from "@shared/types";
 import { displayUrl } from "@shared/url";
@@ -12,6 +19,8 @@ import type { TabManager } from "./tabs";
 /** What the link peek needs from its window (a BrowserController). */
 export interface PeekHost {
   readonly window: BaseWindow;
+  /** A private window's peek never sends its page to the assistant (ADR-059). */
+  readonly isPrivate: boolean;
   readonly overlay: Overlay;
   readonly tabs: TabManager;
 }
@@ -34,6 +43,9 @@ export class LinkPeek {
   private requested = "";
   private favicons: string[] = [];
   private unlisten: (() => void) | null = null;
+  /** The AI summary of the page shown (ADR-059); reset when the peek shows another page. */
+  private summary: PeekSummary = { status: "idle", bullets: [] };
+  private summaryRun = 0;
 
   constructor(private readonly host: PeekHost) {}
 
@@ -65,6 +77,8 @@ export class LinkPeek {
     this.sourceId = tabId;
     this.requested = url;
     this.favicons = [];
+    this.summary = { status: "idle", bullets: [] };
+    this.summaryRun++;
     const contents = view.webContents;
     this.wire(contents);
     this.host.overlay.open({ kind: "link-peek", peek: this.state() });
@@ -80,14 +94,54 @@ export class LinkPeek {
   /** Places the card again (the page area changed: window resized, sidebar toggled…). */
   layout(): void {
     if (!this.view || this.host.window.isDestroyed()) return;
-    this.view.setBounds(peekLayout(this.area()).page);
+    this.view.setBounds(peekLayout(this.area(), undefined, this.summaryShown()).page);
     this.push();
   }
 
   /** An action of the card's header (from the overlay layer). */
   act(action: PeekAction): void {
     if (action === "close") this.close();
+    else if (action === "summarize") void this.summarize();
     else this.promote(action === "open-split");
+  }
+
+  private assistantReady(): boolean {
+    const current = settings().assistant;
+    return !this.host.isPrivate && current.enabled && current.acknowledged && !!assistantKey.get();
+  }
+
+  private summaryShown(): boolean {
+    return this.summary.status === "loading" || this.summary.status === "done" || this.summary.status === "error";
+  }
+
+  /** The page's reader-mode text (Readability, ADR-026), else its visible text, capped. */
+  private async pageText(contents: WebContents): Promise<string> {
+    const article = sanitizeReaderArticle(await extractArticle(contents).catch(() => null), contents.getURL());
+    const text = article ? articleParagraphs(article.content).join("\n\n") : "";
+    if (text.length > 200) return text.slice(0, SUMMARY_MAX_CHARS);
+    const visible = await contents.executeJavaScriptInIsolatedWorld(READER_WORLD_ID, [{ code: `(document.body ? document.body.innerText : "").slice(0, ${SUMMARY_MAX_CHARS})` }]).catch(() => "");
+    return typeof visible === "string" ? visible : "";
+  }
+
+  /** "Résumer": a few bullet points about the peeked page, shown in a strip above it. */
+  private async summarize(): Promise<void> {
+    const contents = this.view && !this.view.webContents.isDestroyed() ? this.view.webContents : null;
+    const key = assistantKey.get();
+    if (!contents || !this.assistantReady() || this.summary.status === "loading") return;
+    const run = ++this.summaryRun;
+    this.summary = { status: "loading", bullets: [] };
+    this.layout();
+    try {
+      const text = await this.pageText(contents);
+      const answer = await structuredAnswer(key, settings().assistant.model, summaryPrompt(contents.getTitle(), text, getLocale()), SUMMARY_SCHEMA, AbortSignal.timeout(30_000));
+      const bullets = parseSummary(answer);
+      if (run !== this.summaryRun) return;
+      this.summary = bullets.length ? { status: "done", bullets } : { status: "error", bullets: [], message: "" };
+    } catch (error) {
+      if (run !== this.summaryRun) return;
+      this.summary = { status: "error", bullets: [], message: errorMessage(error) };
+    }
+    this.layout();
   }
 
   /** Closes the peek and its overlay card; focus goes back to the page below. */
@@ -155,6 +209,7 @@ export class LinkPeek {
       isLoading: contents?.isLoading() ?? false,
       canSplit: !(manager.splitVisible && (split?.tabIds.length ?? 0) >= MAX_SPLIT_TABS),
       card: peekLayout(this.area()).card,
+      summary: this.assistantReady() ? this.summary : { status: "off", bullets: [] },
     };
   }
 

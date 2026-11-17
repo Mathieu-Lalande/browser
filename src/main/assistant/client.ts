@@ -77,3 +77,23 @@ export function errorMessage(error: unknown): string {
   if (error instanceof Anthropic.APIError) return t("assistantClient.anthropicApiError", { p: error.status ?? "?" });
   return t("assistantClient.assistantCouldntAnswer");
 }
+
+/**
+ * "Ranger les onglets" (ADR-059): one short structured call, the answer constrained to
+ * `schema` (JSON). Low effort: grouping titles is a light task. Resolves with the JSON text.
+ */
+export async function structuredAnswer(apiKey: string, model: AssistantModelId, prompt: string, schema: Record<string, unknown>, signal: AbortSignal): Promise<string> {
+  const response = await client(apiKey).beta.messages.create(
+    {
+      model,
+      max_tokens: 4096,
+      messages: [{ role: "user", content: prompt }],
+      output_config: { effort: "low", format: { type: "json_schema", schema } },
+      betas: [FALLBACK_BETA],
+      fallbacks: "default",
+    },
+    { signal },
+  );
+  if (response.stop_reason === "refusal") throw new Error("refusal");
+  return response.content.map((block) => (block.type === "text" ? block.text : "")).join("");
+}

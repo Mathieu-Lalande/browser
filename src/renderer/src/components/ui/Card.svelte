@@ -23,16 +23,16 @@
     flex-direction: column;
     gap: 1px;
     margin: 0;
-    padding: 4px;
+    padding: var(--space-1);
     list-style: none;
     border: 1px solid var(--border);
-    border-radius: calc(var(--radius) + 2px);
+    border-radius: calc(var(--radius-md) + var(--space-1));
     background: var(--bg-elevated);
   }
   .card.section {
     overflow: hidden;
     border: 1px solid var(--border);
-    border-radius: calc(var(--radius) + 4px);
+    border-radius: var(--radius-lg);
     background: color-mix(in oklab, var(--bg) 45%, var(--bg-elevated));
   }
 </style>

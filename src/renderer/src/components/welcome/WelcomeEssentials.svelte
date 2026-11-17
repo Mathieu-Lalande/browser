@@ -97,7 +97,7 @@
     margin-top: var(--space-1);
   }
   kbd {
-    padding: 2px 6px;
+    padding: 2px var(--space-1);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     background: var(--bg);
@@ -144,7 +144,7 @@
     left: 15%;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--space-1);
     width: 70%;
     animation: reveal 2.6s var(--ease) infinite;
   }
@@ -184,16 +184,16 @@
     position: absolute;
     inset: 16px 0 16px 20%;
     display: flex;
-    gap: 12px;
+    gap: var(--space-3);
     animation: swipe 3s var(--ease) infinite;
   }
   .spaces .panel {
     display: flex;
     flex: none;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--space-1);
     width: 30%;
-    padding: 8px;
+    padding: var(--space-2);
     border-radius: 8px;
     background: var(--surface);
   }
@@ -209,7 +209,7 @@
     bottom: 22px;
     left: 34%;
     display: flex;
-    gap: 6px;
+    gap: var(--space-1);
     animation: fingers 3s var(--ease) infinite;
   }
   .spaces .fingers i {
@@ -255,7 +255,7 @@
     inset: 14px 18%;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-2);
   }
   .peek .pagebg i {
     height: 10px;
@@ -270,8 +270,8 @@
     inset: 22px 26%;
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    padding: 8px;
+    gap: var(--space-1);
+    padding: var(--space-2);
     border-radius: 8px;
     background: var(--bg-elevated);
     box-shadow: 0 6px 18px rgb(0 0 0 / 0.18);
@@ -310,9 +310,9 @@
     left: 14px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--space-1);
     width: 30%;
-    padding: 8px;
+    padding: var(--space-2);
     border-radius: 8px;
     background: var(--surface);
     animation: rail 3s var(--ease) infinite;

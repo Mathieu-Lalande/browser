@@ -74,6 +74,7 @@ export class TabStore {
         canGoBack: false,
         canGoForward: false,
         isPinned: entry.pinned,
+        pinnedUrl: entry.pinned ? (entry.pinnedUrl ?? (entry.url || null)) : null,
         folderId: entry.pinned ? null : (entry.folderId ?? null),
         isBookmarked: false,
         blockedCount: 0,
@@ -204,6 +205,7 @@ export class TabStore {
       const { state, lastSeenAt } = record;
       const tab: SessionTab = { url: state.url, title: state.title, favicon: storableFavicon(state.favicon), pinned: state.isPinned };
       if (state.folderId) tab.folderId = state.folderId;
+      if (state.isPinned && state.pinnedUrl && state.pinnedUrl !== state.url) tab.pinnedUrl = state.pinnedUrl;
       // Tabs on screen are being seen right now (auto-archiving counts from when they left it).
       tab.lastSeenAt = onScreen(record) ? now : lastSeenAt;
       return tab;

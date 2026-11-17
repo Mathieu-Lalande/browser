@@ -1,6 +1,6 @@
 import { t } from "@shared/i18n";
 import { Menu, session, WebContentsView, type BaseWindow, type BrowserWindow, type WebContents } from "electron";
-import { MAX_PANEL_FAVICON, panelBadge, panelPartition, panelToToggle, type PanelsState, type WebPanel } from "@shared/panels";
+import { MAX_PANEL_FAVICON, panelBadge, panelPartition, panelToToggle, panelZoomFactor, type PanelsState, type WebPanel } from "@shared/panels";
 import type { Bounds } from "@shared/types";
 import { fetchImageDataUrl } from "../favicons";
 import { mobileUserAgent } from "../fingerprint";
@@ -28,6 +28,8 @@ interface LivePanel {
   /** The URL and user agent the page was created with (a change reloads it). */
   mobile: boolean;
   badge: number | null;
+  /** The zoom factor applied (ADR-059), re-applied after each load. */
+  zoomFactor: number;
   unlisten: () => void;
 }
 
@@ -55,7 +57,15 @@ export class PanelHost {
       openId: this.openId,
       panels: this.deps.service.list().map((panel) => {
         const live = this.live.get(panel.id);
-        return { ...panel, badge: live?.badge ?? null, loaded: !!live };
+        const contents = live && !live.view.webContents.isDestroyed() ? live.view.webContents : null;
+        return {
+          ...panel,
+          badge: live?.badge ?? null,
+          loaded: !!live,
+          canGoBack: contents?.navigationHistory.canGoBack() ?? false,
+          audible: contents?.isCurrentlyAudible() ?? false,
+          zoomFactor: live?.zoomFactor ?? panelZoomFactor(panel.zoom, panel.width, panel.mobile),
+        };
       }),
     };
   }
@@ -93,6 +103,48 @@ export class PanelHost {
   setBounds(bounds: Bounds | null): void {
     this.bounds = bounds && bounds.width > 0 && bounds.height > 0 ? bounds : null;
     this.layout();
+    // "Ajuster" follows the panel's width (ADR-059).
+    if (this.openId && this.bounds) this.applyZoom(this.openId);
+  }
+
+  back(id: string): void {
+    const contents = this.contentsOf(id);
+    if (contents?.navigationHistory.canGoBack()) contents.navigationHistory.goBack();
+  }
+
+  /** Opens the panel's current page in a tab of the window (the panel keeps its own session). */
+  openInTab(id: string): void {
+    const contents = this.contentsOf(id);
+    const url = contents?.getURL() || this.deps.service.find(id)?.url;
+    if (url) this.deps.openTab(url, true);
+  }
+
+  /** Unloads the panel's page to free memory (it reloads when shown again); the shown one is hidden. */
+  sleep(id: string): void {
+    if (this.openId === id) this.openId = null;
+    this.discard(id);
+    this.layout();
+    this.deps.refresh();
+  }
+
+  private contentsOf(id: string): WebContents | null {
+    const contents = this.live.get(id)?.view.webContents;
+    return contents && !contents.isDestroyed() ? contents : null;
+  }
+
+  /** Applies the panel's zoom (a percentage, or "fit" at the width it is shown at). */
+  private applyZoom(id: string): void {
+    const live = this.live.get(id);
+    const panel = this.deps.service.find(id);
+    const contents = this.contentsOf(id);
+    if (!live || !panel || !contents) return;
+    const width = this.openId === id && this.bounds ? this.bounds.width : panel.width;
+    const factor = panelZoomFactor(panel.zoom, width, panel.mobile);
+    if (contents.getZoomFactor() !== factor) contents.setZoomFactor(factor);
+    if (factor !== live.zoomFactor) {
+      live.zoomFactor = factor;
+      this.deps.refresh();
+    }
   }
 
   reload(id: string): void {
@@ -119,6 +171,9 @@ export class PanelHost {
       { label: t("panelsHost.reload"), enabled: loaded, click: () => this.reload(id) },
       { label: t("panelsHost.backPanelsPage"), enabled: loaded, click: () => this.home(id) },
       { label: t("panelsHost.mobileSite"), type: "checkbox", checked: panel.mobile, click: () => service.update(id, { mobile: !panel.mobile }) },
+      { label: t("panelsHost.muted"), type: "checkbox", checked: panel.muted, click: () => service.update(id, { muted: !panel.muted }) },
+      { label: t("panelsHost.openInTab"), enabled: loaded, click: () => this.openInTab(id) },
+      { label: t("panelsHost.sleep"), enabled: loaded, click: () => this.sleep(id) },
       { type: "separator" },
       { label: t("panelsHost.moveUp"), enabled: index > 0, click: () => service.move(id, index - 1) },
       { label: t("panelsHost.moveDown"), enabled: index < service.list().length - 1, click: () => service.move(id, index + 1) },
@@ -133,10 +188,14 @@ export class PanelHost {
     for (const [id, live] of this.live) {
       const panel = panels.get(id);
       if (!panel) this.discard(id);
-      else if (panel.mobile !== live.mobile) {
-        live.mobile = panel.mobile;
-        this.applyUserAgent(live.view.webContents, panel.mobile);
-        live.view.webContents.reload();
+      else {
+        if (panel.mobile !== live.mobile) {
+          live.mobile = panel.mobile;
+          this.applyUserAgent(live.view.webContents, panel.mobile);
+          live.view.webContents.reload();
+        }
+        if (!live.view.webContents.isDestroyed()) live.view.webContents.setAudioMuted(panel.muted);
+        this.applyZoom(id);
       }
     }
     if (this.openId && !panels.has(this.openId)) this.openId = null;
@@ -166,7 +225,8 @@ export class PanelHost {
     view.setBackgroundColor("#ffffff");
     const contents = view.webContents;
     this.applyUserAgent(contents, panel.mobile);
-    const live: LivePanel = { view, mobile: panel.mobile, badge: null, unlisten: () => {} };
+    contents.setAudioMuted(panel.muted);
+    const live: LivePanel = { view, mobile: panel.mobile, badge: null, zoomFactor: 1, unlisten: () => {} };
     live.unlisten = this.wire(panel.id, contents, live);
     this.live.set(panel.id, live);
     void contents.loadURL(panel.url).catch(() => {
@@ -200,6 +260,10 @@ export class PanelHost {
       this.deps.refresh();
     };
     const onFavicons = (_event: Electron.Event, favicons: string[]) => void this.saveFavicon(id, contents, favicons[0]);
+    // Chromium resets the zoom of a new document to the origin's: the panel's own wins.
+    const onLoaded = () => this.applyZoom(id);
+    // The back button and the sound indicator of the frame follow the page.
+    const onChanged = () => this.deps.refresh();
     const onGone = () => {
       if (this.live.get(id) === live) this.discard(id);
       this.deps.refresh();
@@ -207,8 +271,16 @@ export class PanelHost {
     contents.on("page-title-updated", onTitle);
     contents.on("page-favicon-updated", onFavicons);
     contents.on("render-process-gone", onGone);
+    contents.on("did-finish-load", onLoaded);
+    contents.on("did-navigate", onChanged);
+    contents.on("did-navigate-in-page", onChanged);
+    contents.on("audio-state-changed", onChanged);
     return () => {
       if (contents.isDestroyed()) return;
+      contents.off("did-finish-load", onLoaded);
+      contents.off("did-navigate", onChanged);
+      contents.off("did-navigate-in-page", onChanged);
+      contents.off("audio-state-changed", onChanged);
       contents.off("page-title-updated", onTitle);
       contents.off("page-favicon-updated", onFavicons);
       contents.off("render-process-gone", onGone);

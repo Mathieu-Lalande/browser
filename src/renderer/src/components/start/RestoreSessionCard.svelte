@@ -123,7 +123,7 @@
     gap: 2px;
   }
   .titles {
-    padding-left: 28px;
+    padding-left: var(--space-5);
     overflow: hidden;
     color: var(--text-muted);
     font-size: var(--text-xs);

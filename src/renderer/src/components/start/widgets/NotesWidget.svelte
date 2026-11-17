@@ -34,6 +34,6 @@
     user-select: text;
   }
   textarea:focus {
-    border-color: color-mix(in oklab, var(--accent) 50%, transparent);
+    border-color: color-mix(in oklab, var(--accent) min(calc(50% * var(--tint, 1)), 90%), transparent);
   }
 </style>

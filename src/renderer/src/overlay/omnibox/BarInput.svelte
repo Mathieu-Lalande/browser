@@ -56,7 +56,7 @@
     align-items: center;
     gap: 10px;
     height: 60px;
-    padding: 0 16px 0 18px;
+    padding: 0 var(--space-4) 0 18px;
     border-bottom: 1px solid var(--border);
   }
   .glyph {
@@ -71,7 +71,7 @@
     height: 28px;
     padding: 0 6px 0 10px;
     border-radius: 999px;
-    background: color-mix(in oklab, var(--accent) 18%, transparent);
+    background: color-mix(in oklab, var(--accent) min(calc(18% * var(--tint, 1)), 90%), transparent);
     color: var(--accent-text);
     font-size: 12.5px;
     font-weight: 600;
@@ -85,7 +85,7 @@
     opacity: 0.7;
   }
   .chip:hover .x {
-    background: color-mix(in oklab, var(--accent) 25%, transparent);
+    background: color-mix(in oklab, var(--accent) min(calc(25% * var(--tint, 1)), 90%), transparent);
     opacity: 1;
   }
   input {

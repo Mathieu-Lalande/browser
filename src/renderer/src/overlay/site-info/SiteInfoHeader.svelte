@@ -34,7 +34,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 12px 10px 10px 14px;
+    padding: var(--space-3) 10px 10px 14px;
     border-bottom: 1px solid var(--border);
   }
   .badge {
@@ -44,7 +44,7 @@
     width: 32px;
     height: 32px;
     border-radius: 10px;
-    background: color-mix(in oklab, var(--accent) 14%, transparent);
+    background: color-mix(in oklab, var(--accent) min(calc(14% * var(--tint, 1)), 90%), transparent);
     color: var(--accent-text);
   }
   .badge.warn {
@@ -77,7 +77,7 @@
     align-items: center;
     gap: 5px;
     height: 26px;
-    padding: 0 8px;
+    padding: 0 var(--space-2);
     border-radius: 7px;
     color: var(--accent-text);
     font-size: var(--text-xs);

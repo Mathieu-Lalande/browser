@@ -82,6 +82,9 @@ barre d'adresse, page d'accueil, raccourcis, durcissement sécurité, tests unit
   aperçu des liens (ADR-027), options de la page, captures et vidéo (ADR-031).
 - (fait) Galerie de thèmes et thèmes partageables (ADR-030), barre universelle (ADR-032).
 - (fait) Releases GitHub, site vitrine et guide d'utilisation (`site/`, ADR-023).
+- (fait, ADR-059) Épingler = favori, onglets épinglés ancrés, « Ranger les onglets » (sur l'appareil ou par l'IA),
+  concentration et temps par site, sessions nommées, bilan et verrou des mots de passe, pages sombres, sites en
+  applications, résumé dans l'aperçu, panneaux web ajustés, intensité des couleurs ; page « Développeurs » du site.
 
 ## Synchronisation — voir ADR-019 et `server/README.md`
 - (fait) Synchronisation chiffrée de bout en bout entre le bureau et le téléphone : favoris (et

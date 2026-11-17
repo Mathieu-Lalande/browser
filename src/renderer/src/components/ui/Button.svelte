@@ -41,7 +41,7 @@
     flex: none;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: var(--space-1);
     height: var(--field-height);
     padding: 0 var(--space-3);
     border: 1px solid transparent;
@@ -57,7 +57,7 @@
   }
   .button.sm {
     height: var(--hit-min);
-    padding: 0 10px;
+    padding: 0 var(--space-2);
     font-size: var(--text-xs);
   }
   .button:active:not(:disabled) {

@@ -47,7 +47,7 @@
       box-shadow var(--motion-fast) var(--ease);
   }
   .search:focus-within {
-    border-color: color-mix(in oklab, var(--accent) 60%, transparent);
+    border-color: color-mix(in oklab, var(--accent) min(calc(60% * var(--tint, 1)), 90%), transparent);
     box-shadow: var(--focus-ring);
   }
   input {

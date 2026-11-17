@@ -38,7 +38,7 @@
   .spinner {
     width: 12px;
     height: 12px;
-    border: 2px solid color-mix(in oklab, var(--accent) 30%, transparent);
+    border: 2px solid color-mix(in oklab, var(--accent) min(calc(30% * var(--tint, 1)), 90%), transparent);
     border-top-color: var(--accent);
     border-radius: 50%;
     animation: spin 0.7s linear infinite;

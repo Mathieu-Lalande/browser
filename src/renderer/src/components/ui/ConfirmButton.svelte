@@ -61,9 +61,9 @@
     display: flex;
     flex: none;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-1);
     height: 28px;
-    padding: 0 10px;
+    padding: 0 var(--space-2);
     border-radius: 8px;
     font-size: 12px;
     white-space: nowrap;
@@ -77,7 +77,7 @@
   }
   .trigger.outlined {
     height: 32px;
-    padding: 0 12px;
+    padding: 0 var(--space-3);
     border: 1px solid var(--border);
     background: var(--surface);
     color: var(--text);
@@ -91,7 +91,7 @@
     flex-wrap: wrap;
     align-items: center;
     justify-content: flex-end;
-    gap: 6px;
+    gap: var(--space-1);
     animation: appear var(--motion-fast) var(--ease);
   }
   .question {
@@ -115,7 +115,7 @@
   }
   .outlined button {
     height: 32px;
-    padding: 0 12px;
+    padding: 0 var(--space-3);
     font-size: inherit;
   }
   @keyframes appear {

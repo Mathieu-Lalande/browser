@@ -42,16 +42,16 @@
   .segmented {
     display: inline-flex;
     gap: 2px;
-    padding: 3px;
+    padding: var(--space-1);
     border-radius: calc(var(--radius) - 1px);
     background: var(--surface-active);
   }
   button {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-1);
     height: 28px;
-    padding: 0 12px;
+    padding: 0 var(--space-3);
     border-radius: calc(var(--radius) - 3px);
     color: var(--text-muted);
     font-size: 12.5px;

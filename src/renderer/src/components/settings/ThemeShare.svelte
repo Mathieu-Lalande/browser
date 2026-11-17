@@ -146,7 +146,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
-    padding: 6px;
+    padding: var(--space-1);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     background: var(--surface);
@@ -181,7 +181,7 @@
   .caption {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-1);
     padding: 0 2px 2px;
     font-size: var(--text-xs);
     font-weight: 500;

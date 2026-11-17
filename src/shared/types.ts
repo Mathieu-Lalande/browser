@@ -1,3 +1,4 @@
+import type { FocusState } from "./focus";
 import type { Locale } from "./i18n";
 import type { PanelsState } from "./panels";
 import type { EnergyState } from "./energy";
@@ -24,6 +25,8 @@ export interface TabState {
   canGoBack: boolean;
   canGoForward: boolean;
   isPinned: boolean;
+  /** The page a pinned tab was pinned on, its "home" (ADR-059); null/absent when not pinned. */
+  pinnedUrl?: string | null;
   /** The sidebar folder holding the tab (ADR-022); null/absent at the root and for pinned tabs. */
   folderId?: FolderId | null;
   /** Whether the tab shows the site of one of the favorites (ADR-022). */
@@ -119,7 +122,8 @@ export interface PermissionPrompt {
 
 /** HTTPS-Only: the upgraded connection failed; `url` is the original http:// address. */
 export interface TabInterstitial {
-  kind: "https-only";
+  /** "focus": a site held by the focus session (ADR-059). */
+  kind: "https-only" | "focus";
   url: string;
 }
 
@@ -148,6 +152,8 @@ export interface BrowserState extends TabsState {
   activeSpaceId: SpaceId;
   /** A private window: one ephemeral space, in-memory session, nothing written to disk (ADR-014). */
   isPrivate?: boolean;
+  /** The focus session running, if any (ADR-059). */
+  focus?: FocusState;
   /** The favorites grid, shared by every space (ADR-022). */
   favorites?: FavoriteTile[];
   /** After an unclean shutdown: the session the start page offers to restore (ADR-042). */
@@ -236,6 +242,8 @@ export type UiCommand =
   /** Reader (ADR-058): starts or pauses reading aloud, or shows the presentation mode (the reader is open). */
   | "reader-read-aloud"
   | "reader-presentation"
+  /** "Ranger les onglets" (ADR-059): the sidebar asks main for a proposal and shows it. */
+  | "tidy-tabs"
   /** Opens a space's editor (`edit-space:<id>`), its name field focused with `rename-space:<id>`. */
   | `edit-space:${string}`
   | `rename-space:${string}`;

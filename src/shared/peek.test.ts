@@ -35,3 +35,14 @@ describe("peek rules", () => {
     expect(isPeekAction(undefined)).toBe(false);
   });
 });
+
+describe("peek summary (ADR-059)", () => {
+  it("makes room for the strip and validates the answer", async () => {
+    const { PEEK_SUMMARY_HEIGHT, parseSummary, peekLayout, summaryPrompt } = await import("./peek");
+    const area = { x: 0, y: 0, width: 1000, height: 800 };
+    expect(peekLayout(area, 0.8, true).page.y - peekLayout(area).page.y).toBe(PEEK_SUMMARY_HEIGHT);
+    expect(parseSummary(JSON.stringify({ bullets: ["• Un", "  deux  ", 3, "", "quatre", "cinq", "six"] }))).toEqual(["Un", "deux", "quatre", "cinq"]);
+    expect(parseSummary("nope")).toEqual([]);
+    expect(summaryPrompt("T", "x".repeat(30_000), "fr").length).toBeLessThan(24_500);
+  });
+});

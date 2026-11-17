@@ -108,7 +108,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 0 14px 12px;
+    padding: 0 14px var(--space-3);
   }
   .empty {
     margin: 0;

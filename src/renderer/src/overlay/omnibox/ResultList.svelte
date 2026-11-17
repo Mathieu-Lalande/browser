@@ -77,13 +77,13 @@
     scrollbar-width: thin;
   }
   .group + .group {
-    margin-top: 4px;
+    margin-top: var(--space-1);
   }
   .heading {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 10px 4px;
+    padding: var(--space-2) 10px var(--space-1);
     color: var(--text-faint);
     font-size: 11px;
     font-weight: 600;
@@ -91,7 +91,7 @@
   }
   .empty {
     margin: 0;
-    padding: 18px 12px 10px;
+    padding: 18px var(--space-3) 10px;
     color: var(--text-faint);
     text-align: center;
   }

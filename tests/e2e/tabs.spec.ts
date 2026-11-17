@@ -291,3 +291,12 @@ test("the command palette never runs a suggestion computed for older text", asyn
   await input.press("Enter");
   await expect.poll(async () => (await state(chrome)).tabs[0].url).toMatch(/^https:\/\/duckduckgo\.com\/\?q=zzfresh/);
 });
+
+test("pinning a tab lights the bookmark star, and taking the star off unpins it", async ({ chrome, server }) => {
+  await visit(chrome, server.url("/one"), "Page one");
+  const [one] = (await state(chrome)).tabs;
+  await chrome.evaluate((id) => (globalThis as unknown as Global).browser.tabs.togglePin(id), one.id);
+  await expect.poll(async () => (await state(chrome)).tabs.map((tab) => [tab.isPinned, tab.isBookmarked])).toEqual([[true, true]]);
+  await chrome.evaluate(() => (globalThis as unknown as Global).browser.bookmarks.toggleActive());
+  await expect.poll(async () => (await state(chrome)).tabs.map((tab) => [tab.isPinned, tab.isBookmarked])).toEqual([[false, false]]);
+});

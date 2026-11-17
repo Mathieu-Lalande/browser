@@ -64,7 +64,7 @@
   dl {
     display: grid;
     grid-template-columns: auto 1fr;
-    gap: 4px 10px;
+    gap: var(--space-1) 10px;
     margin: 6px 0 0;
     font-size: var(--text-xs);
   }

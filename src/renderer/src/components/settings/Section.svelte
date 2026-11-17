@@ -76,9 +76,9 @@
     width: 32px;
     height: 32px;
     border-radius: var(--radius-md);
-    background: linear-gradient(135deg, color-mix(in oklab, var(--accent) 24%, transparent), color-mix(in oklab, var(--accent-2) 14%, transparent));
+    background: linear-gradient(135deg, color-mix(in oklab, var(--accent) min(calc(24% * var(--tint, 1)), 90%), transparent), color-mix(in oklab, var(--accent-2) min(calc(14% * var(--tint, 1)), 90%), transparent));
     color: var(--accent-text);
-    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) 22%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent) min(calc(22% * var(--tint, 1)), 90%), transparent);
   }
   .heading {
     flex: 1 1 200px;

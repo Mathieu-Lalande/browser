@@ -22,6 +22,8 @@ export const INTERNAL_PAGES = {
   privacy: { get title() { return t("internal.privacy") } },
   "site-settings": { get title() { return t("internal.siteSettings") } },
   "reading-list": { get title() { return t("internal.readingList") } },
+  focus: { get title() { return t("internal.focus") } },
+  sessions: { get title() { return t("internal.sessions") } },
 } as const;
 
 export type InternalPage = keyof typeof INTERNAL_PAGES;
